@@ -18,8 +18,9 @@ use crate::{
     wake::Wake,
 };
 
-/// Space between rows.
-const GAP: f32 = 4.;
+/// The space between the cards stacked above the composer, and between the strip's own rows. The strip's top
+/// margin takes back one gap, so an empty strip adds no space of its own.
+pub const STACK_GAP: f32 = 4.;
 
 struct Slot {
     row: SubagentRow,
@@ -140,9 +141,9 @@ impl RenderOnce for SubagentStrip {
         }
         // Each slot carries the gap above its row, so a closing slot takes its gap with it; the strip's
         // own negative top margin hides the first one.
-        let slot = ROW_HEIGHT + GAP;
-        div().flex().flex_col().mt(px(-GAP)).children(m.state.slots(now).map(|(row, open)| {
-            div().flex_none().h(px(slot * open)).overflow_hidden().opacity(open).pt(px(GAP)).child(row.clone())
+        let slot = ROW_HEIGHT + STACK_GAP;
+        div().flex().flex_col().mt(px(-STACK_GAP)).children(m.state.slots(now).map(|(row, open)| {
+            div().flex_none().h(px(slot * open)).overflow_hidden().opacity(open).pt(px(STACK_GAP)).child(row.clone())
         }))
     }
 }

@@ -1,7 +1,7 @@
 //! beui's FileDiff (`components/agents/file-diff.tsx`), class for class:
 //!
 //! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, the header at `px-3.5 py-2.5`, the diff in a
-//!   darker well inside it.
+//!   darker well that runs to the card's edges.
 //! - Root `w-full text-sm`. Header `min-h-9 gap-2`: a `size-4` file icon, the path
 //!   `text-xs` at 80% foreground, `+n`/`\u{2212}n` change counts, a `size-4` status slot (spinning loader
 //!   while streaming, a check once complete), and a rotating `size-3.5` chevron.
@@ -378,12 +378,15 @@ impl RenderOnce for FileDiff {
             )
         });
 
+        // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the diff. While
+        // the diff has more to show, it keeps the wheel.
+        let overflows = scroll.0.borrow().base_handle.max_offset().y > px(0.) || scroll.0.borrow().base_handle.max_offset().x > px(0.);
         let card = div()
             .flex()
             .flex_col()
             .overflow_hidden()
-            .rounded(radius::xl())
             .bg(theme.background.opacity(0.5))
+            .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
             .child(rows)
             .when_some(footer, |d, footer| d.child(footer));
 
@@ -392,12 +395,13 @@ impl RenderOnce for FileDiff {
             .flex_col()
             .w_full()
             .rounded(radius::xxl())
+            .overflow_hidden()
             .bg(theme.card)
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .child(header)
             .when_some((reveal > 0.001).then_some(card), |d, card| {
-                d.child(div().px(px(14.)).pb(px(12.)).child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card)))
+                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card))
             })
     }
 }

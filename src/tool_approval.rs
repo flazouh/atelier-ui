@@ -1,7 +1,7 @@
 //! beui's ToolApproval (`components/agents/tool-approval.tsx`), class for class:
 //!
-//! - Row `items-start gap-3 p-4`: a `size-8` status tile (`ShieldCheck`, a spinning `LoaderCircle`,
-//!   `Check`, `X`, or `CircleAlert`), the title `font-medium`, the tool in mono `text-xs` at muted, and a
+//! - Compact, as the other cards are: row `items-start px-3.5 py-2.5`, with no status tile or icon. The title
+//!   `font-medium` and the tool in mono `text-xs` at muted share one line, then a
 //!   status pill (`rounded-full px-2 py-0.5 text-[11px]`) tinted amber, blue, emerald, or rose by
 //!   `ToolApprovalStatus`.
 //! - An optional description at `leading-5` muted, and a "View details" toggle (`text-xs`, a `size-3.5`
@@ -14,7 +14,7 @@
 //!   themselves on leaving `Pending`.
 //! - Borderless: every `border` token becomes a `card`/`card_strong` fill.
 
-use std::{rc::Rc, sync::Arc, time::UNIX_EPOCH};
+use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
     App, ClickEvent, ElementId, Entity, FontWeight, IntoElement, InteractiveElement, ParentElement, RenderOnce,
@@ -28,7 +28,7 @@ use crate::{
     animated_badge::{AnimatedBadge, BadgeSize, BadgeStatus},
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
-    motion::{Channel, Curve, duration, ease},
+    motion::{Channel, Curve, ease},
     file_diff::{FileDiff, FileDiffStatus},
     reveal::Reveal,
     theme::{ActiveTheme, Theme, radius},
@@ -63,18 +63,6 @@ impl ToolApprovalStatus {
 
     fn busy(self) -> bool {
         matches!(self, Self::Approving | Self::Running)
-    }
-
-    fn icon(self) -> IconName {
-        if self.busy() {
-            return IconName::Progress;
-        }
-        match self {
-            Self::Error => IconName::Error,
-            Self::Denied => IconName::Close,
-            Self::Approved | Self::Complete => IconName::Check,
-            _ => IconName::VerifiedUser,
-        }
     }
 
     /// The badge's status: amber, a turning ring while it works, emerald and rose.
@@ -303,15 +291,6 @@ impl RenderOnce for ToolApproval {
 
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
-        // lucide's `animate-spin`.
-        let spin_ms = duration::SPIN.as_millis();
-        let spin = if status.busy() && !reduce {
-            (UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() % spin_ms) as f32 / spin_ms as f32
-        } else {
-            0.
-        };
-        let tile_color = if status == ToolApprovalStatus::Error { theme.danger } else { muted };
-
         let (title, tool_line, description) = head_words(
             &self.title,
             &self.tool,
@@ -322,21 +301,8 @@ impl RenderOnce for ToolApproval {
         let head = div()
             .flex()
             .items_start()
-            .gap(px(12.))
-            .p(px(16.))
-            .child(
-                div()
-                    .flex()
-                    .flex_none()
-                    .items_center()
-                    .justify_center()
-                    .mt(px(2.))
-                    .size(px(32.))
-                    .rounded(radius::xl())
-                    .bg(theme.card_strong)
-                    .text_color(tile_color)
-                    .child(Icon::new(status.icon()).size(px(16.)).color(tile_color).turn(spin)),
-            )
+            .px(px(14.))
+            .py(px(10.))
             .child(
                 div()
                     .flex()
@@ -352,10 +318,12 @@ impl RenderOnce for ToolApproval {
                             .child(
                                 div()
                                     .flex()
-                                    .flex_col()
+                                    .items_baseline()
+                                    .gap(px(8.))
                                     .min_w_0()
                                     .child(
                                         div()
+                                            .flex_none()
                                             .font_weight(FontWeight::MEDIUM)
                                             .text_color(theme.foreground)
                                             .child(SharedString::from(title)),
@@ -363,7 +331,7 @@ impl RenderOnce for ToolApproval {
                                     .children(tool_line.map(|tool| {
                                         div()
                                             .debug_selector(|| "approval-tool-line".into())
-                                            .mt(px(2.))
+                                            .min_w_0()
                                             .truncate()
                                             .font_family(MONO_FONT_FAMILY)
                                             .text_size(TextSize::Xs.font_size())
@@ -374,7 +342,7 @@ impl RenderOnce for ToolApproval {
                             .child(AnimatedBadge::new(child(&id, "status"), status.badge()).size(BadgeSize::Small).show_icon(false).label(status.label()).debug_name("approval-status")),
                     )
                     .when_some(description, |d, description| {
-                        d.child(div().debug_selector(|| "approval-description".into()).mt(px(8.)).line_height(px(20.)).text_color(muted).child(SharedString::from(description)))
+                        d.child(div().debug_selector(|| "approval-description".into()).mt(px(2.)).line_height(px(20.)).text_color(muted).child(SharedString::from(description)))
                     })
                     .when(has_params, |d| {
                         let toggle = motion.clone();
@@ -384,7 +352,7 @@ impl RenderOnce for ToolApproval {
                                 .flex()
                                 .items_center()
                                 .gap(px(4.))
-                                .mt(px(8.))
+                                .mt(px(4.))
                                 .cursor_pointer()
                                 .text_size(TextSize::Xs.font_size())
                                 .font_weight(FontWeight::MEDIUM)
@@ -411,9 +379,9 @@ impl RenderOnce for ToolApproval {
                 .flex()
                 .flex_col()
                 .gap(px(8.))
-                .mx(px(16.))
-                .mb(px(16.))
-                .p(px(12.))
+                .mx(px(14.))
+                .mb(px(10.))
+                .p(px(10.))
                 .rounded(radius::xl())
                 .bg(theme.card_strong)
                 .text_size(TextSize::Xs.font_size())
@@ -437,8 +405,8 @@ impl RenderOnce for ToolApproval {
                         .flex_wrap()
                         .items_center()
                         .gap(px(8.))
-                        .px(px(16.))
-                        .py(px(12.))
+                        .px(px(14.))
+                        .pb(px(10.))
                         .child(wire(
                             Button::new(child(&id, "approve"))
                                 .label("Allow once")

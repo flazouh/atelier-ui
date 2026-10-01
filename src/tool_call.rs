@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use gpui_kit::{
     App, ElementId, Entity, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, relative,
+    ScrollHandle, SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, relative,
 };
 use crate::scale::px;
 
@@ -145,6 +145,8 @@ struct CallMotion {
     had_body: bool,
     disclosure: Reveal,
     copy: CopyFeedback,
+    /// The output's scroll, so the wheel can stay inside it while it has more to show.
+    scroll: ScrollHandle,
 }
 
 /// Whether the panel should pop open on this frame: a run just started, or output just showed up on a
@@ -183,6 +185,7 @@ impl RenderOnce for ToolCall {
             had_body: has_body,
             disclosure: Reveal::new(open),
             copy: CopyFeedback::default(),
+            scroll: ScrollHandle::new(),
         });
         follow_status(&motion, status, has_body, reduce, cx);
         let m = motion.read(cx);
@@ -279,19 +282,26 @@ impl RenderOnce for ToolCall {
         let body = self.output.map(|output| {
             let copy_state = motion.clone();
             let text = output.to_string();
-            let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div().px(px(14.)).pb(px(12.)) };
+            // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
+            let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
+            let scroll = motion.read(cx).scroll.clone();
+            let overflows = scroll.max_offset().y > px(0.);
             body.child(
                 div()
                     .flex()
                     .flex_col()
                     .overflow_hidden()
-                    .rounded(radius::xl())
+                    .when(flat, |d| d.rounded(radius::xl()))
                     .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
+                    // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the
+                    // output. While the output has more to show, it keeps the wheel.
+                    .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
                     .child(
                         div()
                             .id(child("output"))
                             .max_h(px(MAX_OUTPUT_HEIGHT))
                             .overflow_y_scroll()
+                            .track_scroll(&scroll)
                             .p(px(12.))
                             .font_family(MONO_FONT_FAMILY)
                             .text_size(TextSize::Xs.font_size())
@@ -332,7 +342,7 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card))
+            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card).overflow_hidden())
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))
