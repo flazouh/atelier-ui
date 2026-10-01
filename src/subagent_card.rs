@@ -2,9 +2,10 @@
 //!
 //! - Header `h-11 px-3.5`: the look's mark (orbiting while it runs, still once done), the agent's name, its
 //!   task in muted text, a [`ModelBadge`], and on the right the elapsed time, or a check once done.
-//! - Body line, under the name: "12 tool calls" and the live tool call with a turning [`Spinner`]. When the
-//!   live call or the count changes, the old text leaves and the new enters with [`Morph`]. Once done it
-//!   reads "Done in 38s" and "12 tool calls", parted by [`SEGMENT_GAP`] of space.
+//! - Body line, under the name: the live tool call on the left, "12 tool calls" on the far right. The mark in
+//!   the header already shows that it runs, so the line has no spinner of its own. Every kind of call (read,
+//!   edit, search, web search) reads the same way here. When the live call or the count changes, the old text
+//!   leaves and the new enters with [`Morph`]. Once done the left side reads "Done in 38s".
 //! - Pressing the card opens its tool calls, as [`ToolCall`] rows, with [`Reveal`].
 
 use std::sync::Arc;
@@ -22,20 +23,20 @@ use crate::{
     model_badge::{BrandMark, ModelBadge},
     morph::Morph,
     reveal::Reveal,
-    spinner::Spinner,
     status_mark::{Mark, StatusMark},
     subagent_row::{done_text, tool_calls_text},
     theme::{ActiveTheme, StatusTone, radius},
     tool_call::ToolCall,
-    typography::{SEGMENT_GAP, TextSize},
+    typography::TextSize,
 };
 
-/// The body line's segments: the count while it runs, then "Done in 38s" and the count. They part by
-/// space, never by a glyph. `finished` is `Some` once done, holding the run time in seconds if known.
-pub fn status_line(finished: Option<Option<u64>>, tool_calls: u64) -> Vec<SharedString> {
+/// The left side of the body line: "Done in 38s" once the card is done, else the live tool call, if any.
+/// `finished` is `Some` once done, holding the run time in seconds if known. The count sits apart, on the
+/// right.
+pub fn lead_text(finished: Option<Option<u64>>, live_tool: Option<SharedString>) -> Option<SharedString> {
     match finished {
-        None => vec![tool_calls_text(tool_calls)],
-        Some(seconds) => vec![done_text(seconds), tool_calls_text(tool_calls)],
+        Some(seconds) => Some(done_text(seconds)),
+        None => live_tool,
     }
 }
 
@@ -219,28 +220,20 @@ impl RenderOnce for SubagentCard {
                 div()
                     .flex()
                     .items_center()
-                    .gap(px(8.))
+                    .gap(px(12.))
                     .pl(px(26.))
                     .h(px(20.))
                     .text_size(TextSize::Xs.font_size())
                     .text_color(muted)
+                    .child(
+                        div().flex_1().min_w_0().overflow_hidden().whitespace_nowrap().text_color(if done { muted } else { theme.foreground.opacity(0.75) }).children(
+                            lead_text(self.finished, self.live_tool).map(|lead| Morph::new(child("live"), lead.clone(), text(lead))),
+                        ),
+                    )
                     .child(div().flex_none().child({
-                        let segments = status_line(self.finished, self.tool_calls);
-                        let key = segments.join("\n");
-                        Morph::new(child("count"), key, move |_, _| {
-                            div().flex().gap(px(SEGMENT_GAP)).whitespace_nowrap().children(segments.clone()).into_any_element()
-                        })
-                    }))
-                    .when_some(self.live_tool.filter(|_| !done), |d, tool| {
-                        d.child(Spinner::new(child("spin")).size(px(12.)).color(muted.opacity(0.7))).child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .overflow_hidden()
-                                .text_color(theme.foreground.opacity(0.75))
-                                .child(Morph::new(child("live"), tool.clone(), text(tool))),
-                        )
-                    }),
+                        let count = tool_calls_text(self.tool_calls);
+                        Morph::new(child("count"), count.clone(), move |_, _| div().whitespace_nowrap().child(count.clone()).into_any_element())
+                    })),
             ));
 
         div()
