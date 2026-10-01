@@ -2,7 +2,7 @@
 //!
 //! - Header `h-11 px-3.5`: the look's mark (orbiting while it runs, still once done), the agent's name, its
 //!   task in muted text, a [`ModelBadge`], and on the right the elapsed time, or a check once done.
-//! - Body line, under the name: the live tool call on the left, "12 tool calls" on the far right. The mark in
+//! - Body line, under the name: the live tool call flush left, under the mark rather than the name, and "12 tool calls" on the far right. The mark in
 //!   the header already shows that it runs, so the line has no spinner of its own. Every kind of call (read,
 //!   edit, search, web search) reads the same way here. When the live call or the count changes, the old text
 //!   leaves and the new enters with [`Morph`]. Once done the left side reads "Done in 38s".
@@ -215,13 +215,12 @@ impl RenderOnce for SubagentCard {
                     }),
             )
             .when(done || self.tool_calls > 0 || self.live_tool.is_some(), |d| d.child(
-                // Under the name: past the mark and its gap. Before the first tool call there is nothing
-                // to count, so the header stands alone.
+                // Under the header, flush with the mark on the left edge, not with the name. Before the first
+                // tool call there is nothing to count, so the header stands alone.
                 div()
                     .flex()
                     .items_center()
                     .gap(px(12.))
-                    .pl(px(26.))
                     .h(px(20.))
                     .text_size(TextSize::Xs.font_size())
                     .text_color(muted)
