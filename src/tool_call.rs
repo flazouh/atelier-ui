@@ -7,7 +7,7 @@
 //!   knocked out in the page color when it is done, failed or cancelled; and a `size-3.5` chevron.
 //! - Body `pl-6 pt-1.5`: a `rounded-xl` card holding the output in mono at `p-3`, capped at 220px, and a
 //!   footer row with Copy and the status label.
-//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header at `px-3.5 py-2.5`, the output
+//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-2.5`), the output
 //!   in a darker well inside it. [`ToolCall::flat`] drops the card and tightens the row: reading and searching are
 //!   flat, so a run of them stacks close, and so is a call that sits inside another card, as in an open subagent.
 //! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`.
@@ -30,6 +30,10 @@ use crate::{
     theme::{ActiveTheme, StatusTone, Theme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+
+/// A card's header, as compact as a row of the strip above the composer: [`crate::subagent_row::ROW_HEIGHT`] tall, `px-2.5`.
+pub(crate) const CARD_HEADER_HEIGHT: f32 = crate::subagent_row::ROW_HEIGHT;
+pub(crate) const CARD_HEADER_PAD_X: f32 = 10.;
 
 /// beui's `maxHeight` for the output.
 const MAX_OUTPUT_HEIGHT: f32 = 220.;
@@ -207,7 +211,7 @@ impl RenderOnce for ToolCall {
             .items_center()
             .gap(px(8.))
             .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
-            .when(!flat, |d| d.min_h(px(44.)).px(px(14.)).py(px(10.)).rounded(radius::xxl()))
+            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::xxl()))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {

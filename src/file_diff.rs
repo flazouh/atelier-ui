@@ -1,6 +1,6 @@
 //! beui's FileDiff (`components/agents/file-diff.tsx`), class for class:
 //!
-//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, the header at `px-3.5 py-2.5`, the diff in a
+//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, the header as compact as a strip row (`h-8 px-2.5`), the diff in a
 //!   darker well that runs to the card's edges.
 //! - Root `w-full text-sm`. Header `min-h-9 gap-2`: a `size-4` file icon, the path
 //!   `text-xs` at 80% foreground, `+n`/`\u{2212}n` change counts, a `size-4` status slot (spinning loader
@@ -256,10 +256,9 @@ impl RenderOnce for FileDiff {
             .flex()
             .items_center()
             .gap(px(8.))
-            .min_h(px(44.))
+            .min_h(px(crate::tool_call::CARD_HEADER_HEIGHT))
             .w_full()
-            .px(px(14.))
-            .py(px(10.))
+            .px(px(crate::tool_call::CARD_HEADER_PAD_X))
             .rounded(radius::xxl())
             .cursor_pointer()
             .press_stop((self.id.clone(), "head-focus"), radius::xxl(), window, cx)
