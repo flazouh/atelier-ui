@@ -4,7 +4,7 @@
 //!   between `min_rows` and `max_rows` (defaults 2 and 8) at `text-sm leading-6` (24px lines).
 //! - Action row (`mt-1 min-h-8 gap-1`): a round `size-8` ghost Plus button that opens the "add to
 //!   prompt" menu (its icon turns 45° on `Spring::SWAP`), the model picker (beui's `Select`, in its
-//!   `compact` chip skin: `h-8 rounded-xl text-xs`, no chevron, borderless, `shadow-none` panel), a
+//!   `compact` chip skin: `h-8 rounded-lg text-xs`, no chevron, borderless, `shadow-none` panel), a
 //!   flexible spacer, and the round `size-8` send button.
 //! - Send↔Stop: a single `send_swap` channel drives both icons in the same slot: the outgoing one
 //!   fades out rising 3px, the incoming one fades in falling from 3px; beui's `SPRING_SWAP` cross-fade

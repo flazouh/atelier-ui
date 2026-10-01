@@ -502,7 +502,10 @@ impl PromptInput {
                 }
                 Trigger::Mention { .. } => {
                     let path = &self.files[i];
-                    ComboRow::new(path.clone()).debug_name(format!("file-row-{path}")).into()
+                    ComboRow::new(path.clone())
+                        .leading(crate::file_icon::FileIcon::file(path))
+                        .debug_name(format!("file-row-{path}"))
+                        .into()
                 }
             })
             .collect();
@@ -914,8 +917,8 @@ impl Render for PromptInput {
                 Textarea::new(&self.text)
                     .appearance(false)
                     .disabled(disabled)
-                    .px(px(8.))
-                    .pt(px(6.))
+                    .px(px(4.))
+                    .pt(px(2.))
                     .text_size(TextSize::Sm.font_size())
                     .line_height(px(24.)),
             )
