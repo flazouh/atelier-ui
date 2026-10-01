@@ -1,0 +1,5 @@
+Material Symbols Rounded, weight 400, from @material-symbols/svg-400 0.47.5 (Apache 2.0, see LICENSE).
+Copy new ones with tools/material.sh.
+
+File icons live in ../file-icons: the Material Icon Theme (PKief/vscode-material-icon-theme, MIT, see
+../file-icons/LICENSE), as acepe maps them. Only the icons src/file_icon.rs names are copied.

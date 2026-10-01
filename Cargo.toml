@@ -1,0 +1,67 @@
+[package]
+name = "atelier-ui"
+description = "A design system for GPUI apps: the components, themes and motion of the Atelier editor."
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-only OR LicenseRef-Atelier-UI-Commercial"
+repository = "https://github.com/flazouh/atelier-ui"
+
+[dependencies]
+gpui-kit = { version = "0.6.6", features = [
+    "tree-sitter",
+    "tree-sitter-rust",
+    "tree-sitter-typescript",
+    "tree-sitter-javascript",
+    "tree-sitter-markdown",
+    "tree-sitter-markdown-inline",
+    "tree-sitter-tsx",
+    "tree-sitter-yaml",
+    "tree-sitter-go",
+    "tree-sitter-python",
+    "tree-sitter-toml",
+    "tree-sitter-zig",
+    "tree-sitter-bash",
+    "tree-sitter-c",
+    "tree-sitter-cpp",
+    "tree-sitter-csharp",
+    "tree-sitter-css",
+    "tree-sitter-html",
+    "tree-sitter-java",
+    "tree-sitter-lua",
+    "tree-sitter-php",
+    "tree-sitter-ruby",
+    "tree-sitter-scala",
+    "tree-sitter-sql",
+    "tree-sitter-swift",
+    "tree-sitter-proto",
+    "tree-sitter-diff",
+    "tree-sitter-make",
+    "tree-sitter-cmake",
+    "tree-sitter-graphql",
+    "tree-sitter-svelte",
+    "tree-sitter-astro",
+    "tree-sitter-elixir",
+] }
+lsp-types = "0.97"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.9"
+core-foundation-sys = "0.8"
+
+[dev-dependencies]
+gpui-kit = { version = "0.6.6", features = ["test-support"] }
+tree-sitter = "0.26.13"
+tempfile = "3"
+
+[workspace]
+# Patched copies of dependencies, not ours to test: see each one's PATCHES.md.
+exclude = ["vendor/gpui-base", "vendor/gpui-component"]
+
+[patch.crates-io]
+# gpui-base 0.6.6 with the editor fixes in vendor/gpui-base/PATCHES.md.
+gpui-base = { path = "vendor/gpui-base" }
+# gpui-component 0.6.6 with the highlighter fix in vendor/gpui-component/PATCHES.md.
+gpui-component = { path = "vendor/gpui-component" }

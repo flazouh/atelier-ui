@@ -1,0 +1,14 @@
+atelier-ui
+Copyright 2026 flazouh
+
+This product includes parts under other licenses. Each keeps its own license.
+
+- Tokens, motion and component behaviour ported from beui.dev (github.com/starc007/ui-components).
+  MIT License, Copyright (c) 2026 Saurabh Chauhan.
+- vendor/gpui-base and vendor/gpui-component: patched copies of gpui-base and gpui-component 0.6.6.
+  Apache License 2.0, see vendor/*/LICENSE-APACHE.
+- assets/fonts: Geist and Geist Mono. SIL Open Font License 1.1, see assets/fonts/OFL.txt.
+- assets/icons: Material Symbols Rounded. Apache License 2.0, see assets/icons/LICENSE.
+- assets/file-icons: Material Icon Theme by Philipp Kief. MIT License, see assets/file-icons/LICENSE.
+- assets/themes/vscode: GitHub and Catppuccin themes (MIT, see LICENSE-github and LICENSE-catppuccin), and
+  the Cursor themes. Sources are in assets/themes/vscode/SOURCES.md.
