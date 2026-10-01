@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use gpui_kit::{
-    Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement, Pixels, Render, StatefulInteractiveElement,
+    AppContext as _, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement, Pixels, Render, StatefulInteractiveElement,
     Styled, TestAppContext, VisualTestContext, Window, div, point, px, size,
 };
 
@@ -125,21 +125,43 @@ fn host(cx: &mut TestAppContext) -> (Entity<Host>, &mut VisualTestContext) {
         set_appearance(Appearance::Dark, cx);
         cx.set_reduce_motion(true);
     });
-    let (host, cx) = cx.add_window_view(|_, cx| Host {
-        open: [false; 2],
-        anchors: [None; 2],
-        focus: [cx.focus_handle(), cx.focus_handle()],
-        beneath_clicks: 0,
-        beneath_hovers: 0,
-        item_clicks: 0,
-        left: 20.,
-        drawn: true,
-        top: 10.,
-        switchable: false,
-    });
+    let (host, cx) = cx.add_window_view(|_, cx| Host::new(cx));
     cx.simulate_resize(size(px(600.), px(400.)));
     cx.run_until_parked();
     (host, cx)
+}
+
+impl Host {
+    fn new(cx: &mut Context<Self>) -> Self {
+        Host {
+            open: [false; 2],
+            anchors: [None; 2],
+            focus: [cx.focus_handle(), cx.focus_handle()],
+            beneath_clicks: 0,
+            beneath_hovers: 0,
+            item_clicks: 0,
+            left: 20.,
+            drawn: true,
+            top: 10.,
+            switchable: false,
+        }
+    }
+}
+
+/// Two copies of one view, one above the other, so their popovers have the same ids: two agent panels.
+struct Pair([Entity<Host>; 2]);
+
+impl Render for Pair {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().children(self.0.iter().map(|host| div().relative().w(px(600.)).h(px(200.)).child(host.clone())))
+    }
+}
+
+fn press(host: &Entity<Host>, i: usize, cx: &mut VisualTestContext) {
+    let at = host.read_with(cx, |h, _| h.anchors[i]).expect("the trigger is drawn").center();
+    cx.simulate_click(at, gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    cx.run_until_parked();
 }
 
 fn click(cx: &mut VisualTestContext, selector: &'static str) {
@@ -253,6 +275,34 @@ fn a_press_on_another_switchable_trigger_closes_this_one_and_opens_that_one(cx: 
     click(cx, "trigger-0");
     cx.run_until_parked();
     assert!(is_open(&host, 0, cx) && !is_open(&host, 1, cx), "and back again");
+}
+
+#[gpui_kit::test]
+fn a_press_on_a_switchable_trigger_in_another_copy_of_the_view_switches_to_it(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+        cx.set_reduce_motion(true);
+    });
+    let (pair, cx) = cx.add_window_view(|_, cx| {
+        Pair([0, 1].map(|_| {
+            cx.new(|cx| {
+                let mut host = Host::new(cx);
+                host.switchable = true;
+                host
+            })
+        }))
+    });
+    cx.simulate_resize(size(px(600.), px(400.)));
+    cx.run_until_parked();
+    let [a, b] = pair.read_with(cx, |p, _| p.0.clone());
+    let open = |host: &Entity<Host>, i: usize, cx: &mut VisualTestContext| host.read_with(cx, |h, _| h.open[i]);
+    press(&a, 0, cx);
+    assert!(open(&a, 0, cx), "the first view's popover opened");
+    press(&b, 1, cx);
+    assert!(open(&b, 1, cx) && !open(&a, 0, cx), "a press on the other view's other trigger switched to it");
+    press(&a, 1, cx);
+    assert!(open(&a, 1, cx) && !open(&b, 1, cx), "and the popover with the same id in the first view takes over from it");
 }
 
 #[gpui_kit::test]

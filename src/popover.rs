@@ -322,7 +322,6 @@ pub fn placement(anchor: Bounds<Pixels>, side: Side, align: Align, gap: f32, hei
 
 impl RenderOnce for Popover {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let key = format!("{:?}", self.id);
         let state = window.use_keyed_state(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "popover".into()), cx, |_, cx| PopState {
             was_open: false,
             seq: 0,
@@ -332,6 +331,9 @@ impl RenderOnce for Popover {
             escape: None,
             panel: cx.focus_handle(),
         });
+        // Its own state's id, not its element id: two copies of one view, such as two agent panels, give
+        // their popovers the same element ids.
+        let key = state.entity_id().to_string();
         let viewport = window.viewport_size();
         let active = window.is_window_active();
         let shown = self.shown.unwrap_or(self.open);

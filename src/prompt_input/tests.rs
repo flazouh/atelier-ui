@@ -224,3 +224,53 @@ fn a_press_on_the_model_select_switches_from_the_open_mode_list(cx: &mut TestApp
     run_for(700, cx);
     assert_eq!(under(cx), Some("model"), "the press on the model select opens the model list in its place");
 }
+
+/// Two session panels side by side, each with its prompt at the foot.
+struct Panels([Entity<PromptInput>; 2]);
+
+impl gpui_kit::Render for Panels {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl gpui_kit::IntoElement {
+        gpui_kit::div().size_full().flex().children(
+            self.0.iter().map(|p| gpui_kit::div().w(px(450.)).h_full().flex().flex_col().justify_end().child(p.clone()).child(gpui_kit::div().h(px(46.)))),
+        )
+    }
+}
+
+/// With the mode list open in one panel, a press on the model select of the other panel shuts it and opens that one.
+#[gpui_kit::test]
+fn a_press_on_the_model_select_of_another_panel_switches_from_the_open_mode_list(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let (_panels, cx) = cx.add_window_view(|window, cx| {
+        Panels([0, 1].map(|_| {
+            cx.new(|cx| {
+                PromptInput::new("Ask", "", window, cx)
+                    .models(vec![PromptModel::new("a", "Model A"), PromptModel::new("b", "Model B")])
+                    .modes(vec!["Ask first".into(), "Plan".into()])
+            })
+        }))
+    });
+    cx.simulate_resize(gpui_kit::size(px(900.), px(600.)));
+    run_for(100, cx);
+    // The two panels are the same, 450px apart: the selects of the first, wherever the lookup finds them.
+    let in_first = |b: Bounds<Pixels>| if b.left() < px(450.) { b } else { Bounds::new(gpui_kit::point(b.left() - px(450.), b.top()), b.size) };
+    let model = in_first(cx.debug_bounds("prompt-model-select").expect("the model select is drawn"));
+    let mode = in_first(cx.debug_bounds("prompt-mode-select").expect("the mode select is drawn"));
+    let shift = |b: Bounds<Pixels>| Bounds::new(gpui_kit::point(b.left() + px(450.), b.top()), b.size);
+    let under = |cx: &mut VisualTestContext| {
+        let option = cx.debug_bounds("select-option-0")?;
+        let places = [("first mode", mode), ("first model", model), ("second mode", shift(mode)), ("second model", shift(model))];
+        places.into_iter().min_by(|a, b| (option.left() - a.1.left()).abs().partial_cmp(&(option.left() - b.1.left()).abs()).unwrap()).map(|p| p.0)
+    };
+    cx.simulate_click(mode.center(), gpui_kit::Modifiers::default());
+    run_for(700, cx);
+    assert_eq!(under(cx), Some("first mode"));
+    cx.simulate_click(shift(model).center(), gpui_kit::Modifiers::default());
+    run_for(700, cx);
+    assert_eq!(under(cx), Some("second model"), "the press on the other panel's model select opens its list");
+    cx.simulate_click(model.center(), gpui_kit::Modifiers::default());
+    run_for(700, cx);
+    assert_eq!(under(cx), Some("first model"), "and the first panel's model select, with the same ids, takes over");
+}
