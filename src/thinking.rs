@@ -143,6 +143,7 @@ pub struct Thinking {
     tokens: Option<u64>,
     tasks: Option<u64>,
     subagents: usize,
+    loading: Vec<Strip>,
 }
 
 impl Thinking {
@@ -156,7 +157,16 @@ impl Thinking {
             tokens: None,
             tasks: None,
             subagents: 0,
+            loading: Vec::new(),
         }
+    }
+
+    /// The strips the loading mark picks among. Each row picks one at random when it first shows and keeps
+    /// it for its whole run. Without any, the look's working strip plays. Orbiting still takes over while
+    /// subagents run.
+    pub fn loading(mut self, strips: Vec<Strip>) -> Self {
+        self.loading = strips;
+        self
     }
 
     /// How many subagents run now. While any run, the mark orbits.
@@ -201,10 +211,23 @@ pub fn mark_strip(mark: &Mark, done: bool, subagents: usize) -> Strip {
     if !done && subagents > 0 { mark.orbiting } else { mark.working }
 }
 
+/// The strip the loading mark plays: one of `variants` chosen by `roll`, or `working` when there are none.
+pub(crate) fn loading_strip(variants: &[Strip], working: Strip, roll: u64) -> Strip {
+    if variants.is_empty() { working } else { variants[(roll % variants.len() as u64) as usize] }
+}
+
+/// A fresh random number, from the standard library's randomly seeded hasher. Nothing here needs more.
+fn roll() -> u64 {
+    use std::hash::BuildHasher;
+    std::collections::hash_map::RandomState::new().hash_one(0u8)
+}
+
 /// When the row appeared (the glimmer's clock), when the label last changed (the breath's clock), and
 /// the next timed wake-up.
 struct RowMotion {
     start: Instant,
+    /// Picks the loading strip, once per row.
+    roll: u64,
     label: SharedString,
     label_start: Instant,
     wake: Wake,
@@ -239,6 +262,7 @@ impl RenderOnce for Thinking {
             let text = text.clone();
             move |_, _| RowMotion {
                 start: Instant::now(),
+                roll: roll(),
                 label: text,
                 label_start: Instant::now(),
                 wake: Wake::default(),
@@ -246,7 +270,7 @@ impl RenderOnce for Thinking {
             }
         });
         let segments: [Option<SharedString>; 3] = [self.elapsed, self.tokens.map(tokens_text), self.tasks.map(tasks_text)];
-        let (elapsed_ms, since_label_ms, grow) = motion.update(cx, |m, _| {
+        let (elapsed_ms, since_label_ms, grow, picked) = motion.update(cx, |m, _| {
             if m.label != text {
                 m.label = text.clone();
                 m.label_start = Instant::now();
@@ -264,7 +288,7 @@ impl RenderOnce for Thinking {
                 });
                 channel.is_running().then(|| channel.value())
             });
-            (m.start.elapsed().as_millis() as u64, m.label_start.elapsed().as_millis() as u64, grow)
+            (m.start.elapsed().as_millis() as u64, m.label_start.elapsed().as_millis() as u64, grow, m.roll)
         });
 
         // When the next change is due. The thinking breath and the smooth glimmer band would
@@ -341,7 +365,14 @@ impl RenderOnce for Thinking {
             .text_color(muted)
             // The spark plays while the agent thinks. Once it has, the row is only its words: a still mark would
             // still read as something loading.
-            .children((!done).then(|| self.look.mark.sprite(child("spark"), mark_strip(&self.look.mark, done, self.subagents)).size(px(18.)).playing(true)))
+            .children((!done).then(|| {
+                let mark = &self.look.mark;
+                let strip = match mark_strip(mark, done, self.subagents) {
+                    working if working == mark.working => loading_strip(&self.loading, working, picked),
+                    orbiting => orbiting,
+                };
+                mark.sprite(child("spark"), strip).size(px(18.)).playing(true)
+            }))
             .child(
                 div()
                     .flex()

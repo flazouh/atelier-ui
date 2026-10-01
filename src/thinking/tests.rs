@@ -110,3 +110,28 @@ fn same_color(got: Option<Hsla>, want: Hsla) -> bool {
     let (Some(got), want) = (got.map(|c| c.to_rgb()), want.to_rgb()) else { return false };
     [got.r - want.r, got.g - want.g, got.b - want.b, got.a - want.a].iter().all(|d| d.abs() < 1e-3)
 }
+
+#[test]
+fn the_loading_mark_picks_one_of_the_strips_it_was_given() {
+    let strip = |path| Strip { path, bytes: b"", frames: 4, frame_ms: 50, loops: true };
+    let working = strip("other/work.svg");
+    let variants = [strip("a.svg"), strip("b.svg"), strip("c.svg")];
+    for roll in 0..9 {
+        assert_eq!(loading_strip(&variants, working, roll), variants[(roll % 3) as usize]);
+    }
+    // Different rolls reach every strip.
+    let seen: std::collections::HashSet<_> = (0..3).map(|roll| loading_strip(&variants, working, roll).path).collect();
+    assert_eq!(seen.len(), 3);
+}
+
+#[test]
+fn without_variants_the_loading_mark_plays_the_working_strip() {
+    let working = other_look().mark.working;
+    assert_eq!(loading_strip(&[], working, 7), working);
+}
+
+#[test]
+fn rolls_differ_between_rows() {
+    let rolls: std::collections::HashSet<_> = (0..8).map(|_| roll()).collect();
+    assert!(rolls.len() > 1);
+}
