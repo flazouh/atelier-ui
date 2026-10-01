@@ -21,12 +21,6 @@ fn an_at_sign_asks_for_a_file_up_to_the_caret() {
 }
 
 #[test]
-fn a_picked_file_takes_the_mentions_place_with_a_space_after() {
-    assert_eq!(mention("look at @li please", 8, 11, "src/lib.rs"), ("look at @src/lib.rs  please".to_string(), 20));
-    assert_eq!(mention("@", 0, 1, "a.txt"), ("@a.txt ".to_string(), 7));
-}
-
-#[test]
 fn the_list_filters_by_fuzzy_score_and_shows_all_for_no_query() {
     let items = vec![item("compact"), item("review"), item("clear-goal"), item("goal")];
     assert_eq!(ranked("", &items), vec![0, 1, 2, 3]);

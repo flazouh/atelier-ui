@@ -28,7 +28,7 @@ use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     combobox::{ComboEntry, ComboList, ComboRow, ComboStyle},
-    command_item::{CommandItem, CommandSource, Trigger, mention, ranked, trigger},
+    command_item::{CommandItem, CommandSource, Trigger, ranked, trigger},
     icon::{Icon, IconName},
     menu::{Entry, Menu, MenuItem, Origin},
     morph::Morph,
@@ -153,6 +153,8 @@ pub struct PromptInput {
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
+    /// The files picked from the `@` list, as chips over the text; a message sends each as `@path`.
+    pub(super) attached: Vec<SharedString>,
     /// A skill picked from the list runs at once instead of waiting in the box.
     run_picked_skills: bool,
     picking: Option<Picking>,
@@ -212,6 +214,7 @@ impl PromptInput {
             disabled: false,
             commands: Vec::new(),
             files: Vec::new(),
+            attached: Vec::new(),
             run_picked_skills: false,
             picking: None,
             frame: None,
@@ -390,6 +393,11 @@ impl PromptInput {
         &self.commands
     }
 
+    /// The files on the next message, as their chips show them.
+    pub fn attached(&self) -> &[SharedString] {
+        &self.attached
+    }
+
     /// What `@` offers now.
     pub fn files(&self) -> &[SharedString] {
         &self.files
@@ -466,8 +474,12 @@ impl PromptInput {
                     let t = self.text.read(cx);
                     (t.value(), t.cursor())
                 };
-                let (written, caret) = mention(&text, start, cursor, &self.files[index]);
-                self.write(&written, caret, window, cx);
+                let written = format!("{}{}", &text[..start], &text[cursor..]);
+                self.write(&written, start, window, cx);
+                let path = self.files[index].clone();
+                if !self.attached.contains(&path) {
+                    self.attached.push(path);
+                }
             }
         }
         cx.notify();
@@ -480,20 +492,89 @@ impl PromptInput {
             return self.pick(window, cx);
         }
         let text = self.text(cx);
-        let text: SharedString = text.trim().to_string().into();
-        if text.is_empty() || self.disabled || self.dictating() {
+        let text = text.trim();
+        if (text.is_empty() && self.attached.is_empty()) || self.disabled || self.dictating() {
             return;
         }
+        let mentions = self.attached.iter().map(|path| format!("@{path}")).collect::<Vec<_>>().join(" ");
+        let with = |words: &str| -> SharedString {
+            match (mentions.is_empty(), words.is_empty()) {
+                (true, _) => words.to_string().into(),
+                (false, true) => mentions.clone().into(),
+                (false, false) => format!("{mentions} {words}").into(),
+            }
+        };
         if let Some(rest) = text.strip_prefix('/') {
             let (name, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
             if self.commands.iter().any(|c| c.name == name) {
-                let (name, args): (SharedString, SharedString) = (name.to_string().into(), args.trim().to_string().into());
-                self.text.update(cx, |t, cx| t.set_value("", window, cx));
+                let (name, args): (SharedString, SharedString) = (name.to_string().into(), with(args.trim()));
+                self.clear(window, cx);
                 return cx.emit(PromptInputEvent::Command { name, args });
             }
         }
+        let message = with(text);
+        self.clear(window, cx);
+        cx.emit(PromptInputEvent::Submit(message));
+    }
+
+    /// Empties the text and takes the chips off.
+    fn clear(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.text.update(cx, |t, cx| t.set_value("", window, cx));
-        cx.emit(PromptInputEvent::Submit(text));
+        self.attached.clear();
+    }
+
+    /// The picked files over the text, each with its icon, its name and a button that takes it off.
+    fn chips(&self, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
+        if self.attached.is_empty() {
+            return None;
+        }
+        let theme = cx.theme().clone();
+        let this = cx.entity().downgrade();
+        Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(self.attached.iter().map(|path| {
+            let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_string();
+            let (chip_path, remove_path, gone) = (path.clone(), path.clone(), path.clone());
+            let owner = this.clone();
+            div()
+                .id(SharedString::from(format!("file-chip-{path}")))
+                .debug_selector(move || format!("file-chip-{chip_path}"))
+                .flex()
+                .items_center()
+                .gap(px(4.))
+                .h(px(24.))
+                .pl(px(6.))
+                .pr(px(2.))
+                .rounded(radius::md())
+                .bg(theme.chip_rest)
+                .hover(|d| d.bg(theme.chip_hover))
+                .text_size(TextSize::Xs.font_size())
+                .text_color(theme.foreground)
+                .tooltip(crate::tooltip::Tooltip::text(path.clone()))
+                .child(crate::file_icon::FileIcon::file(path).size(px(12.)))
+                .child(name)
+                .child(
+                    div()
+                        .id(SharedString::from(format!("file-chip-remove-{path}")))
+                        .debug_selector(move || format!("file-chip-remove-{remove_path}"))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .size(px(18.))
+                        .rounded(px(4.))
+                        .text_color(theme.muted_foreground)
+                        .hover(|d| d.bg(theme.muted_hover()).text_color(theme.foreground))
+                        .child(Icon::new(IconName::Close).size(px(12.)))
+                        .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+                        .on_click(move |_, _, cx| {
+                            cx.stop_propagation();
+                            owner
+                                .update(cx, |p, cx| {
+                                    p.attached.retain(|f| *f != gone);
+                                    cx.notify();
+                                })
+                                .ok();
+                        }),
+                )
+        })).into_any_element())
     }
 
     /// The open list, over or under the box, as a Select's list: the elevation's fill and shadow.
@@ -595,7 +676,7 @@ impl Render for PromptInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
-        let empty = self.text(cx).trim().is_empty();
+        let empty = self.text(cx).trim().is_empty() && self.attached.is_empty();
         let can_submit = !empty && !disabled && !self.running && !self.dictating();
 
         let reduce = cx.reduce_motion();
@@ -858,7 +939,9 @@ impl Render for PromptInput {
 
         let this = cx.entity().downgrade();
         let text = self.text.clone();
+        let chips = self.chips(cx);
         let picker = self.picker(cx);
+
         let (keys, measured, down, up) = (this.clone(), this.clone(), this.clone(), this.clone());
         div()
             .debug_selector(|| "prompt-frame".into())
@@ -924,8 +1007,10 @@ impl Render for PromptInput {
                     .ok();
                 }
             })
+            .children(chips)
             .child(
                 Textarea::new(&self.text)
+
                     .appearance(false)
                     .disabled(disabled)
                     .px(px(4.))
