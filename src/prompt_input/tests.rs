@@ -1,3 +1,7 @@
+use gpui_kit::ParentElement;
+use gpui_kit::Styled;
+use gpui_kit::Focusable;
+use gpui_kit::AppContext;
 use std::{cell::RefCell, rc::Rc};
 
 use gpui_kit::{Context, Entity, TestAppContext, VisualTestContext, Window};

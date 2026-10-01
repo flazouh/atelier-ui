@@ -3,13 +3,12 @@
 //! them as an [`AgentLook`].
 
 pub mod accessibility;
-pub mod file_upload;
-pub mod focus;
-pub mod folder_picker;
-pub mod agent_look;
 pub mod action_swap;
-pub mod animated_badge;
+pub mod agent_look;
+pub mod agent_panels;
 pub mod agent_text;
+pub mod animated_badge;
+pub mod atelier_mark;
 pub mod badge;
 pub mod bloom_menu;
 pub mod breadcrumb;
@@ -17,127 +16,130 @@ pub mod button;
 pub mod button_group;
 pub mod changed_file_tree;
 pub mod changed_files;
+pub mod checkbox;
 pub mod checks_panel;
 pub mod code_block;
-pub mod checkbox;
 pub mod code_editor;
-pub mod atelier_mark;
-pub mod layout_motion;
-pub mod multi_select;
-pub mod notification_stack;
-pub mod toast_stack;
-pub mod range_slider;
-pub mod trace;
 pub mod color_selector;
 pub mod combobox;
 pub mod command_item;
-pub mod conversation;
 pub mod comment_composer;
 pub mod commits_summary;
-pub mod court;
+pub mod conversation;
 pub(crate) mod copy_feedback;
+pub mod court;
+pub mod design_preview; // design preview: remove after Alex picks
 pub mod disclosure;
 pub mod entrance;
 pub mod file_diff;
 pub mod file_icon;
-pub mod finder;
-pub mod fuzzy;
 pub mod file_tree;
+pub mod file_upload;
+pub mod finder;
+pub mod focus;
+pub mod folder_picker;
+pub mod fuzzy;
 pub(crate) mod glimmer;
+mod helpers;
+pub mod hover_tone;
 pub mod icon;
+pub mod icon_candidates;
+pub mod icon_picker;
 pub mod inline_review;
 pub mod island;
-pub mod design_preview; // design preview: remove after Alex picks
 pub mod kbd;
 pub mod keys;
+pub mod layout_motion;
 pub mod line_comment;
 pub mod markdown_edit;
+pub mod menu;
 pub mod merge;
 pub mod merge_box;
 pub mod merge_button;
 pub mod message_bubble;
 pub mod message_rail;
+pub mod modal;
 pub mod model_badge;
 pub mod morph;
 pub mod motion;
+pub mod multi_select;
+pub mod new_task;
+pub mod new_task_model;
+pub mod notification_stack;
+pub mod number;
 pub mod pane;
-pub mod pr;
+pub mod panel_layout;
+pub mod panel_strip;
+pub mod panel_tabs;
+pub mod panel_types;
 pub mod placement;
 pub mod popover;
+pub mod pr;
 pub mod pr_card;
 pub mod pr_chip;
 pub mod pr_refs;
+pub mod project_badge;
+pub mod project_section;
 pub mod prompt_input;
 pub mod rail_section;
-pub mod scale;
+pub mod range_slider;
 pub(crate) mod reveal;
-pub mod hover_tone;
 pub mod review;
 pub mod review_bar;
 pub mod review_file_header;
+pub mod roll;
 pub mod row_map;
+pub mod scale;
+pub mod segmented;
+pub mod select;
+pub mod session_row;
 pub mod session_status;
+pub mod sidebar;
 pub mod sidebar_filter;
 pub mod sidebar_layout;
 pub mod sidebar_model;
-pub mod panel_layout;
-pub mod tab_order;
-pub mod session_row;
-pub mod icon_candidates;
 pub mod soft_breaks;
-pub mod stream_text;
-pub mod icon_picker;
-pub mod project_badge;
-pub mod project_section;
-pub mod sidebar;
-pub mod panel_types;
-pub mod agent_panels;
-pub mod panel_strip;
-pub mod panel_tabs;
-pub mod task_model;
-pub mod task_list_model;
-pub mod task_keys;
-pub mod task_edit;
-pub mod task_board_model;
-pub mod new_task_model;
-pub mod task_marks;
-pub mod task_row;
-pub mod task_picker;
-pub mod task_list;
-pub mod task_view;
-pub mod new_task;
-pub mod task_card;
-pub mod task_board;
-pub mod menu;
-pub mod number;
-pub mod modal;
-pub mod segmented;
-pub mod roll;
-pub mod select;
-pub mod sprite;
 pub mod spinner;
+pub mod sprite;
 pub mod status_mark;
+pub mod stream_text;
 pub mod subagent_card;
-pub mod syntax;
 pub mod subagent_row;
 pub mod subagent_strip;
+pub mod switch;
+pub mod syntax;
+pub mod tab_order;
+pub mod tabs;
+pub mod task_board;
+pub mod task_board_model;
+pub mod task_card;
+pub mod task_edit;
+pub mod task_keys;
+pub mod task_list;
+pub mod task_list_model;
+pub mod task_marks;
+pub mod task_model;
+pub mod task_picker;
+pub mod task_row;
+pub mod task_view;
+pub mod text_input;
 pub mod theme;
 pub mod theme_file;
 pub mod theme_import;
 pub mod theme_picker;
 pub mod themes;
 pub mod thinking;
+pub mod toast_stack;
 pub mod todo_list;
-pub mod switch;
-pub mod tabs;
-pub mod text_input;
-pub mod tooltip;
 pub mod tool_approval;
-pub mod tool_preview;
 pub mod tool_call;
+pub mod tool_preview;
+pub mod tooltip;
+pub mod trace;
+mod types;
 pub mod typography;
-pub mod verdict;
 pub mod unsent;
+pub mod verdict;
 pub(crate) mod wake;
 
 pub use agent_look::{AgentLook, Mark, PhaseLabels};
@@ -163,8 +165,8 @@ pub use island::{Island, IslandCounts, SessionsIsland, counts_of, most_urgent};
 pub use kbd::Kbd;
 pub use line_comment::{Comment, LineComment, LineComposer, LineComposerEvent};
 pub use message_bubble::{
-    MessageBubble, MessageBubbleAlign, MessageBubbleCollapsible, MessageBubbleGroupSpacing, MessageBubbleVariant,
-    message_bubble_group,
+    MessageBubble, MessageBubbleAlign, MessageBubbleCollapsible, MessageBubbleGroupSpacing,
+    MessageBubbleVariant, message_bubble_group,
 };
 pub use model_badge::{BrandMark, ModelBadge};
 pub use pane::{pane_header_height, drag_space, pane_header};
@@ -179,7 +181,9 @@ pub use focus::Field;
 pub use folder_picker::{FolderError, FolderPicker, FolderPickerEvent};
 pub use atelier_mark::AtelierMark;
 pub use multi_select::{MultiOption, MultiSelect, MultiSelectEvent};
-pub use notification_stack::{NotificationEvent, NotificationItem, NotificationStack, Trailing, TrailingTone};
+pub use notification_stack::{
+    NotificationEvent, NotificationItem, NotificationStack, Trailing, TrailingTone,
+};
 pub use toast_stack::{Toast, ToastEvent, ToastPatch, ToastPosition, ToastStack, ToastStatus};
 pub use range_slider::RangeSlider;
 pub use combobox::{ComboEntry, ComboList, ComboRow, ComboStyle};
@@ -216,7 +220,9 @@ pub use project_section::ProjectSection;
 pub use session_row::SessionRow;
 pub use sidebar::{Sidebar, SidebarEvent};
 pub use agent_panels::AgentPanels;
-pub use panel_types::{Layout as PanelLayout, PanelContent, PanelData, PanelsEvent, PanelsState, ProjectLabel};
+pub use panel_types::{
+    Layout as PanelLayout, PanelContent, PanelData, PanelsEvent, PanelsState, ProjectLabel,
+};
 pub use sidebar_model::{Connection, Location, ProjectData, SessionData};
 pub use sprite::{Sprite, Strip};
 pub use subagent_card::SubagentCard;
@@ -236,55 +242,6 @@ pub use tool_preview::{TextEdit, ToolPreview};
 pub use tool_call::{ToolCall, ToolStatus};
 pub use typography::{FONT_FAMILY, MONO_FONT_FAMILY, SEGMENT_GAP, TextSize};
 
-use std::rc::Rc;
+pub use helpers::{init, watch_system};
+pub(crate) use types::ClickHandler;
 
-use gpui_kit::{App, ClickEvent, Context, Subscription, Window};
-
-/// A click callback that components store and share across frames.
-pub(crate) type ClickHandler = Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>;
-
-/// Sets up fonts, text rendering, and the theme macOS uses now. Call once, before opening a window.
-/// Pass [`Assets`] to the application so icons load.
-pub fn init(cx: &mut App) {
-    // Must run before the first glyph is drawn.
-    typography::disable_font_smoothing();
-    gpui_kit::init(cx);
-    code_editor::bind_keys(cx);
-    inline_review::bind_keys(cx);
-    agent_panels::bind_keys(cx);
-    review::bind_keys(cx);
-    select::bind_keys(cx);
-    new_task::bind_keys(cx);
-    changed_file_tree::bind_keys(cx);
-    // After the inline review's keys, so the composer's own win inside it.
-    line_comment::bind_keys(cx);
-    comment_composer::bind_keys(cx);
-    accessibility::sync_reduce_motion(cx);
-    typography::load_fonts(cx);
-    theme::follow_system(cx);
-}
-
-/// Keeps Reduce Motion and light or dark in step with macOS while the app runs. Call from the root view
-/// of each window and keep the subscriptions for the window's life.
-pub fn watch_system<T: 'static>(window: &mut Window, cx: &mut Context<T>) -> [Subscription; 2] {
-    [
-        // macOS has no Reduce Motion event, so read it again whenever the user comes back to the window.
-        cx.observe_window_activation(window, |_, window, cx| {
-            if window.is_window_active() {
-                accessibility::sync_reduce_motion(cx);
-            }
-        }),
-        // GPUI also calls this when the window opens; act only on a real change, so a theme the user
-        // picked in the app is not reset.
-        {
-            let mut last = theme::Appearance::of_system(window.appearance());
-            cx.observe_window_appearance(window, move |_, window, cx| {
-                let now = theme::Appearance::of_system(window.appearance());
-                if now != last {
-                    last = now;
-                    theme::set_appearance(now, cx);
-                }
-            })
-        },
-    ]
-}

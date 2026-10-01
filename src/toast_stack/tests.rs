@@ -1,3 +1,5 @@
+use gpui_kit::ParentElement;
+use gpui_kit::Styled;
 use std::{cell::RefCell, rc::Rc};
 
 use gpui_kit::{Entity, Modifiers, MouseButton, TestAppContext, VisualTestContext, point, size};

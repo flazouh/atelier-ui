@@ -1,3 +1,5 @@
+use gpui_kit::ParentElement;
+use gpui_kit::Styled;
 use std::{cell::RefCell, rc::Rc};
 
 use gpui_kit::{Context, KeyDownEvent, KeyUpEvent, Keystroke, Render, TestAppContext, VisualTestContext};

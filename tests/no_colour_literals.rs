@@ -4,18 +4,18 @@
 
 use std::path::Path;
 
-/// Files that are the theme, or read its files. `theme.rs` names no colour; the atelier palette is data.
-const ALLOWED: &[&str] = &["theme_file.rs", "theme_import.rs"];
+/// Modules that are the theme, or read its files. `theme.rs` names no colour; the atelier palette is data.
+const ALLOWED: &[&str] = &["theme_file", "theme_import"];
 
 fn sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     for entry in std::fs::read_dir(dir).unwrap().flatten() {
         let path = entry.path();
         let name = path.file_name().unwrap().to_string_lossy().into_owned();
         if path.is_dir() {
-            if name != "tests" {
+            if name != "tests" && !ALLOWED.contains(&name.as_str()) {
                 sources(&path, out);
             }
-        } else if name.ends_with(".rs") && name != "tests.rs" && !ALLOWED.contains(&name.as_str()) {
+        } else if name.ends_with(".rs") && name != "tests.rs" && !ALLOWED.contains(&name.trim_end_matches(".rs")) {
             out.push(path);
         }
     }

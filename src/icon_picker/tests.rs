@@ -1,3 +1,4 @@
+use gpui_kit::AppContext;
 use std::{cell::RefCell, rc::Rc};
 use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px};
 use super::*;
