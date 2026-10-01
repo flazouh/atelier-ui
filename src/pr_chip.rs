@@ -89,7 +89,7 @@ impl RenderOnce for PrChip {
             .gap(px(4.))
             .h(px(PILL_HEIGHT))
             .px(px(6.))
-            .rounded_full()
+            .rounded(radius::md())
             .bg(theme.card_strong)
             .hover(|s| s.bg(mix(theme.card_strong, theme.foreground, 0.06)))
             .cursor_pointer()
