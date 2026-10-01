@@ -479,3 +479,8 @@ pub(super) fn embedded(name: &str) -> Option<&'static [u8]> {
         _ => return None,
     })
 }
+
+/// Draws every [`FileIcon`](super::FileIcon) with `source` first, for the icons it returns.
+pub fn set_source(source: super::types::Source, cx: &mut gpui_kit::App) {
+    cx.set_global(super::structs::OwnSource(source));
+}

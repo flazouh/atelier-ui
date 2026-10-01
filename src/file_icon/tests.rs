@@ -62,3 +62,41 @@ fn every_icon_the_map_names_is_embedded() {
     }
     assert!(bytes("file-icons/no-such.svg").is_none());
 }
+
+mod source {
+    use gpui_kit::{Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use crate::file_icon::{FileIcon, IconFor, set_source};
+
+    struct Host;
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            div().size_full().child(FileIcon::file("src/lib.rs")).child(FileIcon::folder("src", true))
+        }
+    }
+
+    fn mark(name: &'static str) -> gpui_kit::AnyElement {
+        div().debug_selector(move || name.into()).size(px(1.)).into_any_element()
+    }
+
+    #[gpui_kit::test]
+    fn an_app_can_draw_file_icons_its_own_way_and_keep_the_folders(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_source(
+                |icon, _, _| match icon {
+                    IconFor::File(path) if *path == "src/lib.rs" => Some(mark("own-file-icon")),
+                    _ => None,
+                },
+                cx,
+            );
+        });
+        let (_host, cx) = cx.add_window_view(|_, _| Host);
+        cx.simulate_resize(size(px(100.), px(100.)));
+        cx.run_until_parked();
+        let own = cx.debug_bounds("own-file-icon").expect("the app's icon draws for the file");
+        assert_eq!(f32::from(own.size.width), 1.);
+        assert!(cx.debug_bounds("file-icon").is_some(), "the folder keeps the built-in icon");
+    }
+}
