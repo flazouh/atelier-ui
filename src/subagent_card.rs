@@ -252,7 +252,7 @@ impl RenderOnce for SubagentCard {
                         .flex_col()
                         .px(px(14.))
                         .pb(px(8.))
-                        .children(self.calls.into_iter().map(ToolCall::nested)),
+                        .children(self.calls.into_iter().map(ToolCall::flat)),
                 )
             })
     }

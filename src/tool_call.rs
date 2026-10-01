@@ -8,8 +8,8 @@
 //! - Body `pl-6 pt-1.5`: a `rounded-xl` card holding the output in mono at `p-3`, capped at 220px, and a
 //!   footer row with Copy and the status label.
 //! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header at `px-3.5 py-2.5`, the output
-//!   in a darker well inside it. [`ToolCall::nested`] drops the card for a call that sits inside another card, as
-//!   in an open subagent.
+//!   in a darker well inside it. [`ToolCall::flat`] drops the card and tightens the row: reading and searching are
+//!   flat, so a run of them stacks close, and so is a call that sits inside another card, as in an open subagent.
 //! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`.
 
 use std::sync::Arc;
@@ -76,7 +76,7 @@ pub struct ToolCall {
     output: Option<SharedString>,
     file: Option<SharedString>,
     icon: Option<IconName>,
-    nested: bool,
+    flat: bool,
 }
 
 impl ToolCall {
@@ -91,13 +91,14 @@ impl ToolCall {
             output: None,
             file: None,
             icon: None,
-            nested: false,
+            flat: false,
         }
     }
 
-    /// Drops the card, for a call that already sits inside one.
-    pub fn nested(mut self) -> Self {
-        self.nested = true;
+    /// A plain row with no card and little height, for reading and searching, which come in runs, and for a call
+    /// that already sits inside a card.
+    pub fn flat(mut self) -> Self {
+        self.flat = true;
         self
     }
 
@@ -194,7 +195,7 @@ impl RenderOnce for ToolCall {
         let muted = theme.muted_foreground;
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
-        let nested = self.nested;
+        let flat = self.flat;
         let toggle = motion.clone();
         let header = div()
             .id(child("header"))
@@ -202,13 +203,12 @@ impl RenderOnce for ToolCall {
             .flex()
             .items_center()
             .gap(px(8.))
-            .min_h(px(32.))
-            .when(nested, |d| d.py(px(2.)).rounded(radius::md()))
-            .when(!nested, |d| d.min_h(px(44.)).px(px(14.)).py(px(10.)).rounded(radius::xxl()))
+            .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
+            .when(!flat, |d| d.min_h(px(44.)).px(px(14.)).py(px(10.)).rounded(radius::xxl()))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if nested { radius::md() } else { radius::xxl() }, window, cx).on_click(move |_, _, cx| {
+                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::xxl() }, window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
                     toggle.update(cx, |m, cx| {
                         let open = !m.disclosure.open;
@@ -279,14 +279,14 @@ impl RenderOnce for ToolCall {
         let body = self.output.map(|output| {
             let copy_state = motion.clone();
             let text = output.to_string();
-            let body = if nested { div().pl(px(24.)).pt(px(6.)) } else { div().px(px(14.)).pb(px(12.)) };
+            let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div().px(px(14.)).pb(px(12.)) };
             body.child(
                 div()
                     .flex()
                     .flex_col()
                     .overflow_hidden()
                     .rounded(radius::xl())
-                    .bg(if nested { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
+                    .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
                     .child(
                         div()
                             .id(child("output"))
@@ -332,7 +332,7 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!nested, |d| d.rounded(radius::xxl()).bg(theme.card))
+            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card))
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))
