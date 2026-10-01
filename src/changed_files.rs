@@ -9,6 +9,8 @@
 //!   them away again. A fold never hides a single row.
 //! - While the turn runs, each new file enters with [`EntranceList`](crate::entrance::EntranceList), above the fold and, once the list is
 //!   open, below it too. Rows already there when the list opens come in with the reveal instead.
+//! - [`ChangedFiles::collapsible`] starts with the header alone and a chevron in it: a press on the header
+//!   opens the rows and folds them away again. Review stays in the header and does not open them.
 
 mod helpers;
 mod structs;

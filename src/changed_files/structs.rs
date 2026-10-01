@@ -11,6 +11,7 @@ use crate::{
     button::{Button, ButtonVariant},
     entrance::EntranceList,
     file_icon::FileIcon,
+    icon::{Icon, IconName},
     focus::PressStop,
     morph::Morph,
     reveal::Reveal,
@@ -52,13 +53,14 @@ pub struct ChangedFiles {
     pub(super) files: Vec<ChangedFile>,
     running: bool,
     default_open: bool,
+    collapsible: bool,
     on_open_file: Option<PathHandler>,
     on_review: Option<PathHandler>,
 }
 
 impl ChangedFiles {
     pub fn new(id: impl Into<ElementId>, files: Vec<ChangedFile>) -> Self {
-        Self { id: id.into(), files, running: false, default_open: false, on_open_file: None, on_review: None }
+        Self { id: id.into(), files, running: false, default_open: false, collapsible: false, on_open_file: None, on_review: None }
     }
 
     /// While the turn runs, new files enter as they arrive and Review waits.
@@ -70,6 +72,12 @@ impl ChangedFiles {
     /// Starts with the whole list shown instead of folded.
     pub fn default_open(mut self, open: bool) -> Self {
         self.default_open = open;
+        self
+    }
+
+    /// Starts as the header alone, which opens and folds the rows.
+    pub fn collapsible(mut self) -> Self {
+        self.collapsible = true;
         self
     }
 
@@ -99,6 +107,12 @@ impl RenderOnce for ChangedFiles {
             let d = disclosure.read(cx);
             (d.open, d.reveal.value())
         };
+        let collapsible = self.collapsible;
+        let body = window.use_keyed_state((self.id.clone(), "body"), cx, move |_, _| Reveal::new(!collapsible));
+        if body.read(cx).is_moving() {
+            window.request_animation_frame();
+        }
+        let unfolded = body.read(cx).reveal.value();
         let child = |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
 
         let (added, removed) = totals(&self.files);
@@ -125,19 +139,42 @@ impl RenderOnce for ChangedFiles {
             }
         };
         let review = first_path(&self.files).cloned().zip(self.on_review.clone());
+        let chevron = collapsible.then(|| {
+            Icon::new(IconName::ChevronRight).size(px(16.)).color(muted).turn(0.25 * unfolded)
+        });
+        let toggle = body.clone();
         let header = div()
+            .id(child("toggle"))
+            .debug_selector(|| "changed-files-toggle".into())
             .flex()
             .items_center()
             .gap(px(10.))
-            .h(px(44.))
-            .px(px(14.))
+            .h(px(if collapsible { 36. } else { 44. }))
+            .px(px(if collapsible { 10. } else { 14. }))
+            .when(collapsible, |d| {
+                d.cursor_pointer().on_click(move |_, _, cx| {
+                    let reduce = cx.reduce_motion();
+                    toggle.update(cx, |b, cx| {
+                        let open = !b.open;
+                        b.set_open(open, reduce);
+                        cx.notify();
+                    })
+                })
+            })
+            .children(chevron)
             .child(div().flex_1().min_w_0().child(Morph::new(child("heading"), summary, heading)))
             .child(
                 Button::new(child("review"))
+                    .debug_name("changed-files-review")
                     .label("Review")
                     .variant(ButtonVariant::Primary)
                     .disabled(self.running || review.is_none())
-                    .when_some(review, |b, (path, handler)| b.on_click(move |_, window, cx| handler(&path, window, cx))),
+                    .when_some(review, |b, (path, handler)| {
+                        b.on_click(move |_, window, cx| {
+                            cx.stop_propagation();
+                            handler(&path, window, cx)
+                        })
+                    }),
             );
 
         let row = |file: ChangedFile, window: &mut Window, cx: &mut App| {
@@ -157,8 +194,10 @@ impl RenderOnce for ChangedFiles {
             });
             let open = self.on_open_file.clone();
             let pressed = file.path.clone();
+            let selector = format!("changed-file-{}", file.path);
             div()
                 .id(child(&format!("file-{}", file.path)))
+                .debug_selector(move || selector)
                 .flex()
                 .items_center()
                 .gap(px(10.))
@@ -226,18 +265,20 @@ impl RenderOnce for ChangedFiles {
             .rounded(radius::card())
             .bg(theme.card)
             .child(header)
-            .child(
+            .when(unfolded > 0.001, |d| d.child(
                 div()
                     .flex()
                     .flex_col()
                     .px(px(8.))
                     .pb(px(8.))
+                    .when(collapsible, |d| d.opacity(unfolded))
                     .child(visible)
                     .when(has_rest && reveal > 0.001, |d| {
                         // Its own list: its first paint is the reveal, so only later files enter.
                         d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(entering("rest", rest, window, cx)))
                     })
                     .when_some(fold_button, |d, b| d.child(b)),
-            )
+            ))
+
     }
 }
