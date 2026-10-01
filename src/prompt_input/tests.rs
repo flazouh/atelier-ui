@@ -65,6 +65,7 @@ fn commands() -> Vec<crate::command_item::CommandItem> {
         item("compact", CommandSource::Agent, None),
         item("review", CommandSource::Atelier, None),
         item("goal", CommandSource::Atelier, Some("<the goal>")),
+        item("tidy", CommandSource::Skill, None),
     ]
 }
 
@@ -109,6 +110,38 @@ fn a_command_with_arguments_waits_for_them(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert_eq!(commands_of(&heard), [("goal".to_string(), "ship it".to_string())]);
+}
+
+/// A skill picked from the list goes into the box and waits; Enter then sends it.
+#[gpui_kit::test]
+fn a_picked_skill_waits_in_the_box(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| p.set_commands(commands(), cx));
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(commands_of(&heard).is_empty(), "the pick does not run the skill");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "/tidy ");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(commands_of(&heard), [("tidy".to_string(), String::new())]);
+}
+
+/// With skills set to run when picked, the pick runs the skill and empties the box.
+#[gpui_kit::test]
+fn a_picked_skill_runs_when_set_to(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.set_commands(commands(), cx);
+        p.set_run_picked_skills(true);
+    });
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(commands_of(&heard), [("tidy".to_string(), String::new())]);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "");
 }
 
 /// `@` opens the project's files; Enter writes the one in front as a mention.

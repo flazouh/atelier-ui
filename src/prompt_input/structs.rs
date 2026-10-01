@@ -28,7 +28,7 @@ use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     combobox::{ComboEntry, ComboList, ComboRow, ComboStyle},
-    command_item::{CommandItem, Trigger, mention, ranked, trigger},
+    command_item::{CommandItem, CommandSource, Trigger, mention, ranked, trigger},
     icon::{Icon, IconName},
     menu::{Entry, Menu, MenuItem, Origin},
     morph::Morph,
@@ -153,7 +153,10 @@ pub struct PromptInput {
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
+    /// A skill picked from the list runs at once instead of waiting in the box.
+    run_picked_skills: bool,
     picking: Option<Picking>,
+
     /// The box, as last drawn: the list opens from it.
     pub(super) frame: Option<Bounds<Pixels>>,
     _subscription: Subscription,
@@ -209,6 +212,7 @@ impl PromptInput {
             disabled: false,
             commands: Vec::new(),
             files: Vec::new(),
+            run_picked_skills: false,
             picking: None,
             frame: None,
             _subscription: subscription,
@@ -376,6 +380,11 @@ impl PromptInput {
         cx.notify();
     }
 
+    /// Whether a skill picked from the list runs at once; by default it waits in the box.
+    pub fn set_run_picked_skills(&mut self, run: bool) {
+        self.run_picked_skills = run;
+    }
+
     /// What `/` offers now.
     pub fn commands(&self) -> &[CommandItem] {
         &self.commands
@@ -442,8 +451,10 @@ impl PromptInput {
         match picking.trigger {
             Trigger::Command { .. } => {
                 let command = self.commands[index].clone();
-                if command.args_hint.is_some() {
+                let waits = command.source == CommandSource::Skill && !self.run_picked_skills;
+                if command.args_hint.is_some() || waits {
                     let written = format!("/{} ", command.name);
+
                     self.write(&written, written.len(), window, cx);
                 } else {
                     self.text.update(cx, |t, cx| t.set_value("", window, cx));
