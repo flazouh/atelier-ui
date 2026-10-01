@@ -1,6 +1,6 @@
 //! beui's ToolApproval (`components/agents/tool-approval.tsx`), class for class:
 //!
-//! - Compact, as the other cards are: row `items-start px-3.5 py-2.5`, with no status tile or icon. The title
+//! - Compact, as the other cards are: row `items-start px-3 py-2`, with no status tile or icon. The title
 //!   `font-medium` and the tool in mono `text-xs` at muted share one line, then a
 //!   status pill (`rounded-full px-2 py-0.5 text-[11px]`) tinted amber, blue, emerald, or rose by
 //!   `ToolApprovalStatus`.
@@ -301,8 +301,8 @@ impl RenderOnce for ToolApproval {
         let head = div()
             .flex()
             .items_start()
-            .px(px(14.))
-            .py(px(10.))
+            .px(px(12.))
+            .py(px(8.))
             .child(
                 div()
                     .flex()
@@ -379,10 +379,10 @@ impl RenderOnce for ToolApproval {
                 .flex()
                 .flex_col()
                 .gap(px(8.))
-                .mx(px(14.))
-                .mb(px(10.))
+                .mx(px(12.))
+                .mb(px(8.))
                 .p(px(10.))
-                .rounded(radius::xl())
+                .rounded(radius::lg())
                 .bg(theme.card_strong)
                 .text_size(TextSize::Xs.font_size())
                 .children(self.parameters.into_iter().map(|(label, value)| {
@@ -405,8 +405,8 @@ impl RenderOnce for ToolApproval {
                         .flex_wrap()
                         .items_center()
                         .gap(px(8.))
-                        .px(px(14.))
-                        .pb(px(10.))
+                        .px(px(12.))
+                        .pb(px(8.))
                         .child(wire(
                             Button::new(child(&id, "approve"))
                                 .label("Allow once")
@@ -435,7 +435,7 @@ impl RenderOnce for ToolApproval {
             .flex_col()
             .w_full()
             .overflow_hidden()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .text_size(TextSize::Sm.font_size())
             .child(head)

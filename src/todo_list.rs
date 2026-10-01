@@ -1,7 +1,7 @@
 //! beui's TodoList (`components/agents/todo-list.tsx`), class for class:
 //!
 //! - Section `rounded-2xl`, borderless here: a `card` fill instead of `border-border/70`.
-//! - Header `h-11 gap-2.5 px-3.5`: `size-6` icon slot with `ListTodo` `size-4`, title `text-sm font-medium
+//! - Header `h-9 gap-2.5 px-3`: `size-6` icon slot with `ListTodo` `size-4`, title `text-sm font-medium
 //!   text-foreground/90`, count `text-xs font-medium tabular-nums`, chevron `size-3.5` at 50% muted that turns
 //!   on `SPRING_SWAP`. When every step is done the icon becomes a filled green check.
 //! - Body `px-2 pb-2`, rows `min-h-9 gap-2.5 rounded-xl px-1.5 py-1`: a `size-5` status mark, the title at
@@ -306,9 +306,9 @@ impl RenderOnce for TodoList {
             .flex()
             .items_center()
             .gap(px(10.))
-            .h(px(44.))
-            .px(px(14.))
-            .rounded(radius::xxl())
+            .h(px(36.))
+            .px(px(12.))
+            .rounded(radius::card())
             .cursor_pointer()
             .press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx)
             .on_click(move |_, _, cx| {
@@ -419,7 +419,7 @@ impl RenderOnce for TodoList {
             .flex_col()
             .w_full()
             .overflow_hidden()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .child(header)
             .when(reveal > 0.001, |d| {

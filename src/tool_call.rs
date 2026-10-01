@@ -7,7 +7,7 @@
 //!   knocked out in the page color when it is done, failed or cancelled; and a `size-3.5` chevron.
 //! - Body `pl-6 pt-1.5`: a `rounded-xl` card holding the output in mono at `p-3`, capped at 220px, and a
 //!   footer row with Copy and the status label.
-//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-2.5`), the output
+//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-3`), the output
 //!   in a darker well inside it. [`ToolCall::flat`] drops the card and tightens the row: reading and searching are
 //!   flat, so a run of them stacks close, and so is a call that sits inside another card, as in an open subagent.
 //! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`.
@@ -31,9 +31,9 @@ use crate::{
     typography::{MONO_FONT_FAMILY, TextSize},
 };
 
-/// A card's header, as compact as a row of the strip above the composer: [`crate::subagent_row::ROW_HEIGHT`] tall, `px-2.5`.
+/// A card's header, as compact as a row of the strip above the composer: [`crate::subagent_row::ROW_HEIGHT`] tall, `px-3`.
 pub(crate) const CARD_HEADER_HEIGHT: f32 = crate::subagent_row::ROW_HEIGHT;
-pub(crate) const CARD_HEADER_PAD_X: f32 = 10.;
+pub(crate) const CARD_HEADER_PAD_X: f32 = 12.;
 
 /// beui's `maxHeight` for the output.
 const MAX_OUTPUT_HEIGHT: f32 = 220.;
@@ -211,11 +211,11 @@ impl RenderOnce for ToolCall {
             .items_center()
             .gap(px(8.))
             .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
-            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::xxl()))
+            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::card()))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::xxl() }, window, cx).on_click(move |_, _, cx| {
+                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::card() }, window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
                     toggle.update(cx, |m, cx| {
                         let open = !m.disclosure.open;
@@ -344,7 +344,7 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card).overflow_hidden())
+            .when(!flat, |d| d.rounded(radius::card()).bg(theme.card).overflow_hidden())
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))

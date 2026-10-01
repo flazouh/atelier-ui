@@ -1,6 +1,6 @@
 //! One subagent in the chat, where it started, in TodoList's card language.
 //!
-//! - Header `h-11 px-3.5`: the look's mark (orbiting while it runs, still once done), the agent's name, its
+//! - Header `px-3 py-2`: the look's mark (orbiting while it runs, still once done), the agent's name, its
 //!   task in muted text, a [`ModelBadge`], and on the right the elapsed time, or a check once done.
 //! - Body line, under the name: the live tool call flush left, under the mark rather than the name, and "12 tool calls" on the far right. The mark in
 //!   the header already shows that it runs, so the line has no spinner of its own. Every kind of call (read,
@@ -159,9 +159,9 @@ impl RenderOnce for SubagentCard {
             .flex()
             .flex_col()
             .gap(px(2.))
-            .px(px(14.))
-            .py(px(10.))
-            .rounded(radius::xxl())
+            .px(px(12.))
+            .py(px(8.))
+            .rounded(radius::card())
             .when(has_calls, |d| {
                 d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
@@ -239,7 +239,7 @@ impl RenderOnce for SubagentCard {
             .flex()
             .flex_col()
             .w_full()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .child(header)
             .when(has_calls && reveal > 0.001, |d| {

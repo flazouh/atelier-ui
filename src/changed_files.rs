@@ -313,7 +313,7 @@ impl RenderOnce for ChangedFiles {
             .flex()
             .flex_col()
             .w_full()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .child(header)
             .child(
