@@ -30,6 +30,8 @@ pub struct SessionRow {
     on_more: Option<Handler>,
     more_open: bool,
     more_menu: Option<AnyElement>,
+    /// The archive button before the ⋯: whether the session is archived now, and the press.
+    on_archive: Option<(bool, Handler)>,
     /// The project's badge and name, on a row of the priority list, where no project heading says which it is.
     pub(super) project: Option<(crate::sidebar_model::Badge, SharedString)>,
     /// The row sits at the list's edge, with no project heading above to indent under.
@@ -41,7 +43,7 @@ pub struct SessionRow {
 impl SessionRow {
     /// `now` is the time to count "2m" from, in seconds since the Unix epoch.
     pub fn new(id: impl Into<ElementId>, data: SessionData, now: u64) -> Self {
-        Self { id: id.into(), data, now, selected: false, open: false, on_open: None, on_more: None, more_open: false, more_menu: None, project: None, flush: false, show_time: true, show_icon: true }
+        Self { id: id.into(), data, now, selected: false, open: false, on_open: None, on_more: None, more_open: false, more_menu: None, on_archive: None, project: None, flush: false, show_time: true, show_icon: true }
     }
 
     pub fn selected(mut self, selected: bool) -> Self {
@@ -75,6 +77,12 @@ impl SessionRow {
         self
     }
 
+    /// An archive button before the ⋯, shown while the pointer is on the row; an archived session gets unarchive.
+    pub fn archive(mut self, archived: bool, press: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_archive = Some((archived, Rc::new(press)));
+        self
+    }
+
     /// A ⋯ button at the row's end, shown while the pointer is on the row (and while its menu is open). `menu` is the
     /// menu hung under it.
     pub fn more(mut self, open: bool, press: impl Fn(&mut Window, &mut App) + 'static, menu: Option<AnyElement>) -> Self {
@@ -96,29 +104,49 @@ impl RenderOnce for SessionRow {
         let mark_id = self.id.clone();
         // Hidden until the pointer is on the row, then it takes the place of the time; a press does not open the session.
         let more_open = self.more_open;
-        let has_more = self.on_more.is_some();
+        let has_more = self.on_more.is_some() || self.on_archive.is_some();
+        let archive = self.on_archive.map(|(archived, press)| {
+            crate::button::Button::new((self.id.clone(), "archive-button"))
+                .debug_name("session-archive")
+                .icon(if archived { IconName::Unarchive } else { IconName::Archive })
+                .variant(crate::button::ButtonVariant::Ghost)
+                .size(crate::button::ButtonSize::IconSm)
+                .tooltip(if archived { "Unarchive" } else { "Archive" })
+                .on_click(move |_, window, cx| {
+                    cx.stop_propagation();
+                    press(window, cx)
+                })
+        });
+        let both = archive.is_some() && self.on_more.is_some();
         let more = self.on_more.map(|press| {
+            div()
+                .relative()
+                .child(
+                    crate::button::Button::new((self.id.clone(), "more-button"))
+                        .debug_name("session-more")
+                        .icon(IconName::MoreHoriz)
+                        .variant(crate::button::ButtonVariant::Ghost)
+                        .size(crate::button::ButtonSize::IconSm)
+                        .tooltip("More")
+                        .open(more_open)
+                        .on_click(move |_, window, cx| {
+                            cx.stop_propagation();
+                            press(window, cx)
+                        }),
+                )
+                .children(self.more_menu)
+        });
+        let ends = has_more.then(|| {
             div()
                 .absolute()
                 .right(px(4.))
                 .top(px((ROW_HEIGHT - 22.) / 2.))
+                .flex()
+                .items_center()
+                .gap(px(2.))
                 .when(!more_open, |d| d.invisible().group_hover("session-row", |s| s.visible()))
-                .child(
-                    div().relative().child(
-                        crate::button::Button::new((self.id.clone(), "more-button"))
-                            .debug_name("session-more")
-                            .icon(IconName::MoreHoriz)
-                            .variant(crate::button::ButtonVariant::Ghost)
-                            .size(crate::button::ButtonSize::IconSm)
-                            .tooltip("More")
-                            .open(more_open)
-                            .on_click(move |_, window, cx| {
-                                cx.stop_propagation();
-                                press(window, cx)
-                            }),
-                    )
-                    .children(self.more_menu),
-                )
+                .children(archive)
+                .children(more)
         });
         div()
             .id(self.id)
@@ -173,8 +201,10 @@ impl RenderOnce for SessionRow {
                     .text_size(TextSize::Xs.font_size())
                     .text_color(tone)
                     .when(has_more, |d| d.group_hover("session-row", |s| s.invisible()))
+                    // Two buttons take more room than the time's column.
+                    .when(both, |d| d.group_hover("session-row", |s| s.min_w(px(50.))))
                     .child(words),
             ))
-            .children(more)
+            .children(ends)
     }
 }

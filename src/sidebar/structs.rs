@@ -442,10 +442,14 @@ impl Sidebar {
                 });
                 let toggling = this.clone();
                 let toggled = id.clone();
+                let archiving = this.clone();
+                let archive_event = SidebarEvent::Archive { project: project_id.clone(), session: id.clone(), archive: !archived };
                 let mut element = SessionRow::new(row_id.clone(), data, self.now)
                     .selected(selected)
                     .open(is_open)
                     .on_open(move |_, cx| open.update(cx, |s, cx| s.activate(Row::Session { project, session }, cx)))
+                    .archive(archived, move |_, cx| archiving.update(cx, |_, cx| cx.emit(archive_event.clone())))
+
                     .more(
                         menu_open,
                         move |_, cx| {

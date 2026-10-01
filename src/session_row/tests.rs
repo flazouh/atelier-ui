@@ -74,3 +74,65 @@ mod open {
         assert_eq!((f32::from(bar.size.width), f32::from(bar.size.height)), (3., 16.));
     }
 }
+
+mod archive {
+    use std::{cell::Cell, rc::Rc};
+
+    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use crate::{
+        agent_look::AgentLook,
+        session_row::SessionRow,
+        session_status::SessionStatus,
+        sidebar_model::SessionData,
+        theme::{Appearance, set_appearance},
+    };
+
+    struct Host {
+        archived: Rc<Cell<u32>>,
+        opened: Rc<Cell<u32>>,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let data = SessionData {
+                archived: false,
+                in_panel: false,
+                id: "s1".into(),
+                title: "Add a subtract function".into(),
+                look: AgentLook::neutral(&crate::theme::Theme::light()),
+                status: SessionStatus::Idle,
+                active_at: 0,
+            };
+            let (archived, opened) = (self.archived.clone(), self.opened.clone());
+            div().w(px(300.)).child(
+                SessionRow::new("row", data, 10)
+                    .on_open(move |_, _| opened.set(opened.get() + 1))
+                    .archive(false, move |_, _| archived.set(archived.get() + 1))
+                    .more(false, |_, _| {}, None),
+            )
+        }
+    }
+
+    #[gpui_kit::test]
+    fn a_press_on_archive_archives_the_session_and_does_not_open_it(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (archived, opened) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(0)));
+        let (_host, cx) = cx.add_window_view(|_, _| Host { archived: archived.clone(), opened: opened.clone() });
+        cx.simulate_resize(size(px(400.), px(100.)));
+        cx.run_until_parked();
+        let row = cx.debug_bounds("row-title:Add a subtract function").expect("the row is drawn");
+        cx.simulate_mouse_move(row.center(), None, Default::default());
+        cx.run_until_parked();
+        let archive = cx.debug_bounds("session-archive").expect("the archive button is drawn");
+        let more = cx.debug_bounds("session-more").expect("the more button is drawn");
+        assert!(archive.right() <= more.left(), "archive ({archive:?}) sits left of more ({more:?})");
+        cx.simulate_click(archive.center(), Default::default());
+        cx.run_until_parked();
+        assert_eq!((archived.get(), opened.get()), (1, 0));
+    }
+}
