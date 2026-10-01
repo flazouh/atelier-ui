@@ -289,7 +289,6 @@ impl RenderOnce for ToolCall {
             // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
             let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
             let scroll = motion.read(cx).scroll.clone();
-            let overflows = scroll.max_offset().y > px(0.);
             body.child(
                 div()
                     .flex()
@@ -297,9 +296,8 @@ impl RenderOnce for ToolCall {
                     .overflow_hidden()
                     .when(flat, |d| d.rounded(radius::xl()))
                     .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
-                    // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the
-                    // output. While the output has more to show, it keeps the wheel.
-                    .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
+                    // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
+                    .on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
                     .child(
                         div()
                             .id(child("output"))

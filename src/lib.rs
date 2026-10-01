@@ -138,6 +138,7 @@ pub mod tool_call;
 pub mod typography;
 pub mod verdict;
 pub mod unsent;
+pub(crate) mod scroll_chain;
 pub(crate) mod wake;
 
 pub use agent_look::{AgentLook, Mark, PhaseLabels};

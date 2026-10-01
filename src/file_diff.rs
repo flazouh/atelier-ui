@@ -377,15 +377,14 @@ impl RenderOnce for FileDiff {
             )
         });
 
-        // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the diff. While
-        // the diff has more to show, it keeps the wheel.
-        let overflows = scroll.0.borrow().base_handle.max_offset().y > px(0.) || scroll.0.borrow().base_handle.max_offset().x > px(0.);
+        let tracked = scroll.0.borrow().base_handle.clone();
         let card = div()
             .flex()
             .flex_col()
             .overflow_hidden()
             .bg(theme.background.opacity(0.5))
-            .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
+            // The diff keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
+            .on_scroll_wheel(crate::scroll_chain::keep_inside(tracked))
             .child(rows)
             .when_some(footer, |d, footer| d.child(footer));
 
