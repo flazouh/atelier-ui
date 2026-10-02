@@ -483,6 +483,29 @@ fn a_microphone_and_the_hold_switch_are_chosen_from_the_menu(cx: &mut TestAppCon
     assert_eq!(count(&heard, PromptInputEvent::DictationHold(true)), 1);
 }
 
+/// The microphone and its arrow are one group: as tall as each other, with only the seam between them.
+#[gpui_kit::test]
+fn the_microphone_and_its_arrow_are_one_group(cx: &mut TestAppContext) {
+    let (_, _, cx) = dictation(cx);
+    let (mic, arrow) = (cx.debug_bounds("prompt-mic").expect("mic"), cx.debug_bounds("prompt-mic-menu").expect("arrow"));
+    assert_eq!(mic.size.height, arrow.size.height);
+    assert_eq!(mic.top(), arrow.top());
+    assert_eq!(arrow.left() - mic.right(), gpui_kit::px(crate::button_group::SEAM));
+}
+
+/// The list is as dense as the model select's: 28px rows. The hold row stays open when pressed, so its switch is seen to move.
+#[gpui_kit::test]
+fn the_menu_has_the_select_rows_and_the_hold_row_stays_open(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = dictation(cx);
+    microphones(&prompt, cx);
+    click(cx, "prompt-mic-menu");
+    cx.run_until_parked();
+    let row = cx.debug_bounds("prompt-mic-device-usb").expect("a device row");
+    assert_eq!(row.size.height, gpui_kit::px(28.));
+    click(cx, "prompt-mic-hold");
+    assert!(cx.debug_bounds("prompt-mic-hold").is_some(), "the menu stays open");
+}
+
 /// The arrow waits while the microphone listens.
 #[gpui_kit::test]
 fn the_arrow_waits_while_it_listens(cx: &mut TestAppContext) {

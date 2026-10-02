@@ -48,3 +48,5 @@ impl ButtonSize {
 pub const ROUND: Corners<bool> = Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true };
 
 pub(super) type KeyHandler = Rc<dyn Fn(&KeyDownEvent, &mut Window, &mut App)>;
+
+pub(super) type Hold = Rc<dyn Fn(&mut Window, &mut App)>;
