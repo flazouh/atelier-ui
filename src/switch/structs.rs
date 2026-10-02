@@ -31,8 +31,8 @@ pub(super) struct Dims {
 
 impl Dims {
     pub(super) const STANDARD: Dims = Dims { width: WIDTH, height: HEIGHT, pad: PAD, thumb: THUMB };
-    /// A 32 x 20 track with a 14px thumb: the same motion in a smaller body.
-    pub(super) const COMPACT: Dims = Dims { width: 32., height: 20., pad: 3., thumb: 14. };
+    /// A 26 x 16 track with a 12px thumb: the same motion in a smaller body.
+    pub(super) const COMPACT: Dims = Dims { width: 26., height: 16., pad: 2., thumb: 12. };
     pub(super) fn travel(self) -> f32 {
         self.width - 2. * self.pad - self.thumb
     }
@@ -66,7 +66,7 @@ impl Switch {
         Self { id: id.into(), on, compact: false, disabled: false, label: None, cap: None, on_change: None, selector: None }
     }
 
-    /// A 32 x 20 track with a 14px thumb, for a dense row. The motion is the same.
+    /// A 26 x 16 track with a 12px thumb, for a dense row. The motion is the same.
     pub fn compact(mut self, compact: bool) -> Self {
         self.compact = compact;
         self

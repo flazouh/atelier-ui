@@ -10,6 +10,9 @@ pub enum ButtonVariant {
     Primary,
     Secondary,
     Ghost,
+    /// The text colour at a low strength as the fill, so it shows on any surface, a card or the prompt's box: a button
+    /// that sits in a group beside others.
+    Tinted,
     /// The text color as the fill: the strongest action on a card, such as "Allow once".
     Invert,
 }
@@ -48,3 +51,5 @@ impl ButtonSize {
 pub const ROUND: Corners<bool> = Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true };
 
 pub(super) type KeyHandler = Rc<dyn Fn(&KeyDownEvent, &mut Window, &mut App)>;
+
+pub(super) type Hold = Rc<dyn Fn(&mut Window, &mut App)>;

@@ -23,7 +23,7 @@ pub use helpers::{clock, ring_at, ring_phase};
 pub(crate) use helpers::{failed_row, key, listening_row, mic_slot};
 pub use structs::VoiceInput;
 pub(crate) use structs::Mic;
-pub use types::{BAR_HEIGHT, BUTTON, RING_REACH, RING_SECONDS, VoiceInputEvent, VoiceMode};
+pub use types::{BAR_HEIGHT, BUTTON, RING_REACH, RING_SECONDS, VoiceDevice, VoiceInputEvent, VoiceMode};
 
 #[cfg(test)]
 mod tests;

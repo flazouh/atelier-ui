@@ -152,7 +152,7 @@ pub mod voice_waves;
 pub(crate) mod wake;
 
 pub use cell_bar::CellBar;
-pub use voice_input::{VoiceInput, VoiceInputEvent, VoiceMode};
+pub use voice_input::{VoiceDevice, VoiceInput, VoiceInputEvent, VoiceMode};
 pub use voice_setup::{SetupPhase, VoiceSetup};
 pub use voice_waves::VoiceWaves;
 pub use agent_look::{AgentLook, Mark, PhaseLabels};

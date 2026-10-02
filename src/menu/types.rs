@@ -46,6 +46,10 @@ pub enum Tone {
 pub enum Choice {
     Check(bool),
     Radio(bool),
+    /// The chosen row of several: a check at the row's end, as a select shows it.
+    Selected(bool),
+    /// A switch at the row's end. The row is the control: a press anywhere on it changes the state, and the switch only shows it.
+    Switch(bool),
 }
 
 pub enum Entry {

@@ -12,6 +12,7 @@ use crate::{
     kbd::Kbd,
     motion::{Animated, Channel, Curve, FrameClock, Spring, ease, now},
     placement::measure,
+    switch::Switch,
     theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
@@ -45,6 +46,8 @@ impl MenuLook {
     pub const MERGE: MenuLook = MenuLook { min_width: 240., pad: 4., row_x: 10., row_y: 5., gap: 8., row_radius: 8., panel_radius: 12., group: 6., shadow: 1. };
     /// The prompt's add menu.
     pub const PROMPT: MenuLook = MenuLook { min_width: 224., pad: 6., row_x: 10., row_y: 8., gap: 10., row_radius: 8., panel_radius: 12., group: 8., shadow: 1.4 };
+    /// The prompt's pickers, as the model select's list looks: 28px rows on a 208px panel.
+    pub const SELECT: MenuLook = MenuLook { min_width: 208., pad: 4., row_x: 10., row_y: 4., gap: 8., row_radius: 6., panel_radius: 12., group: 8., shadow: 1. };
     /// A project's ⋯ menu.
     pub const PROJECT: MenuLook = MenuLook { min_width: 180., pad: 4., row_x: 8., row_y: 4., gap: 8., row_radius: 6., panel_radius: 8., group: 8., shadow: 1. };
 }
@@ -381,17 +384,46 @@ impl RenderOnce for Menu {
                         move |b: Bounds<Pixels>, cx: &mut App| state.update(cx, |s, _| s.rects[i] = Some(b))
                     };
                     let focused = handle.is_focused(window) && keyboard;
-                    let mark = item.choice.map(|c| match c {
-                        Choice::Check(on) => div()
-                            .size(px(SLOT))
-                            .flex_none()
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .when(on, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))),
-                        Choice::Radio(on) => div().size(px(SLOT)).flex_none().flex().items_center().justify_center().when(on, |d| {
-                            d.child(div().size(px(6.)).rounded_full().bg(ink))
-                        }),
+                    let tail = item.choice.and_then(|c| match c {
+                        Choice::Selected(on) => Some(
+                            div()
+                                .size(px(20.))
+                                .flex_none()
+                                .ml_auto()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .when(on, |d| d.child(Icon::new(IconName::Check).size(px(16.)).color(ink)))
+                                .into_any_element(),
+                        ),
+                        Choice::Switch(on) => Some(
+                            div()
+                                .flex_none()
+                                .ml_auto()
+                                .flex()
+                                .items_center()
+                                .h(px(LINE))
+                                .child(Switch::new(ElementId::NamedInteger("menu-switch".into(), i as u64), on).compact(true))
+                                .into_any_element(),
+                        ),
+                        _ => None,
+                    });
+                    let mark = item.choice.and_then(|c| match c {
+                        Choice::Selected(_) | Choice::Switch(_) => None,
+                        Choice::Check(on) => Some(
+                            div()
+                                .size(px(SLOT))
+                                .flex_none()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .when(on, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))),
+                        ),
+                        Choice::Radio(on) => Some(
+                            div().size(px(SLOT)).flex_none().flex().items_center().justify_center().when(on, |d| {
+                                d.child(div().size(px(6.)).rounded_full().bg(ink))
+                            }),
+                        ),
                     });
                     div()
                         .id(ElementId::NamedInteger("menu-row".into(), i as u64))
@@ -439,6 +471,7 @@ impl RenderOnce for Menu {
                                 )
                             }),
                         )
+                        .children(tail)
                         .children(item.shortcut.map(|keys| {
                             div()
                                 .flex_none()

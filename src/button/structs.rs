@@ -16,7 +16,7 @@ use crate::{
     tooltip::Tooltip,
     typography::FONT_FAMILY,
 };
-use super::types::{ButtonSize, ButtonVariant, KeyHandler, ROUND};
+use super::types::{ButtonSize, ButtonVariant, Hold, KeyHandler, ROUND};
 use super::helpers::{chip, colors, hover_target, update_motion};
 
 pub(super) struct Metrics {
@@ -61,6 +61,8 @@ pub struct Button {
     selector: Option<&'static str>,
     pub(super) disabled: bool,
     on_click: Option<ClickHandler>,
+    /// Hears the press and the release, for a button that acts while it is held.
+    hold: Option<(Hold, Hold)>,
 }
 
 impl Button {
@@ -88,6 +90,7 @@ impl Button {
             selector: None,
             disabled: false,
             on_click: None,
+            hold: None,
         }
     }
 
@@ -222,6 +225,13 @@ impl Button {
 
     pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
+        self
+    }
+
+    /// Hears the press (`down`) and the end of it (`up`: the release, on the button or off it), for a button that acts
+    /// while it is held. A click still comes after a release on the button.
+    pub fn on_hold(mut self, down: impl Fn(&mut Window, &mut App) + 'static, up: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.hold = Some((Rc::new(down), Rc::new(up)));
         self
     }
 }
@@ -370,7 +380,12 @@ impl RenderOnce for Button {
             .when(disabled, |d| d.opacity(0.5))
             .when(!disabled, |d| {
                 let (hover, press, release, release_out) = (motion.clone(), motion.clone(), motion.clone(), motion);
+                let (hold_down, hold_up) = self.hold.map_or((None, None), |(down, up)| (Some(down), Some(up)));
+                let hold_away = hold_up.clone();
                 d.cursor_pointer()
+                    .when_some(hold_down, |d, down| d.on_mouse_down(MouseButton::Left, move |_, window, cx| down(window, cx)))
+                    .when_some(hold_up, |d, up| d.on_mouse_up(MouseButton::Left, move |_, window, cx| up(window, cx)))
+                    .when_some(hold_away, |d, up| d.on_mouse_up_out(MouseButton::Left, move |_, window, cx| up(window, cx)))
                     .on_hover(move |on, _, cx| update_motion(&hover, cx, |m| m.hovered = *on))
                     .on_mouse_down(MouseButton::Left, move |_, _, cx| update_motion(&press, cx, |m| m.pressed = true))
                     .on_mouse_up(MouseButton::Left, move |_, _, cx| update_motion(&release, cx, |m| m.pressed = false))

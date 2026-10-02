@@ -1,3 +1,5 @@
+use gpui_kit::SharedString;
+
 /// The bar's height and the round button's size, in pixels.
 pub const BAR_HEIGHT: f32 = 44.;
 
@@ -24,4 +26,18 @@ pub enum VoiceInputEvent {
     Start,
     /// The user pressed the stop square while listening.
     Stop,
+}
+
+/// One microphone the owner offers in the menu beside the microphone button.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct VoiceDevice {
+    /// What the owner knows it by; handed back in [`PromptInputEvent::DictationDevice`](crate::prompt_input::PromptInputEvent::DictationDevice).
+    pub id: SharedString,
+    pub label: SharedString,
+}
+
+impl VoiceDevice {
+    pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
+        Self { id: id.into(), label: label.into() }
+    }
 }
