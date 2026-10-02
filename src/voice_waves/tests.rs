@@ -41,3 +41,27 @@ fn the_level_rises_faster_than_it_falls() {
     assert!(up > down * 2.);
     assert!(smooth(0.5, 0.5, 0.05) - 0.5 < 1e-6);
 }
+
+#[test]
+fn bars_taper_to_dots_at_the_ends_and_swell_in_the_middle() {
+    for phase in [0., 1., 4.] {
+        assert!(bar(0., 1., phase) < 1e-3 && bar(1., 1., phase) < 1e-3);
+    }
+    let tallest = (0..=40).map(|k| bar(k as f32 / 40., 0.9, 0.7)).fold(0., f32::max);
+    assert!(tallest > 0.5, "a loud voice should fill most of the row, got {tallest}");
+}
+
+#[test]
+fn a_louder_voice_makes_taller_bars_that_stay_in_range() {
+    let tallest = |level| (0..=40).map(|k| bar(k as f32 / 40., level, 0.7)).fold(0., f32::max);
+    assert!(tallest(0.9) > tallest(0.3) * 1.5);
+    for k in 0..=100 {
+        assert!((0. ..=1.).contains(&bar(k as f32 / 100., 5., k as f32)));
+    }
+}
+
+#[test]
+fn bars_move_with_the_phase() {
+    let at = |phase| (0..20).map(|k| bar(k as f32 / 20., 0.8, phase)).collect::<Vec<_>>();
+    assert_ne!(at(0.), at(1.));
+}

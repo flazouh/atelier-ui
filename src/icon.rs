@@ -38,6 +38,7 @@ macro_rules! icons {
 
 icons! {
     Add => "add",
+    Mic => "mic",
     Archive => "archive",
     ArrowDownward => "arrow_downward",
     Public => "public",

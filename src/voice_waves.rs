@@ -1,19 +1,23 @@
-//! Amber waves for a voice: while it records, a few translucent ribbons swell and ripple with the level of the
-//! microphone, and settle to one thin line when it is quiet or off.
+//! Amber bars for a voice: while it records, a row of rounded bars swells and ripples with the level of the
+//! microphone, and settles to a line of small dots when it is quiet or off.
 //!
 //! SPIKE: the first look at a recording state for the prompt input. The level comes from the caller, 0 to 1.
 //!
-//! - Four ribbons, each a mirrored sine pair that drifts at its own speed and direction, filled in amber at low
-//!   opacity so that where they overlap the amber deepens. A thin bright line rides the first ribbon's edge.
-//! - A window `sin(pi x)^1.6` tapers every ribbon to nothing at both ends, so the waves float in their space.
+//! - The shape of the field comes from four drifting sine ribbons, each at its own speed and direction. Each bar
+//!   reads the ribbons at its own spot, so the crests travel through the row instead of every bar bouncing alone.
+//! - A window `sin(pi x)^1.6` tapers the row to dots at both ends, so the bars float in their space.
 //! - The level is smoothed with a fast attack and a slow release, so a word lands at once and fades gently.
 //! - The phase moves faster the louder the voice, which makes the waves feel pushed by it.
-//! - Reduce Motion: the ribbons hold still at their current size.
+//! - Taller bars are also brighter, which gives the row depth without a second color.
+//! - Reduce Motion: the bars hold still at their current size.
 use std::{f32::consts::PI, time::Instant};
 
-use gpui_kit::{App, ElementId, Hsla, IntoElement, ParentElement, PathBuilder, Pixels, RenderOnce, Styled, Window, canvas, div, hsla, point, px};
+use gpui_kit::{App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div, hsla, px};
 
 use crate::scale::px as scaled;
+
+/// A bar never gets wider than this, so a wide row keeps its look and centers instead of growing fat bars.
+pub const MAX_BAR_WIDTH: f32 = 6.;
 
 /// Amber, `hsl(38 100% 55%)`.
 pub fn amber() -> Hsla {
@@ -55,6 +59,20 @@ pub fn amplitude(ribbon: Ribbon, x: f32, level: f32, phase: f32) -> f32 {
     (window(x) * level * ribbon.gain * body.abs()).clamp(0., 1.)
 }
 
+/// How tall the bar at `x` (0 to 1 across the row) stands, as a fraction of the row's height: the four ribbons
+/// read at one spot and averaged, then lifted so a loud voice fills the row.
+pub fn bar(x: f32, level: f32, phase: f32) -> f32 {
+    let (sum, gains) = RIBBONS.iter().fold((0., 0.), |(sum, gains), r| (sum + amplitude(*r, x, level, phase), gains + r.gain));
+    (sum / gains * BAR_LIFT).clamp(0., 1.)
+}
+
+/// What the ribbons' average is multiplied by, because the average of four ribbons that rarely peak together sits
+/// well under the tallest one.
+pub const BAR_LIFT: f32 = 1.9;
+
+/// The shortest a bar gets, in pixels: a dot as wide as the bar, so a quiet row still reads as a row of bars.
+pub const MIN_BAR: f32 = 3.;
+
 /// The level after `dt` seconds toward `target`: it rises quickly and falls slowly.
 pub fn smooth(current: f32, target: f32, dt: f32) -> f32 {
     let rate = if target > current { 18. } else { 4.5 };
@@ -73,11 +91,13 @@ pub struct VoiceWaves {
     level: f32,
     height: Pixels,
     color: Hsla,
+    bars: usize,
+    gap: f32,
 }
 
 impl VoiceWaves {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), level: 0., height: px(40.), color: amber() }
+        Self { id: id.into(), level: 0., height: px(40.), color: amber(), bars: 36, gap: 3. }
     }
 
     /// The microphone's level now, 0 to 1.
@@ -93,6 +113,18 @@ impl VoiceWaves {
 
     pub fn color(mut self, color: Hsla) -> Self {
         self.color = color;
+        self
+    }
+
+    /// How many bars stand in the row; they share the width evenly, up to [`MAX_BAR_WIDTH`] each.
+    pub fn bars(mut self, bars: usize) -> Self {
+        self.bars = bars.max(3);
+        self
+    }
+
+    /// The space between bars, in pixels.
+    pub fn gap(mut self, gap: f32) -> Self {
+        self.gap = gap;
         self
     }
 }
@@ -114,50 +146,18 @@ impl RenderOnce for VoiceWaves {
         if !reduce {
             window.request_animation_frame();
         }
-        let color = self.color;
-        div().w_full().h(self.height).child(
-            canvas(
-                |_, _, _| {},
-                move |bounds, _, window, _| {
-                    let (w, h) = (f32::from(bounds.size.width), f32::from(bounds.size.height));
-                    if w < 4. || h < 2. {
-                        return;
-                    }
-                    let steps = ((w / 3.) as usize).clamp(24, 160);
-                    let mid = h / 2.;
-                    let at = |x: f32, y: f32| point(bounds.origin.x + scaled(x * w), bounds.origin.y + scaled(y));
-                    for (i, ribbon) in RIBBONS.iter().enumerate() {
-                        let amps: Vec<f32> = (0..=steps).map(|k| amplitude(*ribbon, k as f32 / steps as f32, level, phase)).collect();
-                        let mut fill = PathBuilder::fill();
-                        fill.move_to(at(0., mid));
-                        for (k, a) in amps.iter().enumerate() {
-                            fill.line_to(at(k as f32 / steps as f32, mid - a * mid));
-                        }
-                        for (k, a) in amps.iter().enumerate().rev() {
-                            fill.line_to(at(k as f32 / steps as f32, mid + a * mid));
-                        }
-                        fill.close();
-                        if let Ok(path) = fill.build() {
-                            window.paint_path(path, color.opacity(ribbon.alpha));
-                        }
-                        // The first ribbon's upper and lower edge catch the light.
-                        if i == 0 {
-                            for side in [-1., 1.] {
-                                let mut edge = PathBuilder::stroke(scaled(1.25));
-                                for (k, a) in amps.iter().enumerate() {
-                                    let p = at(k as f32 / steps as f32, mid + side * a * mid);
-                                    if k == 0 { edge.move_to(p) } else { edge.line_to(p) }
-                                }
-                                if let Ok(path) = edge.build() {
-                                    window.paint_path(path, color.opacity(0.85));
-                                }
-                            }
-                        }
-                    }
-                },
-            )
-            .size_full(),
-        )
+        let (color, height, count) = (self.color, f32::from(self.height), self.bars);
+        let bars = (0..count).map(|k| {
+            let a = bar((k as f32 + 0.5) / count as f32, level, phase);
+            let h = (a * height).max(MIN_BAR.min(height));
+            div()
+                .flex_1()
+                .max_w(scaled(MAX_BAR_WIDTH))
+                .h(scaled(h))
+                .rounded(scaled(MAX_BAR_WIDTH / 2.))
+                .bg(color.opacity(0.4 + 0.6 * a))
+        });
+        div().w_full().h(self.height).flex().flex_row().items_center().justify_center().gap(scaled(self.gap)).children(bars)
     }
 }
 
