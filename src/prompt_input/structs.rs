@@ -140,6 +140,8 @@ pub struct PromptInput {
     pub(super) voice_face: VoiceMode,
     pub(super) voice_phase: SetupPhase,
     pub(super) voice_total_mb: f32,
+    /// Why the last press ended without words, shown while the mode is [`VoiceMode::Failed`].
+    pub(super) voice_error: SharedString,
     pub(super) voice_level: f32,
     pub(super) voice_since: Option<Instant>,
     /// 0 shows the microphone, 1 the stop square.
@@ -198,6 +200,7 @@ impl PromptInput {
             voice_face: VoiceMode::Listening,
             voice_phase: SetupPhase::Prepare,
             voice_total_mb: 164.,
+            voice_error: SharedString::default(),
             voice_level: 0.,
             voice_since: None,
             mic_swap: Channel::new(0.),
@@ -292,6 +295,18 @@ impl PromptInput {
 
     pub fn set_voice_listening(&mut self, cx: &mut Context<Self>) {
         self.go_voice(VoiceMode::Listening, cx);
+    }
+
+    /// Says why the press ended without words, in place of Plus, the model and the mode, until the owner sets another mode
+    /// (the microphone can be pressed meanwhile).
+    pub fn set_voice_error(&mut self, message: impl Into<SharedString>, cx: &mut Context<Self>) {
+        self.voice_error = message.into();
+        self.go_voice(VoiceMode::Failed, cx);
+    }
+
+    /// Whether dictation holds the box: it is being set up or it listens. Send waits for it.
+    pub(super) fn dictating(&self) -> bool {
+        matches!(self.voice, VoiceMode::Setup | VoiceMode::Listening)
     }
 
     /// The size of the model being fetched, for the setup's words.
@@ -455,7 +470,7 @@ impl PromptInput {
         }
         let text = self.text(cx);
         let text: SharedString = text.trim().to_string().into();
-        if text.is_empty() || self.disabled || self.voice != VoiceMode::Idle {
+        if text.is_empty() || self.disabled || self.dictating() {
             return;
         }
         if let Some(rest) = text.strip_prefix('/') {
@@ -567,7 +582,7 @@ impl Render for PromptInput {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
         let empty = self.text(cx).trim().is_empty();
-        let can_submit = !empty && !disabled && !self.running && self.voice == VoiceMode::Idle;
+        let can_submit = !empty && !disabled && !self.running && !self.dictating();
 
         let reduce = cx.reduce_motion();
         if self.menu.rotate.is_running()
@@ -759,9 +774,10 @@ impl Render for PromptInput {
         let fade = self.voice_fade.value().clamp(0., 1.);
         let seconds = self.voice_since.map_or(0., |s| s.elapsed().as_secs_f32());
         let (face, phase, total_mb, level) = (self.voice_face, self.voice_phase, self.voice_total_mb, self.voice_level);
-        let muted = theme.muted_foreground;
+        let (muted, error, themed) = (theme.muted_foreground, self.voice_error.clone(), theme.clone());
         let said = Morph::new("prompt-voice-said", voice_input::key(face), move |_, _| match face {
             VoiceMode::Listening => voice_input::listening_row(level, seconds, muted),
+            VoiceMode::Failed => voice_input::failed_row(error.clone(), &themed),
             _ => div().w_full().child(VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb)).into_any_element(),
         });
         let left = div()
@@ -814,13 +830,14 @@ impl Render for PromptInput {
                 mic,
                 move |_, _, cx| {
                     this.update(cx, |this, cx| match this.voice {
-                        VoiceMode::Idle => cx.emit(PromptInputEvent::DictationStart),
+                        VoiceMode::Idle | VoiceMode::Failed => cx.emit(PromptInputEvent::DictationStart),
                         VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
                         VoiceMode::Setup => {}
                     })
                     .ok();
                 },
             )
+            .debug_selector(|| "prompt-mic".into())
         });
 
         let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(mic).child(send);

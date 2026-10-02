@@ -113,7 +113,7 @@ impl Render for VoiceInput {
         let muted = theme.muted_foreground;
         let said = Morph::new("voice-input-said", key(mode), move |_, _| -> AnyElement {
             match mode {
-                VoiceMode::Idle => div()
+                VoiceMode::Idle | VoiceMode::Failed => div()
                     .w_full()
                     .text_size(TextSize::Xs.font_size() + gpui_kit::px(1.))
                     .text_color(muted)
@@ -128,7 +128,7 @@ impl Render for VoiceInput {
         let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, theme: theme.clone(), reduce };
         let slot = mic_slot(mic, move |_, _, cx| {
             this.update(cx, |this, cx| match this.mode {
-                VoiceMode::Idle => cx.emit(VoiceInputEvent::Start),
+                VoiceMode::Idle | VoiceMode::Failed => cx.emit(VoiceInputEvent::Start),
                 VoiceMode::Listening => cx.emit(VoiceInputEvent::Stop),
                 VoiceMode::Setup => {}
             })
