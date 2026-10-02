@@ -20,6 +20,8 @@ pub enum PromptInputEvent {
     /// The press was taken back ([`PromptInput::cancel_mic`](crate::prompt_input::PromptInput::cancel_mic)). The owner throws
     /// the recording away.
     DictationCancel,
+    /// The ✕ beside the setup was pressed: the owner throws away the words still waiting for the model. The box is idle again.
+    DictationDiscard,
     /// The user chose a microphone from the menu beside the microphone button: its `id`, or `None` for the system's default.
     DictationDevice(Option<SharedString>),
     /// The user turned "Hold to record" on or off. On, the microphone records while it is held down and stops when let go.

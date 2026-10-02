@@ -309,6 +309,15 @@ impl PromptInput {
         self.go_voice(VoiceMode::Idle, cx);
     }
 
+    /// Throws away the words waiting for the model: the box goes idle and the owner hears [`PromptInputEvent::DictationDiscard`].
+    pub fn discard_waiting(&mut self, cx: &mut Context<Self>) {
+        if self.voice != VoiceMode::Setup {
+            return;
+        }
+        self.go_voice(VoiceMode::Idle, cx);
+        cx.emit(PromptInputEvent::DictationDiscard);
+    }
+
     /// Shows the first-use setup at `phase`; call again as it moves.
     pub fn set_voice_setup(&mut self, phase: SetupPhase, cx: &mut Context<Self>) {
         self.voice_phase = phase;
@@ -931,10 +940,31 @@ impl Render for PromptInput {
         let seconds = self.voice_since.map_or(0., |s| s.elapsed().as_secs_f32());
         let (face, phase, total_mb, level) = (self.voice_face, self.voice_phase, self.voice_total_mb, self.voice_level);
         let (muted, error, themed) = (theme.muted_foreground, self.voice_error.clone(), theme.clone());
+        let discarding = cx.entity().downgrade();
         let said = Morph::new("prompt-voice-said", voice_input::key(face), move |_, _| match face {
             VoiceMode::Listening => voice_input::listening_row(level, seconds, muted),
             VoiceMode::Failed => voice_input::failed_row(error.clone(), &themed),
-            _ => div().w_full().child(VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb)).into_any_element(),
+            _ => {
+                let discarding = discarding.clone();
+                div()
+                    .w_full()
+                    .flex()
+                    .items_center()
+                    .gap(px(4.))
+                    .child(div().min_w_0().child(VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb)))
+                    .child(
+                        Button::new("prompt-voice-discard")
+                            .icon(IconName::Close)
+                            .variant(ButtonVariant::Ghost)
+                            .size(ButtonSize::IconSm)
+                            .tooltip("Discard what you said")
+                            .debug_name("prompt-voice-discard")
+                            .on_click(move |_, _, cx| {
+                                discarding.update(cx, |p, cx| p.discard_waiting(cx)).ok();
+                            }),
+                    )
+                    .into_any_element()
+            }
         });
         let left = div()
             .relative()

@@ -418,6 +418,20 @@ fn a_cancelled_press_ends_without_a_stop(cx: &mut TestAppContext) {
     assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Idle);
 }
 
+/// While words wait for the model, the ✕ beside the setup throws them away and gives the box back.
+#[gpui_kit::test]
+fn the_cross_beside_the_setup_discards_the_waiting_words(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_setup(SetupPhase::Download(0.4), cx)));
+    for _ in 0..3 {
+        cx.run_until_parked();
+        cx.update(|_, cx| prompt.update(cx, |_, cx| cx.notify()));
+    }
+    click(cx, "prompt-voice-discard");
+    assert_eq!(count(&heard, PromptInputEvent::DictationDiscard), 1);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Idle);
+}
+
 /// Without `set_dictation` there is no microphone.
 #[gpui_kit::test]
 fn there_is_no_microphone_unless_dictation_is_on(cx: &mut TestAppContext) {
