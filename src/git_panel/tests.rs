@@ -59,3 +59,26 @@ fn with_no_session_in_focus_it_lists_no_file(cx: &mut TestAppContext) {
     assert!(cx.debug_bounds("git-repo").is_some());
     assert!(cx.debug_bounds("git-session").is_none() && cx.debug_bounds("git-file-src/lib.rs").is_none());
 }
+
+struct WithTrees(bool);
+
+impl Render for WithTrees {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let rows = if self.0 { crate::worktree_list::tests::rows() } else { Vec::new() };
+        div().size_full().child(GitPanel::new("git", "atelier").branch(Some("main".into())).worktrees(rows))
+    }
+}
+
+#[gpui_kit::test]
+fn the_worktrees_show_under_the_changes_and_not_at_all_when_there_are_none(cx: &mut TestAppContext) {
+    cx.update(crate::init);
+    let (_, cx) = cx.add_window_view(|_, _| WithTrees(true));
+    cx.simulate_resize(size(px(300.), px(600.)));
+    cx.run_until_parked();
+    let trees = cx.debug_bounds("worktrees").expect("listed");
+    assert!(trees.top() > cx.debug_bounds("git-branch").unwrap().bottom());
+    assert!(cx.debug_bounds("worktree-/r/atelier-fix").is_some());
+    let (_, cx) = cx.add_window_view(|_, _| WithTrees(false));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("worktrees").is_none());
+}

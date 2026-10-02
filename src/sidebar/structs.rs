@@ -303,6 +303,7 @@ impl Sidebar {
         cx.emit(match choice {
             MenuChoice::PullRequests => SidebarEvent::PullRequests { project },
             MenuChoice::Tasks => SidebarEvent::Tasks { project },
+            MenuChoice::Worktrees => SidebarEvent::Worktrees { project },
             MenuChoice::ChooseIcon => SidebarEvent::ChooseIcon { project },
             MenuChoice::Close => SidebarEvent::CloseProject { project },
             MenuChoice::Files => SidebarEvent::OpenFiles { project },

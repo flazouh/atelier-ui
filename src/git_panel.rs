@@ -16,6 +16,7 @@ use crate::{
     scale::px,
     theme::{ActiveTheme, Theme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
+    worktree_list::{WorktreeList, WorktreeRow},
 };
 
 const ROW_HEIGHT: f32 = 26.;
@@ -50,11 +51,12 @@ pub struct GitPanel {
     files: Vec<ChangedFile>,
     current: Option<SharedString>,
     on_open: Option<OnOpen>,
+    worktrees: Vec<WorktreeRow>,
 }
 
 impl GitPanel {
     pub fn new(id: impl Into<ElementId>, repo: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), repo: repo.into(), branch: None, session: None, files: Vec::new(), current: None, on_open: None }
+        Self { id: id.into(), repo: repo.into(), branch: None, session: None, files: Vec::new(), current: None, on_open: None, worktrees: Vec::new() }
     }
 
     pub fn branch(mut self, branch: Option<SharedString>) -> Self {
@@ -76,6 +78,12 @@ impl GitPanel {
     /// The file the review shows.
     pub fn current(mut self, path: Option<SharedString>) -> Self {
         self.current = path;
+        self
+    }
+
+    /// The repository's worktrees, listed under the changes; none, no list.
+    pub fn worktrees(mut self, rows: Vec<WorktreeRow>) -> Self {
+        self.worktrees = rows;
         self
     }
 
@@ -161,7 +169,18 @@ impl RenderOnce for GitPanel {
             .when_some(self.session, |d, title| d.child(line(IconName::Forum, title, "git-session")))
             .child(heading(if count == 0 { "Changes".into() } else { format!("Changes · {count}").into() }))
             .when_some(body, |d, words| d.child(div().px(px(12.)).text_size(TextSize::Xs.font_size()).text_color(muted).child(words)))
-            .child(div().id("git-files").flex().flex_col().flex_1().min_h_0().overflow_y_scroll().children(rows))
+            .child(div().id("git-files").flex().flex_col().flex_1().min_h(px(120.)).overflow_y_scroll().children(rows))
+            .when(!self.worktrees.is_empty(), |d| {
+                d.child(
+                    div()
+                        .id("git-worktrees")
+                        .flex_initial()
+                        .min_h(px(120.))
+                        .overflow_y_scroll()
+                        .pb(px(8.))
+                        .child(WorktreeList::new("worktree-list", self.worktrees)),
+                )
+            })
     }
 }
 
