@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
@@ -17,6 +17,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use crate::preview_clamp::{self, EXPANDED_ROWS, Press, ROW_HEIGHT};
 use super::types::{CARD_HEADER_HEIGHT, CARD_HEADER_PAD_X, MAX_OUTPUT_HEIGHT, ToolStatus};
 use super::helpers::follow_status;
 
@@ -33,7 +34,11 @@ pub struct ToolCall {
     pub(super) flat: bool,
     default_open: bool,
     collapse_on_complete: bool,
+    preview_rows: Option<usize>,
+    on_open: Option<OpenHandler>,
 }
+
+type OpenHandler = Rc<dyn Fn(&mut Window, &mut App)>;
 
 impl ToolCall {
     /// `title` says what happened ("Ran tests"); `tool` names the call ("Bash", "cargo test").
@@ -50,7 +55,22 @@ impl ToolCall {
             flat: false,
             default_open: false,
             collapse_on_complete: true,
+            preview_rows: None,
+            on_open: None,
         }
+    }
+
+    /// Clips the output to its last `rows` lines, which do not scroll, until the reader presses it: the press opens it to a
+    /// taller view, and a second one folds it. Without this the output scrolls in a viewport of its own.
+    pub fn preview_rows(mut self, rows: usize) -> Self {
+        self.preview_rows = Some(rows);
+        self
+    }
+
+    /// Runs when the reader presses a clipped output open (see [`Self::preview_rows`]).
+    pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_open = Some(Rc::new(handler));
+        self
     }
 
     /// A plain row with no card and little height, for reading and searching, which come in runs, and for a call
@@ -117,6 +137,8 @@ pub(super) struct CallMotion {
     copy: CopyFeedback,
     /// The output's scroll, so the wheel can stay inside it while it has more to show.
     scroll: ScrollHandle,
+    /// A clipped output the reader pressed open.
+    expanded: bool,
 }
 
 impl RenderOnce for ToolCall {
@@ -132,6 +154,7 @@ impl RenderOnce for ToolCall {
             disclosure: Reveal::new(open),
             copy: CopyFeedback::default(),
             scroll: ScrollHandle::new(),
+            expanded: false,
         });
         follow_status(&motion, status, has_body, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
@@ -139,7 +162,7 @@ impl RenderOnce for ToolCall {
         if m.disclosure.is_moving() {
             window.request_animation_frame();
         }
-        let (reveal, chevron, copied) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied());
+        let (reveal, chevron, copied, expanded) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied(), m.expanded);
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
@@ -231,6 +254,53 @@ impl RenderOnce for ToolCall {
             // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
             let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
             let scroll = motion.read(cx).scroll.clone();
+            // A clipped output shows its last lines, which do not scroll, until it is pressed open to a taller view.
+            let total = text.lines().count();
+            let clip = self.preview_rows.filter(|&rows| !expanded && total > rows);
+            let shown = match clip {
+                Some(rows) => text.lines().skip(total - rows).collect::<Vec<_>>().join("\n").into(),
+                None => output,
+            };
+            let viewport = self.preview_rows.map_or(MAX_OUTPUT_HEIGHT, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT + 24.);
+            let text_box = div()
+                .id(child("output"))
+                .debug_selector(|| "tool-output".into())
+                .p(px(12.))
+                .font_family(MONO_FONT_FAMILY)
+                .text_size(TextSize::Xs.font_size())
+                .line_height(px(ROW_HEIGHT))
+                .text_color(theme.foreground.opacity(0.85));
+            let text_box = match clip {
+                // The last lines stay in view: what does not fit runs off the top.
+                Some(rows) => text_box.flex().flex_col().justify_end().max_h(px(rows as f32 * ROW_HEIGHT + 24.)).overflow_hidden().child(shown),
+                None => text_box.max_h(px(viewport)).overflow_y_scroll().track_scroll(&scroll).child(shown),
+            };
+            // With a clip set, the output and its hint are one press target: they open, and tell the owner.
+            let text_box = match self.preview_rows {
+                Some(limit) => {
+                    let clipped = total > limit;
+                    let press = motion.clone();
+                    let on_open = self.on_open.clone();
+                    div()
+                        .id(child("body"))
+                        .cursor_pointer()
+                        .on_click(move |_, window, cx| {
+                            let pressed = press.update(cx, |m, cx| {
+                                let pressed = Press::on(m.expanded, clipped);
+                                m.expanded = pressed.expanded;
+                                cx.notify();
+                                pressed
+                            });
+                            if let (true, Some(open)) = (pressed.open, &on_open) {
+                                open(window, cx);
+                            }
+                        })
+                        .child(text_box)
+                        .when(clipped, |d| d.child(preview_clamp::hint(total - limit, expanded, &theme)))
+                        .into_any_element()
+                }
+                None => text_box.into_any_element(),
+            };
             body.child(
                 div()
                     .flex()
@@ -240,20 +310,7 @@ impl RenderOnce for ToolCall {
                     .bg(if flat { theme.card_strong } else { theme.background.opacity(0.5) })
                     // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
                     .on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
-                    .child(
-                        div()
-                            .id(child("output"))
-                            .debug_selector(|| "tool-output".into())
-                            .max_h(px(MAX_OUTPUT_HEIGHT))
-                            .overflow_y_scroll()
-                            .track_scroll(&scroll)
-                            .p(px(12.))
-                            .font_family(MONO_FONT_FAMILY)
-                            .text_size(TextSize::Xs.font_size())
-                            .line_height(px(20.))
-                            .text_color(theme.foreground.opacity(0.85))
-                            .child(output),
-                    )
+                    .child(text_box)
                     .child(
                         div()
                             .flex()

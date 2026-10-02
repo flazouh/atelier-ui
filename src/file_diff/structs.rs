@@ -18,6 +18,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use crate::preview_clamp::{self, EXPANDED_ROWS, Press};
 use super::types::{DiffLineKind, FileDiffStatus, MAX_HEIGHT, ROW_HEIGHT};
 use super::helpers::{diff_row, diff_stats, fill, follow_status, hunk_starts};
 
@@ -84,7 +85,11 @@ pub struct FileDiff {
     pub(super) copy_text: Option<SharedString>,
     scroll: Option<UniformListScrollHandle>,
     inset: bool,
+    preview_rows: Option<usize>,
+    on_open: Option<OpenHandler>,
 }
+
+type OpenHandler = Rc<dyn Fn(&mut Window, &mut App)>;
 
 impl FileDiff {
     pub fn new(id: impl Into<ElementId>, path: impl Into<SharedString>, lines: Vec<DiffLine>) -> Self {
@@ -99,7 +104,22 @@ impl FileDiff {
             copy_text: None,
             scroll: None,
             inset: false,
+            preview_rows: None,
+            on_open: None,
         }
+    }
+
+    /// Clips the diff to `rows` rows, which do not scroll, until the reader presses it: the press opens it to a taller
+    /// view, and a second one folds it. Without this the diff scrolls in a viewport of its own.
+    pub fn preview_rows(mut self, rows: usize) -> Self {
+        self.preview_rows = Some(rows);
+        self
+    }
+
+    /// Runs when the reader presses a clipped diff open (see [`Self::preview_rows`]), to take them to the whole file.
+    pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_open = Some(Rc::new(handler));
+        self
     }
 
     /// Scrolls the rows with a handle the owner keeps, to move them from outside.
@@ -148,6 +168,8 @@ pub(super) struct DiffMotion {
     pub(super) disclosure: Reveal,
     copy: CopyFeedback,
     scroll: UniformListScrollHandle,
+    /// A clipped diff the reader pressed open.
+    expanded: bool,
 }
 
 impl RenderOnce for FileDiff {
@@ -160,6 +182,7 @@ impl RenderOnce for FileDiff {
             disclosure: Reveal::new(default_open),
             copy: CopyFeedback::default(),
             scroll: UniformListScrollHandle::new(),
+            expanded: false,
         });
         follow_status(&motion, status, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
@@ -168,7 +191,7 @@ impl RenderOnce for FileDiff {
             window.request_animation_frame();
         }
         let (reveal, chevron, copied) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied());
-        let scroll = self.scroll.clone().unwrap_or_else(|| m.scroll.clone());
+        let (expanded, scroll) = (m.expanded, self.scroll.clone().unwrap_or_else(|| m.scroll.clone()));
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
         let (added, removed) = diff_stats(&self.lines);
@@ -269,37 +292,79 @@ impl RenderOnce for FileDiff {
                     .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
             );
 
+        // A clipped diff shows a few rows that do not scroll, until it is pressed open to a taller view.
+        let clip = self.preview_rows.filter(|_| !expanded);
         // Streaming, the newest row stays in view, as a terminal's does; a finished diff stays where the reader left it.
-        if streaming && !self.lines.is_empty() {
+        if streaming && !self.lines.is_empty() && clip.is_none() {
             scroll.scroll_to_item(self.lines.len() - 1, ScrollStrategy::Bottom);
         }
+        let total = self.lines.len();
         let lines: Rc<[DiffLine]> = self.lines.into();
         let row_sides: Rc<[Option<(Side, usize)>]> = row_sides.into();
         // The widest row sets the list's width, so long lines scroll sideways.
         let widest = lines.iter().enumerate().max_by_key(|(_, l)| l.text.len()).map(|(i, _)| i);
         let row_theme = theme.clone();
-        let rows = uniform_list(child("rows"), lines.len(), move |range, _, _| {
-            range
-                .map(|i| {
-                    let runs = row_sides[i].zip(side_runs.as_ref()).and_then(|((side, at), (old, new))| {
-                        let lines = match side {
-                            Side::Old => old.as_ref(),
-                            Side::New => new.as_ref(),
-                        }?;
-                        lines.get(at).cloned()
-                    });
-                    diff_row(&lines[i], runs, &row_theme)
-                })
-                .collect()
-        })
-        .track_scroll(&scroll)
-        .with_sizing_behavior(ListSizingBehavior::Infer)
-        .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
-        .with_width_from_item(widest)
-        .max_h(px(self.max_height))
-        .font_family(MONO_FONT_FAMILY)
-        .text_size(TextSize::Xs.font_size())
-        .line_height(px(ROW_HEIGHT));
+        let make_row = move |i: usize| {
+            let runs = row_sides[i].zip(side_runs.as_ref()).and_then(|((side, at), (old, new))| {
+                let lines = match side {
+                    Side::Old => old.as_ref(),
+                    Side::New => new.as_ref(),
+                }?;
+                lines.get(at).cloned()
+            });
+            diff_row(&lines[i], runs, &row_theme)
+        };
+        let viewport = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
+        let rows = match clip {
+            Some(rows) => div()
+                .id(child("rows"))
+                .debug_selector(|| "diff-rows".into())
+                .flex()
+                .flex_col()
+                .overflow_hidden()
+                .font_family(MONO_FONT_FAMILY)
+                .text_size(TextSize::Xs.font_size())
+                .line_height(px(ROW_HEIGHT))
+                .children(preview_clamp::window(total, rows, streaming).map(make_row))
+                .into_any_element(),
+            None => uniform_list(child("rows"), total, move |range, _, _| range.map(&make_row).collect())
+                .track_scroll(&scroll)
+                .with_sizing_behavior(ListSizingBehavior::Infer)
+                .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
+                .with_width_from_item(widest)
+                .max_h(px(viewport))
+                .font_family(MONO_FONT_FAMILY)
+                .text_size(TextSize::Xs.font_size())
+                .line_height(px(ROW_HEIGHT))
+                .into_any_element(),
+        };
+        // With a clip set, the rows are one press target: they open, and tell the owner.
+        let rows = match self.preview_rows {
+            Some(limit) => {
+                let clipped = total > limit;
+                let press = motion.clone();
+                let on_open = self.on_open.clone();
+                div()
+                    .id(child("body"))
+                    .debug_selector(|| "diff-body".into())
+                    .cursor_pointer()
+                    .on_click(move |_, window, cx| {
+                        let pressed = press.update(cx, |m, cx| {
+                            let pressed = Press::on(m.expanded, clipped);
+                            m.expanded = pressed.expanded;
+                            cx.notify();
+                            pressed
+                        });
+                        if let (true, Some(open)) = (pressed.open, &on_open) {
+                            open(window, cx);
+                        }
+                    })
+                    .child(rows)
+                    .when(clipped, |d| d.child(preview_clamp::hint(total - limit, expanded, &theme)))
+                    .into_any_element()
+            }
+            None => rows,
+        };
 
         let footer = self.copy_text.map(|text| {
             let copy_state = motion.clone();

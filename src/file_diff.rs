@@ -12,6 +12,8 @@
 //! - It opens while streaming and closes by itself on completion, like beui's `collapseOnComplete`.
 //! - While streaming, the rows follow their newest line, so an edit being written reads like a terminal; a finished diff stays where
 //!   the reader left it.
+//! - [`FileDiff::preview_rows`] clips the rows to a few that do not scroll; a press opens them to a taller view, runs
+//!   [`FileDiff::on_open`], and a second press folds them ([`crate::preview_clamp`]).
 //! - Syntax colours as in the editor ([`crate::syntax`]): each side of the diff is highlighted as one whole
 //!   text, off the UI thread, cached, and each row reads its side's line. The +/− washes sit under the colours.
 

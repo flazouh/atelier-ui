@@ -82,6 +82,7 @@ pub mod pr;
 pub mod pr_card;
 pub mod pr_chip;
 pub mod pr_refs;
+pub mod preview_clamp;
 pub mod project_badge;
 pub mod project_section;
 pub mod prompt_input;

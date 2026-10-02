@@ -219,3 +219,99 @@ fn a_diff_parts_from_the_panel_and_from_a_box_it_sits_in() {
         );
     }
 }
+
+mod clipped {
+    use std::{cell::Cell, rc::Rc};
+
+    use gpui_kit::{Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host {
+        rows: usize,
+        status: FileDiffStatus,
+        opened: Rc<Cell<usize>>,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let lines = (0..self.rows)
+                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .collect();
+            let opened = self.opened.clone();
+            div().w(px(600.)).child(
+                FileDiff::new("clipped", "src/main.rs", lines)
+                    .status(self.status)
+                    .preview_rows(8)
+                    .on_open(move |_, _| opened.set(opened.get() + 1)),
+            )
+        }
+    }
+
+    fn settle(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        cx.run_until_parked();
+    }
+
+    fn open(rows: usize, status: FileDiffStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, Rc<Cell<usize>>) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let opened = Rc::new(Cell::new(0));
+        let seen = opened.clone();
+        let (host, cx) = cx.add_window_view(move |_, _| Host { rows, status, opened });
+        cx.simulate_resize(size(px(700.), px(900.)));
+        settle(&host, cx);
+        (host, cx, seen)
+    }
+
+    fn height(cx: &mut gpui_kit::VisualTestContext, selector: &'static str) -> f32 {
+        f32::from(cx.debug_bounds(selector).unwrap().size.height)
+    }
+
+    fn press_body(cx: &mut gpui_kit::VisualTestContext) {
+        let at = cx.debug_bounds("diff-rows").map(|b| b.center()).or_else(|| cx.debug_bounds("diff-body").map(|b| b.origin + gpui_kit::point(px(20.), px(20.)))).unwrap();
+        cx.simulate_click(at, Modifiers::none());
+    }
+
+    #[gpui_kit::test]
+    fn a_long_diff_shows_only_its_preview_rows_and_does_not_scroll(cx: &mut TestAppContext) {
+        let (_, cx, opened) = open(30, FileDiffStatus::Complete, cx);
+        assert_eq!(height(cx, "diff-rows"), 8. * ROW_HEIGHT);
+        assert_eq!(opened.get(), 0);
+    }
+
+    #[gpui_kit::test]
+    fn a_short_diff_is_as_tall_as_its_rows(cx: &mut TestAppContext) {
+        let (_, cx, _) = open(3, FileDiffStatus::Complete, cx);
+        assert_eq!(height(cx, "diff-rows"), 3. * ROW_HEIGHT);
+    }
+
+    #[gpui_kit::test]
+    fn pressing_it_opens_it_and_tells_the_owner_once(cx: &mut TestAppContext) {
+        let (host, cx, opened) = open(30, FileDiffStatus::Complete, cx);
+        let before = height(cx, "diff-body");
+        press_body(cx);
+        settle(&host, cx);
+        assert_eq!(opened.get(), 1);
+        assert!(cx.debug_bounds("diff-rows").is_none(), "the clipped rows give way to the taller view");
+        assert!(height(cx, "diff-body") > before + 100., "it grew: {} from {before}", height(cx, "diff-body"));
+    }
+
+    #[gpui_kit::test]
+    fn pressing_it_again_folds_it_without_telling_the_owner(cx: &mut TestAppContext) {
+        let (host, cx, opened) = open(30, FileDiffStatus::Complete, cx);
+        press_body(cx);
+        settle(&host, cx);
+        press_body(cx);
+        settle(&host, cx);
+        assert_eq!(opened.get(), 1);
+        assert_eq!(height(cx, "diff-rows"), 8. * ROW_HEIGHT);
+    }
+}
