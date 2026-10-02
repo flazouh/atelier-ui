@@ -40,6 +40,9 @@ pub enum UploadVariant {
     Centered,
 }
 
+/// How many cells the bar of an upload has, across the card.
+pub(super) const UPLOAD_CELLS: usize = 40;
+
 pub enum FileUploadEvent {
     /// Files were dropped or picked, and are in the queue as uploading.
     Added(Vec<UploadItem>),

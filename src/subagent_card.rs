@@ -1,6 +1,6 @@
 //! One subagent in the chat, where it started, in TodoList's card language.
 //!
-//! - Header `h-11 px-3.5`: the look's mark (orbiting while it runs, still once done), the agent's name, its
+//! - Header `px-3 py-2`: the look's mark (orbiting while it runs, still once done), the agent's name, its
 //!   task in muted text, a [`ModelBadge`](crate::model_badge::ModelBadge), and on the right the elapsed time, or a check once done.
 //! - Body line, under the name: the live tool call flush left, under the mark rather than the name, and "12 tool calls" on the far right. The mark in
 //!   the header already shows that it runs, so the line has no spinner of its own. Every kind of call (read,

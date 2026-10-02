@@ -383,7 +383,12 @@ pub mod radius {
     pub fn xl() -> Pixels {
         px(12.)
     }
-    /// `rounded-2xl`: message bubbles and approval cards.
+    /// The cards of the agent panel and the PR view: tool calls, diffs, approvals, subagents, to-dos, changed files.
+    /// The PR view sets the measure: 8px corners, 12px side padding, headers 32 to 36px tall.
+    pub fn card() -> Pixels {
+        lg()
+    }
+    /// `rounded-2xl`: message bubbles.
     pub fn xxl() -> Pixels {
         px(16.)
     }

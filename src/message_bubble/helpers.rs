@@ -25,7 +25,7 @@ pub(super) fn content_color(variant: MessageBubbleVariant, theme: &Theme) -> gpu
 /// Stacks a speaker's bubbles into one grouped column.
 pub fn message_bubble_group(spacing: MessageBubbleGroupSpacing) -> gpui_kit::Div {
     let gap = match spacing {
-        MessageBubbleGroupSpacing::Compact => px(6.),
+        MessageBubbleGroupSpacing::Compact => px(crate::subagent_strip::STACK_GAP),
         MessageBubbleGroupSpacing::Default => px(12.),
     };
     div().flex().flex_col().w_full().gap(gap)
