@@ -12,15 +12,15 @@ pub(super) fn should_open(status: ToolStatus, was_running: bool, had_body: bool,
 }
 
 /// Opens when a run starts, or when a running call's output arrives after starting empty; closes when
-/// the run ends.
-pub(super) fn follow_status(motion: &Entity<CallMotion>, status: ToolStatus, has_body: bool, reduce: bool, cx: &mut App) {
+/// the run ends, unless the call keeps itself open.
+pub(super) fn follow_status(motion: &Entity<CallMotion>, status: ToolStatus, has_body: bool, collapse_on_complete: bool, reduce: bool, cx: &mut App) {
     motion.update(cx, |m, _| {
         let was_running = m.status == ToolStatus::Running;
         let status_changed = m.status != status;
         m.status = status;
         if should_open(status, was_running, m.had_body, has_body) {
             m.disclosure.set_open(true, reduce);
-        } else if status_changed && was_running {
+        } else if status_changed && was_running && collapse_on_complete {
             m.disclosure.set_open(false, reduce);
         }
         m.had_body = has_body;

@@ -10,7 +10,8 @@
 //! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-3`), the output
 //!   in a darker well inside it. [`ToolCall::flat`] drops the card and tightens the row: reading and searching are
 //!   flat, so a run of them stacks close, and so is a call that sits inside another card, as in an open subagent.
-//! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`.
+//! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`. [`ToolCall::collapse_on_complete`]`(false)`
+//!   keeps it open, and [`ToolCall::default_open`]`(true)` opens a call that has already finished.
 
 mod helpers;
 mod structs;

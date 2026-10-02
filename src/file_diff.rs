@@ -10,6 +10,8 @@
 //! - Rows are a virtual list (`uniform_list`): each is [`ROW_HEIGHT`] tall, and only the rows in view
 //!   are built and laid out, so a 5k-row diff costs a frame what a short one does.
 //! - It opens while streaming and closes by itself on completion, like beui's `collapseOnComplete`.
+//! - While streaming, the rows follow their newest line, so an edit being written reads like a terminal; a finished diff stays where
+//!   the reader left it.
 //! - Syntax colours as in the editor ([`crate::syntax`]): each side of the diff is highlighted as one whole
 //!   text, off the UI thread, cached, and each row reads its side's line. The +/− washes sit under the colours.
 

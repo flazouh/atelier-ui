@@ -2,7 +2,7 @@ use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
     App, ElementId, InteractiveElement, IntoElement, ListHorizontalSizingBehavior,
-    ListSizingBehavior, ParentElement, RenderOnce, SharedString, StatefulInteractiveElement,
+    ListSizingBehavior, ParentElement, RenderOnce, ScrollStrategy, SharedString, StatefulInteractiveElement,
     Styled, UniformListScrollHandle, Window, div, prelude::FluentBuilder, uniform_list,
 };
 
@@ -261,6 +261,10 @@ impl RenderOnce for FileDiff {
                     .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
             );
 
+        // Streaming, the newest row stays in view, as a terminal's does; a finished diff stays where the reader left it.
+        if streaming && !self.lines.is_empty() {
+            scroll.scroll_to_item(self.lines.len() - 1, ScrollStrategy::Bottom);
+        }
         let lines: Rc<[DiffLine]> = self.lines.into();
         let row_sides: Rc<[Option<(Side, usize)>]> = row_sides.into();
         // The widest row sets the list's width, so long lines scroll sideways.
