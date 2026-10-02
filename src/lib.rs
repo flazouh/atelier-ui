@@ -59,6 +59,7 @@ pub mod merge;
 pub mod merge_box;
 pub mod merge_button;
 pub mod message_bubble;
+pub mod message_pop;
 pub mod message_rail;
 pub mod modal;
 pub mod model_badge;
