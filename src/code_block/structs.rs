@@ -239,7 +239,7 @@ impl RenderOnce for CodeBlock {
             .flex_col()
             .w_full()
             .overflow_hidden()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card.opacity(0.8))
             .text_size(TextSize::Sm.font_size())
             .child(header)

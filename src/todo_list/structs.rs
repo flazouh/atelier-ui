@@ -211,9 +211,9 @@ impl RenderOnce for TodoList {
             .flex()
             .items_center()
             .gap(px(10.))
-            .h(px(44.))
-            .px(px(14.))
-            .rounded(radius::xxl())
+            .h(px(36.))
+            .px(px(12.))
+            .rounded(radius::card())
             .cursor_pointer()
             .press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx)
             .on_click(move |_, _, cx| {
@@ -324,7 +324,7 @@ impl RenderOnce for TodoList {
             .flex_col()
             .w_full()
             .overflow_hidden()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .child(header)
             .when(reveal > 0.001, |d| {
