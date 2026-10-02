@@ -120,3 +120,78 @@ fn a_second_files_diff_header_resets_the_hunk_state() {
     assert_eq!(lines[6].text.as_ref(), "old");
     assert_eq!(lines[7].text.as_ref(), "new");
 }
+
+mod tail {
+    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, UniformListScrollHandle, Window, div, px, size};
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host {
+        rows: usize,
+        status: FileDiffStatus,
+        scroll: UniformListScrollHandle,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let lines = (0..self.rows)
+                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .collect();
+            div().w(px(600.)).child(FileDiff::new("tail", "src/main.rs", lines).status(self.status).scroll_handle(self.scroll.clone()))
+        }
+    }
+
+    fn settle(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        cx.run_until_parked();
+    }
+
+    fn open(rows: usize, status: FileDiffStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, UniformListScrollHandle) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let scroll = UniformListScrollHandle::new();
+        let handle = scroll.clone();
+        let (host, cx) = cx.add_window_view(move |_, _| Host { rows, status, scroll });
+        cx.simulate_resize(size(px(700.), px(700.)));
+        settle(&host, cx);
+        (host, cx, handle)
+    }
+
+    /// How far the rows are from their end, in pixels: 0 at the end.
+    fn from_end(handle: &UniformListScrollHandle) -> f32 {
+        let base = handle.0.borrow().base_handle.clone();
+        f32::from(base.max_offset().y + base.offset().y)
+    }
+
+    #[gpui_kit::test]
+    fn a_streaming_diff_follows_its_newest_row(cx: &mut TestAppContext) {
+        let (host, cx, handle) = open(30, FileDiffStatus::Streaming, cx);
+        assert!(f32::from(handle.0.borrow().base_handle.max_offset().y) > 0., "30 rows are more than the viewport shows");
+        assert!(from_end(&handle).abs() < 1., "the end is in view: {}", from_end(&handle));
+        host.update(cx, |h, cx| {
+            h.rows = 60;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(from_end(&handle).abs() < 1., "it follows the new rows: {}", from_end(&handle));
+    }
+
+    #[gpui_kit::test]
+    fn a_complete_diff_stays_where_the_reader_left_it(cx: &mut TestAppContext) {
+        let (host, cx, handle) = open(30, FileDiffStatus::Complete, cx);
+        assert!(from_end(&handle) > 100., "a finished diff starts at its top: {}", from_end(&handle));
+        host.update(cx, |h, cx| {
+            h.rows = 60;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(from_end(&handle) > 100.);
+    }
+}

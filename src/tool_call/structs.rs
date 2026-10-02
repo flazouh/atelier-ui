@@ -31,6 +31,8 @@ pub struct ToolCall {
     pub(super) file: Option<SharedString>,
     pub(super) icon: Option<IconName>,
     pub(super) flat: bool,
+    default_open: bool,
+    collapse_on_complete: bool,
 }
 
 impl ToolCall {
@@ -46,6 +48,8 @@ impl ToolCall {
             file: None,
             icon: None,
             flat: false,
+            default_open: false,
+            collapse_on_complete: true,
         }
     }
 
@@ -53,6 +57,18 @@ impl ToolCall {
     /// that already sits inside a card.
     pub fn flat(mut self) -> Self {
         self.flat = true;
+        self
+    }
+
+    /// Opens on first render, when there is output to show, even if the call has finished. The user's choice wins after that.
+    pub fn default_open(mut self, open: bool) -> Self {
+        self.default_open = open;
+        self
+    }
+
+    /// Closes itself the moment the call ends. On by default; off, a call stays as it is until the reader folds it.
+    pub fn collapse_on_complete(mut self, collapse: bool) -> Self {
+        self.collapse_on_complete = collapse;
         self
     }
 
@@ -109,7 +125,7 @@ impl RenderOnce for ToolCall {
         let status = self.status;
         let has_body = self.output.is_some();
         // beui's `defaultOpen` is true while running; a finished call starts closed.
-        let open = status == ToolStatus::Running && has_body;
+        let open = (status == ToolStatus::Running || self.default_open) && has_body;
         let motion = window.use_keyed_state(self.id.clone(), cx, move |_, _| CallMotion {
             status,
             had_body: has_body,
@@ -117,7 +133,7 @@ impl RenderOnce for ToolCall {
             copy: CopyFeedback::default(),
             scroll: ScrollHandle::new(),
         });
-        follow_status(&motion, status, has_body, reduce, cx);
+        follow_status(&motion, status, has_body, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
         // Nothing spins here any more, so only the open and close reveal needs frames.
         if m.disclosure.is_moving() {
@@ -227,6 +243,7 @@ impl RenderOnce for ToolCall {
                     .child(
                         div()
                             .id(child("output"))
+                            .debug_selector(|| "tool-output".into())
                             .max_h(px(MAX_OUTPUT_HEIGHT))
                             .overflow_y_scroll()
                             .track_scroll(&scroll)
