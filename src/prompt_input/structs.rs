@@ -153,8 +153,6 @@ pub struct PromptInput {
     pub(super) mic_menu: bool,
     /// The button is down in hold mode.
     held: bool,
-    /// It was let go before the owner began listening; stop as soon as it does.
-    stop_when_listening: bool,
     pub(super) voice_since: Option<Instant>,
     /// 0 shows the microphone, 1 the stop square.
     pub(super) mic_swap: Channel,
@@ -224,7 +222,6 @@ impl PromptInput {
             voice_hold: false,
             mic_menu: false,
             held: false,
-            stop_when_listening: false,
             voice_since: None,
             mic_swap: Channel::new(0.),
             voice_fade: Channel::new(0.),
@@ -342,9 +339,10 @@ impl PromptInput {
         cx.notify();
     }
 
-    /// Whether dictation holds the box: it is being set up or it listens. Send waits for it.
+    /// Whether dictation holds the box: it listens. Send waits for it. Words that wait for the model do not hold it: what was
+    /// typed can go meanwhile, and the words come into the box when they are ready.
     pub(super) fn dictating(&self) -> bool {
-        matches!(self.voice, VoiceMode::Setup | VoiceMode::Listening)
+        self.voice == VoiceMode::Listening
     }
 
     /// The size of the model being fetched, for the setup's words.
@@ -373,32 +371,41 @@ impl PromptInput {
             self.menu.set_open(false, reduce);
             self.mic_menu = false;
         }
-        if mode == VoiceMode::Failed {
-            self.stop_when_listening = false;
-        }
         self.voice = mode;
         self.mic_swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
         self.voice_fade.animate(if mode == VoiceMode::Idle { 0. } else { 1. }, Curve::Ease(0.22, ease::OUT), 0., reduce);
-        // The button was let go before the microphone opened, in hold mode: the press is over already.
-        if listening && self.stop_when_listening {
-            self.stop_when_listening = false;
-            cx.emit(PromptInputEvent::DictationStop);
-        }
         cx.notify();
     }
 
-    /// The button in hold mode came up: the press is over.
-    fn let_go(&mut self, cx: &mut Context<Self>) {
-        if !self.held {
+    /// The microphone was pressed, by the button or the owner's key: it listens at once, and the owner is told to start. The
+    /// owner's own work (opening the microphone, fetching the model) comes after, so the press is never kept waiting. A press
+    /// while an earlier recording waits for the model starts a new one.
+    pub fn press_mic(&mut self, cx: &mut Context<Self>) {
+        if !self.dictation || self.disabled || self.running || self.voice == VoiceMode::Listening {
             return;
         }
+        self.go_voice(VoiceMode::Listening, cx);
+        cx.emit(PromptInputEvent::DictationStart);
+    }
+
+    /// The press is over: the owner turns it into words.
+    pub fn release_mic(&mut self, cx: &mut Context<Self>) {
         self.held = false;
-        match self.voice {
-            VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
-            // Not listening yet (the model is loading, or the microphone is opening): stop the moment it does.
-            VoiceMode::Setup | VoiceMode::Idle => self.stop_when_listening = true,
-            VoiceMode::Failed => {}
+        if self.voice != VoiceMode::Listening {
+            return;
         }
+        self.go_voice(VoiceMode::Idle, cx);
+        cx.emit(PromptInputEvent::DictationStop);
+    }
+
+    /// The press is taken back, such as a key that turned out to be part of a shortcut: no stop, no words.
+    pub fn cancel_mic(&mut self, cx: &mut Context<Self>) {
+        self.held = false;
+        if self.voice != VoiceMode::Listening {
+            return;
+        }
+        self.go_voice(VoiceMode::Idle, cx);
+        cx.emit(PromptInputEvent::DictationCancel);
     }
 
     /// Writes what was said at the end of the text, after a space when the text does not end in one, and puts the caret after
@@ -984,29 +991,34 @@ impl Render for PromptInput {
                         if this.voice_hold {
                             return;
                         }
-                        match this.voice {
-                            VoiceMode::Idle | VoiceMode::Failed => cx.emit(PromptInputEvent::DictationStart),
-                            VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
-                            VoiceMode::Setup => {}
+                        if this.voice == VoiceMode::Listening {
+                            this.release_mic(cx);
+                        } else {
+                            this.press_mic(cx);
                         }
                     })
                     .ok();
             });
             let (press, release) = (this.clone(), this.clone());
-            // Held down, it records; let go, it stops. A tap that ends before the microphone opens stops it as it opens.
+            // Held down, it records; let go, it stops.
             let hold_down = move |_: &mut Window, cx: &mut App| {
                 press
                     .update(cx, |this, cx| {
-                        if !blocked && matches!(this.voice, VoiceMode::Idle | VoiceMode::Failed) {
-                            this.held = true;
-                            this.stop_when_listening = false;
-                            cx.emit(PromptInputEvent::DictationStart);
+                        if this.voice != VoiceMode::Listening {
+                            this.press_mic(cx);
+                            this.held = this.voice == VoiceMode::Listening;
                         }
                     })
                     .ok();
             };
             let hold_up = move |_: &mut Window, cx: &mut App| {
-                release.update(cx, |this, cx| this.let_go(cx)).ok();
+                release
+                    .update(cx, |this, cx| {
+                        if this.held {
+                            this.release_mic(cx);
+                        }
+                    })
+                    .ok();
             };
             // While it listens (and while the stop square swaps in or out) the microphone is the amber disc with its ring;
             // otherwise it is the first segment of the group.
@@ -1034,7 +1046,7 @@ impl Render for PromptInput {
             };
             let segment = Button::new("prompt-mic")
                 .icon(IconName::Mic)
-                .disabled(blocked || mode == VoiceMode::Setup)
+                .disabled(blocked)
                 .tooltip("Dictate")
                 .debug_name("prompt-mic")
                 .on_click(move |e, w, cx| on_click(e, w, cx))

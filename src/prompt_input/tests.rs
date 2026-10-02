@@ -381,22 +381,41 @@ fn count(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, event: PromptInputEvent) ->
     heard.borrow().iter().filter(|e| **e == event).count()
 }
 
-/// The microphone asks the owner to start; it says nothing while the setup runs, and turns into Stop while it listens.
+/// A press listens at once, before the owner has done anything, and the next press stops it.
 #[gpui_kit::test]
-fn the_microphone_starts_dictation_and_becomes_stop_while_it_listens(cx: &mut TestAppContext) {
+fn a_press_listens_at_once_and_the_next_one_stops(cx: &mut TestAppContext) {
     let (prompt, heard, cx) = dictation(cx);
     cx.run_until_parked();
     click(cx, "prompt-mic");
     assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
-    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_setup(SetupPhase::Prepare, cx)));
-    cx.run_until_parked();
-    click(cx, "prompt-mic");
-    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1, "the setup does not start again");
-    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0);
-    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
-    cx.run_until_parked();
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Listening);
     click(cx, "prompt-mic");
     assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Idle);
+}
+
+/// While earlier words wait for the model, what was typed can be sent, and the microphone records again.
+#[gpui_kit::test]
+fn words_waiting_for_the_model_hold_nothing_up(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_setup(SetupPhase::Download(0.3), cx)));
+    cx.run_until_parked();
+    cx.simulate_input("typed meanwhile");
+    cx.simulate_keystrokes("enter");
+    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(t) if t == "typed meanwhile")));
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
+}
+
+/// A press taken back (a key that was part of a shortcut) ends with no stop: the owner throws it away.
+#[gpui_kit::test]
+fn a_cancelled_press_ends_without_a_stop(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.press_mic(cx)));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.cancel_mic(cx)));
+    assert_eq!(count(&heard, PromptInputEvent::DictationCancel), 1);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Idle);
 }
 
 /// Without `set_dictation` there is no microphone.
@@ -429,11 +448,11 @@ fn a_failed_press_can_be_sent_past_and_pressed_again(cx: &mut TestAppContext) {
     cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_error("Microphone unavailable: no microphone found", cx)));
     cx.run_until_parked();
     assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Failed);
-    click(cx, "prompt-mic");
-    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
     cx.simulate_input("still typing");
     cx.simulate_keystrokes("enter");
     assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(_))));
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
 }
 
 /// The transcript lands at the end of what is written.
@@ -540,16 +559,15 @@ fn held_down_it_starts_and_let_go_it_stops(cx: &mut TestAppContext) {
     assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
 }
 
-/// A tap that ends before the microphone has opened stops it the moment it opens.
+/// In hold mode a quick tap is a whole press: down starts, up stops, with nothing to wait for.
 #[gpui_kit::test]
-fn a_tap_before_it_listens_stops_when_it_does(cx: &mut TestAppContext) {
+fn in_hold_mode_a_tap_starts_and_stops(cx: &mut TestAppContext) {
     let (prompt, heard, cx) = dictation(cx);
     cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_hold(true, cx)));
     cx.run_until_parked();
     press(cx, true);
     press(cx, false);
-    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0, "not listening yet");
-    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
     assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
 }
 
