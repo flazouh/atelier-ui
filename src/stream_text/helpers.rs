@@ -45,7 +45,7 @@ pub fn is_plain(tail: &str) -> bool {
     !starts_block && !tail.contains(['`', '*', '_', '[', '<', '\\', '!', '~'])
 }
 
-/// Motion's default ease-out, `[0, 0, 0.58, 1]`, which the rest of the app uses for a plain fade.
-pub(super) fn ease_out(t: f32) -> f32 {
-    crate::motion::cubic_bezier(crate::motion::ease::STANDARD_MOTION, t.clamp(0., 1.))
+/// CSS `ease-in-out`, the curve of Cursor's `fade-in-fast`.
+pub(super) fn ease_in_out(t: f32) -> f32 {
+    crate::motion::cubic_bezier(crate::motion::ease::STREAM_FADE, t.clamp(0., 1.))
 }

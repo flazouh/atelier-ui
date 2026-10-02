@@ -104,3 +104,21 @@ fn glimmer_highlights_colors_one_run_per_cluster_not_per_char() {
     // The second highlight covers both the 'e' and its combining mark, byte 1 through the end.
     assert_eq!(highlights[1].0, 1..text.len());
 }
+#[test]
+fn the_cursor_band_starts_a_fifth_of_the_way_in_and_crosses_left_to_right() {
+    assert!((cursor_weight(0.2, 0) - 1.).abs() < 1e-5);
+    assert!((cursor_weight(0.7, 250) - 1.).abs() < 1e-5);
+    assert!(cursor_weight(0.3, 0) < cursor_weight(0.1, 0), "its leading edge is the short, steep one");
+}
+#[test]
+fn the_cursor_band_rests_at_the_base_ink_away_from_its_center() {
+    assert_eq!(cursor_weight(0.9, 0), 0.);
+    assert_eq!(cursor_weight(0., 500), 0.);
+}
+#[test]
+fn the_cursor_band_loops_every_second_without_a_seam() {
+    for at in [0., 0.13, 0.5, 0.87, 1.] {
+        assert_eq!(cursor_weight(at, 1_000), cursor_weight(at, 0));
+        assert!((cursor_weight(at, 999) - cursor_weight(at, 0)).abs() < 0.01, "{at}");
+    }
+}

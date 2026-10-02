@@ -182,6 +182,8 @@ pub mod ease {
     pub const MOTION_DEFAULT: [f32; 4] = [0.25, 0.1, 0.35, 1.];
     /// CSS `ease-in-out`, the Claude app's thinking breath.
     pub const BREATH: [f32; 4] = [0.42, 0., 0.58, 1.];
+    /// CSS `ease-in-out`, which Cursor's `fade-in-fast` runs on: a streamed piece fading in.
+    pub const STREAM_FADE: [f32; 4] = [0.42, 0., 0.58, 1.];
 }
 
 /// How far, in pixels, text rises as it morphs out and in.
@@ -211,6 +213,10 @@ pub mod glimmer {
     /// The smooth band fades to nothing this many graphemes from its center, so it covers the same
     /// three graphemes the CLI lights.
     pub const BAND_REACH: f32 = 1.5;
+    /// One crossing of Cursor's shimmer band (its `animation-duration: 1s`).
+    pub const CURSOR_PERIOD_MS: u64 = 1000;
+    /// The ink Cursor's band leaves the text at: `color-mix(in srgb, currentColor 60%, transparent)`.
+    pub const CURSOR_BASE_INK: f32 = 0.6;
 }
 
 /// How long one-shot transitions take.

@@ -338,7 +338,7 @@ impl RenderOnce for AgentText {
             .when(!body.trim().is_empty() || tail.is_none(), |d| d.child(text))
             .when_some(tail, |d, (rest, runs)| {
                 // A highlight colour is blended over the text\s own, so a piece fades by taking the surface\s tone at the
-                // strength it has left to go.
+                // strength it has left to go. A GlyphText, so a fading piece keeps the kerning it will have once it settles.
                 let surface = self.fade_into.unwrap_or(theme.card);
                 let highlights = runs.into_iter().map(|(range, alpha)| {
                     (range, gpui_kit::HighlightStyle { color: Some(surface.opacity(1. - alpha)), ..Default::default() })
@@ -348,7 +348,7 @@ impl RenderOnce for AgentText {
                     div()
                         .debug_selector(|| "stream-tail".into())
                         .when(!body.trim().is_empty(), |d| d.mt(rems(0.75)))
-                        .child(gpui_kit::StyledText::new(rest).with_highlights(highlights)),
+                        .child(crate::glyph_text::GlyphText::new(rest).highlights(highlights)),
                 )
             });
         div().flex().flex_col().w_full().child(content).when_some(actions, |d, a| d.child(a))

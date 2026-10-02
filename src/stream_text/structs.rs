@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use super::types::{FADE, Piece};
-use super::helpers::ease_out;
+use super::helpers::ease_in_out;
 
 /// When each piece of the growing text arrived: the start of the piece, and the moment.
 #[derive(Clone, Debug, Default)]
@@ -47,7 +47,7 @@ impl Flow {
                 continue;
             }
             let t = age.as_secs_f32() / FADE.as_secs_f32();
-            out.push((start..end, ease_out(t)));
+            out.push((start..end, ease_in_out(t)));
         }
         out
     }
