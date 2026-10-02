@@ -13,7 +13,7 @@ mod helpers;
 mod types;
 
 pub use helpers::{
-    band_wait_ms, cluster_count, glimmer_center, glimmer_highlights, glimmer_index,
+    band_wait_ms, cluster_count, cursor_weight, glimmer_center, glimmer_highlights, glimmer_index,
     glimmer_weight, stepped_lit,
 };
 #[cfg(test)]

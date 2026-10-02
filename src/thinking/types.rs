@@ -51,6 +51,8 @@ pub enum Shimmer {
     Smooth,
     /// The CLI exactly: three whole clusters, stepping.
     Stepped,
+    /// Cursor's status shimmer: the label at 60% ink, with a full-ink band crossing it left to right once a second.
+    Cursor,
 }
 
 /// What sits between segments in text form, for tests and accessibility: nothing but the gap.

@@ -9,6 +9,20 @@ pub(crate) fn step_ms(requesting: bool) -> u64 {
     if requesting { tuning::REQUESTING_STEP_MS } else { tuning::STEP_MS }
 }
 
+/// Cursor's text shimmer (its StyleX `ui-c079w9` with keyframes `ui-f4slbi-B`): a gradient twice the text's width,
+/// at base ink to 25%, full at 60%, back to base from 75%, slid from `background-position: 100%` to `-100%` in a
+/// linear loop of [`tuning::CURSOR_PERIOD_MS`]. How much it lights the point `at` of the way across the text,
+/// `elapsed_ms` in: 0 at base ink, 1 at full.
+pub fn cursor_weight(at: f32, elapsed_ms: u64) -> f32 {
+    let t = (elapsed_ms % tuning::CURSOR_PERIOD_MS) as f32 / tuning::CURSOR_PERIOD_MS as f32;
+    // A position of p puts the image's left edge at p * (width - 2 * width): it runs from -width to +width.
+    let along = ((at + 1. - 2. * t) / 2.).rem_euclid(1.);
+    match along {
+        a if a <= 0.25 || a >= 0.75 => 0.,
+        a if a <= 0.6 => (a - 0.25) / 0.35,
+        a => (0.75 - a) / 0.15,
+    }
+}
 pub(super) fn cycle(text_width: i32) -> i32 {
     text_width + 2 * tuning::PAD
 }

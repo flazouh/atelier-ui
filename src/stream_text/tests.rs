@@ -107,27 +107,38 @@ mod flow {
         let text1 = "Hello";
         flow.observe(text1, base);
         let text2 = "Hello there";
-        flow.observe(text2, at(base, 100));
-        let runs = flow.alphas(text2, 0, at(base, 120));
+        flow.observe(text2, at(base, 40));
+        let runs = flow.alphas(text2, 0, at(base, 60));
         assert_eq!(runs.len(), 2);
         assert_eq!(runs[0].0, 0..5);
         assert_eq!(runs[1].0, 5..11);
         assert!(runs[1].1 < runs[0].1, "the newer piece is fainter: {runs:?}");
         assert!(runs[1].1 > 0. && runs[0].1 < 1.);
-        let later = flow.alphas(text2, 0, at(base, 100 + 240));
+        let later = flow.alphas(text2, 0, at(base, 40 + 100));
         assert!(later.is_empty(), "both are settled: nothing to draw differently");
     }
 
     #[test]
-    fn the_fade_is_over_after_240_ms_so_no_frame_is_asked_for() {
+    fn the_fade_is_over_after_100_ms_so_no_frame_is_asked_for() {
         let base = Instant::now();
         let mut flow = Flow::default();
         flow.observe("Hi", base);
-        assert!(flow.is_fading(at(base, 100)));
-        assert!(!flow.is_fading(at(base, 240)));
+        assert!(flow.is_fading(at(base, 50)));
+        assert!(!flow.is_fading(at(base, 100)));
         assert!(!Flow::default().is_fading(base), "a stream that has not started asks for nothing");
     }
 
+    /// Cursor's `fade-in-fast`: CSS `ease-in-out`, so a piece starts slow, is at half ink halfway, and lands slow.
+    #[test]
+    fn a_piece_eases_in_and_out() {
+        let base = Instant::now();
+        let mut flow = Flow::default();
+        flow.observe("Hi", base);
+        let ink = |ms| flow.alphas("Hi", 0, at(base, ms))[0].1;
+        assert!((ink(50) - 0.5).abs() < 0.01, "halfway: {}", ink(50));
+        assert!(ink(25) < 0.2, "a slow start: {}", ink(25));
+        assert!(ink(75) > 0.8, "a slow landing: {}", ink(75));
+    }
     #[test]
     fn pieces_before_the_tail_are_left_out_and_a_piece_across_it_is_cut() {
         let base = Instant::now();

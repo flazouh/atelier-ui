@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{rc::Rc, time::{Duration, Instant}};
 
 use gpui_kit::{
-    App, ElementId, IntoElement, ParentElement, RenderOnce, SharedString, Styled, StyledText,
+    App, ElementId, Hsla, IntoElement, ParentElement, RenderOnce, SharedString, Styled, StyledText,
     Window, div, prelude::FluentBuilder,
 };
 
@@ -9,8 +9,9 @@ use crate::scale::px;
 use crate::{
     agent_look::AgentLook,
     glimmer,
+    glyph_text::{GlyphText, Ink},
     morph::Morph,
-    motion::{Channel, Curve, duration, ease},
+    motion::{Channel, Curve, duration, ease, glimmer as tuning},
     sprite::Strip,
     theme::ActiveTheme,
     typography::{SEGMENT_GAP, TextSize},
@@ -151,6 +152,7 @@ impl RenderOnce for Thinking {
         let (message, glimmer_color) = (self.look.message, self.look.glimmer);
         let mut soonest = |wait: Duration| next = Some(next.map_or(wait, |n| n.min(wait)));
         let mut opacity = 1.;
+        let mut ink: Option<Ink> = None;
         let highlights = match self.style {
             _ if done => None,
             // The CLI sets the index to -100 under Reduce Motion, so nothing lights.
@@ -163,6 +165,15 @@ impl RenderOnce for Thinking {
                 Some(glimmer::glimmer_highlights(&text, message, glimmer_color, |g| {
                     if glimmer::stepped_lit(g, index) { 1. } else { 0. }
                 }))
+            }
+            // Cursor's band is a CSS animation, which runs at the display's rate, so it asks for every frame.
+            ThinkingStyle::Shimmer(Shimmer::Cursor) => {
+                window.request_animation_frame();
+                ink = Some(Rc::new(move |at: f32, color: Hsla| {
+                    let lit = glimmer::cursor_weight(at, elapsed_ms);
+                    color.opacity(tuning::CURSOR_BASE_INK + (1. - tuning::CURSOR_BASE_INK) * lit)
+                }));
+                None
             }
             ThinkingStyle::Shimmer(Shimmer::Smooth) => {
                 match glimmer::band_wait_ms(elapsed_ms, width, requesting) {
@@ -191,14 +202,15 @@ impl RenderOnce for Thinking {
             None => m.wake.cancel(),
         });
 
-        let label_color = label_color(&self.look, !done && highlights.is_some(), muted);
+        let label_color = label_color(&self.look, !done && (highlights.is_some() || ink.is_some()), muted);
         let label_key = text.clone();
-        let label_el = move |_: &mut Window, _: &mut App| {
-            let styled = StyledText::new(text.clone());
-            match &highlights {
-                Some(h) => styled.with_highlights(h.clone()).into_any_element(),
-                None => styled.into_any_element(),
-            }
+        // A moving label is a GlyphText, so its letters keep their places while their colors move.
+        let label_el = move |_: &mut Window, _: &mut App| match (&highlights, &ink) {
+            (None, None) => StyledText::new(text.clone()).into_any_element(),
+            (highlights, ink) => GlyphText::new(text.clone())
+                .highlights(highlights.clone().unwrap_or_default())
+                .when_some(ink.clone(), GlyphText::ink)
+                .into_any_element(),
         };
         let child = |name: &'static str| ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), name.into());
         let segment_names = ["elapsed", "tokens", "tasks"];

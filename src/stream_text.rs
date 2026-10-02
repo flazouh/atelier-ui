@@ -1,5 +1,5 @@
 //! The answer as it streams in. A finished paragraph is Markdown (the `TextView` as always); the paragraph still
-//! growing, the tail, is drawn as plain runs whose ink follows their age, so each new piece fades in over 240ms.
+//! growing, the tail, is drawn as plain runs whose ink follows their age, so each new piece fades in over 100ms, as Cursor's do.
 //! Only the newest pieces fade, and once the stream stalls no frame is asked for. A tail that needs Markdown (a
 //! list, a heading, a code span, a link) is left to `TextView`, with no fade.
 //!
