@@ -137,10 +137,12 @@ pub mod tool_preview;
 pub mod tool_call;
 pub mod typography;
 pub mod verdict;
+pub mod voice_waves;
 pub mod unsent;
 pub(crate) mod scroll_chain;
 pub(crate) mod wake;
 
+pub use voice_waves::VoiceWaves;
 pub use agent_look::{AgentLook, Mark, PhaseLabels};
 pub use agent_text::{AgentText, AgentTextSource, AgentTextStatus};
 pub use action_swap::{ActionSwapButton, SwapSize, SwapVariant};
