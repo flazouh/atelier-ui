@@ -41,3 +41,14 @@ pub(super) const PICK_GAP: f32 = 2.;
 pub(super) const PICK_PAD: f32 = 6.;
 
 pub(super) const PICK_MOST: f32 = 256.;
+
+/// Words shown in the box while a press still records.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(super) enum LiveWords {
+    #[default]
+    Off,
+    /// What was written before they began, and the words now shown after it.
+    Showing { base: String, shown: String },
+    /// The person edited the box meanwhile: the words stay as they are, and stop moving.
+    Left,
+}
