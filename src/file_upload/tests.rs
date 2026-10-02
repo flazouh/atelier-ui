@@ -140,8 +140,9 @@ fn each_file_is_a_row_and_only_a_failed_one_has_retry(cx: &mut TestAppContext) {
     assert!(cx.debug_bounds("upload-retry").is_some());
     let bar = |id: &str, cx: &mut VisualTestContext| cx.debug_bounds(Box::leak(format!("upload-bar-{id}").into_boxed_str())).map(|b| f32::from(b.size.width));
     assert!(bar("pdf", cx).is_none(), "a failed file shows no bar");
+    // Every bar spans the card; how many of its cells are lit is the number, which `cell_bar` tests.
     let (full, part) = (bar("zip", cx).expect("bar"), bar("mov", cx).expect("bar"));
-    assert!(part < full && (part / full - 0.58).abs() < 0.03, "58% of the track: {part} of {full}");
+    assert!((part - full).abs() < 0.5, "both bars span the card: {part} and {full}");
 }
 
 #[gpui_kit::test]

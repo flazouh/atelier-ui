@@ -857,7 +857,7 @@ impl Render for PromptInput {
                 swap: self.mic_swap.value(),
                 seconds,
                 blocked: disabled || self.running,
-                foreground: theme.foreground,
+                theme: theme.clone(),
                 reduce,
             };
             voice_input::mic_slot(

@@ -14,11 +14,12 @@ use std::path::{Path, PathBuf};
 
 use gpui_kit::{
     Context, ElementId, EventEmitter, ExternalPaths, FontWeight, InteractiveElement, IntoElement, MouseButton, ParentElement,
-    PathPromptOptions, Render, SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, relative,
+    PathPromptOptions, Render, SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 use crate::scale::px;
 
 use crate::{
+    cell_bar::CellBar,
     icon::{Icon, IconName},
     layout_motion::shifted,
     motion::{Channel, Curve, Spring, duration, ease, now},
@@ -115,6 +116,9 @@ impl UploadItem {
         self
     }
 }
+
+/// How many cells the bar of an upload has, across the card.
+const UPLOAD_CELLS: usize = 40;
 
 /// The progress shown: 100 for a file that arrived, 0 for one with no number, else the number within 0 to 100.
 pub fn clamp_progress(progress: f32, status: UploadStatus) -> f32 {
@@ -655,16 +659,12 @@ impl Render for FileUpload {
                                     )
                                     .when(show_bar, |d| {
                                         d.child(
-                                            div().mt(px(12.)).h(px(6.)).overflow_hidden().rounded_full().bg(theme.card_strong).child(
-                                                div()
-                                                    .debug_selector({
-                                                        let id = id.clone();
-                                                        move || format!("upload-bar-{id}")
-                                                    })
-                                                    .h_full()
-                                                    .w(relative(ratio))
-                                                    .rounded_full()
-                                                    .bg(if status == UploadStatus::Success { theme.success } else { theme.foreground }),
+                                            div().mt(px(12.)).child(
+                                                CellBar::new(Some(ratio))
+                                                    .stretch(true)
+                                                    .cells(UPLOAD_CELLS)
+                                                    .color(if status == UploadStatus::Success { theme.success } else { theme.foreground })
+                                                    .debug_name(format!("upload-bar-{id}")),
                                             ),
                                         )
                                     }),

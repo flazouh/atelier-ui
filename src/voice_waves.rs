@@ -14,7 +14,7 @@ use std::{f32::consts::PI, time::Instant};
 
 use gpui_kit::{App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div, hsla, px};
 
-use crate::scale::px as scaled;
+use crate::{scale::px as scaled, theme::ActiveTheme};
 
 /// A bar never gets wider than this, so a wide row keeps its look and centers instead of growing fat bars.
 pub const MAX_BAR_WIDTH: f32 = 6.;
@@ -22,6 +22,23 @@ pub const MAX_BAR_WIDTH: f32 = 6.;
 /// Amber, `hsl(38 100% 55%)`.
 pub fn amber() -> Hsla {
     hsla(38. / 360., 1., 0.55, 1.)
+}
+
+/// Amber for this theme: the bright one on a dark page, a deeper one on a light page, where the bright one is too pale to read
+/// (1.9 to 1 against white, against 4.0 to 1 for the deeper one).
+pub fn amber_for(theme: &crate::theme::Theme) -> Hsla {
+    match theme.appearance {
+        crate::theme::Appearance::Dark => amber(),
+        crate::theme::Appearance::Light => hsla(33. / 360., 0.95, 0.38, 1.),
+    }
+}
+
+/// What a mark on [`amber_for`] is drawn in: near-black on the bright amber, white on the deep one.
+pub fn on_amber(theme: &crate::theme::Theme) -> Hsla {
+    match theme.appearance {
+        crate::theme::Appearance::Dark => hsla(38. / 360., 0.7, 0.1, 1.),
+        crate::theme::Appearance::Light => hsla(0., 0., 1., 1.),
+    }
 }
 
 /// One ribbon: how many waves fit across, how fast and which way they drift, where they start, how opaque, how tall.
@@ -90,14 +107,14 @@ pub struct VoiceWaves {
     id: ElementId,
     level: f32,
     height: Pixels,
-    color: Hsla,
+    color: Option<Hsla>,
     bars: usize,
     gap: f32,
 }
 
 impl VoiceWaves {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), level: 0., height: px(40.), color: amber(), bars: 36, gap: 3. }
+        Self { id: id.into(), level: 0., height: px(40.), color: None, bars: 36, gap: 3. }
     }
 
     /// The microphone's level now, 0 to 1.
@@ -111,8 +128,9 @@ impl VoiceWaves {
         self
     }
 
+    /// The bars' color. Without one, [`amber_for`] the theme.
     pub fn color(mut self, color: Hsla) -> Self {
-        self.color = color;
+        self.color = Some(color);
         self
     }
 
@@ -146,7 +164,8 @@ impl RenderOnce for VoiceWaves {
         if !reduce {
             window.request_animation_frame();
         }
-        let (color, height, count) = (self.color, f32::from(self.height), self.bars);
+        let color = self.color.unwrap_or_else(|| amber_for(cx.theme()));
+        let (height, count) = (f32::from(self.height), self.bars);
         let bars = (0..count).map(|k| {
             let a = bar((k as f32 + 0.5) / count as f32, level, phase);
             let h = (a * height).max(MIN_BAR.min(height));

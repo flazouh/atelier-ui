@@ -18,7 +18,7 @@ use std::time::Instant;
 
 use gpui_kit::{
     AnyElement, App, Context, Div, EventEmitter, Hsla, InteractiveElement, IntoElement, ParentElement, Render, SharedString, Styled, Window, div,
-    hsla, prelude::FluentBuilder,
+    prelude::FluentBuilder,
 };
 
 use crate::{
@@ -27,10 +27,10 @@ use crate::{
     morph::Morph,
     motion::{Channel, Curve, Spring},
     scale::px,
-    theme::{ActiveTheme, radius},
+    theme::{ActiveTheme, Theme, radius},
     typography::TextSize,
     voice_setup::{SetupPhase, VoiceSetup},
-    voice_waves::{VoiceWaves, amber},
+    voice_waves::{VoiceWaves, amber_for, on_amber},
 };
 
 /// The bar's height and the round button's size, in pixels.
@@ -177,14 +177,15 @@ pub(crate) struct Mic {
     pub swap: f32,
     pub seconds: f32,
     pub blocked: bool,
-    pub foreground: Hsla,
+    pub theme: Theme,
     pub reduce: bool,
 }
 
 pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static) -> Div {
-    let Mic { id, mode, swap, seconds, blocked, foreground, reduce } = mic;
+    let Mic { id, mode, swap, seconds, blocked, theme, reduce } = mic;
+    let (tone, foreground) = (amber_for(&theme), theme.foreground);
     // The microphone and the stop square share one slot, blended by `swap` so neither ever pops.
-    let ink = hsla(38. / 360., 0.7, 0.1, 1.);
+    let ink = on_amber(&theme);
     let glyphs = div()
         .relative()
         .size(px(16.))
@@ -224,7 +225,7 @@ pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut W
         .flex_none()
         .size(px(BUTTON))
         // The disc fills with amber as the square comes in.
-        .child(div().absolute().inset_0().rounded_full().bg(amber().opacity(swap)))
+        .child(div().absolute().inset_0().rounded_full().bg(tone.opacity(swap)))
         .when(ring_opacity > 0.01, |d| {
             d.child(
                 div()
@@ -234,7 +235,7 @@ pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut W
                     .size(px(BUTTON + 2. * ring_reach))
                     .rounded_full()
                     .border_1()
-                    .border_color(amber().opacity(ring_opacity)),
+                    .border_color(tone.opacity(ring_opacity)),
             )
         })
         .child(button)
@@ -268,7 +269,7 @@ impl Render for VoiceInput {
         });
 
         let this = cx.entity().downgrade();
-        let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, foreground: theme.foreground, reduce };
+        let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, theme: theme.clone(), reduce };
         let slot = mic_slot(mic, move |_, _, cx| {
             this.update(cx, |this, cx| match this.mode {
                 VoiceMode::Idle => cx.emit(VoiceInputEvent::Start),

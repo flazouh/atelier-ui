@@ -137,6 +137,7 @@ pub mod tool_preview;
 pub mod tool_call;
 pub mod typography;
 pub mod verdict;
+pub mod cell_bar;
 pub mod voice_input;
 pub mod voice_setup;
 pub mod voice_waves;
@@ -144,6 +145,7 @@ pub mod unsent;
 pub(crate) mod scroll_chain;
 pub(crate) mod wake;
 
+pub use cell_bar::CellBar;
 pub use voice_input::{VoiceInput, VoiceInputEvent, VoiceMode};
 pub use voice_setup::{SetupPhase, VoiceSetup};
 pub use voice_waves::VoiceWaves;
