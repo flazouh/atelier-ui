@@ -1133,14 +1133,14 @@ impl Render for PromptInput {
                     .child(slot)
                     .child(
                         arrow
-                            .variant(ButtonVariant::Secondary)
+                            .variant(ButtonVariant::Tinted)
                             .size(ButtonSize::Icon)
                             .corners(gpui_kit::Corners { top_left: false, top_right: true, bottom_left: false, bottom_right: true })
                             .focusable(true),
                     )
                     .into_any_element(),
                 None => ButtonGroup::new("prompt-mic-buttons")
-                    .variant(ButtonVariant::Secondary)
+                    .variant(ButtonVariant::Tinted)
                     .size(ButtonSize::Icon)
                     .child(segment)
                     .child(arrow)

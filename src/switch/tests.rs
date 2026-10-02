@@ -6,8 +6,8 @@ use super::*;
 use crate::theme::{Appearance, set_appearance};
 
 #[test]
-fn the_track_is_48_by_28_and_the_thumb_travels_20() {
-    assert_eq!((WIDTH, HEIGHT, PAD, THUMB, TRAVEL), (48., 28., 4., 20., 20.));
+fn the_track_is_32_by_20_and_the_thumb_travels_12() {
+    assert_eq!((WIDTH, HEIGHT, PAD, THUMB, TRAVEL), (32., 20., 3., 14., 12.));
     assert_eq!((THUMB_SPRING.stiffness, THUMB_SPRING.damping, THUMB_SPRING.mass), (800., 80., 4.));
 }
 
@@ -26,10 +26,10 @@ fn the_thumb_overshoots_by_four_percent_at_most_and_settles() {
 
 #[test]
 fn a_pressed_thumb_stretches_toward_the_side_it_came_from() {
-    assert_eq!(thumb_span(0., 0., false), (4., 20.));
-    assert_eq!(thumb_span(1., 0., true), (24., 20.));
-    assert_eq!(thumb_span(0., 1., false), (4., 24.), "off: the stretch is to the right, toward where it goes");
-    assert_eq!(thumb_span(1., 1., true), (20., 24.), "on: the stretch is to the left, and the right edge holds");
+    assert_eq!(thumb_span(0., 0., false), (3., 14.));
+    assert_eq!(thumb_span(1., 0., true), (15., 14.));
+    assert_eq!(thumb_span(0., 1., false), (3., 17.), "off: the stretch is to the right, toward where it goes");
+    assert_eq!(thumb_span(1., 1., true), (12., 17.), "on: the stretch is to the left, and the right edge holds");
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn open(on: bool, disabled: bool, cx: &mut TestAppContext) -> (Entity<Page>, &mu
 }
 
 #[gpui_kit::test]
-fn the_track_is_48_by_28_and_the_thumb_sits_at_the_end_the_state_says(cx: &mut TestAppContext) {
+fn the_track_is_32_by_20_and_the_thumb_sits_at_the_end_the_state_says(cx: &mut TestAppContext) {
     let (page, cx, _) = open(false, false, cx);
     let track = cx.debug_bounds("sw").unwrap();
     assert_eq!((f32::from(track.size.width), f32::from(track.size.height)), (WIDTH, HEIGHT));
@@ -133,9 +133,9 @@ fn enter_and_space_toggle_the_focused_switch(cx: &mut TestAppContext) {
 }
 
 #[test]
-fn a_compact_switch_is_a_32_by_20_track_with_the_same_motion() {
+fn a_compact_switch_is_a_26_by_16_track_with_the_same_motion() {
     let d = Dims::COMPACT;
-    assert_eq!((d.width, d.height, d.thumb, d.travel()), (32., 20., 14., 12.));
-    assert_eq!(span(d, 1., 0., true), (3. + 12., 14.));
+    assert_eq!((d.width, d.height, d.thumb, d.travel()), (26., 16., 12., 10.));
+    assert_eq!(span(d, 1., 0., true), (2. + 10., 12.));
     assert_eq!(span(Dims::STANDARD, 0., 0., false), thumb_span(0., 0., false));
 }
