@@ -478,6 +478,47 @@ fn a_transcript_is_written_after_the_text(cx: &mut TestAppContext) {
     assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "fix the tool cards");
 }
 
+fn written(prompt: &Entity<PromptInput>, cx: &mut VisualTestContext) -> String {
+    cx.update(|_, cx| prompt.read(cx).text(cx).to_string())
+}
+
+/// Words heard so far show after the text and move as more come; the final words take their place.
+#[gpui_kit::test]
+fn live_words_move_and_the_final_ones_take_their_place(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = dictation(cx);
+    cx.simulate_input("fix");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.set_live_transcript("the tool", window, cx)));
+    assert_eq!(written(&prompt, cx), "fix the tool");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.set_live_transcript("the tool cards.", window, cx)));
+    assert_eq!(written(&prompt, cx), "fix the tool cards.");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.insert_transcript("the tool cards", window, cx)));
+    assert_eq!(written(&prompt, cx), "fix the tool cards");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.insert_transcript("and the badges", window, cx)));
+    assert_eq!(written(&prompt, cx), "fix the tool cards and the badges", "a later transcript adds, it does not replace");
+}
+
+/// A press that ends without words takes its live words out again.
+#[gpui_kit::test]
+fn live_words_go_when_the_press_ends_without_words(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = dictation(cx);
+    cx.simulate_input("fix");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.set_live_transcript("uh", window, cx)));
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.end_live_transcript(window, cx)));
+    assert_eq!(written(&prompt, cx), "fix");
+}
+
+/// Once the person types, the live words stop moving, and nothing they wrote is lost.
+#[gpui_kit::test]
+fn typing_meanwhile_leaves_the_live_words_where_they_are(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = dictation(cx);
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.set_live_transcript("the tool", window, cx)));
+    cx.simulate_input("!");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.set_live_transcript("the tool cards", window, cx)));
+    assert_eq!(written(&prompt, cx), "the tool!");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.insert_transcript("the tool cards", window, cx)));
+    assert_eq!(written(&prompt, cx), "the tool! the tool cards", "the final words are added, never dropped");
+}
+
 fn microphones(prompt: &Entity<PromptInput>, cx: &mut VisualTestContext) {
     cx.update(|_, cx| {
         prompt.update(cx, |p, cx| {

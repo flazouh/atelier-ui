@@ -43,8 +43,8 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent};
-use super::helpers::append_transcript;
+use super::types::{LiveWords, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent};
+use super::helpers::{append_transcript, live_text};
 
 /// One choice in the model picker.
 #[derive(Clone, Debug)]
@@ -146,6 +146,7 @@ pub struct PromptInput {
     /// Why the last press ended without words, shown while the mode is [`VoiceMode::Failed`].
     pub(super) voice_error: SharedString,
     pub(super) voice_level: f32,
+    pub(super) live: LiveWords,
     /// The microphones in the menu, the one chosen (`None` is the system's default), and whether a press records only while held.
     pub(super) voice_devices: Vec<VoiceDevice>,
     pub(super) voice_device: Option<SharedString>,
@@ -217,6 +218,7 @@ impl PromptInput {
             voice_total_mb: 164.,
             voice_error: SharedString::default(),
             voice_level: 0.,
+            live: LiveWords::Off,
             voice_devices: Vec::new(),
             voice_device: None,
             voice_hold: false,
@@ -421,12 +423,48 @@ impl PromptInput {
     /// it, so the user reads it, fixes it and sends it.
     pub fn insert_transcript(&mut self, words: &str, window: &mut Window, cx: &mut Context<Self>) {
         let words = words.trim();
+        let base = match std::mem::take(&mut self.live) {
+            // The live words give way to the final ones.
+            LiveWords::Showing { base, shown } if self.text(cx) == live_text(&base, &shown) => base,
+            _ => self.text(cx).to_string(),
+        };
         if words.is_empty() {
-            return;
+            return self.write(&base, base.len(), window, cx);
         }
-        let written = append_transcript(&self.text(cx), words);
+        let written = append_transcript(&base, words);
         self.write(&written, written.len(), window, cx);
         cx.notify();
+    }
+
+    /// Shows the words heard so far while the press still records, after what was written; each call replaces the last.
+    /// [`insert_transcript`](Self::insert_transcript) puts the final words in their place, and
+    /// [`end_live_transcript`](Self::end_live_transcript) takes them out. Once the person edits the box meanwhile, the words
+    /// shown stay and stop moving.
+    pub fn set_live_transcript(&mut self, words: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let now = self.text(cx).to_string();
+        let (base, shown) = match &self.live {
+            LiveWords::Left => return,
+            LiveWords::Off => (now.clone(), String::new()),
+            LiveWords::Showing { base, shown } => (base.clone(), shown.clone()),
+        };
+        if now != live_text(&base, &shown) {
+            self.live = LiveWords::Left;
+            return;
+        }
+        let written = live_text(&base, words);
+        self.write(&written, written.len(), window, cx);
+        self.live = LiveWords::Showing { base, shown: words.trim().to_string() };
+        cx.notify();
+    }
+
+    /// The press ended without words: the live words go, unless the person has edited the box since.
+    pub fn end_live_transcript(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let LiveWords::Showing { base, shown } = std::mem::take(&mut self.live)
+            && self.text(cx) == live_text(&base, &shown)
+        {
+            self.write(&base, base.len(), window, cx);
+            cx.notify();
+        }
     }
 
     pub fn set_disabled(&mut self, disabled: bool, cx: &mut Context<Self>) {
