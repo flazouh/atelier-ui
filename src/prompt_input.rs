@@ -36,6 +36,8 @@ pub use types::PromptInputEvent;
 use gpui_kit::{Bounds, Pixels};
 #[cfg(test)]
 use crate::scale::px;
+#[cfg(test)]
+use crate::{voice_input::VoiceMode, voice_setup::SetupPhase};
 
 #[cfg(test)]
 mod tests;

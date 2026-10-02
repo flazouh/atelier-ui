@@ -286,3 +286,83 @@ fn a_transcript_follows_the_text_after_one_space() {
     assert_eq!(append_transcript("fix this ", "and that"), "fix this and that");
     assert_eq!(append_transcript("line one\n", "line two"), "line one\nline two");
 }
+
+fn click(cx: &mut VisualTestContext, name: &'static str) {
+    let at = cx.debug_bounds(name).unwrap_or_else(|| panic!("{name} is not drawn")).center();
+    cx.simulate_click(at, gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+}
+
+fn dictation(cx: &mut TestAppContext) -> (Entity<PromptInput>, Rc<RefCell<Vec<PromptInputEvent>>>, &mut VisualTestContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_dictation(true, cx)));
+    (prompt, heard, cx)
+}
+
+fn count(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, event: PromptInputEvent) -> usize {
+    heard.borrow().iter().filter(|e| **e == event).count()
+}
+
+/// The microphone asks the owner to start; it says nothing while the setup runs, and turns into Stop while it listens.
+#[gpui_kit::test]
+fn the_microphone_starts_dictation_and_becomes_stop_while_it_listens(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.run_until_parked();
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_setup(SetupPhase::Prepare, cx)));
+    cx.run_until_parked();
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1, "the setup does not start again");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    cx.run_until_parked();
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
+}
+
+/// Without `set_dictation` there is no microphone.
+#[gpui_kit::test]
+fn there_is_no_microphone_unless_dictation_is_on(cx: &mut TestAppContext) {
+    let (_, _, cx) = open(cx);
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("prompt-mic").is_none());
+}
+
+/// Send waits while dictation holds the box, and Enter does not send either.
+#[gpui_kit::test]
+fn nothing_is_sent_while_it_listens(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.simulate_input("hello");
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    assert!(!heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(_))));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_idle(cx)));
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(t) if t == "hello")));
+}
+
+/// A failed press shows why, still lets the user send and press the microphone again.
+#[gpui_kit::test]
+fn a_failed_press_can_be_sent_past_and_pressed_again(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_error("Microphone unavailable: no microphone found", cx)));
+    cx.run_until_parked();
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).voice_mode()), VoiceMode::Failed);
+    click(cx, "prompt-mic");
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
+    cx.simulate_input("still typing");
+    cx.simulate_keystrokes("enter");
+    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(_))));
+}
+
+/// The transcript lands at the end of what is written.
+#[gpui_kit::test]
+fn a_transcript_is_written_after_the_text(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = dictation(cx);
+    cx.simulate_input("fix");
+    cx.update(|window, cx| prompt.update(cx, |p, cx| p.insert_transcript("the tool cards", window, cx)));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "fix the tool cards");
+}

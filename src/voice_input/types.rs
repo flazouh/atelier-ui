@@ -14,6 +14,8 @@ pub enum VoiceMode {
     /// The speech model is being fetched or loaded; see [`VoiceInput::set_setup`](crate::voice_input::VoiceInput::set_setup).
     Setup,
     Listening,
+    /// The last press ended without words; the bar says why until the owner sets another mode. The microphone can be pressed.
+    Failed,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

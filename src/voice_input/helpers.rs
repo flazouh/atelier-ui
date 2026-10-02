@@ -7,6 +7,7 @@ use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
     scale::px,
+    theme::Theme,
     typography::TextSize,
     voice_waves::{VoiceWaves, amber_for, on_amber},
 };
@@ -35,7 +36,22 @@ pub(crate) fn key(mode: VoiceMode) -> &'static str {
         VoiceMode::Idle => "idle",
         VoiceMode::Setup => "setup",
         VoiceMode::Listening => "listening",
+        VoiceMode::Failed => "failed",
     }
+}
+
+/// The words for a press that ended without any: a warning mark and the reason, in the warning color.
+pub(crate) fn failed_row(message: SharedString, theme: &Theme) -> AnyElement {
+    div()
+        .w_full()
+        .flex()
+        .items_center()
+        .gap(px(6.))
+        .text_size(TextSize::Xs.font_size())
+        .text_color(theme.warning)
+        .child(div().flex_none().child(Icon::new(IconName::Warning).size(px(14.)).color(theme.warning)))
+        .child(div().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(message))
+        .into_any_element()
 }
 
 /// The bars and the time beside them: what the bar says while it listens.
