@@ -11,7 +11,7 @@ fn a_connected_project_says_nothing_and_the_others_say_where_they_are() {
 
 #[test]
 fn the_menu_offers_close_reveal_and_copy_in_that_order_and_each_choice_has_its_words() {
-    assert_eq!(MENU, ["Pull requests", "Tasks", "Choose an icon…", "Close project", "Files", "Copy path"]);
+    assert_eq!(MENU, ["Pull requests", "Tasks", "Worktrees", "Choose an icon…", "Close project", "Files", "Copy path"]);
     let words: Vec<_> = MenuChoice::ALL.iter().map(|c| c.words()).collect();
     assert_eq!(words, MENU);
 }

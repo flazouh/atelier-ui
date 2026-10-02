@@ -149,6 +149,7 @@ pub mod view_rail;
 pub mod voice_input;
 pub mod voice_setup;
 pub mod voice_waves;
+pub mod worktree_list;
 pub(crate) mod wake;
 
 pub use cell_bar::CellBar;

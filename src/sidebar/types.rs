@@ -29,6 +29,8 @@ pub enum SidebarEvent {
     PullRequests { project: SharedString },
     /// The project's tasks.
     Tasks { project: SharedString },
+    /// The project's worktrees, in the Git view.
+    Worktrees { project: SharedString },
     CopyPath { project: SharedString },
     /// The reader wants to pick an image file from the project as its badge.
     ChooseIcon { project: SharedString },
