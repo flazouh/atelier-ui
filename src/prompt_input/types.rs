@@ -17,6 +17,13 @@ pub enum PromptInputEvent {
     DictationStart,
     /// The user pressed the stop square. The owner ends the capture and inserts the words.
     DictationStop,
+    /// The user chose a microphone from the menu beside the microphone button: its `id`, or `None` for the system's default.
+    DictationDevice(Option<SharedString>),
+    /// The user turned "Hold to record" on or off. On, the microphone records while it is held down and stops when let go.
+    DictationHold(bool),
+    /// The microphone menu opened. The owner can bring the list up to date with
+    /// [`PromptInput::set_voice_devices`](crate::prompt_input::PromptInput::set_voice_devices) before it draws.
+    DictationDevices,
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
     Command { name: SharedString, args: SharedString },
 }

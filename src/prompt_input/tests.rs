@@ -8,6 +8,7 @@ use gpui_kit::{Context, Entity, TestAppContext, VisualTestContext, Window};
 
 use super::*;
 use crate::theme::{Appearance, set_appearance};
+use crate::voice_input::VoiceDevice;
 
 fn open(cx: &mut TestAppContext) -> (Entity<PromptInput>, Rc<RefCell<Vec<PromptInputEvent>>>, &mut VisualTestContext) {
     cx.update(|cx| {
@@ -368,7 +369,11 @@ fn click(cx: &mut VisualTestContext, name: &'static str) {
 
 fn dictation(cx: &mut TestAppContext) -> (Entity<PromptInput>, Rc<RefCell<Vec<PromptInputEvent>>>, &mut VisualTestContext) {
     let (prompt, heard, cx) = open(cx);
-    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_dictation(true, cx)));
+    // The menu unfolds over a third of a second; the tests press its rows at once.
+    cx.update(|_, cx| {
+        cx.set_reduce_motion(true);
+        prompt.update(cx, |p, cx| p.set_dictation(true, cx))
+    });
     (prompt, heard, cx)
 }
 
@@ -438,4 +443,99 @@ fn a_transcript_is_written_after_the_text(cx: &mut TestAppContext) {
     cx.simulate_input("fix");
     cx.update(|window, cx| prompt.update(cx, |p, cx| p.insert_transcript("the tool cards", window, cx)));
     assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "fix the tool cards");
+}
+
+fn microphones(prompt: &Entity<PromptInput>, cx: &mut VisualTestContext) {
+    cx.update(|_, cx| {
+        prompt.update(cx, |p, cx| {
+            p.set_voice_devices(vec![VoiceDevice::new("usb", "USB Microphone"), VoiceDevice::new("built-in", "MacBook Pro Microphone")], None, cx)
+        })
+    });
+}
+
+/// The arrow beside the microphone asks the owner for a fresh list, then lists the microphones and the hold switch.
+#[gpui_kit::test]
+fn the_arrow_opens_the_microphones_and_the_hold_switch(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    microphones(&prompt, cx);
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("prompt-mic-device-usb").is_none(), "shut until the arrow is pressed");
+    click(cx, "prompt-mic-menu");
+    assert_eq!(count(&heard, PromptInputEvent::DictationDevices), 1);
+    cx.run_until_parked();
+    for row in ["prompt-mic-device-usb", "prompt-mic-device-built-in", "prompt-mic-hold"] {
+        assert!(cx.debug_bounds(row).is_some(), "{row} is listed");
+    }
+}
+
+/// Choosing a microphone tells the owner which, and choosing the hold row flips the switch.
+#[gpui_kit::test]
+fn a_microphone_and_the_hold_switch_are_chosen_from_the_menu(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    microphones(&prompt, cx);
+    click(cx, "prompt-mic-menu");
+    cx.run_until_parked();
+    click(cx, "prompt-mic-device-usb");
+    assert_eq!(count(&heard, PromptInputEvent::DictationDevice(Some("usb".into()))), 1);
+    click(cx, "prompt-mic-menu");
+    cx.run_until_parked();
+    click(cx, "prompt-mic-hold");
+    assert_eq!(count(&heard, PromptInputEvent::DictationHold(true)), 1);
+}
+
+/// The arrow waits while the microphone listens.
+#[gpui_kit::test]
+fn the_arrow_waits_while_it_listens(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    cx.run_until_parked();
+    click(cx, "prompt-mic-menu");
+    assert_eq!(count(&heard, PromptInputEvent::DictationDevices), 0);
+}
+
+fn press(cx: &mut VisualTestContext, down: bool) {
+    let at = cx.debug_bounds("prompt-mic").expect("the microphone is drawn").center();
+    if down {
+        cx.simulate_mouse_down(at, gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    } else {
+        cx.simulate_mouse_up(at, gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    }
+    cx.run_until_parked();
+}
+
+/// In hold mode the microphone records while it is down, and a click does nothing on its own.
+#[gpui_kit::test]
+fn held_down_it_starts_and_let_go_it_stops(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_hold(true, cx)));
+    cx.run_until_parked();
+    press(cx, true);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    cx.run_until_parked();
+    press(cx, false);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
+}
+
+/// A tap that ends before the microphone has opened stops it the moment it opens.
+#[gpui_kit::test]
+fn a_tap_before_it_listens_stops_when_it_does(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = dictation(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_hold(true, cx)));
+    cx.run_until_parked();
+    press(cx, true);
+    press(cx, false);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0, "not listening yet");
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_listening(cx)));
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 1);
+}
+
+/// Without hold mode, a press is a click: it starts once and the release adds no stop.
+#[gpui_kit::test]
+fn without_hold_a_release_stops_nothing(cx: &mut TestAppContext) {
+    let (_, heard, cx) = dictation(cx);
+    press(cx, true);
+    press(cx, false);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
+    assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0);
 }

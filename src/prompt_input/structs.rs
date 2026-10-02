@@ -30,14 +30,14 @@ use crate::{
     combobox::{ComboEntry, ComboList, ComboRow, ComboStyle},
     command_item::{CommandItem, CommandSource, Trigger, ranked, trigger},
     icon::{Icon, IconName},
-    menu::{Entry, Menu, MenuItem, Origin},
+    menu::{Choice as MenuChoice, Entry, Menu, MenuItem, Origin},
     morph::Morph,
     motion::{Channel, Curve, Spring, ease},
     popover::{Hang, Popover, Side},
     select::Select,
     theme::{ActiveTheme, radius},
     typography::TextSize,
-    voice_input::{self, VoiceMode},
+    voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
 use super::types::{PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent};
@@ -143,6 +143,15 @@ pub struct PromptInput {
     /// Why the last press ended without words, shown while the mode is [`VoiceMode::Failed`].
     pub(super) voice_error: SharedString,
     pub(super) voice_level: f32,
+    /// The microphones in the menu, the one chosen (`None` is the system's default), and whether a press records only while held.
+    pub(super) voice_devices: Vec<VoiceDevice>,
+    pub(super) voice_device: Option<SharedString>,
+    pub(super) voice_hold: bool,
+    pub(super) mic_menu: bool,
+    /// The button is down in hold mode.
+    held: bool,
+    /// It was let go before the owner began listening; stop as soon as it does.
+    stop_when_listening: bool,
     pub(super) voice_since: Option<Instant>,
     /// 0 shows the microphone, 1 the stop square.
     pub(super) mic_swap: Channel,
@@ -207,6 +216,12 @@ impl PromptInput {
             voice_total_mb: 164.,
             voice_error: SharedString::default(),
             voice_level: 0.,
+            voice_devices: Vec::new(),
+            voice_device: None,
+            voice_hold: false,
+            mic_menu: false,
+            held: false,
+            stop_when_listening: false,
             voice_since: None,
             mic_swap: Channel::new(0.),
             voice_fade: Channel::new(0.),
@@ -311,6 +326,19 @@ impl PromptInput {
         self.go_voice(VoiceMode::Failed, cx);
     }
 
+    /// The microphones to offer, and which is chosen (`None` for the system's default, which the list may also name).
+    pub fn set_voice_devices(&mut self, devices: Vec<VoiceDevice>, selected: Option<SharedString>, cx: &mut Context<Self>) {
+        self.voice_devices = devices;
+        self.voice_device = selected;
+        cx.notify();
+    }
+
+    /// Whether the microphone records only while it is held down.
+    pub fn set_voice_hold(&mut self, hold: bool, cx: &mut Context<Self>) {
+        self.voice_hold = hold;
+        cx.notify();
+    }
+
     /// Whether dictation holds the box: it is being set up or it listens. Send waits for it.
     pub(super) fn dictating(&self) -> bool {
         matches!(self.voice, VoiceMode::Setup | VoiceMode::Listening)
@@ -338,13 +366,36 @@ impl PromptInput {
             self.voice_level = 0.;
         } else {
             self.voice_face = mode;
-            // The menu cannot stay open behind the bars that cover its button.
+            // The menus cannot stay open behind the bars that cover their buttons.
             self.menu.set_open(false, reduce);
+            self.mic_menu = false;
+        }
+        if mode == VoiceMode::Failed {
+            self.stop_when_listening = false;
         }
         self.voice = mode;
         self.mic_swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
         self.voice_fade.animate(if mode == VoiceMode::Idle { 0. } else { 1. }, Curve::Ease(0.22, ease::OUT), 0., reduce);
+        // The button was let go before the microphone opened, in hold mode: the press is over already.
+        if listening && self.stop_when_listening {
+            self.stop_when_listening = false;
+            cx.emit(PromptInputEvent::DictationStop);
+        }
         cx.notify();
+    }
+
+    /// The button in hold mode came up: the press is over.
+    fn let_go(&mut self, cx: &mut Context<Self>) {
+        if !self.held {
+            return;
+        }
+        self.held = false;
+        match self.voice {
+            VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
+            // Not listening yet (the model is loading, or the microphone is opening): stop the moment it does.
+            VoiceMode::Setup | VoiceMode::Idle => self.stop_when_listening = true,
+            VoiceMode::Failed => {}
+        }
     }
 
     /// Writes what was said at the end of the text, after a space when the text does not end in one, and puts the caret after
@@ -912,27 +963,149 @@ impl Render for PromptInput {
 
         let mic = self.dictation.then(|| {
             let this = cx.entity().downgrade();
+            let (hold, mode, blocked) = (self.voice_hold, self.voice, disabled || self.running);
             let mic = voice_input::Mic {
                 id: "prompt-mic",
-                mode: self.voice,
+                mode,
                 swap: self.mic_swap.value(),
                 seconds,
-                blocked: disabled || self.running,
+                blocked,
                 theme: theme.clone(),
                 reduce,
             };
-            voice_input::mic_slot(
-                mic,
-                move |_, _, cx| {
-                    this.update(cx, |this, cx| match this.voice {
-                        VoiceMode::Idle | VoiceMode::Failed => cx.emit(PromptInputEvent::DictationStart),
-                        VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
-                        VoiceMode::Setup => {}
+            let (press, release, release_out, click) = (this.clone(), this.clone(), this.clone(), this.clone());
+            // Held down, it records; let go, it stops. A tap that ends before the microphone opens stops it as it opens.
+            let slot = voice_input::mic_slot(mic, move |_, _, cx| {
+                click
+                    .update(cx, |this, cx| {
+                        if this.voice_hold {
+                            return;
+                        }
+                        match this.voice {
+                            VoiceMode::Idle | VoiceMode::Failed => cx.emit(PromptInputEvent::DictationStart),
+                            VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
+                            VoiceMode::Setup => {}
+                        }
                     })
                     .ok();
-                },
-            )
+            })
             .debug_selector(|| "prompt-mic".into())
+            .when(hold, |d| {
+                d.on_mouse_down(gpui_kit::MouseButton::Left, move |_, _, cx| {
+                    press
+                        .update(cx, |this, cx| {
+                            if !blocked && matches!(this.voice, VoiceMode::Idle | VoiceMode::Failed) {
+                                this.held = true;
+                                this.stop_when_listening = false;
+                                cx.emit(PromptInputEvent::DictationStart);
+                            }
+                        })
+                        .ok();
+                })
+                .on_mouse_up(gpui_kit::MouseButton::Left, move |_, _, cx| {
+                    release.update(cx, |this, cx| this.let_go(cx)).ok();
+                })
+                .on_mouse_up_out(gpui_kit::MouseButton::Left, move |_, _, cx| {
+                    release_out.update(cx, |this, cx| this.let_go(cx)).ok();
+                })
+            });
+
+            // The arrow beside it opens the microphones and the hold switch; both wait while it listens.
+            let toggle = this.clone();
+            let arrow = Button::new("prompt-mic-menu")
+                .icon(IconName::ChevronDown)
+                .pill(true)
+                .variant(ButtonVariant::Ghost)
+                .size(ButtonSize::IconSm)
+                .disabled(blocked || self.dictating())
+                .tooltip("Microphone")
+                .debug_name("prompt-mic-menu")
+                .open(self.mic_menu)
+                .on_click(move |_, _, cx| {
+                    toggle
+                        .update(cx, |this, cx| {
+                            this.mic_menu = !this.mic_menu;
+                            if this.mic_menu {
+                                cx.emit(PromptInputEvent::DictationDevices);
+                            }
+                            cx.notify();
+                        })
+                        .ok();
+                });
+            let menu = self.mic_menu.then(|| {
+                let text_focus = self.text.focus_handle(cx);
+                let mut entries: Vec<Entry> = vec![Entry::Label("Microphone".into())];
+                entries.extend(self.voice_devices.iter().cloned().map(|device| {
+                    let (this, id) = (this.clone(), device.id.clone());
+                    let chosen = self.voice_device.as_ref() == Some(&device.id);
+                    MenuItem::new(device.label)
+                        .choice(MenuChoice::Radio(chosen))
+                        .debug_name(format!("prompt-mic-device-{}", device.id))
+                        .on_select(move |_, cx| {
+                            this.update(cx, |this, cx| {
+                                this.voice_device = Some(id.clone());
+                                cx.emit(PromptInputEvent::DictationDevice(Some(id.clone())));
+                                cx.notify();
+                            })
+                            .ok();
+                        })
+                        .into()
+                }));
+                entries.push(Entry::Separator);
+                let (this_hold, hold_now) = (this.clone(), self.voice_hold);
+                entries.push(
+                    MenuItem::new("Hold to record")
+                        .choice(MenuChoice::Check(hold_now))
+                        .debug_name("prompt-mic-hold")
+                        .on_select(move |_, cx| {
+                            this_hold
+                                .update(cx, |this, cx| {
+                                    this.voice_hold = !hold_now;
+                                    cx.emit(PromptInputEvent::DictationHold(!hold_now));
+                                    cx.notify();
+                                })
+                                .ok();
+                        })
+                        .into(),
+                );
+                let rows = self.voice_devices.len() + 1;
+                let (close, done, focus_back) = (this.clone(), this.clone(), text_focus.clone());
+                let panel = Menu::new("prompt-mic-menu-list", entries).look(crate::menu::MenuLook::PROMPT).origin(Origin::BottomRight).on_dismiss(move |window, cx| {
+                    done.update(cx, |this, cx| {
+                        this.mic_menu = false;
+                        cx.notify();
+                    })
+                    .ok();
+                    window.focus(&focus_back, cx);
+                });
+                Popover::new("prompt-mic-popover")
+                    .open(true)
+                    .hang(Hang::Right(0., 0.))
+                    .side(Side::Auto)
+                    .gap(8.)
+                    .height(crate::menu::height_in(crate::menu::MenuLook::PROMPT, rows + 1) + crate::menu::MenuLook::PROMPT.group)
+                    .return_focus(&text_focus)
+                    .on_close(move |_, cx| {
+                        close
+                            .update(cx, |this, cx| {
+                                this.mic_menu = false;
+                                cx.notify();
+                            })
+                            .ok();
+                    })
+                    .child(panel)
+            });
+            div()
+                .id("prompt-mic-group")
+                .relative()
+                .flex_none()
+                .flex()
+                .items_center()
+                .rounded_full()
+                .bg(theme.card_strong)
+                .child(slot)
+                .child(arrow)
+                .children(menu)
         });
 
         let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(mic).child(send);
