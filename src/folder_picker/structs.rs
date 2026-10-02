@@ -40,26 +40,26 @@ pub(super) struct Listing {
 }
 
 pub struct FolderPicker {
-    pub(super) input: Entity<InputState>,
+    input: Entity<InputState>,
     pub(super) listing: Option<Listing>,
     /// The folder in the list that is chosen.
-    pub(super) active: usize,
+    active: usize,
     pub(super) asked: Option<String>,
     /// The text the picker began with.
     pub(super) start: String,
     /// The arrow keys chose the row under `active`: Enter then opens that folder, not the one the field names.
-    pub(super) arrowed: bool,
+    arrowed: bool,
     /// Tab came before the listing did: it completes when the listing arrives.
-    pub(super) tab_waits: bool,
+    tab_waits: bool,
     /// The row the pointer is over, which wears the pill until the arrow keys take over.
-    pub(super) hover: Option<usize>,
+    hover: Option<usize>,
     /// Folders opened before, shown above the list until the reader types.
-    pub(super) recent: Vec<SharedString>,
+    recent: Vec<SharedString>,
     /// What is going on after Open was pressed, under the field.
-    pub(super) working: Option<SharedString>,
+    working: Option<SharedString>,
     /// Why the folder the reader asked to open could not be opened; gone when they type again.
     pub(super) refused: Option<FolderError>,
-    pub(super) _subscription: Subscription,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<FolderPickerEvent> for FolderPicker {}
@@ -164,7 +164,7 @@ impl FolderPicker {
         }
     }
 
-    pub(super) fn descend(&mut self, name: &SharedString, window: &mut Window, cx: &mut Context<Self>) {
+    fn descend(&mut self, name: &SharedString, window: &mut Window, cx: &mut Context<Self>) {
         let (dir, _) = split_path(&self.text(cx));
         self.set_text(format!("{dir}{name}/"), window, cx);
     }
@@ -186,7 +186,7 @@ impl FolderPicker {
     }
 
     /// Up and Down: choose a row.
-    pub(super) fn step(&mut self, down: bool, cx: &mut Context<Self>) {
+    fn step(&mut self, down: bool, cx: &mut Context<Self>) {
         let count = self.found(cx).len();
         self.active = if down { (self.active + 1).min(count.saturating_sub(1)) } else { self.active.saturating_sub(1) };
         self.arrowed = true;
@@ -195,7 +195,7 @@ impl FolderPicker {
     }
 
     /// Right, on a row the arrow keys chose: goes into that folder. False when there is no such row.
-    pub(super) fn go_into_row(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+    fn go_into_row(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
         let found = self.found(cx);
         if !self.arrowed || found.is_empty() {
             return false;
@@ -218,7 +218,7 @@ impl FolderPicker {
     }
 
 
-    pub(super) fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         match event.keystroke.key.as_str() {
             "tab" => self.complete(window, cx),
             "down" => self.step(true, cx),

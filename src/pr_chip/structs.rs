@@ -37,9 +37,9 @@ use super::helpers::chip_number;
 
 #[derive(IntoElement)]
 pub struct PrChip {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) pr: PrChipData,
-    pub(super) on_open: Option<PrOpenHandler>,
+    on_open: Option<PrOpenHandler>,
 }
 
 impl PrChip {
@@ -52,7 +52,7 @@ impl PrChip {
         self
     }
 
-    pub(super) fn on_open_handler(mut self, handler: Option<PrOpenHandler>) -> Self {
+    fn on_open_handler(mut self, handler: Option<PrOpenHandler>) -> Self {
         self.on_open = handler;
         self
     }
@@ -149,7 +149,7 @@ impl RenderOnce for PrChip {
     }
 }
 
-/// Draws the links [`link_prs`] wrote as [`PrChip`]s.
+/// Draws the links [`link_prs`](crate::pr_chip::link_prs) wrote as [`PrChip`]s.
 pub struct PrChips {
     /// Keeps each chip's hover and copy state apart from other messages'.
     pub id: ElementId,

@@ -37,13 +37,13 @@ use crate::{
 use super::types::{CommentComposerEvent, MOD, SEND};
 
 pub struct CommentComposer {
-    pub(super) title: SharedString,
-    pub(super) author: SharedString,
-    pub(super) text: Entity<TextareaState>,
-    pub(super) open: bool,
-    pub(super) preview: bool,
-    pub(super) send_label: SharedString,
-    pub(super) _subscription: Subscription,
+    title: SharedString,
+    author: SharedString,
+    text: Entity<TextareaState>,
+    open: bool,
+    preview: bool,
+    send_label: SharedString,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<CommentComposerEvent> for CommentComposer {}
@@ -89,7 +89,7 @@ impl CommentComposer {
         self.text.read(cx).value()
     }
 
-    pub(super) fn send(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn send(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let text: SharedString = self.words(cx).trim().to_string().into();
         if text.is_empty() {
             return;
@@ -105,7 +105,7 @@ impl CommentComposer {
         cx.notify();
     }
 
-    pub(super) fn mark(&mut self, format: Format, window: &mut Window, cx: &mut Context<Self>) {
+    fn mark(&mut self, format: Format, window: &mut Window, cx: &mut Context<Self>) {
         if self.preview {
             return;
         }

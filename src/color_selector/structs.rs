@@ -60,7 +60,7 @@ impl Swatch {
 
 #[derive(IntoElement)]
 pub struct ColorSelector {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) label: Option<SharedString>,
     pub(super) swatches: Vec<Swatch>,
     pub(super) value: Option<SharedString>,
@@ -100,16 +100,16 @@ impl ColorSelector {
 pub(super) struct Motion {
     pub(super) focus: Vec<FocusHandle>,
     /// Where each swatch was in the last layout, in the window, and where the list starts.
-    pub(super) bounds: Vec<Option<Bounds<Pixels>>>,
-    pub(super) origin: Option<Point<Pixels>>,
+    bounds: Vec<Option<Bounds<Pixels>>>,
+    origin: Option<Point<Pixels>>,
     /// The ring's centre in the list, and how far its colour has come from the old to the new.
     pub(super) x: Channel,
     pub(super) y: Channel,
-    pub(super) blend: Channel,
+    blend: Channel,
     /// The swatch the ring belongs to, its colour, and the colour it left.
     pub(super) at: Option<usize>,
     pub(super) color: Hsla,
-    pub(super) from_color: Hsla,
+    from_color: Hsla,
     /// Each swatch's press scale.
     pub(super) scale: Vec<Channel>,
     /// The last input was the keyboard: only then does a focused swatch show its outline.

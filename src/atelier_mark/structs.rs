@@ -16,7 +16,7 @@ use super::types::{ASPECT, PATH, WIDTH};
 
 #[derive(IntoElement)]
 pub struct AtelierMark {
-    pub(super) size: f32,
+    size: f32,
 }
 
 impl AtelierMark {

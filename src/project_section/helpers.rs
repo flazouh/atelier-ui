@@ -1,10 +1,7 @@
 use gpui_kit::{IntoElement, ParentElement, SharedString, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    sidebar_model::{Connection},
-    typography::{MONO_FONT_FAMILY},
-};
+use crate::{sidebar_model::Connection, typography::MONO_FONT_FAMILY};
 use super::types::MenuChoice;
 
 /// The words for how a project is connected: `None` when nothing needs saying.

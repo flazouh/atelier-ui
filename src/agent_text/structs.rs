@@ -50,16 +50,16 @@ impl AgentTextSource {
 
 #[derive(IntoElement)]
 pub struct AgentText {
-    pub(super) id: ElementId,
-    pub(super) markdown: SharedString,
-    pub(super) status: AgentTextStatus,
-    pub(super) copy_text: Option<SharedString>,
-    pub(super) on_retry: Option<ClickHandler>,
+    id: ElementId,
+    markdown: SharedString,
+    status: AgentTextStatus,
+    copy_text: Option<SharedString>,
+    on_retry: Option<ClickHandler>,
     pub(super) sources: Vec<AgentTextSource>,
     pub(super) pr_resolver: Option<Rc<dyn Fn(u64) -> Option<PrChipData>>>,
-    pub(super) on_open_pr: Option<PrOpenHandler>,
-    pub(super) fade_tail: bool,
-    pub(super) fade_into: Option<gpui_kit::Hsla>,
+    on_open_pr: Option<PrOpenHandler>,
+    fade_tail: bool,
+    fade_into: Option<gpui_kit::Hsla>,
 }
 
 impl AgentText {
@@ -122,11 +122,11 @@ impl AgentText {
     }
 }
 
-pub(super) struct ResponseMotion {
-    pub(super) copy: CopyFeedback,
+struct ResponseMotion {
+    copy: CopyFeedback,
     pub(super) sources: Reveal,
     /// The actions row fading up into place.
-    pub(super) reveal: Channel,
+    reveal: Channel,
 }
 
 impl RenderOnce for AgentText {

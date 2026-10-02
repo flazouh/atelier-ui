@@ -1,6 +1,4 @@
-use crate::{
-    icon::{IconName},
-    };
+use crate::icon::IconName;
 use super::types::KeyPart;
 
 /// The icon that stands for a key symbol, if the character is one.

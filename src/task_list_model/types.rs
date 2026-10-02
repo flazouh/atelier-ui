@@ -1,6 +1,4 @@
-use crate::{
-    task_model::{TaskStatus},
-};
+use crate::task_model::TaskStatus;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SortKey {

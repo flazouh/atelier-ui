@@ -9,7 +9,7 @@ use crate::{
     icon::{Icon, IconName},
     motion::{Channel, Curve, Spring, ease},
     placement::measure,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::{
@@ -85,7 +85,7 @@ impl Geometry {
     }
 
     /// The top of card `i` above the bottom edge, in the collapsed state and in the open one.
-    pub(super) fn top_from_bottom(&self, i: usize, open: bool) -> f32 {
+    fn top_from_bottom(&self, i: usize, open: bool) -> f32 {
         let stack = self.height(open);
         let within = if open { self.heights[..i].iter().sum::<f32>() + GAP * i as f32 } else { PEEK * i as f32 };
         stack - PAD - within
@@ -110,12 +110,12 @@ impl Geometry {
 }
 
 pub struct NotificationStack {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) items: Vec<NotificationItem>,
-    pub(super) max_visible: usize,
-    pub(super) collapsed_label: SharedString,
-    pub(super) expanded_label: SharedString,
-    pub(super) empty_label: SharedString,
+    max_visible: usize,
+    collapsed_label: SharedString,
+    expanded_label: SharedString,
+    empty_label: SharedString,
     pub(super) view_all: bool,
     pub(super) expanded: bool,
     /// How far the cards have opened, and the background, on their own curves.
@@ -126,7 +126,7 @@ pub struct NotificationStack {
     pub(super) leaving: Channel,
     pub(super) old_label: Option<SharedString>,
     pub(super) heights: Vec<f32>,
-    pub(super) width: f32,
+    width: f32,
     pub(super) focus: FocusHandle,
     pub(super) has_focus: bool,
     /// Whether the pointer is over the stack's footprint, and over the part of it that has opened above.
@@ -252,7 +252,7 @@ impl NotificationStack {
         }
     }
 
-    pub(super) fn key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
         match event.keystroke.key.as_str() {
             "escape" if self.expanded => self.set_expanded(false, cx),
             "enter" | "space" => self.press(cx),

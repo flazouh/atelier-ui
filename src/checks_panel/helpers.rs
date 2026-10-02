@@ -1,11 +1,7 @@
 use gpui_kit::{ElementId, IntoElement, SharedString};
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon, IconName},
-    spinner::Spinner,
-    theme::{Theme},
-    };
+use crate::{icon::{Icon, IconName}, spinner::Spinner, theme::Theme};
 use super::structs::{CheckRun, Fault, Groups, JobStep};
 use super::types::{CheckState, Standing};
 
@@ -38,7 +34,7 @@ pub fn tolerated_text(count: usize) -> SharedString {
 }
 
 /// A step the runner does around the work, rather than the work itself.
-pub(super) fn is_chore(step: &JobStep) -> bool {
+fn is_chore(step: &JobStep) -> bool {
     let name = step.name.as_ref();
     ["Set up job", "Complete job", "Post ", "Initialize containers", "Stop containers"].iter().any(|p| name.starts_with(p))
         || name.contains("actions/checkout")
@@ -48,7 +44,7 @@ pub(super) fn is_chore(step: &JobStep) -> bool {
 /// How strongly a log line names a cause: a panic or a compiler error outranks an assertion, which
 /// outranks a bare "error:", and a "FAILED" test name or a timeout; a line that only restates the exit code ranks
 /// lowest, as GitQuiet ranks its Notes.
-pub(super) fn rank(line: &str) -> u8 {
+fn rank(line: &str) -> u8 {
     let has = |p: &str| line.contains(p);
     match () {
         _ if has("panicked at") || has("error[E") => 6,
@@ -63,7 +59,7 @@ pub(super) fn rank(line: &str) -> u8 {
 
 /// A line that says the work ran out of time ("Timed out after 20ms", "timeout (60s)"): the cause, where
 /// the exit code after it only restates that the step stopped.
-pub(super) fn timed_out(line: &str) -> bool {
+fn timed_out(line: &str) -> bool {
     let lower = line.to_lowercase();
     lower.contains("timed out") || lower.contains("timeout")
 }
@@ -80,7 +76,7 @@ pub fn clean_line(raw: &str) -> String {
 }
 
 /// Colour escapes: ESC `[`, digits and `;`, then `m`.
-pub(super) fn strip_escapes(raw: &str) -> String {
+fn strip_escapes(raw: &str) -> String {
     let mut out = String::with_capacity(raw.len());
     let mut chars = raw.chars().peekable();
     while let Some(c) = chars.next() {
@@ -102,7 +98,7 @@ pub(super) fn strip_escapes(raw: &str) -> String {
 }
 
 /// `2026-09-28T12:00:01.1234567Z ` at the start of a line.
-pub(super) fn strip_timestamp(line: &str) -> &str {
+fn strip_timestamp(line: &str) -> &str {
     let b = line.as_bytes();
     let digits = |r: std::ops::Range<usize>| b.get(r).is_some_and(|s| s.iter().all(u8::is_ascii_digit));
     let date = b.len() > 11 && digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'T';
@@ -117,7 +113,7 @@ pub(super) fn strip_timestamp(line: &str) -> &str {
 }
 
 /// `##[word]` and one space, at the start.
-pub(super) fn strip_marker(line: &str) -> Option<&str> {
+fn strip_marker(line: &str) -> Option<&str> {
     let rest = line.strip_prefix("##[")?;
     let close = rest.find(']')?;
     rest[..close].chars().all(|c| c.is_ascii_lowercase()).then(|| {
@@ -127,7 +123,7 @@ pub(super) fn strip_marker(line: &str) -> Option<&str> {
 }
 
 /// `::error ...::`, `::warning::` and the rest, at the start.
-pub(super) fn strip_command(line: &str) -> Option<&str> {
+fn strip_command(line: &str) -> Option<&str> {
     let rest = line.strip_prefix("::")?;
     let name_end = rest.find([' ', ':']).unwrap_or(rest.len());
     let name = &rest[..name_end];

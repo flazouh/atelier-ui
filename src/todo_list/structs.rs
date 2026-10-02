@@ -73,10 +73,10 @@ pub(super) struct RowMotion {
     pub(super) status: TodoStatus,
     pub(super) progress: Option<f32>,
     pub(super) fill: Channel,
-    pub(super) arc: Channel,
-    pub(super) arc_alpha: Channel,
+    arc: Channel,
+    arc_alpha: Channel,
     pub(super) check: Channel,
-    pub(super) cross: Channel,
+    cross: Channel,
     pub(super) strike: Channel,
 }
 
@@ -114,7 +114,7 @@ impl RowMotion {
         self.strike.animate(on(status == TodoStatus::Done), Curve::Ease(0.28, ease::OUT), 0.06, jump);
     }
 
-    pub(super) fn channels(&self) -> [&Channel; 6] {
+    fn channels(&self) -> [&Channel; 6] {
         [&self.fill, &self.arc, &self.arc_alpha, &self.check, &self.cross, &self.strike]
     }
 }
@@ -124,7 +124,7 @@ pub(super) struct ListMotion {
     pub(super) all_done: bool,
     pub(super) header_done: Channel,
     pub(super) rows: Vec<RowMotion>,
-    pub(super) born: Instant,
+    born: Instant,
 }
 
 impl RenderOnce for TodoList {

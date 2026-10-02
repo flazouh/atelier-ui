@@ -1,8 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    motion::{Spring},
-    };
+use crate::motion::Spring;
 
 /// How many rows it shows at most.
 pub const ROWS: usize = 50;
@@ -26,7 +24,7 @@ pub enum Filter {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum FinderEvent {
-    /// The words changed. With [`Filter::Owner`], answer with [`Finder::set_items`].
+    /// The words changed. With [`Filter::Owner`], answer with [`Finder::set_items`](crate::finder::Finder::set_items).
     Query(SharedString),
     /// The row at this index of the items was chosen.
     Pick(usize),

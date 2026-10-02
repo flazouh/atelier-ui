@@ -1,8 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    sidebar_model::{ProjectData},
-};
+use crate::sidebar_model::ProjectData;
 use super::types::SessionFilter;
 
 /// The projects with only the sessions that pass `filter`. A project stays even with none left.

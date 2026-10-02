@@ -4,23 +4,18 @@ use gpui_kit::{
 };
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon},
-    motion::{now_millis},
-    roll::{Kind, Roll},
-    theme::{ActiveTheme},
-};
+use crate::{icon::Icon, motion::now_millis, roll::{Kind, Roll}, theme::ActiveTheme};
 use super::types::{BadgeSize, BadgeStatus};
 use super::helpers::{colors, icon_of, pulse_at};
 
 #[derive(IntoElement)]
 pub struct AnimatedBadge {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) status: BadgeStatus,
-    pub(super) size: BadgeSize,
-    pub(super) label: Option<SharedString>,
-    pub(super) show_icon: bool,
-    pub(super) selector: Option<&'static str>,
+    size: BadgeSize,
+    label: Option<SharedString>,
+    show_icon: bool,
+    selector: Option<&'static str>,
 }
 
 impl AnimatedBadge {

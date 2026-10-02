@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    motion::{Spring},
-    };
+use crate::motion::Spring;
 
 /// The padding round the view, and the border (none: atelier is borderless).
 pub const PAD: f32 = 16.;

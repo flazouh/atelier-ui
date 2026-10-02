@@ -15,7 +15,7 @@ use crate::{
     file_tree::{FileTree, TreeRow},
     icon::{Icon, IconName},
     theme::{ActiveTheme, radius},
-    typography::{TextSize},
+    typography::TextSize,
 };
 use super::types::{CONTEXT, INDENT, OpenHandler, TreeKey};
 use super::helpers::{counts, key, unfolds};
@@ -26,9 +26,9 @@ pub struct ChangedFileTree {
     pub(super) files: Vec<ChangedFile>,
     pub(super) reviewed: HashSet<SharedString>,
     pub(super) current: Option<SharedString>,
-    pub(super) on_open: Option<OpenHandler>,
+    on_open: Option<OpenHandler>,
     pub(super) focus: Option<FocusHandle>,
-    pub(super) reveal: Option<(u64, SharedString)>,
+    reveal: Option<(u64, SharedString)>,
 }
 
 impl ChangedFileTree {
@@ -69,11 +69,11 @@ impl ChangedFileTree {
 }
 
 /// What the tree keeps between frames: its focus, its folds, and the keyboard row.
-pub(super) struct TreeState {
+struct TreeState {
     pub(super) focus: FocusHandle,
     pub(super) folded: HashSet<SharedString>,
     pub(super) cursor: Option<SharedString>,
-    pub(super) revealed: u64,
+    revealed: u64,
 }
 
 impl RenderOnce for ChangedFileTree {

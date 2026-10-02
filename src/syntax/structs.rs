@@ -2,7 +2,7 @@ use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::{DefaultHasher, Hash, Hasher},
     sync::{Arc, atomic::{AtomicU64, AtomicUsize}},
-    time::{Duration},
+    time::Duration,
 };
 
 use gpui_kit::{ElementId, Global, SharedString};
@@ -20,7 +20,7 @@ pub struct SideText {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Key {
     pub(super) language: SharedString,
-    pub(super) hash: u64,
+    hash: u64,
     pub(super) appearance: Appearance,
 }
 
@@ -56,7 +56,7 @@ pub struct SyntaxCache {
     pub parsed: Arc<AtomicUsize>,
     /// How many texts were parsed, for tests and for the bench.
     pub computed: usize,
-    /// Time spent in [`highlight`] on the UI thread since the owner last reset it, for a frame log.
+    /// Time spent in [`highlight`](crate::syntax::highlight) on the UI thread since the owner last reset it, for a frame log.
     pub spent: Duration,
 }
 

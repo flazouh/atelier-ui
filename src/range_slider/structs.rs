@@ -33,7 +33,7 @@ use super::helpers::{geometry, key_value, percent, snap, ticks};
 
 #[derive(IntoElement)]
 pub struct RangeSlider {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) value: f32,
     pub(super) min: f32,
     pub(super) max: f32,
@@ -77,15 +77,15 @@ impl RangeSlider {
 }
 
 pub(super) struct Motion {
-    pub(super) focus: FocusHandle,
+    focus: FocusHandle,
     /// The track's left edge and width in the last layout.
     pub(super) left: f32,
     pub(super) width: f32,
-    pub(super) dragging: bool,
-    pub(super) keyboard: bool,
+    dragging: bool,
+    keyboard: bool,
     /// The value the handle and the fill follow, as a percent, and how far the handle is stretched.
-    pub(super) pos: Channel,
-    pub(super) grab: Channel,
+    pos: Channel,
+    grab: Channel,
 }
 
 impl RenderOnce for RangeSlider {

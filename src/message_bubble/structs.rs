@@ -19,10 +19,10 @@ use super::helpers::{content_color, surface_fill};
 
 #[derive(IntoElement)]
 pub struct MessageBubble {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) variant: MessageBubbleVariant,
-    pub(super) align: MessageBubbleAlign,
-    pub(super) animate_in: bool,
+    align: MessageBubbleAlign,
+    animate_in: bool,
     pub(super) content: AnyElement,
 }
 
@@ -91,19 +91,19 @@ impl RenderOnce for MessageBubble {
     }
 }
 
-pub(super) struct CollapsibleMotion {
-    pub(super) open: bool,
+struct CollapsibleMotion {
+    open: bool,
     pub(super) chevron: Channel,
 }
 
 #[derive(IntoElement)]
 pub struct MessageBubbleCollapsible {
-    pub(super) id: ElementId,
-    pub(super) collapsed_lines: u8,
-    pub(super) default_open: bool,
+    id: ElementId,
+    collapsed_lines: u8,
+    default_open: bool,
     /// The surface color to fade into at the bottom edge when collapsed. Defaults to `card`, which
     /// matches a soft or tint bubble; pass the bubble's own fill for a solid, danger, or ghost one.
-    pub(super) fade_into: Option<gpui_kit::Hsla>,
+    fade_into: Option<gpui_kit::Hsla>,
     pub(super) content: AnyElement,
 }
 

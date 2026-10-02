@@ -21,9 +21,9 @@ use super::helpers::{pill_inset, segment_fill, segment_text};
 /// One choice: its words, and a key cap if it has one.
 #[derive(Clone)]
 pub struct Segment {
-    pub(super) label: SharedString,
+    label: SharedString,
     pub(super) cap: Option<SharedString>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Segment {
@@ -45,11 +45,11 @@ impl Segment {
 
 #[derive(IntoElement)]
 pub struct Segmented {
-    pub(super) id: SharedString,
+    id: SharedString,
     pub(super) segments: Vec<Segment>,
     pub(super) selected: usize,
     pub(super) on_change: Option<ChangeHandler>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
     pub(super) cap: Option<SharedString>,
 }
 
@@ -86,7 +86,7 @@ pub(super) struct Motion {
     pub(super) hover: Channel,
     pub(super) press: Channel,
     pub(super) clock: FrameClock,
-    pub(super) focus: Option<FocusHandle>,
+    focus: Option<FocusHandle>,
 }
 
 impl Motion {
@@ -113,7 +113,7 @@ impl Motion {
         go(&mut self.press, f32::from(u8::from(self.pressed)));
     }
 
-    pub(super) fn moving(&mut self) -> bool {
+    fn moving(&mut self) -> bool {
         self.clock.tick();
         let moving = self.chosen.is_running() | self.hover.is_running() | self.press.is_running();
         if !moving {

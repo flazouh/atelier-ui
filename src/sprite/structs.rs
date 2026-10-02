@@ -1,6 +1,4 @@
-use std::{
-    time::{Duration, Instant},
-};
+use std::time::{Duration, Instant};
 
 use gpui_kit::{
     App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div,
@@ -72,13 +70,13 @@ impl Strip {
 
 #[derive(IntoElement)]
 pub struct Sprite {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) strip: Strip,
     pub(super) rest: Strip,
     pub(super) size: Pixels,
-    pub(super) color: Hsla,
+    color: Hsla,
     pub(super) playing: bool,
-    pub(super) still_frame: usize,
+    still_frame: usize,
 }
 
 impl Sprite {
@@ -115,7 +113,7 @@ impl Sprite {
 
 /// When the current one-shot started, and the wake-up for its next frame. Unused for looping strips,
 /// which read [`shared_clock`] instead.
-pub(super) struct SpriteMotion {
+struct SpriteMotion {
     pub(super) strip: Strip,
     pub(super) start: Instant,
     pub(super) wake: Wake,

@@ -42,9 +42,9 @@ pub struct CourtItem {
 /// said, its size, and its age. Each Court heads its rows with its name and count, and folds.
 #[derive(IntoElement)]
 pub struct CourtList {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) items: Vec<CourtItem>,
-    pub(super) on_open: Option<OpenHandler>,
+    on_open: Option<OpenHandler>,
 }
 
 impl CourtList {

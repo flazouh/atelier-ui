@@ -5,7 +5,7 @@ use gpui_kit::{App, ElementId, Entity, InteractiveElement, IntoElement, ParentEl
 use crate::scale::px;
 use crate::{
     ClickHandler,
-    button::{Button},
+    button::Button,
     file_diff::{FileDiff, FileDiffStatus},
     motion::{Curve, ease},
     theme::{Theme, radius},

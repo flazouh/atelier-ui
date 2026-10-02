@@ -14,8 +14,8 @@ use crate::{
     placement::measure,
     review::{ReviewHandlers, caps},
     review_bar::{choose, worded},
-    theme::{ActiveTheme},
-    typography::{TextSize},
+    theme::ActiveTheme,
+    typography::TextSize,
 };
 use super::types::{GAP, ICON, LOOKUPS, PADDING};
 use super::helpers::{button, counts};
@@ -29,8 +29,8 @@ pub struct ReviewFileHeader {
     pub(super) handlers: ReviewHandlers,
     pub(super) brought_in: bool,
     pub(super) path_shown: bool,
-    pub(super) committed: Option<SharedString>,
-    pub(super) decided: Option<SharedString>,
+    committed: Option<SharedString>,
+    decided: Option<SharedString>,
 }
 
 impl ReviewFileHeader {
@@ -65,14 +65,14 @@ impl ReviewFileHeader {
 }
 
 /// The widths the fit reads off the last frame, and what each of its two steps needs.
-pub(super) struct HeaderState {
-    pub(super) width: f32,
+struct HeaderState {
+    width: f32,
     pub(super) name: f32,
     pub(super) counts: f32,
-    pub(super) needed: [Option<f32>; 2],
-    pub(super) measured_for: SharedString,
+    needed: [Option<f32>; 2],
+    measured_for: SharedString,
     /// 0 with "file", 1 without.
-    pub(super) step: usize,
+    step: usize,
 }
 
 impl RenderOnce for ReviewFileHeader {

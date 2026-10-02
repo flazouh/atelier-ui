@@ -67,7 +67,7 @@ impl TabOrder {
     }
 
     /// The tab after (or before) the active one in `sequence`, which is the order the tabs are shown in,
-    /// wrapping round. That is `order()` when the tabs are ungrouped and [`visual_order`] when grouped.
+    /// wrapping round. That is `order()` when the tabs are ungrouped and [`visual_order`](crate::tab_order::visual_order) when grouped.
     pub fn cycle(&self, sequence: &[SharedString], forward: bool) -> Option<SharedString> {
         if sequence.is_empty() {
             return None;

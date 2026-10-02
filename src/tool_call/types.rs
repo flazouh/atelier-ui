@@ -1,7 +1,4 @@
-use crate::{
-    status_mark::{Mark},
-    theme::{StatusTone, Theme},
-    };
+use crate::{status_mark::Mark, theme::{StatusTone, Theme}};
 
 /// beui's `maxHeight` for the output.
 pub(super) const MAX_OUTPUT_HEIGHT: f32 = 220.;
@@ -16,7 +13,7 @@ pub enum ToolStatus {
 
 impl ToolStatus {
     /// Which tone of the muted ramp the mark uses.
-    pub(super) fn tone(self) -> StatusTone {
+    fn tone(self) -> StatusTone {
         match self {
             Self::Running => StatusTone::Running,
             Self::Done => StatusTone::Done,

@@ -10,7 +10,7 @@
 //!   `info`, strings `success`, numbers and escapes `warning`, comments muted, types the ramp's light
 //!   tone. Nothing here uses Tailwind's chroma.
 //! - Diagnostics underline their range in `danger` for an error and `warning` for a warning. The caller
-//!   pushes them; [`crate::lsp`] is what fills them in.
+//!   pushes them; `crate::lsp` is what fills them in.
 //! - `read_only` is for a file with a hunk review open, so the two never fight over one buffer.
 //! - Four-space indents, and the line commands in [`commands`] on Zed's keys: toggle comment, move
 //!   line, duplicate line, delete line, a Home that stops at the indent, and copy, cut or paste of the
@@ -56,9 +56,7 @@ pub use structs::CodeEditor;
 pub use types::ROW_HEIGHT;
 
 #[cfg(test)]
-use gpui_kit::{
-    base::input::{DiagnosticSeverity},
-};
+use gpui_kit::base::input::DiagnosticSeverity;
 #[cfg(test)]
 use crate::theme::Appearance;
 

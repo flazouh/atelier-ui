@@ -9,7 +9,7 @@ use crate::scale::px;
 use crate::{
     copy_feedback::CopyFeedback,
     focus::PressStop,
-    icon::{Icon},
+    icon::Icon,
     merge::{Choice, MergeFacts, PullState, Rights},
     merge_button::{ActionHandler, ChoiceHandler, MergeButton},
     pr::{Checks, ChecksSummary, PrChipData, ReviewState},
@@ -29,7 +29,7 @@ pub struct PrCard {
     pub(super) on_open: Option<PrHandler>,
     pub(super) merge: Option<(MergeFacts, Choice)>,
     pub(super) on_merge: Option<ActionHandler>,
-    pub(super) on_merge_choice: Option<ChoiceHandler>,
+    on_merge_choice: Option<ChoiceHandler>,
 }
 
 impl PrCard {

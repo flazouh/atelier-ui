@@ -39,10 +39,10 @@ pub struct VerdictBox {
     pub(super) text: Entity<TextareaState>,
     pub(super) writing: bool,
     pub(super) sending: Option<Verb>,
-    pub(super) refused: Option<SharedString>,
+    refused: Option<SharedString>,
     /// A verb was pressed on an empty box: say what it needs, until the reader types or puts the box away.
-    pub(super) wants_words: Option<Verb>,
-    pub(super) _subscription: Subscription,
+    wants_words: Option<Verb>,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<VerdictEvent> for VerdictBox {}
@@ -120,7 +120,7 @@ impl VerdictBox {
         cx.notify();
     }
 
-    pub(super) fn verb_button(&self, verb: Verb, _text: &str, cx: &mut Context<Self>) -> Button {
+    fn verb_button(&self, verb: Verb, _text: &str, cx: &mut Context<Self>) -> Button {
         let theme = cx.theme();
         let busy = self.sending == Some(verb);
         let words = if busy { verb.working() } else { verb.word() };

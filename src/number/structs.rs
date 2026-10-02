@@ -22,10 +22,10 @@ use super::helpers::{line_for, runs};
 
 #[derive(IntoElement)]
 pub struct Digits {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) text: SharedString,
     pub(super) size: Pixels,
-    pub(super) color: Option<Hsla>,
+    color: Option<Hsla>,
 }
 
 impl Digits {

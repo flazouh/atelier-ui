@@ -8,9 +8,9 @@ use gpui_kit::{
 
 use crate::scale::px;
 use crate::{
-    icon::{IconName},
-    session_status::{SessionStatus},
-    sidebar_model::{SessionData},
+    icon::IconName,
+    session_status::SessionStatus,
+    sidebar_model::SessionData,
     theme::{ActiveTheme, radius},
     tooltip::Tooltip,
     typography::TextSize,
@@ -23,19 +23,19 @@ pub struct SessionRow {
     pub(super) id: ElementId,
     pub(super) data: SessionData,
     pub(super) now: u64,
-    pub(super) selected: bool,
+    selected: bool,
     pub(super) open: bool,
-    pub(super) on_open: Option<Handler>,
+    on_open: Option<Handler>,
     /// The ⋯ button: pressed, and the menu it opens while `more_open`.
-    pub(super) on_more: Option<Handler>,
-    pub(super) more_open: bool,
-    pub(super) more_menu: Option<AnyElement>,
+    on_more: Option<Handler>,
+    more_open: bool,
+    more_menu: Option<AnyElement>,
     /// The project's badge and name, on a row of the priority list, where no project heading says which it is.
     pub(super) project: Option<(crate::sidebar_model::Badge, SharedString)>,
     /// The row sits at the list's edge, with no project heading above to indent under.
-    pub(super) flush: bool,
-    pub(super) show_time: bool,
-    pub(super) show_icon: bool,
+    flush: bool,
+    show_time: bool,
+    show_icon: bool,
 }
 
 impl SessionRow {

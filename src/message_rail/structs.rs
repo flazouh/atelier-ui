@@ -31,20 +31,20 @@ pub struct RailItem {
     pub description: Option<SharedString>,
 }
 
-pub(super) struct RailMotion {
-    pub(super) hovered: Option<usize>,
+struct RailMotion {
+    hovered: Option<usize>,
     pub(super) ticks: Vec<Channel>,
     /// 0 to 1: the card coming in for the tick last hovered.
     pub(super) card: Channel,
-    pub(super) shown: Option<usize>,
+    shown: Option<usize>,
 }
 
 #[derive(IntoElement)]
 pub struct MessageRail {
-    pub(super) id: ElementId,
-    pub(super) items: Vec<RailItem>,
-    pub(super) active: usize,
-    pub(super) on_select: Option<Handler>,
+    id: ElementId,
+    items: Vec<RailItem>,
+    active: usize,
+    on_select: Option<Handler>,
 }
 
 impl MessageRail {

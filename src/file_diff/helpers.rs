@@ -4,10 +4,7 @@ use gpui_kit::{
 };
 
 use crate::scale::px;
-use crate::{
-    syntax::{LineRuns},
-    theme::{Theme},
-    };
+use crate::{syntax::LineRuns, theme::Theme};
 use super::structs::{DiffLine, DiffMotion};
 use super::types::{DiffLineKind, FileDiffStatus, ROW_HEIGHT};
 

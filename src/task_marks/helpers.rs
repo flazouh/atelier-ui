@@ -40,7 +40,7 @@ pub fn label_tone_color(label: &Label, theme: &Theme) -> Hsla {
 }
 
 /// A filled polygon through `points`, on the 24-unit grid.
-pub(super) fn fill_polygon(bounds: Bounds<Pixels>, points: &[(f32, f32)], color: Hsla, window: &mut Window) {
+fn fill_polygon(bounds: Bounds<Pixels>, points: &[(f32, f32)], color: Hsla, window: &mut Window) {
     if points.len() < 3 {
         return;
     }

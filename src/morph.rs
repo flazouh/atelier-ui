@@ -6,7 +6,7 @@
 //! The child is a function, not an element, because GPUI elements live for one frame and the old
 //! child must keep drawing after its key has changed.
 //!
-//! The exit (fading-out) and enter (rising-in) child each run on their own [`Channel`]. A key change
+//! The exit (fading-out) and enter (rising-in) child each run on their own [`Channel`](crate::motion::Channel). A key change
 //! while settled starts both fresh, but a key change while a morph is already running leaves the
 //! exit channel alone: the child that is fading out keeps its own value and never jumps. Only the
 //! child that was rising in gets discarded and replaced; the truly new child restarts the enter

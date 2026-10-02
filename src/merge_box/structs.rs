@@ -35,7 +35,7 @@ pub struct MergeBox {
     pub(super) title: Entity<InputState>,
     pub(super) message: Entity<TextareaState>,
     /// After a merge: whether the branch went too.
-    pub(super) branch_deleted: bool,
+    branch_deleted: bool,
 }
 
 impl EventEmitter<MergeBoxEvent> for MergeBox {}

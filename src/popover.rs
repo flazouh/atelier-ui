@@ -17,7 +17,7 @@
 //!   is no room below and more above ([`crate::placement`]), and slides into the window at the edges.
 //!
 //! The panel is the owner's: its fill, radius, shadow and motion. The owner measures the trigger with
-//! [`crate::placement::measure`] and passes the bounds.
+//! `crate::placement::measure` and passes the bounds.
 
 mod helpers;
 mod structs;

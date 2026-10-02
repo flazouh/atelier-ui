@@ -10,7 +10,7 @@
 //!   `gap-3` (default) apart, so a speaker's turns read as one column instead of separate cards.
 //! - Expandable content: [`MessageBubbleCollapsible`] clips long prose to a line count behind a bottom
 //!   fade, with a "Show more/less" pill whose chevron turns on `SPRING_SWAP`.
-//! - Entrance: the shared chat [`Entrance`]: the whole bubble fades and rises 6px, like every other
+//! - Entrance: the shared chat [`Entrance`](crate::entrance::Entrance): the whole bubble fades and rises 6px, like every other
 //!   chat item. Under Reduce Motion it only fades.
 
 mod helpers;

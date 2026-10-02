@@ -1,8 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    task_edit::{Change},
-    };
+use crate::task_edit::Change;
 
 /// The rail's width.
 pub(super) const RAIL: f32 = 264.;

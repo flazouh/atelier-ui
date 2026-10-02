@@ -1,13 +1,8 @@
-use std::{
-    time::{Duration},
-};
+use std::time::Duration;
 
 use gpui_kit::{Hsla, SharedString};
 
-use crate::{
-    icon::{IconName},
-    theme::{Theme},
-};
+use crate::{icon::IconName, theme::Theme};
 use super::helpers::disc_for;
 
 /// The stack is at most this wide (`max-w-sm`), and 16px short of the window's width when that is less.

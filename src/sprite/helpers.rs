@@ -1,7 +1,4 @@
-use std::{
-    sync::OnceLock,
-    time::{Instant},
-};
+use std::{sync::OnceLock, time::Instant};
 
 use super::structs::Strip;
 

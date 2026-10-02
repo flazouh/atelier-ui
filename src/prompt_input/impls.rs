@@ -1,6 +1,4 @@
-use crate::{
-    select::{SelectOption},
-    };
+use crate::select::SelectOption;
 use super::structs::PromptModel;
 
 impl From<&PromptModel> for SelectOption {

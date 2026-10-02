@@ -46,7 +46,7 @@ impl BrandMark {
 
 #[derive(IntoElement)]
 pub struct ModelBadge {
-    pub(super) id: Option<ElementId>,
+    id: Option<ElementId>,
     pub(super) label: SharedString,
     pub(super) mark: Option<BrandMark>,
     pub(super) lit: bool,
@@ -78,8 +78,8 @@ impl ModelBadge {
 }
 
 /// The badge's own hover, and how far its mark has come into colour.
-pub(super) struct MarkMotion {
-    pub(super) hovered: bool,
+struct MarkMotion {
+    hovered: bool,
     pub(super) colour: Channel,
 }
 

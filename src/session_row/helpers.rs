@@ -9,7 +9,7 @@ use crate::{
     icon::{Icon, IconName},
     roll::{Kind as RollKind, Roll},
     session_status::{Mark, SessionStatus},
-    sidebar_model::{since},
+    sidebar_model::since,
     theme::{ActiveTheme, Theme},
 };
 use super::types::MARK_BOX;

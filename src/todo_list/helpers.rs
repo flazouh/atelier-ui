@@ -1,9 +1,6 @@
 use gpui_kit::{App, Entity, Hsla, SharedString};
 
-use crate::{
-    motion::{Curve, Spring},
-    theme::{Theme},
-    };
+use crate::{motion::{Curve, Spring}, theme::Theme};
 use super::structs::{ListMotion, RowMotion, Todo};
 use super::types::{RowPlan, TodoStatus};
 

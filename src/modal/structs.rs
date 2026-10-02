@@ -14,33 +14,33 @@ use crate::{
     motion::{Animated, Channel, Curve, FrameClock, ease},
     placement::measure,
     popover::PRIORITY,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
 };
 use super::types::{CORNER, Close, ENTER_Y, PAD, PANEL, SCRIM_SECONDS, VIEW_SECONDS, VIEW_Y};
 use super::helpers::{panel_height, scrim};
 
-pub(super) struct State {
-    pub(super) previous: Option<FocusHandle>,
-    pub(super) took_focus: bool,
-    pub(super) enter: Animated,
+struct State {
+    previous: Option<FocusHandle>,
+    took_focus: bool,
+    enter: Animated,
     pub(super) scrim: Channel,
     pub(super) height: Animated,
-    pub(super) sized: bool,
+    sized: bool,
     pub(super) content: Option<f32>,
     pub(super) view: u64,
-    pub(super) swap: Channel,
+    swap: Channel,
     pub(super) clock: FrameClock,
 }
 
 #[derive(IntoElement)]
 pub struct Modal {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) view: u64,
     pub(super) width: f32,
     pub(super) focus: Option<FocusHandle>,
     pub(super) on_close: Option<Close>,
     pub(super) child: Option<AnyElement>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Modal {

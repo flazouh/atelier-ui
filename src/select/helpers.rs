@@ -8,14 +8,12 @@ use gpui_kit::{
     Pixels,
     SharedString,
     Styled,
-    base::{actions::{Confirm, SelectFirst, SelectLast}},
+    base::actions::{Confirm, SelectFirst, SelectLast},
     div,
 };
 
 use crate::scale::px;
-use crate::{
-    theme::{mix},
-};
+use crate::theme::mix;
 use super::types::{
     HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_STEP, OPTION_INSET, PANEL_PAD,
     ROW_GAP,

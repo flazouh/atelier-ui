@@ -26,6 +26,6 @@ pub enum PanelsEvent {
     Activated(SharedString),
     /// The reader closed a panel. The app drops the session's panel from what it passes in.
     Closed(SharedString),
-    /// The layout, the grouping or a width changed: the app may save [`PanelsState`].
+    /// The layout, the grouping or a width changed: the app may save [`PanelsState`](crate::panel_types::PanelsState).
     StateChanged,
 }

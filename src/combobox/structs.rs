@@ -11,7 +11,7 @@ use crate::{
     icon::{Icon, IconName},
     motion::{Animated, Channel, Curve, FrameClock, ease},
     placement::measure,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
 use super::types::{
@@ -20,12 +20,12 @@ use super::types::{
 use super::helpers::{check_at, scroll_to_show};
 
 pub struct ComboRow {
-    pub(super) label: SharedString,
-    pub(super) detail: Option<SharedString>,
-    pub(super) leading: Option<AnyElement>,
+    label: SharedString,
+    detail: Option<SharedString>,
+    leading: Option<AnyElement>,
     pub(super) selected: bool,
     pub(super) disabled: bool,
-    pub(super) selector: Option<String>,
+    selector: Option<String>,
 }
 
 impl ComboRow {
@@ -62,35 +62,35 @@ impl ComboRow {
     }
 }
 
-pub(super) struct State {
-    pub(super) rects: Vec<Option<Bounds<Pixels>>>,
-    pub(super) content: Option<Bounds<Pixels>>,
+struct State {
+    rects: Vec<Option<Bounds<Pixels>>>,
+    content: Option<Bounds<Pixels>>,
     pub(super) view: Option<Bounds<Pixels>>,
     pub(super) top: Animated,
     pub(super) height: Animated,
-    pub(super) seeded: bool,
-    pub(super) clock: FrameClock,
+    seeded: bool,
+    clock: FrameClock,
     pub(super) scroll: ScrollHandle,
-    pub(super) last_active: Option<usize>,
-    pub(super) last_key: Option<u64>,
-    pub(super) checks: Vec<Channel>,
+    last_active: Option<usize>,
+    last_key: Option<u64>,
+    checks: Vec<Channel>,
 }
 
 #[derive(IntoElement)]
 pub struct ComboList {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) entries: Vec<ComboEntry>,
     pub(super) active: Option<usize>,
-    pub(super) padded: bool,
+    padded: bool,
     pub(super) style: ComboStyle,
-    pub(super) checks: bool,
-    pub(super) max_height: f32,
-    pub(super) scroll_key: Option<u64>,
+    checks: bool,
+    max_height: f32,
+    scroll_key: Option<u64>,
     pub(super) empty: Option<SharedString>,
     pub(super) on_pick: Option<Pick>,
     pub(super) on_hover: Option<Pick>,
-    pub(super) footer: Vec<AnyElement>,
-    pub(super) selector: Option<&'static str>,
+    footer: Vec<AnyElement>,
+    selector: Option<&'static str>,
 }
 
 impl ComboList {

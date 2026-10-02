@@ -1,10 +1,7 @@
 use gpui_kit::{Hsla, IntoElement, ParentElement, Styled, div, prelude::FluentBuilder};
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon},
-    theme::{MARK_CONTRAST, Theme, contrast, mix},
-};
+use crate::{icon::Icon, theme::{MARK_CONTRAST, Theme, contrast, mix}};
 use super::structs::Toast;
 use super::types::{
     DISC_MOST, DISC_VISIBLE, DRAG_DISTANCE, DRAG_SPEED, ELASTIC, ICON_GLYPH, MAX_WIDTH,

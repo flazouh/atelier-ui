@@ -45,21 +45,21 @@ use super::types::{RAIL, TaskViewEvent};
 
 pub struct TaskView {
     pub(super) task: Option<TaskData>,
-    pub(super) all: Vec<TaskData>,
-    pub(super) me: SharedString,
-    pub(super) people: Vec<Assignee>,
+    all: Vec<TaskData>,
+    me: SharedString,
+    people: Vec<Assignee>,
     pub(super) labels: Vec<Label>,
-    pub(super) now: u64,
-    pub(super) picker: Option<Picker>,
+    now: u64,
+    picker: Option<Picker>,
     /// The hover tone of each property's button, by [`Field`] slot.
-    pub(super) tones: [crate::hover_tone::HoverTone; 4],
+    tones: [crate::hover_tone::HoverTone; 4],
     /// The open picker growing out of its property's button.
-    pub(super) morph: crate::task_picker::PickerMorph,
-    pub(super) editing: bool,
+    morph: crate::task_picker::PickerMorph,
+    editing: bool,
     pub(super) description: Entity<CommentComposer>,
-    pub(super) comment: Entity<CommentComposer>,
-    pub(super) focus: FocusHandle,
-    pub(super) _subscriptions: [Subscription; 2],
+    comment: Entity<CommentComposer>,
+    focus: FocusHandle,
+    _subscriptions: [Subscription; 2],
 }
 
 impl EventEmitter<TaskViewEvent> for TaskView {}
@@ -130,7 +130,7 @@ impl TaskView {
         self.task.as_ref()
     }
 
-    pub(super) fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
+    fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
         let Some(task) = &self.task else { return };
         let one = [task];
         self.picker = Some(match field {
@@ -152,7 +152,7 @@ impl TaskView {
         cx.notify();
     }
 
-    pub(super) fn edit_description(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn edit_description(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(task) = &self.task else { return };
         let text = task.description.clone();
         self.editing = true;
@@ -164,13 +164,13 @@ impl TaskView {
     }
 
     /// A press on a row of the open picker: the cursor goes there and Enter follows.
-    pub(super) fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(picker) = self.picker.as_mut() {
             picker.set_cursor(at);
         }
         self.key(&crate::task_picker::enter(), window, cx);
     }
-    pub(super) fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(picker) = self.picker.as_mut() {
             match handle_key(picker, event.keystroke.key.as_str(), event.keystroke.key_char.as_deref()) {
                 Outcome::Open => {}
@@ -206,7 +206,7 @@ impl TaskView {
     }
 
     /// A property of the rail: its name, and a button with its value that opens the picker.
-    pub(super) fn property(&self, field: Field, value: AnyElement, cx: &mut Context<Self>) -> AnyElement {
+    fn property(&self, field: Field, value: AnyElement, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let this = cx.entity();
         div()
@@ -254,7 +254,7 @@ impl TaskView {
     }
 
     /// What a property's button shows: the value in it, or its name when it has none.
-    pub(super) fn face(&self, field: Field, theme: &crate::theme::Theme) -> AnyElement {
+    fn face(&self, field: Field, theme: &crate::theme::Theme) -> AnyElement {
         let muted = theme.muted_foreground;
         let Some(task) = self.task.as_ref() else { return div().into_any_element() };
         match field {

@@ -8,11 +8,7 @@ use gpui_kit::{
 };
 
 use crate::scale::px;
-use crate::{
-    file_tree::{TreeRow},
-    theme::{Theme},
-    typography::{MONO_FONT_FAMILY},
-};
+use crate::{file_tree::TreeRow, theme::Theme, typography::MONO_FONT_FAMILY};
 use super::types::{CONTEXT, TreeKey};
 
 pub(crate) fn bind_keys(cx: &mut App) {

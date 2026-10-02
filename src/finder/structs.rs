@@ -56,9 +56,9 @@ impl FinderItem {
 
 pub struct Finder {
     pub(super) title: SharedString,
-    pub(super) command: Option<Command>,
+    command: Option<Command>,
     pub(super) filter: Filter,
-    pub(super) input: Entity<InputState>,
+    input: Entity<InputState>,
     pub(super) items: Vec<FinderItem>,
     /// The items shown, as indices, best first.
     pub(super) shown: Vec<usize>,
@@ -66,8 +66,8 @@ pub struct Finder {
     pub(super) note: SharedString,
     /// The panel's entrance: 0 above and clear, 1 in its place.
     pub(super) enter: Animated,
-    pub(super) clock: FrameClock,
-    pub(super) _input: Subscription,
+    clock: FrameClock,
+    _input: Subscription,
 }
 
 impl EventEmitter<FinderEvent> for Finder {}
@@ -138,7 +138,7 @@ impl Finder {
         self.shown.get(self.selected).copied()
     }
 
-    pub(super) fn refilter(&mut self, query: &str) {
+    fn refilter(&mut self, query: &str) {
         self.shown = match self.filter {
             // No words: the rows in the owner's order.
             Filter::Here if query.trim().is_empty() => (0..self.items.len().min(ROWS)).collect(),
@@ -151,7 +151,7 @@ impl Finder {
         self.selected = 0;
     }
 
-    pub(super) fn step(&mut self, by: isize, cx: &mut Context<Self>) {
+    fn step(&mut self, by: isize, cx: &mut Context<Self>) {
         if self.shown.is_empty() {
             return;
         }

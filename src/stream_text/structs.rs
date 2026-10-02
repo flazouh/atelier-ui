@@ -1,6 +1,4 @@
-use std::{
-    time::{Instant},
-};
+use std::time::Instant;
 
 use super::types::{FADE, Piece};
 use super::helpers::ease_out;
@@ -8,7 +6,7 @@ use super::helpers::ease_out;
 /// When each piece of the growing text arrived: the start of the piece, and the moment.
 #[derive(Clone, Debug, Default)]
 pub struct Flow {
-    pub(super) seen: usize,
+    seen: usize,
     pub(super) marks: Vec<(usize, Instant)>,
 }
 

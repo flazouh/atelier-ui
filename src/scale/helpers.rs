@@ -5,7 +5,7 @@ use gpui_kit::Pixels;
 use super::types::{MAX, MIN, STEP};
 
 thread_local! {
-    pub(super) static ZOOM: Cell<f32> = const { Cell::new(1.) };
+    static ZOOM: Cell<f32> = const { Cell::new(1.) };
 }
 
 /// The zoom now: 1 is the interface as designed.

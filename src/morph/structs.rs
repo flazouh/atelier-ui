@@ -12,7 +12,7 @@ use super::helpers::{frame, morph_curve, on_key_change};
 
 #[derive(IntoElement)]
 pub struct Morph {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) key: SharedString,
     pub(super) child: RenderChild,
     pub(super) enter: bool,
@@ -45,7 +45,7 @@ pub struct MorphFrame {
     pub new_y: f32,
 }
 
-pub(super) struct MorphState {
+struct MorphState {
     pub(super) key: SharedString,
     pub(super) current: RenderChild,
     pub(super) old: Option<RenderChild>,

@@ -19,7 +19,7 @@ use super::helpers::stroke;
 
 #[derive(IntoElement)]
 pub struct Checkbox {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) checked: bool,
     pub(super) indeterminate: bool,
     pub(super) disabled: bool,
@@ -66,14 +66,14 @@ pub(super) struct Motion {
     pub(super) focus: FocusHandle,
     /// The mark on show, how far it has come in, and how far its stroke has drawn.
     pub(super) mark: Mark,
-    pub(super) appear: Channel,
-    pub(super) draw: Channel,
+    appear: Channel,
+    draw: Channel,
     /// The mark that is leaving, and how much of it is left.
     pub(super) leaving: Option<(Mark, Channel)>,
     /// 1 when the box wears the primary, 0 when it wears the plain edge.
-    pub(super) tone: Channel,
+    tone: Channel,
     pub(super) hover: Channel,
-    pub(super) scale: Channel,
+    scale: Channel,
     pub(super) keyboard: bool,
 }
 

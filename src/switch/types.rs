@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    motion::{Spring},
-    };
+use crate::motion::Spring;
 
 pub const WIDTH: f32 = 48.;
 

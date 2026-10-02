@@ -5,9 +5,9 @@ use super::structs::Choice;
 
 thread_local! {
     /// The elevation in force. A thread local, not a global: the panels that read it have no `App` to hand.
-    pub(super) static ELEVATION: std::cell::Cell<usize> = const { std::cell::Cell::new(2) };
+    static ELEVATION: std::cell::Cell<usize> = const { std::cell::Cell::new(2) };
     /// How strong the elevation is, 0 to 100: the tone lift and the shadow alpha scale with it.
-    pub(super) static STRENGTH: std::cell::Cell<usize> = const { std::cell::Cell::new(50) };
+    static STRENGTH: std::cell::Cell<usize> = const { std::cell::Cell::new(50) };
 }
 
 /// Puts the saved strength in force. `None` keeps the default, 50.
@@ -24,7 +24,7 @@ pub fn set_strength(value: usize) {
     STRENGTH.with(|s| s.set(value.min(100)));
 }
 
-pub(super) fn strength_factor() -> f32 {
+fn strength_factor() -> f32 {
     strength() as f32 / 100.
 }
 
@@ -113,7 +113,7 @@ pub fn init(tabs: Option<u8>, cx: &mut App) {
     cx.set_global(Choice { tabs: clamp(tabs.map(usize::from).unwrap_or(0)) });
 }
 
-pub(super) fn clamp(n: usize) -> usize {
+fn clamp(n: usize) -> usize {
     n.min(3)
 }
 

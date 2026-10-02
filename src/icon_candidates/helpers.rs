@@ -5,7 +5,7 @@ pub fn is_icon_file(path: &str) -> bool {
     path.rsplit_once('.').is_some_and(|(_, ext)| EXTENSIONS.contains(&ext.to_lowercase().as_str()))
 }
 
-pub(super) fn stem(path: &str) -> String {
+fn stem(path: &str) -> String {
     let file = path.rsplit('/').next().unwrap_or(path);
     file.rsplit_once('.').map_or(file, |(name, _)| name).to_lowercase()
 }

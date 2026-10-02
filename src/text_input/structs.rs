@@ -22,7 +22,7 @@ use crate::{
     focus::ring_shadow,
     icon::{Icon, IconName},
     motion::{Channel, Curve, FrameClock},
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::{FONT_FAMILY, TextSize},
 };
 use super::types::{
@@ -32,26 +32,26 @@ use super::types::{
 use super::helpers::{fill, shake_offset};
 
 pub(super) struct Motion {
-    pub(super) had_error: bool,
+    had_error: bool,
     pub(super) shake: Channel,
     pub(super) message: Channel,
-    pub(super) clock: FrameClock,
+    clock: FrameClock,
 }
 
 #[derive(IntoElement)]
 pub struct TextInput {
-    pub(super) id: ElementId,
-    pub(super) state: Entity<InputState>,
+    id: ElementId,
+    state: Entity<InputState>,
     pub(super) label: Option<SharedString>,
     pub(super) error: Option<SharedString>,
-    pub(super) invalid: bool,
+    invalid: bool,
     pub(super) reserve: bool,
-    pub(super) success: bool,
+    success: bool,
     pub(super) left: Option<IconName>,
     pub(super) right: Option<AnyElement>,
-    pub(super) disabled: bool,
+    disabled: bool,
     pub(super) surface: Option<Hsla>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl TextInput {

@@ -42,10 +42,10 @@ pub struct ReviewBar {
     pub(super) id: ElementId,
     pub(super) progress: ReviewProgress,
     pub(super) handlers: ReviewHandlers,
-    pub(super) mark_label: &'static str,
-    pub(super) review_mode: bool,
+    mark_label: &'static str,
+    review_mode: bool,
     pub(super) reviewed_word: &'static str,
-    pub(super) next_primary: bool,
+    next_primary: bool,
     pub(super) scopes: Option<([(SharedString, SharedString); 2], usize)>,
 }
 
@@ -90,14 +90,14 @@ impl ReviewBar {
 
 pub(super) struct BarState {
     pub(super) focus: FocusHandle,
-    pub(super) fill: Channel,
+    fill: Channel,
     pub(super) menu_open: bool,
     /// The ⋯ button's bounds in its last layout, where the menu hangs from.
     pub(super) menu_anchor: Option<gpui_kit::Bounds<gpui_kit::Pixels>>,
     pub(super) width: f32,
     /// What each step was measured to need, for the content it was measured with.
     pub(super) needed: [Option<f32>; STEPS.len()],
-    pub(super) measured_for: String,
+    measured_for: String,
     pub(super) step: usize,
     /// The summary's own width, before it shrinks, in the last frame.
     pub(super) summary: f32,

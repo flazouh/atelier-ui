@@ -11,7 +11,7 @@ use crate::{
     icon::{Icon, IconName},
     layout_motion::shifted,
     motion::{Channel, Curve, Spring, duration, ease, now},
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::{
@@ -80,9 +80,9 @@ impl UploadItem {
 /// A row of the queue, and the motion it is in.
 pub(super) struct Row {
     pub(super) item: UploadItem,
-    pub(super) enter: Channel,
+    enter: Channel,
     /// Set when the file left the queue: the row stays, in its place, until this has run.
-    pub(super) exit: Option<Channel>,
+    exit: Option<Channel>,
     pub(super) bar: Channel,
     /// The status the mark is swapping from, and how far the swap has run (0 to 1: the old leaves, then the new arrives).
     pub(super) swap: Option<(UploadStatus, Channel)>,
@@ -91,14 +91,14 @@ pub(super) struct Row {
 pub struct FileUpload {
     pub(super) id: ElementId,
     pub(super) rows: Vec<Row>,
-    pub(super) variant: UploadVariant,
-    pub(super) title: SharedString,
-    pub(super) description: SharedString,
-    pub(super) browse_label: SharedString,
+    variant: UploadVariant,
+    title: SharedString,
+    description: SharedString,
+    browse_label: SharedString,
     pub(super) accept: Vec<String>,
     pub(super) multiple: bool,
     pub(super) max_files: Option<usize>,
-    pub(super) disabled: bool,
+    disabled: bool,
 }
 
 impl EventEmitter<FileUploadEvent> for FileUpload {}
@@ -172,7 +172,7 @@ impl FileUpload {
         self.rows.iter().filter(|r| r.exit.is_none()).map(|r| r.item.clone()).collect()
     }
 
-    pub(super) fn live(&self) -> usize {
+    fn live(&self) -> usize {
         self.rows.iter().filter(|r| r.exit.is_none()).count()
     }
 
@@ -180,7 +180,7 @@ impl FileUpload {
         self.max_files.is_some_and(|max| self.live() >= max)
     }
 
-    pub(super) fn new_row(item: UploadItem, reduce: bool) -> Row {
+    fn new_row(item: UploadItem, reduce: bool) -> Row {
         let mut enter = Channel::new(if reduce { 1. } else { 0. });
         enter.animate(1., Curve::Ease(ROW_TIME, ease::OUT), 0., reduce);
         let bar = Channel::new(clamp_progress(item.progress, item.status) / 100.);
@@ -282,7 +282,7 @@ impl FileUpload {
         }
     }
 
-    pub(super) fn browse(&mut self, cx: &mut Context<Self>) {
+    fn browse(&mut self, cx: &mut Context<Self>) {
         if self.disabled || self.maxed() {
             return;
         }

@@ -16,7 +16,7 @@ use gpui_kit::{
     StatefulInteractiveElement,
     Styled,
     Window,
-    base::input::{self},
+    base::input,
     component::input::EditorState,
     div,
     prelude::FluentBuilder,
@@ -26,7 +26,7 @@ use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
-    theme::{radius},
+    theme::radius,
     tooltip::Tooltip,
 };
 use super::structs::InlineHunk;

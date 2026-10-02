@@ -55,9 +55,9 @@ pub fn priority_rows(projects: &[ProjectData], earlier_open: bool, earlier_shown
     out
 }
 
-/// How many sessions a project shows before the fold: the first [`FOLD_AFTER`], and more if a session
+/// How many sessions a project shows before the fold: the first [`FOLD_AFTER`](crate::sidebar_layout::FOLD_AFTER), and more if a session
 /// that needs the reader or has news would fall beyond them. Those are never folded away.
-pub(super) fn shown_before_fold(sessions: &[SessionData], order: &[usize], fold_after: usize) -> usize {
+fn shown_before_fold(sessions: &[SessionData], order: &[usize], fold_after: usize) -> usize {
     let last_news = order.iter().rposition(|&i| sessions[i].status.wants_attention()).map_or(0, |p| p + 1);
     fold_after.max(last_news).min(order.len())
 }

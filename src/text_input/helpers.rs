@@ -1,9 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    motion::{keyframes},
-    theme::{Theme, mix},
-    };
+use crate::{motion::keyframes, theme::{Theme, mix}};
 use super::types::{KEYFRAME_EASE, SHAKE, SHAKE_SECONDS};
 
 /// The field's sideways offset `t` seconds into a shake.

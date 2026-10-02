@@ -1,11 +1,7 @@
 use gpui_kit::{FontWeight, Hsla, IntoElement, ParentElement, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon},
-    theme::{Theme},
-    typography::TextSize,
-};
+use crate::{icon::Icon, theme::Theme, typography::TextSize};
 use super::structs::{Geometry, NotificationItem};
 use super::types::{CARD_PAD_Y, TrailingTone};
 
@@ -13,7 +9,7 @@ pub(super) fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-pub(super) fn trailing_color(theme: &Theme, tone: TrailingTone) -> Hsla {
+fn trailing_color(theme: &Theme, tone: TrailingTone) -> Hsla {
     match tone {
         TrailingTone::Muted => theme.muted_foreground,
         TrailingTone::Warning => theme.warning,

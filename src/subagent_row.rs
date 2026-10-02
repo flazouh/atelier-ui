@@ -3,7 +3,7 @@
 //!
 //! A running row has the agent's orbiting mark, the agent's name in its message colour, its live tool
 //! call in muted text (or its task, before the first call), its tool call count, and its elapsed time on
-//! the right. When the live tool call changes, the old text leaves and the new one enters with [`Morph`].
+//! the right. When the live tool call changes, the old text leaves and the new one enters with [`Morph`](crate::morph::Morph).
 //! A finished row stops its mark, shows a check, and says "Done in 38s".
 
 mod helpers;

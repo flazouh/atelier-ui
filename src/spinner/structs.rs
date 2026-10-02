@@ -5,16 +5,13 @@ use gpui_kit::{
     canvas, div, prelude::FluentBuilder, px,
 };
 
-use crate::{
-    motion::{now_millis},
-    theme::ActiveTheme,
-};
+use crate::{motion::now_millis, theme::ActiveTheme};
 use super::types::{RING_ALPHA, STEPS, SWEEP};
 use super::helpers::{arc, dot, pulse_at, stroke, stroke_width, turn_at};
 
 #[derive(IntoElement)]
 pub struct Spinner {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) size: Pixels,
     pub(super) color: Option<Hsla>,
 }

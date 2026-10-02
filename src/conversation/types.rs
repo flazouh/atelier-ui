@@ -9,7 +9,7 @@ pub(super) const SHOWN: usize = 3;
 pub type MoreHandler = Rc<dyn Fn(&mut Window, &mut App)>;
 
 /// A callback that receives the index of a thread in the order the list shows: open threads first, each group
-/// in its own order (see [`open_first`]).
+/// in its own order (see `open_first`).
 pub type ThreadHandler = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
 /// Each face overlaps the one before by this much.

@@ -1,6 +1,4 @@
-use crate::{
-    new_task_model::{Draft},
-    };
+use crate::new_task_model::Draft;
 
 /// What the dialog asks of the owner.
 #[derive(Clone, Debug, PartialEq)]

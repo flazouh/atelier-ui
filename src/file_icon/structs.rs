@@ -7,7 +7,7 @@ use super::helpers::{file_icon, folder_icon};
 #[derive(IntoElement)]
 pub struct FileIcon {
     pub(super) path: SharedString,
-    pub(super) size: Pixels,
+    size: Pixels,
 }
 
 impl FileIcon {

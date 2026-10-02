@@ -1,11 +1,7 @@
 use gpui_kit::{App, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div};
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon},
-    theme::{ActiveTheme, radius},
-    typography::MONO_FONT_FAMILY,
-};
+use crate::{icon::Icon, theme::{ActiveTheme, radius}, typography::MONO_FONT_FAMILY};
 use super::types::KeyPart;
 use super::helpers::parts;
 
@@ -13,7 +9,7 @@ use super::helpers::parts;
 pub struct Kbd {
     pub(super) keys: SharedString,
     /// Drawn on a filled control in its ink, instead of on the page.
-    pub(super) ink: Option<gpui_kit::Hsla>,
+    ink: Option<gpui_kit::Hsla>,
     /// Drawn on a coloured fill: the fill and the text on it.
     pub(super) on: Option<(gpui_kit::Hsla, gpui_kit::Hsla)>,
 }

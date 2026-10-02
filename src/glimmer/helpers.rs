@@ -63,13 +63,13 @@ pub fn band_wait_ms(elapsed_ms: u64, text_width: i32, requesting: bool) -> u64 {
 
 /// Combining marks that decorate the character before them: accents, Cyrillic and Latin extended
 /// combining diacritics, and the two combining-mark blocks used for emphasis marks.
-pub(super) fn is_combining_mark(c: char) -> bool {
+fn is_combining_mark(c: char) -> bool {
     matches!(c as u32, 0x0300..=0x036F | 0x1AB0..=0x1AFF | 0x20D0..=0x20FF | 0xFE20..=0xFE2F)
 }
 
 /// `U+FE0E` (text) and `U+FE0F` (emoji) variation selectors: they pick a glyph style for the
 /// character before them, so they are never a cluster of their own.
-pub(super) fn is_variation_selector(c: char) -> bool {
+fn is_variation_selector(c: char) -> bool {
     matches!(c, '\u{FE0E}' | '\u{FE0F}')
 }
 

@@ -16,7 +16,7 @@ use crate::{
     layout_motion::shifted,
     motion::{Channel, Curve, Spring, duration, ease, now},
     placement::measure,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::{
@@ -92,26 +92,26 @@ pub struct ToastPatch {
 
 pub(super) struct Item {
     pub(super) toast: Toast,
-    pub(super) created: Instant,
-    pub(super) timer: Option<Task<()>>,
+    created: Instant,
+    timer: Option<Task<()>>,
     pub(super) enter: Channel,
     /// The toast as it was before its last change, and how far the swap has run.
     pub(super) swap: Option<(Toast, Channel)>,
     /// The sideways offset of a drag, springing back to zero.
-    pub(super) offset: Channel,
+    offset: Channel,
 }
 
 pub(super) struct Leaving {
     pub(super) toast: Toast,
     pub(super) bounds: Bounds<Pixels>,
-    pub(super) from_x: f32,
+    from_x: f32,
     pub(super) opacity: f32,
-    pub(super) run: Channel,
+    run: Channel,
 }
 
 pub(super) struct Drag {
     pub(super) id: SharedString,
-    pub(super) start: f32,
+    start: f32,
     pub(super) last: (f32, Instant),
     pub(super) speed: f32,
 }
@@ -124,10 +124,10 @@ pub struct ToastStack {
     pub(super) default_duration: Duration,
     pub(super) limit: Option<usize>,
     pub(super) max_visible: usize,
-    pub(super) seed: usize,
+    seed: usize,
     pub(super) bounds: HashMap<SharedString, Bounds<Pixels>>,
     pub(super) drag: Option<Drag>,
-    pub(super) epoch: Instant,
+    epoch: Instant,
 }
 
 impl EventEmitter<ToastEvent> for ToastStack {}
@@ -263,7 +263,7 @@ impl ToastStack {
     }
 
     /// Starts the clock that takes the toast away, unless it is meant to stay.
-    pub(super) fn arm(&mut self, id: &SharedString, cx: &mut Context<Self>) {
+    fn arm(&mut self, id: &SharedString, cx: &mut Context<Self>) {
         let default = self.default_duration;
         let Some(item) = self.items.iter_mut().find(|i| &i.toast.id == id) else { return };
         let total = item.toast.duration.unwrap_or(default);
@@ -279,11 +279,11 @@ impl ToastStack {
         }));
     }
 
-    pub(super) fn grab(&mut self, id: &SharedString, x: f32) {
+    fn grab(&mut self, id: &SharedString, x: f32) {
         self.drag = Some(Drag { id: id.clone(), start: x, last: (x, now()), speed: 0. });
     }
 
-    pub(super) fn drag_to(&mut self, x: f32, cx: &mut Context<Self>) {
+    fn drag_to(&mut self, x: f32, cx: &mut Context<Self>) {
         let Some(drag) = self.drag.as_mut() else { return };
         let at = now();
         let dt = at.duration_since(drag.last.1).as_secs_f32();
@@ -299,7 +299,7 @@ impl ToastStack {
         cx.notify();
     }
 
-    pub(super) fn release(&mut self, x: f32, cx: &mut Context<Self>) {
+    fn release(&mut self, x: f32, cx: &mut Context<Self>) {
         let Some(drag) = self.drag.take() else { return };
         if lets_go(x - drag.start, drag.speed) {
             self.dismiss(&drag.id, cx);

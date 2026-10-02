@@ -13,33 +13,33 @@ use crate::{
     keys::{self, Command},
     motion::{Channel, Curve, FrameClock, duration, ease},
     roll::{Kind, Roll},
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     theme::radius,
     typography::FONT_FAMILY,
 };
 use super::types::{Click, PRESS_INSET, SwapSize, SwapVariant};
 use super::helpers::colors;
 
-pub(super) struct Motion {
+struct Motion {
     pub(super) hover: Channel,
     pub(super) press: Channel,
-    pub(super) hovered: bool,
-    pub(super) pressed: bool,
+    hovered: bool,
+    pressed: bool,
     pub(super) clock: FrameClock,
-    pub(super) focus: Option<FocusHandle>,
+    focus: Option<FocusHandle>,
 }
 
 #[derive(IntoElement)]
 pub struct ActionSwapButton {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) label: SharedString,
     pub(super) variant: SwapVariant,
     pub(super) size: SwapSize,
     pub(super) command: Option<Command>,
     pub(super) cap: Option<SharedString>,
-    pub(super) disabled: bool,
+    disabled: bool,
     pub(super) on_click: Option<Click>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl ActionSwapButton {

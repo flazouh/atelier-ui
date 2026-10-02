@@ -23,17 +23,17 @@ use super::helpers::{chip, connection_words, unavailable};
 
 #[derive(IntoElement)]
 pub struct ProjectSection {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) project: ProjectData,
-    pub(super) expanded: bool,
-    pub(super) selected: bool,
-    pub(super) menu_open: bool,
-    pub(super) on_toggle: Option<Handler>,
-    pub(super) on_new: Option<Handler>,
-    pub(super) on_retry: Option<Handler>,
-    pub(super) on_menu: Option<Handler>,
-    pub(super) on_menu_close: Option<Handler>,
-    pub(super) on_choose: Option<Chooser>,
+    expanded: bool,
+    selected: bool,
+    menu_open: bool,
+    on_toggle: Option<Handler>,
+    on_new: Option<Handler>,
+    on_retry: Option<Handler>,
+    on_menu: Option<Handler>,
+    on_menu_close: Option<Handler>,
+    on_choose: Option<Chooser>,
 }
 
 impl ProjectSection {

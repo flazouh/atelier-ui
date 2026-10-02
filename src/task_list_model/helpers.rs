@@ -1,6 +1,4 @@
-use crate::{
-    task_model::{TaskData, TaskStatus},
-};
+use crate::task_model::{TaskData, TaskStatus};
 use super::structs::{Filters, Folds, Group, Sort};
 use super::types::Row;
 

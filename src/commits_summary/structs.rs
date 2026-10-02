@@ -39,7 +39,7 @@ pub struct CommitData {
 /// The commits, as a rail section: one line that opens to the list.
 #[derive(IntoElement)]
 pub struct CommitsSummary {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) commits: Vec<CommitData>,
 }
 

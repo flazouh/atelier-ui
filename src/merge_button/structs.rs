@@ -25,7 +25,7 @@ pub struct MergeButton {
     pub(super) id: ElementId,
     pub(super) facts: MergeFacts,
     pub(super) choice: Choice,
-    pub(super) upward: bool,
+    upward: bool,
     pub(super) on_action: Option<ActionHandler>,
     pub(super) on_choice: Option<ChoiceHandler>,
 }
@@ -58,7 +58,7 @@ impl MergeButton {
 pub(super) struct MenuState {
     pub(super) open: bool,
     /// The button's bounds in its last layout, to choose where the menu opens.
-    pub(super) anchor: Option<Bounds<Pixels>>,
+    anchor: Option<Bounds<Pixels>>,
     /// The arrow's focus, which the menu hands back when it closes from the keyboard.
     pub(super) arrow: FocusHandle,
 }

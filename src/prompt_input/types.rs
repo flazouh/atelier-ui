@@ -11,7 +11,7 @@ pub enum PromptInputEvent {
     Action(SharedString),
     /// The user picked a different model, by its `value`.
     ModelChanged(SharedString),
-    /// The user picked a different mode from [`PromptInput::modes`], by its words.
+    /// The user picked a different mode from [`PromptInput::modes`](crate::prompt_input::PromptInput::modes), by its words.
     ModeChanged(SharedString),
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
     Command { name: SharedString, args: SharedString },

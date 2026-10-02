@@ -45,7 +45,7 @@ pub(crate) fn bytes(path: &str) -> Option<&'static [u8]> {
     embedded(path.strip_prefix("file-icons/")?.strip_suffix(".svg")?)
 }
 
-pub(super) fn asset(icon: &str) -> SharedString {
+fn asset(icon: &str) -> SharedString {
     format!("file-icons/{icon}.svg").into()
 }
 
@@ -62,7 +62,7 @@ pub(crate) fn strip_location(path: &str) -> &str {
 }
 
 /// File names that carry their own icon, lower case (acepe's `filenameToIcon`).
-pub(super) fn by_name(name: &str) -> Option<&'static str> {
+fn by_name(name: &str) -> Option<&'static str> {
     match name {
         "dockerfile" | "docker-compose.yml" | "docker-compose.yaml" => Some("docker"),
         "makefile" => Some("makefile"),
@@ -102,7 +102,7 @@ pub(super) fn by_name(name: &str) -> Option<&'static str> {
 }
 
 /// Extensions, lower case and without the dot (acepe's `extensionToIcon`).
-pub(super) fn by_extension(ext: &str) -> Option<&'static str> {
+fn by_extension(ext: &str) -> Option<&'static str> {
     match ext {
         "ts" | "mts" | "cts" => Some("typescript"),
         "tsx" => Some("react_ts"),
@@ -192,7 +192,7 @@ pub(super) fn by_extension(ext: &str) -> Option<&'static str> {
 }
 
 /// Folders that carry their own icon, lower case (acepe's `getSpecialFolderIconSrc`).
-pub(super) fn special_folder(name: &str) -> Option<&'static str> {
+fn special_folder(name: &str) -> Option<&'static str> {
     match name {
         "node_modules" => Some("folder-node"),
         "src" | "services" => Some("folder-src"),

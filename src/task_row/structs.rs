@@ -12,7 +12,7 @@ use crate::{
     session_row::status_mark,
     sidebar_model::since,
     task_marks::{PriorityMark, TaskStatusMark},
-    task_model::{TaskData},
+    task_model::TaskData,
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
@@ -23,10 +23,10 @@ use super::helpers::{assignee_mark, label_chip, shown_labels};
 pub struct TaskRow {
     pub(super) id: ElementId,
     pub(super) task: TaskData,
-    pub(super) now: u64,
-    pub(super) cursor: bool,
-    pub(super) selected: bool,
-    pub(super) on_click: Option<Handler>,
+    now: u64,
+    cursor: bool,
+    selected: bool,
+    on_click: Option<Handler>,
 }
 
 impl TaskRow {

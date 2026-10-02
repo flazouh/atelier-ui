@@ -1,8 +1,6 @@
 use gpui_kit::{Context, SharedString};
 
-use crate::{
-    task_edit::{Change},
-    };
+use crate::task_edit::Change;
 use super::structs::TaskList;
 
 /// What the list asks of the app.

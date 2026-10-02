@@ -1,8 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    theme::{Theme, mix},
-};
+use crate::theme::{Theme, mix};
 use super::types::{PRESS_SCALE, SEGMENT_HEIGHT};
 
 /// A segment's fill at choice progress `chosen` (0 to 1) and hover progress `hover`: the `Ghost` button's,

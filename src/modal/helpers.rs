@@ -1,6 +1,4 @@
-use crate::{
-    theme::{Theme},
-};
+use crate::theme::Theme;
 use super::types::{BORDER, PAD};
 
 /// The dim over the page, at progress `t` of its fade: the theme's shadow colour.

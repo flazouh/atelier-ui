@@ -32,24 +32,24 @@ pub struct Sidebar {
     pub(super) projects: Vec<ProjectData>,
     pub(super) folds: Folds,
     pub(super) rows: Vec<Row>,
-    pub(super) selected: Option<RowKey>,
+    selected: Option<RowKey>,
     /// The session the reader has open, by id.
     pub(super) open: Option<SharedString>,
     pub(super) now: u64,
-    pub(super) scroll: UniformListScrollHandle,
-    pub(super) focus: FocusHandle,
+    scroll: UniformListScrollHandle,
+    focus: FocusHandle,
     pub(super) menu: Option<SharedString>,
     /// The session whose ⋯ menu is open, by id.
-    pub(super) session_menu: Option<SharedString>,
+    session_menu: Option<SharedString>,
     /// What the head chose, and whether the priority list shows all its earlier sessions.
     pub(super) layout: SidebarLayout,
-    pub(super) earlier_open: bool,
+    earlier_open: bool,
     pub(super) filter_menu: bool,
     pub(super) add_menu: bool,
-    pub(super) entering: HashMap<SharedString, Instant>,
-    pub(super) moving: HashMap<RowKey, Channel>,
+    entering: HashMap<SharedString, Instant>,
+    moving: HashMap<RowKey, Channel>,
     /// While the pointer is on the list: each project's sessions in the order the rows had.
-    pub(super) held: Option<HashMap<SharedString, Vec<SharedString>>>,
+    held: Option<HashMap<SharedString, Vec<SharedString>>>,
 }
 
 impl EventEmitter<SidebarEvent> for Sidebar {}
@@ -99,7 +99,7 @@ impl Sidebar {
     }
 
     /// Each project's sessions in the order the rows show them.
-    pub(super) fn shown_order(&self) -> HashMap<SharedString, Vec<SharedString>> {
+    fn shown_order(&self) -> HashMap<SharedString, Vec<SharedString>> {
         let mut order: HashMap<SharedString, Vec<SharedString>> = HashMap::new();
         for row in &self.rows {
             if let Row::Session { project, session } = *row {
@@ -111,7 +111,7 @@ impl Sidebar {
     }
 
     /// The rows from the projects and the folds, in the held order while the pointer holds the list.
-    pub(super) fn build_rows(&mut self) {
+    fn build_rows(&mut self) {
         self.rows = match self.layout.mode {
             ListMode::Projects => rows_held(&self.projects, &self.folds, self.held.as_ref(), self.layout.fold_after),
             ListMode::Priority => sidebar_model::priority_rows(&self.projects, self.earlier_open, self.layout.earlier_shown),
@@ -238,12 +238,12 @@ impl Sidebar {
         }
     }
 
-    pub(super) fn refresh(&mut self, cx: &mut Context<Self>) {
+    fn refresh(&mut self, cx: &mut Context<Self>) {
         self.build_rows();
         cx.notify();
     }
 
-    pub(super) fn select_row(&mut self, at: usize, cx: &mut Context<Self>) {
+    fn select_row(&mut self, at: usize, cx: &mut Context<Self>) {
         if let Some(row) = self.rows.get(at) {
             self.selected = Some(key_of(&self.projects, *row));
             self.scroll.scroll_to_item(at, ScrollStrategy::Nearest);
@@ -251,14 +251,14 @@ impl Sidebar {
         }
     }
 
-    pub(super) fn toggle_project(&mut self, project: usize, cx: &mut Context<Self>) {
+    fn toggle_project(&mut self, project: usize, cx: &mut Context<Self>) {
         let id = self.projects[project].id.clone();
         let collapsed = self.folds.is_collapsed(&id);
         self.folds.set_collapsed(&id, !collapsed);
         self.refresh(cx);
     }
 
-    pub(super) fn navigate(&mut self, nav: Nav, cx: &mut Context<Self>) {
+    fn navigate(&mut self, nav: Nav, cx: &mut Context<Self>) {
         let folds = self.folds.clone();
         let projects = self.projects.clone();
         let moved = sidebar_model::step(&self.rows, |p| folds.is_collapsed(&projects[p].id), self.selected_row(), nav);
@@ -272,7 +272,7 @@ impl Sidebar {
         }
     }
 
-    pub(super) fn activate(&mut self, row: Row, cx: &mut Context<Self>) {
+    fn activate(&mut self, row: Row, cx: &mut Context<Self>) {
         match sidebar_model::activate(row) {
             Activation::OpenSession { project, session } => {
                 cx.emit(SidebarEvent::Open {
@@ -296,7 +296,7 @@ impl Sidebar {
         }
     }
 
-    pub(super) fn choose(&mut self, project: usize, choice: MenuChoice, cx: &mut Context<Self>) {
+    fn choose(&mut self, project: usize, choice: MenuChoice, cx: &mut Context<Self>) {
         let project = self.projects[project].id.clone();
         self.menu = None;
         cx.emit(match choice {
@@ -310,7 +310,7 @@ impl Sidebar {
         cx.notify();
     }
 
-    pub(super) fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
         let nav = match event.keystroke.key.as_str() {
             "up" => Some(Nav::Up),
             "down" => Some(Nav::Down),
@@ -344,7 +344,7 @@ impl Sidebar {
         }
     }
 
-    pub(super) fn row_element(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    fn row_element(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let this = cx.entity();
         let row = self.rows[at];

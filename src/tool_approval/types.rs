@@ -1,9 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    animated_badge::{BadgeStatus},
-    icon::{IconName},
-    };
+use crate::{animated_badge::BadgeStatus, icon::IconName};
 
 /// beui's `ToolApprovalStatus`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

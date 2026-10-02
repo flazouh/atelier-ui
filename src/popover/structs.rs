@@ -15,7 +15,7 @@ use super::helpers::{cover, placement, watch};
 #[derive(Default)]
 pub(super) struct Registry {
     pub(super) owner: Option<String>,
-    pub(super) seq: u64,
+    seq: u64,
     /// For each open popover, the frames the window has drawn and the frame it was last drawn in. The element
     /// state is dropped once a popover is not drawn for a frame, so this is where the gap survives.
     pub(super) frames: std::collections::HashMap<String, Frames>,
@@ -48,15 +48,15 @@ impl Frames {
 impl Global for Registry {}
 
 /// What one popover remembers between frames.
-pub(super) struct PopState {
-    pub(super) was_open: bool,
-    pub(super) seq: u64,
+struct PopState {
+    was_open: bool,
+    seq: u64,
     /// The trigger's bounds and the window's size when it opened.
-    pub(super) opened_at: Option<(Bounds<Pixels>, Size<Pixels>)>,
+    opened_at: Option<(Bounds<Pixels>, Size<Pixels>)>,
     /// Whether the window was the active one when it opened: losing that closes it.
-    pub(super) active_at_open: bool,
+    active_at_open: bool,
     /// Where a hung popover's point was in the last layout.
-    pub(super) marker: Option<Bounds<Pixels>>,
+    marker: Option<Bounds<Pixels>>,
     /// While open with the owner keeping focus: hears Escape wherever focus is.
     pub(super) escape: Option<gpui_kit::Subscription>,
     pub(super) panel: FocusHandle,
@@ -66,17 +66,17 @@ pub(super) struct PopState {
 pub struct Popover {
     pub(super) id: ElementId,
     pub(super) open: bool,
-    pub(super) shown: Option<bool>,
+    shown: Option<bool>,
     pub(super) anchor: Option<Bounds<Pixels>>,
     pub(super) side: Side,
     pub(super) align: Align,
     pub(super) gap: Option<f32>,
     pub(super) height: f32,
     pub(super) width: Option<Pixels>,
-    pub(super) min_width: Option<Pixels>,
+    min_width: Option<Pixels>,
     pub(super) on_close: Option<CloseHandler>,
     pub(super) return_focus: Option<FocusHandle>,
-    pub(super) panel_focus: Option<FocusHandle>,
+    panel_focus: Option<FocusHandle>,
     pub(super) child: Option<AnyElement>,
     pub(super) hang: Option<Hang>,
     pub(super) keep_focus: bool,
@@ -120,7 +120,7 @@ impl Popover {
         self
     }
 
-    /// The trigger's bounds in the window, from [`crate::placement::measure`].
+    /// The trigger's bounds in the window, from `crate::placement::measure`.
     pub fn anchor(mut self, bounds: Option<Bounds<Pixels>>) -> Self {
         self.anchor = bounds;
         self

@@ -14,7 +14,7 @@ use crate::{
     icon::{Icon, IconName},
     motion::duration,
     reveal::Reveal,
-    syntax::{Side},
+    syntax::Side,
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
@@ -74,15 +74,15 @@ impl DiffLine {
 
 #[derive(IntoElement)]
 pub struct FileDiff {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) path: SharedString,
     pub(super) lines: Vec<DiffLine>,
     pub(super) status: FileDiffStatus,
-    pub(super) default_open: bool,
+    default_open: bool,
     pub(super) collapse_on_complete: bool,
-    pub(super) max_height: f32,
+    max_height: f32,
     pub(super) copy_text: Option<SharedString>,
-    pub(super) scroll: Option<UniformListScrollHandle>,
+    scroll: Option<UniformListScrollHandle>,
 }
 
 impl FileDiff {
@@ -138,8 +138,8 @@ impl FileDiff {
 pub(super) struct DiffMotion {
     pub(super) status: FileDiffStatus,
     pub(super) disclosure: Reveal,
-    pub(super) copy: CopyFeedback,
-    pub(super) scroll: UniformListScrollHandle,
+    copy: CopyFeedback,
+    scroll: UniformListScrollHandle,
 }
 
 impl RenderOnce for FileDiff {

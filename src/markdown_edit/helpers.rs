@@ -25,7 +25,7 @@ pub fn apply(text: &str, chosen: Range<usize>, format: Format) -> (String, Range
 }
 
 /// Puts `mark` at the start of every line `chosen` touches.
-pub(super) fn mark_lines(text: &str, chosen: Range<usize>, mark: &str) -> (String, Range<usize>) {
+fn mark_lines(text: &str, chosen: Range<usize>, mark: &str) -> (String, Range<usize>) {
     let first = text[..chosen.start].rfind('\n').map_or(0, |i| i + 1);
     let last = text[chosen.end..].find('\n').map_or(text.len(), |i| chosen.end + i);
     let lines: Vec<String> = text[first..last].split('\n').map(|l| format!("{mark}{l}")).collect();

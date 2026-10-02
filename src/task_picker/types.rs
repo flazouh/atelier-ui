@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    task_edit::{Change},
-    };
+use crate::task_edit::Change;
 
 pub const WIDTH: f32 = 240.;
 

@@ -1,11 +1,7 @@
 use gpui_kit::{AnyElement, ElementId, IntoElement, ParentElement, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    task_marks::{label_tone_color},
-    task_model::{Assignee, Label},
-    theme::{Theme},
-    };
+use crate::{task_marks::label_tone_color, task_model::{Assignee, Label}, theme::Theme};
 use super::types::MAX_LABELS;
 
 /// The labels a row shows, and how many more there are.

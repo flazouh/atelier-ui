@@ -19,13 +19,13 @@ use super::types::{EDITOR_HEIGHT, GLIDE, Select, TabsVariant, UNDERLINE_HEIGHT};
 use super::helpers::{covered, list_fill};
 
 pub struct Tab {
-    pub(super) label: SharedString,
-    pub(super) leading: Option<AnyElement>,
-    pub(super) trailing: Option<AnyElement>,
-    pub(super) tooltip: Option<SharedString>,
-    pub(super) group: Option<SharedString>,
+    label: SharedString,
+    leading: Option<AnyElement>,
+    trailing: Option<AnyElement>,
+    tooltip: Option<SharedString>,
+    group: Option<SharedString>,
     pub(super) pending: bool,
-    pub(super) selector: Option<String>,
+    selector: Option<String>,
 }
 
 impl Tab {
@@ -66,19 +66,19 @@ impl Tab {
     }
 }
 
-pub(super) struct State {
-    pub(super) rects: Vec<Option<Bounds<Pixels>>>,
+struct State {
+    rects: Vec<Option<Bounds<Pixels>>>,
     pub(super) list: Option<Bounds<Pixels>>,
     pub(super) left: Animated,
     pub(super) width: Animated,
-    pub(super) seeded: bool,
-    pub(super) clock: FrameClock,
-    pub(super) focus: Vec<FocusHandle>,
+    seeded: bool,
+    clock: FrameClock,
+    focus: Vec<FocusHandle>,
 }
 
 #[derive(IntoElement)]
 pub struct Tabs {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) variant: TabsVariant,
     pub(super) tabs: Vec<Tab>,
     pub(super) selected: Option<usize>,

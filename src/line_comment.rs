@@ -2,7 +2,7 @@
 //! gpui-base row block, patch 12), so the rows under them move down while they are open.
 //!
 //! - [`LineComment`]: each comment's initial, author, time, and Markdown body (through
-//!   [`AgentText`]), then Reply and Resolve.
+//!   [`AgentText`](crate::agent_text::AgentText)), then Reply and Resolve.
 //! - [`LineComposer`]: a small multiline input with Comment (primary) and Cancel. `secondary-enter`
 //!   sends, Esc cancels. It reports [`LineComposerEvent`]; where the comment goes is the owner's call.
 //!

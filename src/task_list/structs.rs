@@ -42,22 +42,22 @@ use super::types::{ChipAction, TaskListEvent};
 
 pub struct TaskList {
     pub(super) tasks: Vec<TaskData>,
-    pub(super) me: SharedString,
-    pub(super) now: u64,
-    pub(super) people: Vec<Assignee>,
+    me: SharedString,
+    now: u64,
+    people: Vec<Assignee>,
     pub(super) filters: Filters,
-    pub(super) sort: Sort,
-    pub(super) folds: Folds,
-    pub(super) groups: Vec<Group>,
+    sort: Sort,
+    folds: Folds,
+    groups: Vec<Group>,
     pub(super) rows: Vec<Row>,
     pub(super) cursor: Cursor,
     pub(super) picker: Option<Picker>,
     /// The open picker sets a filter, not a field of the tasks.
-    pub(super) picking_filter: bool,
+    picking_filter: bool,
     /// A filter's picker growing out of its chip.
-    pub(super) morph: crate::task_picker::PickerMorph,
-    pub(super) scroll: UniformListScrollHandle,
-    pub(super) focus: FocusHandle,
+    morph: crate::task_picker::PickerMorph,
+    scroll: UniformListScrollHandle,
+    focus: FocusHandle,
 }
 
 impl EventEmitter<TaskListEvent> for TaskList {}
@@ -144,14 +144,14 @@ impl TaskList {
         self.scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(-top)));
     }
 
-    pub(super) fn recompute(&mut self, follow: Option<&SharedString>, cx: &mut Context<Self>) {
+    fn recompute(&mut self, follow: Option<&SharedString>, cx: &mut Context<Self>) {
         self.groups = group(&self.tasks, &self.filters, &self.me, self.sort, &TaskStatus::LIST_ORDER, false);
         self.rows = rows(&self.groups, &self.folds);
         self.cursor.follow(&self.rows, &self.tasks, follow);
         cx.notify();
     }
 
-    pub(super) fn labels(&self) -> Vec<Label> {
+    fn labels(&self) -> Vec<Label> {
         let mut all: Vec<Label> = Vec::new();
         for label in self.tasks.iter().flat_map(|t| &t.labels) {
             if !all.contains(label) {
@@ -162,7 +162,7 @@ impl TaskList {
         all
     }
 
-    pub(super) fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
+    fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
         let ids = self.cursor.acting_on(&self.rows, &self.tasks);
         if ids.is_empty() {
             return;
@@ -183,7 +183,7 @@ impl TaskList {
     }
 
     /// Opens the picker under a filter chip. A press on the chip of an open picker closes it.
-    pub(super) fn open_filter(&mut self, field: Field, cx: &mut Context<Self>) {
+    fn open_filter(&mut self, field: Field, cx: &mut Context<Self>) {
         if self.picker.as_ref().is_some_and(|p| p.field() == field) && self.picking_filter {
             self.picker = None;
             self.picking_filter = false;
@@ -206,7 +206,7 @@ impl TaskList {
     }
 
     /// `]` and `[`: each task acted on moves to the next or previous status, from where it is.
-    pub(super) fn shift(&mut self, forward: bool, cx: &mut Context<Self>) {
+    fn shift(&mut self, forward: bool, cx: &mut Context<Self>) {
         let ids = self.cursor.acting_on(&self.rows, &self.tasks);
         let shifts = task_edit::shift_status(&self.tasks, &ids, forward);
         if shifts.is_empty() {
@@ -237,13 +237,13 @@ impl TaskList {
         }
     }
 
-    pub(super) fn assign_to_me(&mut self, cx: &mut Context<Self>) {
+    fn assign_to_me(&mut self, cx: &mut Context<Self>) {
         if let Some(me) = self.people.iter().find(|p| *p.name() == self.me).cloned() {
             self.change(Change::Assignee(Some(me)), cx);
         }
     }
 
-    pub(super) fn command(&mut self, command: TaskCommand, cx: &mut Context<Self>) {
+    fn command(&mut self, command: TaskCommand, cx: &mut Context<Self>) {
         match command {
             TaskCommand::Down => self.go(Move::Down, cx),
             TaskCommand::Up => self.go(Move::Up, cx),
@@ -293,7 +293,7 @@ impl TaskList {
         }
     }
 
-    pub(super) fn go(&mut self, to: Move, cx: &mut Context<Self>) {
+    fn go(&mut self, to: Move, cx: &mut Context<Self>) {
         self.cursor.go(&self.rows, to);
         if let Some(row) = self.cursor.row {
             self.scroll.scroll_to_item(row, ScrollStrategy::Nearest);
@@ -302,14 +302,14 @@ impl TaskList {
     }
 
     /// A press on a row of the open picker: the cursor goes there and Enter follows.
-    pub(super) fn pick_row(&mut self, at: usize, _: &mut Window, cx: &mut Context<Self>) {
+    fn pick_row(&mut self, at: usize, _: &mut Window, cx: &mut Context<Self>) {
         if let Some(picker) = self.picker.as_mut() {
             picker.set_cursor(at);
         }
         self.picker_key(&crate::task_picker::enter(), cx);
     }
     /// The keys while a picker is open.
-    pub(super) fn picker_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
+    fn picker_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
         let Some(picker) = self.picker.as_mut() else { return };
         match handle_key(picker, event.keystroke.key.as_str(), event.keystroke.key_char.as_deref()) {
             Outcome::Open => {}
@@ -334,7 +334,7 @@ impl TaskList {
         cx.notify();
     }
 
-    pub(super) fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         if self.picker.is_some() {
             self.picker_key(event, cx);
             cx.stop_propagation();
@@ -348,7 +348,7 @@ impl TaskList {
     }
 
     /// The words on the chip of a filter: its name, and the value it filters by.
-    pub(super) fn chip_label(&self, field: Field) -> String {
+    fn chip_label(&self, field: Field) -> String {
         let f = &self.filters;
         match field {
             Field::Assignee => f.assignee.as_ref().map_or("Assignee".to_string(), |a| format!("Assignee: {a}")),
@@ -358,7 +358,7 @@ impl TaskList {
         }
     }
     /// Whether a filter is on, which lights its chip.
-    pub(super) fn chip_active(&self, field: Field) -> bool {
+    fn chip_active(&self, field: Field) -> bool {
         let f = &self.filters;
         match field {
             Field::Assignee => f.assignee.is_some(),
@@ -448,7 +448,7 @@ impl TaskList {
             .into_any_element()
     }
 
-    pub(super) fn row_element(&mut self, at: usize, cx: &mut Context<Self>) -> AnyElement {
+    fn row_element(&mut self, at: usize, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let this = cx.entity();
         let cursor = self.cursor.row == Some(at);

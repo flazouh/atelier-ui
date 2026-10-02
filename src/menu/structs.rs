@@ -12,7 +12,7 @@ use crate::{
     kbd::Kbd,
     motion::{Animated, Channel, Curve, FrameClock, Spring, ease, now},
     placement::measure,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
 use super::types::{
@@ -50,16 +50,16 @@ impl MenuLook {
 }
 
 pub struct MenuItem {
-    pub(super) label: SharedString,
-    pub(super) description: Option<SharedString>,
+    label: SharedString,
+    description: Option<SharedString>,
     pub(super) icon: Option<IconName>,
     pub(super) shortcut: Option<SharedString>,
-    pub(super) cap: Option<SharedString>,
+    cap: Option<SharedString>,
     pub(super) choice: Option<Choice>,
     pub(super) tone: Tone,
     pub(super) disabled: bool,
-    pub(super) close: bool,
-    pub(super) selector: Option<String>,
+    close: bool,
+    selector: Option<String>,
     pub(super) on_select: Option<Select>,
 }
 
@@ -145,19 +145,19 @@ pub struct Inset {
     pub left: f32,
 }
 
-pub(super) struct State {
-    pub(super) handles: Vec<FocusHandle>,
-    pub(super) rects: Vec<Option<Bounds<Pixels>>>,
-    pub(super) list: Option<Bounds<Pixels>>,
+struct State {
+    handles: Vec<FocusHandle>,
+    rects: Vec<Option<Bounds<Pixels>>>,
+    list: Option<Bounds<Pixels>>,
     pub(super) size: Option<(f32, f32)>,
-    pub(super) seeded: bool,
+    seeded: bool,
     pub(super) top: Animated,
     pub(super) height: Animated,
     pub(super) reveal: Channel,
-    pub(super) started: bool,
-    pub(super) took_focus: bool,
+    started: bool,
+    took_focus: bool,
     pub(super) typed: String,
-    pub(super) typed_at: Option<std::time::Instant>,
+    typed_at: Option<std::time::Instant>,
     pub(super) clock: FrameClock,
 }
 
@@ -183,13 +183,13 @@ impl State {
 
 #[derive(IntoElement)]
 pub struct Menu {
-    pub(super) id: ElementId,
-    pub(super) entries: Vec<Entry>,
+    id: ElementId,
+    entries: Vec<Entry>,
     pub(super) width: Option<f32>,
     pub(super) look: MenuLook,
     pub(super) origin: Option<Origin>,
     pub(super) on_dismiss: Option<Select>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Menu {

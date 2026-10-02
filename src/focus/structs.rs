@@ -13,7 +13,7 @@ pub struct Field {
     pub(super) child: AnyElement,
     pub(super) radius: Pixels,
     pub(super) surface: Option<Hsla>,
-    pub(super) padding: Option<Pixels>,
+    padding: Option<Pixels>,
 }
 
 impl Field {

@@ -15,7 +15,7 @@ use crate::{
     morph::Morph,
     reveal::Reveal,
     theme::{ActiveTheme, radius},
-    typography::{TextSize},
+    typography::TextSize,
 };
 use super::types::{FileChange, PathHandler};
 use super::helpers::{counts, first_path, fold, fold_label, header_text, split_path, totals};
@@ -50,10 +50,10 @@ pub struct Fold {
 pub struct ChangedFiles {
     pub(super) id: ElementId,
     pub(super) files: Vec<ChangedFile>,
-    pub(super) running: bool,
-    pub(super) default_open: bool,
-    pub(super) on_open_file: Option<PathHandler>,
-    pub(super) on_review: Option<PathHandler>,
+    running: bool,
+    default_open: bool,
+    on_open_file: Option<PathHandler>,
+    on_review: Option<PathHandler>,
 }
 
 impl ChangedFiles {

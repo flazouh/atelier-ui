@@ -23,15 +23,15 @@ use super::helpers::status_line;
 
 #[derive(IntoElement)]
 pub struct SubagentCard {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) look: AgentLook,
     pub(super) name: SharedString,
     pub(super) task: SharedString,
-    pub(super) model: Option<SharedString>,
-    pub(super) model_mark: Option<BrandMark>,
+    model: Option<SharedString>,
+    model_mark: Option<BrandMark>,
     pub(super) elapsed: Option<SharedString>,
     pub(super) tool_calls: u64,
-    pub(super) live_tool: Option<SharedString>,
+    live_tool: Option<SharedString>,
     pub(super) finished: Option<Option<u64>>,
     pub(super) calls: Vec<ToolCall>,
 }

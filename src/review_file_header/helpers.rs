@@ -3,8 +3,8 @@ use gpui_kit::{IntoElement, ParentElement, Styled, div, prelude::FluentBuilder};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize},
-    review::{ReviewHandler},
-    theme::{Theme},
+    review::ReviewHandler,
+    theme::Theme,
     typography::{MONO_FONT_FAMILY, TextSize},
 };
 

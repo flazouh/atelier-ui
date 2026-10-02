@@ -11,13 +11,11 @@ use gpui_kit::{
     KeyBinding,
     Window,
     base::input::{DiagnosticSeverity, InputEditorStyle},
-    component::{highlighter::HighlightTheme, input::{EditorState}},
+    component::{highlighter::HighlightTheme, input::EditorState},
 };
 
 use super::commands::Edit;
-use crate::{
-    theme::{Appearance, StatusTone, Theme},
-    };
+use crate::theme::{Appearance, StatusTone, Theme};
 use super::types::CONTEXT;
 
 /// Binds the line commands. [`crate::init`] calls it after gpui-kit's own keys, so ours win where

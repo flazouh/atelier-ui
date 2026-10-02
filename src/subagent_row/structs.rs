@@ -28,12 +28,12 @@ use super::helpers::{done_text, tool_calls_text};
 
 #[derive(Clone, IntoElement)]
 pub struct SubagentRow {
-    pub(super) id: ElementId,
-    pub(super) look: AgentLook,
+    id: ElementId,
+    look: AgentLook,
     pub(super) title: SharedString,
     pub(super) detail: SharedString,
     pub(super) tool: Option<SharedString>,
-    pub(super) tool_calls: Option<u64>,
+    tool_calls: Option<u64>,
     pub(super) elapsed: Option<SharedString>,
     /// Some when the subagent finished; the inner value is how long it ran, in seconds, if known.
     pub(super) finished: Option<Option<u64>>,

@@ -1,10 +1,7 @@
 use gpui_kit::{App, IntoElement, Pixels, RenderOnce, Styled, Window, canvas};
 
 use crate::scale::px;
-use crate::{
-    task_model::{Priority, TaskStatus},
-    theme::{ActiveTheme},
-};
+use crate::{task_model::{Priority, TaskStatus}, theme::ActiveTheme};
 use super::helpers::{paint_priority, paint_status};
 
 /// A task's status as a mark.

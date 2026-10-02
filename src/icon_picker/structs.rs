@@ -37,13 +37,13 @@ use crate::{
 use super::types::IconPickerEvent;
 
 pub struct IconPicker {
-    pub(super) input: Entity<InputState>,
+    input: Entity<InputState>,
     /// Every candidate, most likely first.
-    pub(super) all: Vec<String>,
+    all: Vec<String>,
     /// Where a local project's files are, for the thumbnails.
     pub(super) root: Option<PathBuf>,
-    pub(super) active: usize,
-    pub(super) _subscription: Subscription,
+    active: usize,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<IconPickerEvent> for IconPicker {}
@@ -68,10 +68,10 @@ impl IconPicker {
         let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
         Self { input, all: icon_candidates::rank(&refs), root, active: 0, _subscription: subscription }
     }
-    pub(super) fn found(&self, cx: &gpui_kit::App) -> Vec<String> {
+    fn found(&self, cx: &gpui_kit::App) -> Vec<String> {
         icon_candidates::filter(&self.all, self.input.read(cx).value().as_ref())
     }
-    pub(super) fn step(&mut self, down: bool, cx: &mut Context<Self>) {
+    fn step(&mut self, down: bool, cx: &mut Context<Self>) {
         let count = self.found(cx).len();
         self.active = if down { (self.active + 1).min(count.saturating_sub(1)) } else { self.active.saturating_sub(1) };
         cx.notify();
@@ -81,7 +81,7 @@ impl IconPicker {
             cx.emit(IconPickerEvent::Choose(path.clone().into()));
         }
     }
-    pub(super) fn key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
         match event.keystroke.key.as_str() {
             "down" => self.step(true, cx),
             "up" => self.step(false, cx),

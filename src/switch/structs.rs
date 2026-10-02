@@ -11,7 +11,7 @@ use crate::{
     focus::ring_color,
     kbd::Kbd,
     motion::{Animated, Channel, Curve, FrameClock},
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
 use super::types::{
@@ -45,20 +45,20 @@ pub(super) struct Motion {
     pub(super) shake: Channel,
     pub(super) pressed: bool,
     pub(super) pointer: bool,
-    pub(super) clock: FrameClock,
-    pub(super) focus: Option<FocusHandle>,
+    clock: FrameClock,
+    focus: Option<FocusHandle>,
 }
 
 #[derive(IntoElement)]
 pub struct Switch {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) on: bool,
-    pub(super) compact: bool,
+    compact: bool,
     pub(super) disabled: bool,
     pub(super) label: Option<SharedString>,
     pub(super) cap: Option<SharedString>,
     pub(super) on_change: Option<Change>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Switch {

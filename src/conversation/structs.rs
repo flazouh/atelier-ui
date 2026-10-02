@@ -11,7 +11,7 @@ use crate::{
     icon::{Icon, IconName},
     line_comment::{Comment, LineComment},
     rail_section::RailSection,
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::{MoreHandler, ThreadHandler};
@@ -39,16 +39,16 @@ pub struct RemarkSummary {
 /// The whole conversation, as a rail section.
 #[derive(IntoElement)]
 pub struct ConversationList {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) threads: Vec<ThreadSummary>,
     pub(super) remarks: Vec<RemarkSummary>,
-    pub(super) on_open: Option<ThreadHandler>,
-    pub(super) on_reply: Option<ThreadHandler>,
-    pub(super) on_resolve: Option<ThreadHandler>,
+    on_open: Option<ThreadHandler>,
+    on_reply: Option<ThreadHandler>,
+    on_resolve: Option<ThreadHandler>,
     /// Open, resolved and remark counts of the whole conversation, when the list holds only a page of it.
-    pub(super) totals: Option<(usize, usize, usize)>,
-    pub(super) more_threads: Option<(usize, MoreHandler)>,
-    pub(super) more_remarks: Option<(usize, MoreHandler)>,
+    totals: Option<(usize, usize, usize)>,
+    more_threads: Option<(usize, MoreHandler)>,
+    more_remarks: Option<(usize, MoreHandler)>,
 }
 
 impl ConversationList {

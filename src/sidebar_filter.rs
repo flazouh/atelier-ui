@@ -9,10 +9,7 @@ pub use helpers::{describe, hidden_by, narrow};
 pub use types::SessionFilter;
 
 #[cfg(test)]
-use crate::{
-    session_status::SessionStatus,
-    sidebar_model::{SessionData},
-};
+use crate::{session_status::SessionStatus, sidebar_model::SessionData};
 
 #[cfg(test)]
 mod tests;

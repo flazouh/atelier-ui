@@ -6,7 +6,7 @@ use super::structs::Registry;
 use super::types::{Align, Side};
 
 /// Counts the window's frames for the open popover `key`, and closes it when it has not been drawn for
-/// [`HIDDEN_AFTER_FRAMES`] of them. It stops when the popover is closed or gone from the registry.
+/// `HIDDEN_AFTER_FRAMES` of them. It stops when the popover is closed or gone from the registry.
 pub(super) fn watch(window: &mut Window, key: String) {
     window.on_next_frame(move |window, cx| {
         let hidden = {

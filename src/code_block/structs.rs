@@ -21,16 +21,16 @@ use super::helpers::{gutter_numbers, whole_text_runs};
 
 #[derive(IntoElement)]
 pub struct CodeBlock {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) code: SharedString,
     pub(super) language: SharedString,
     pub(super) filename: SharedString,
     pub(super) status: CodeBlockStatus,
-    pub(super) show_line_numbers: bool,
+    show_line_numbers: bool,
     pub(super) highlight_lines: Vec<u32>,
-    pub(super) max_height: f32,
-    pub(super) wrap: bool,
-    pub(super) copyable: bool,
+    max_height: f32,
+    wrap: bool,
+    copyable: bool,
 }
 
 impl CodeBlock {

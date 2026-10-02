@@ -1,4 +1,4 @@
-use super::{SubmitTask};
+use super::SubmitTask;
 
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
@@ -40,19 +40,19 @@ use super::types::NewTaskEvent;
 
 pub struct NewTask {
     pub(super) draft: Draft,
-    pub(super) people: Vec<Assignee>,
+    people: Vec<Assignee>,
     pub(super) labels: Vec<Label>,
-    pub(super) picker: Option<Picker>,
+    picker: Option<Picker>,
     /// The hover tone of each field's button, by [`Field`] slot.
-    pub(super) tones: [crate::hover_tone::HoverTone; 4],
+    tones: [crate::hover_tone::HoverTone; 4],
     /// The open picker growing out of its field's chip.
-    pub(super) morph: crate::task_picker::PickerMorph,
+    morph: crate::task_picker::PickerMorph,
     pub(super) title: Entity<InputState>,
     pub(super) description: Entity<TextareaState>,
     /// Escape was pressed on a draft with words in it: the dialog asks before it drops them.
-    pub(super) confirming: bool,
-    pub(super) focus: FocusHandle,
-    pub(super) _subscription: Subscription,
+    confirming: bool,
+    focus: FocusHandle,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<NewTaskEvent> for NewTask {}
@@ -99,7 +99,7 @@ impl NewTask {
         self.labels = labels;
     }
 
-    pub(super) fn open_picker(&mut self, field: Field, window: &mut Window, cx: &mut Context<Self>) {
+    fn open_picker(&mut self, field: Field, window: &mut Window, cx: &mut Context<Self>) {
         self.picker = Some(match field {
             Field::Status => Picker::status(Some(self.draft.status)),
             Field::Priority => Picker::priority(Some(self.draft.priority)),
@@ -111,13 +111,13 @@ impl NewTask {
         cx.notify();
     }
 
-    pub(super) fn close_picker(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn close_picker(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.picker = None;
         self.title.update(cx, |t, cx| t.focus(window, cx));
         cx.notify();
     }
 
-    pub(super) fn choose(&mut self, change: Change) {
+    fn choose(&mut self, change: Change) {
         match change {
             Change::Status(s) => self.draft.status = s,
             Change::Priority(p) => self.draft.priority = p,
@@ -132,7 +132,7 @@ impl NewTask {
         }
     }
 
-    pub(super) fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.draft.title = self.title.read(cx).value().to_string();
         self.draft.description = self.description.read(cx).value().to_string();
         if !self.draft.can_create() {
@@ -144,7 +144,7 @@ impl NewTask {
     }
 
     /// A press on a row of the open picker: the cursor goes there and Enter follows.
-    pub(super) fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(picker) = self.picker.as_mut() {
             picker.set_cursor(at);
         }
@@ -199,7 +199,7 @@ impl NewTask {
     }
 
     /// What a field's chip shows: the value in it, or its name when it has none.
-    pub(super) fn face(&self, field: Field, theme: &crate::theme::Theme) -> AnyElement {
+    fn face(&self, field: Field, theme: &crate::theme::Theme) -> AnyElement {
         let muted = theme.muted_foreground;
         match field {
             Field::Status => {
@@ -223,7 +223,7 @@ impl NewTask {
             }
         }
     }
-    pub(super) fn property_button(&self, field: Field, value: AnyElement, cx: &mut Context<Self>) -> AnyElement {
+    fn property_button(&self, field: Field, value: AnyElement, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let this = cx.entity();
         let anchor = {

@@ -1,8 +1,4 @@
-use crate::{
-    icon::{IconName},
-    merge::{Blocker},
-    theme::{Theme},
-    };
+use crate::{icon::IconName, merge::Blocker, theme::Theme};
 
 /// A blocker's mark: what kind of hold it is, in the status tones.
 pub(super) fn mark(blocker: &Blocker, theme: &Theme) -> (IconName, gpui_kit::Hsla) {

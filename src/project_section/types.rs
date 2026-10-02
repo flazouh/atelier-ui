@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    menu::{Origin},
-    };
+use crate::menu::Origin;
 
 pub(super) type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
 

@@ -9,7 +9,7 @@ use super::types::Tone;
 #[derive(IntoElement)]
 pub struct Badge {
     pub(super) label: SharedString,
-    pub(super) tone: Tone,
+    tone: Tone,
 }
 
 impl Badge {

@@ -5,7 +5,7 @@ use crate::sidebar_layout::SidebarLayout;
 /// How long a new session's row is wrapped in its entrance.
 pub(super) const ENTERING: std::time::Duration = std::time::Duration::from_millis(500);
 
-/// What the sidebar asks of the app. Ids are the ones in [`ProjectData`] and [`sidebar_model::SessionData`].
+/// What the sidebar asks of the app. Ids are the ones in [`ProjectData`](crate::sidebar_model::ProjectData) and `sidebar_model::SessionData`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SidebarEvent {
     Open { project: SharedString, session: SharedString },

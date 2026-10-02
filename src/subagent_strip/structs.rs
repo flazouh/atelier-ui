@@ -13,19 +13,19 @@ use super::helpers::open;
 
 pub(super) struct Slot {
     pub(super) row: SubagentRow,
-    pub(super) presence: Channel,
+    presence: Channel,
     /// When the row first showed as finished.
-    pub(super) finished_at: Option<Instant>,
-    pub(super) leaving: bool,
+    finished_at: Option<Instant>,
+    leaving: bool,
 }
 
 /// The rows on screen, in order, with how far each slot is open.
 #[derive(Default)]
 pub(crate) struct StripState {
-    pub(super) painted: bool,
+    painted: bool,
     pub(super) slots: Vec<Slot>,
     /// Finished rows that have held and left.
-    pub(super) dismissed: HashSet<ElementId>,
+    dismissed: HashSet<ElementId>,
 }
 
 impl StripState {
@@ -103,9 +103,9 @@ impl SubagentStrip {
     }
 }
 
-pub(super) struct StripMotion {
+struct StripMotion {
     pub(super) state: StripState,
-    pub(super) wake: Wake,
+    wake: Wake,
 }
 
 impl RenderOnce for SubagentStrip {

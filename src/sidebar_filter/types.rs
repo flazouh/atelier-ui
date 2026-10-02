@@ -1,7 +1,4 @@
-use crate::{
-    session_status::SessionStatus,
-    sidebar_model::{SessionData},
-};
+use crate::{session_status::SessionStatus, sidebar_model::SessionData};
 
 /// What the list shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

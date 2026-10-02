@@ -13,7 +13,7 @@ use crate::{
     focus::PressStop,
     icon::{Icon, IconName},
     reveal::Reveal,
-    status_mark::{StatusMark},
+    status_mark::StatusMark,
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
@@ -22,7 +22,7 @@ use super::helpers::follow_status;
 
 #[derive(IntoElement)]
 pub struct ToolCall {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) title: SharedString,
     pub(super) tool: SharedString,
     pub(super) status: ToolStatus,
@@ -89,7 +89,7 @@ pub(super) struct CallMotion {
     pub(super) status: ToolStatus,
     pub(super) had_body: bool,
     pub(super) disclosure: Reveal,
-    pub(super) copy: CopyFeedback,
+    copy: CopyFeedback,
 }
 
 impl RenderOnce for ToolCall {

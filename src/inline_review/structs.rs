@@ -20,10 +20,7 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use crate::{
-    code_editor::CodeEditor,
-    theme::{ActiveTheme},
-};
+use crate::{code_editor::CodeEditor, theme::ActiveTheme};
 pub use super::resolve::Resolve;
 use super::types::{DecideHandler, Decision, RowHandler};
 use super::helpers::{add_comment_button, compact_bar, decide_at_caret, hunk_bar, washes};
@@ -79,7 +76,7 @@ pub struct DecisionHistory {
 impl DecisionHistory {
     /// How many decisions are kept. An older one is forgotten, and undoing that far leaves its text
     /// as plain code.
-    pub(super) const KEPT: usize = 64;
+    const KEPT: usize = 64;
 
     /// Records one decision: the text and hunks before it, and after it.
     pub fn record(&mut self, before: (String, Vec<InlineHunk>), after: (String, Vec<InlineHunk>)) {
@@ -108,13 +105,13 @@ pub struct InlineReview {
     pub(super) current: Option<SharedString>,
     pub(super) height: Option<Pixels>,
     pub(super) on_decide: Option<DecideHandler>,
-    pub(super) resolving: Vec<Resolve>,
-    pub(super) on_resolved: Option<DecideHandler>,
-    pub(super) row_blocks: Vec<RowBlock>,
-    pub(super) on_add_comment: Option<RowHandler>,
-    pub(super) on_card: bool,
+    resolving: Vec<Resolve>,
+    on_resolved: Option<DecideHandler>,
+    row_blocks: Vec<RowBlock>,
+    on_add_comment: Option<RowHandler>,
+    on_card: bool,
     pub(super) decisions: bool,
-    pub(super) read_only: bool,
+    read_only: bool,
     pub(super) fill: bool,
 }
 

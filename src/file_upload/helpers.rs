@@ -3,10 +3,7 @@ use std::path::PathBuf;
 use gpui_kit::{ElementId, InteractiveElement, IntoElement, MouseButton, ParentElement, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    icon::{Icon, IconName},
-    theme::{Theme},
-};
+use crate::{icon::{Icon, IconName}, theme::Theme};
 use super::structs::UploadItem;
 use super::types::UploadStatus;
 

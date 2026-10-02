@@ -10,8 +10,8 @@ use crate::motion::{Animated, Channel, Curve, FrameClock, ease};
 use super::types::{Build, Kind};
 use super::helpers::{entering, leaving};
 
-pub(super) struct State<K> {
-    pub(super) shown: K,
+struct State<K> {
+    shown: K,
     pub(super) leaving: Option<K>,
     pub(super) rise: Animated,
     pub(super) fade: Channel,
@@ -21,7 +21,7 @@ pub(super) struct State<K> {
 
 #[derive(IntoElement)]
 pub struct Roll<K: Clone + PartialEq + 'static> {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) key: K,
     pub(super) kind: Kind,
     pub(super) height: Pixels,

@@ -36,7 +36,7 @@ use crate::{
     icon::IconName,
     kbd::Kbd,
     theme::{ActiveTheme, radius},
-    typography::{TextSize},
+    typography::TextSize,
 };
 use super::types::{COMPOSER, LineComposerEvent, SEND_KEYS};
 use super::helpers::{card, gap_frame};
@@ -64,11 +64,11 @@ impl Comment {
 
 #[derive(IntoElement)]
 pub struct LineComment {
-    pub(super) id: ElementId,
-    pub(super) comments: Vec<Comment>,
-    pub(super) on_reply: Option<ClickHandler>,
-    pub(super) on_resolve: Option<ClickHandler>,
-    pub(super) resolved: bool,
+    id: ElementId,
+    comments: Vec<Comment>,
+    on_reply: Option<ClickHandler>,
+    on_resolve: Option<ClickHandler>,
+    resolved: bool,
 }
 
 impl LineComment {
@@ -177,9 +177,9 @@ impl RenderOnce for LineComment {
 pub struct LineComposer {
     pub(super) row: usize,
     /// `None`: a comment is sent. `Some(in_review)`: it may also be held for a review.
-    pub(super) pass: Option<bool>,
+    pass: Option<bool>,
     pub(super) text: Entity<TextareaState>,
-    pub(super) _subscription: Subscription,
+    _subscription: Subscription,
 }
 
 impl EventEmitter<LineComposerEvent> for LineComposer {}
@@ -214,12 +214,12 @@ impl LineComposer {
         self.row
     }
 
-    pub(super) fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         // In a review every comment is held; that is what the primary key sends.
         self.send(self.pass == Some(true), window, cx);
     }
 
-    pub(super) fn send(&mut self, hold: bool, window: &mut Window, cx: &mut Context<Self>) {
+    fn send(&mut self, hold: bool, window: &mut Window, cx: &mut Context<Self>) {
         let text: SharedString = self.text.read(cx).value().trim().to_string().into();
         if text.is_empty() {
             return;
@@ -228,7 +228,7 @@ impl LineComposer {
         cx.emit(if hold { LineComposerEvent::Hold { row: self.row, text } } else { LineComposerEvent::Submit { row: self.row, text } });
     }
 
-    pub(super) fn cancel(&mut self, cx: &mut Context<Self>) {
+    fn cancel(&mut self, cx: &mut Context<Self>) {
         cx.emit(LineComposerEvent::Cancel { row: self.row });
     }
 }

@@ -90,37 +90,37 @@ impl MultiOption {
 pub(super) struct Leaving {
     pub(super) value: SharedString,
     pub(super) label: SharedString,
-    pub(super) bounds: Bounds<Pixels>,
+    bounds: Bounds<Pixels>,
     pub(super) wipe: Channel,
 }
 
 pub struct MultiSelect {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) options: Vec<MultiOption>,
     pub(super) values: Vec<SharedString>,
     pub(super) open: bool,
-    pub(super) placeholder: SharedString,
+    placeholder: SharedString,
     pub(super) empty: SharedString,
     pub(super) disabled: bool,
-    pub(super) input: Entity<InputState>,
+    input: Entity<InputState>,
     pub(super) query: SharedString,
     /// The row the pointer or the keys last moved to, and the query it was placed under.
     pub(super) cursor: Option<(SharedString, SharedString)>,
-    pub(super) trigger: Option<Bounds<Pixels>>,
+    trigger: Option<Bounds<Pixels>>,
     pub(super) chips: HashMap<SharedString, Bounds<Pixels>>,
-    pub(super) entering: HashMap<SharedString, Channel>,
+    entering: HashMap<SharedString, Channel>,
     pub(super) leaving: Vec<Leaving>,
     pub(super) rows: HashMap<SharedString, Bounds<Pixels>>,
-    pub(super) list_origin: Option<Point<Pixels>>,
-    pub(super) list_view: Option<Bounds<Pixels>>,
-    pub(super) scroll: ScrollHandle,
-    pub(super) highlight: Channel,
-    pub(super) highlighted: Option<SharedString>,
+    list_origin: Option<Point<Pixels>>,
+    list_view: Option<Bounds<Pixels>>,
+    scroll: ScrollHandle,
+    highlight: Channel,
+    highlighted: Option<SharedString>,
     /// The panel: its height, and its gap from the field.
     pub(super) height: Channel,
     pub(super) gap: Channel,
-    pub(super) hovered: bool,
-    pub(super) _subscriptions: Vec<Subscription>,
+    hovered: bool,
+    _subscriptions: Vec<Subscription>,
 }
 
 impl EventEmitter<MultiSelectEvent> for MultiSelect {}
@@ -204,7 +204,7 @@ impl MultiSelect {
         &self.query
     }
 
-    pub(super) fn label_of(&self, value: &SharedString) -> SharedString {
+    fn label_of(&self, value: &SharedString) -> SharedString {
         self.options.iter().find(|o| &o.value == value).map_or_else(|| value.clone(), |o| o.label.clone())
     }
 
@@ -228,7 +228,7 @@ impl MultiSelect {
         cx.notify();
     }
 
-    pub(super) fn commit(&mut self, values: Vec<SharedString>, window: &mut Window, cx: &mut Context<Self>) {
+    fn commit(&mut self, values: Vec<SharedString>, window: &mut Window, cx: &mut Context<Self>) {
         // A chip that goes leaves by a wipe, drawn where it was.
         let reduce = cx.reduce_motion();
         for gone in self.values.iter().filter(|v| !values.contains(v)) {
@@ -272,12 +272,12 @@ impl MultiSelect {
         self.input.focus_handle(cx).focus(window, cx);
     }
 
-    pub(super) fn active_value(&self) -> Option<SharedString> {
+    fn active_value(&self) -> Option<SharedString> {
         let shown = visible(&self.options, &self.query);
         active(self.cursor.as_ref(), &self.query, &shown, &self.values).cloned()
     }
 
-    pub(super) fn step(&mut self, direction: i32, window: &mut Window, cx: &mut Context<Self>) {
+    fn step(&mut self, direction: i32, window: &mut Window, cx: &mut Context<Self>) {
         if !self.open {
             self.set_open(true, window, cx);
             return;
@@ -290,7 +290,7 @@ impl MultiSelect {
         }
     }
 
-    pub(super) fn jump(&mut self, last: bool, cx: &mut Context<Self>) {
+    fn jump(&mut self, last: bool, cx: &mut Context<Self>) {
         let shown = visible(&self.options, &self.query);
         let enabled: Vec<&&MultiOption> = shown.iter().filter(|o| !o.disabled).collect();
         let pick = if last { enabled.last() } else { enabled.first() };
@@ -300,7 +300,7 @@ impl MultiSelect {
         }
     }
 
-    pub(super) fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         match event.keystroke.key.as_str() {
             "backspace" if self.query.is_empty() && !self.values.is_empty() => {
                 let last = self.values.last().cloned().unwrap_or_default();

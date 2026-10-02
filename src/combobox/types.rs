@@ -2,10 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, SharedString, Window};
 
-use crate::{
-    motion::{Spring},
-    theme::{mix, radius},
-};
+use crate::{motion::Spring, theme::{mix, radius}};
 use super::structs::ComboRow;
 
 /// The list's padding and its tallest.

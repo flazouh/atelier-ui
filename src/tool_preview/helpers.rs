@@ -3,7 +3,7 @@ use gpui_kit::SharedString;
 use crate::file_diff::{DiffLine, DiffLineKind};
 use super::types::TABLE_LIMIT;
 
-pub(super) fn lines_of(text: &str) -> Vec<&str> {
+fn lines_of(text: &str) -> Vec<&str> {
     if text.is_empty() { Vec::new() } else { text.strip_suffix('\n').unwrap_or(text).split('\n').collect() }
 }
 

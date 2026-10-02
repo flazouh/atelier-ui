@@ -32,9 +32,9 @@ pub struct ToolApproval {
     pub(super) preview: Option<ToolPreview>,
     pub(super) status: ToolApprovalStatus,
     pub(super) default_open: bool,
-    pub(super) on_approve: Option<ClickHandler>,
-    pub(super) on_always_allow: Option<ClickHandler>,
-    pub(super) on_deny: Option<ClickHandler>,
+    on_approve: Option<ClickHandler>,
+    on_always_allow: Option<ClickHandler>,
+    on_deny: Option<ClickHandler>,
 }
 
 impl ToolApproval {

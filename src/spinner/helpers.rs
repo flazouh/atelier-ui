@@ -2,9 +2,7 @@ use std::f32::consts::TAU;
 
 use gpui_kit::{Bounds, Hsla, PathBuilder, Pixels, Window, point, px};
 
-use crate::{
-    motion::{keyframes},
-};
+use crate::motion::keyframes;
 use super::types::{PULSE_LOW, PULSE_MILLIS, TURN_MILLIS};
 
 /// The stroke for a spinner of `size`: 9% of it, at least 2px.

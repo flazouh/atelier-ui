@@ -1,10 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    icon::{IconName},
-    motion::{keyframes},
-    theme::{Theme},
-};
+use crate::{icon::IconName, motion::keyframes, theme::Theme};
 use super::types::{BadgeStatus, PULSE_MILLIS, PULSE_WASH};
 
 /// The wash's strength `millis` into the pulse.

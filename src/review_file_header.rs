@@ -11,7 +11,7 @@
 //! A file the pull request did not change, opened to read beside it, says "Brought in" where the counts
 //! go ([`ReviewFileHeader::brought_in`]). Where a language server answers, the header also holds its
 //! four lookups (Uses, Names in this file, Go to name, Go to file), each an icon beside its key cap, the
-//! word in its tooltip: they show for each handler set in [`ReviewHandlers`].
+//! word in its tooltip: they show for each handler set in [`ReviewHandlers`](crate::review::ReviewHandlers).
 
 mod helpers;
 mod structs;

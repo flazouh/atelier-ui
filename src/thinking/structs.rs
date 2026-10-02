@@ -7,7 +7,7 @@ use gpui_kit::{
 
 use crate::scale::px;
 use crate::{
-    agent_look::{AgentLook},
+    agent_look::AgentLook,
     glimmer,
     morph::Morph,
     motion::{Channel, Curve, duration, ease},
@@ -23,10 +23,10 @@ use super::helpers::{
 
 #[derive(IntoElement)]
 pub struct Thinking {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) look: AgentLook,
     pub(super) phase: ThinkingPhase,
-    pub(super) style: ThinkingStyle,
+    style: ThinkingStyle,
     pub(super) elapsed: Option<SharedString>,
     pub(super) tokens: Option<u64>,
     pub(super) tasks: Option<u64>,
@@ -77,13 +77,13 @@ impl Thinking {
 
 /// When the row appeared (the glimmer's clock), when the label last changed (the breath's clock), and
 /// the next timed wake-up.
-pub(super) struct RowMotion {
-    pub(super) start: Instant,
+struct RowMotion {
+    start: Instant,
     pub(super) label: SharedString,
-    pub(super) label_start: Instant,
-    pub(super) wake: Wake,
+    label_start: Instant,
+    wake: Wake,
     /// Each segment's width growing from 0 when it first shows.
-    pub(super) grow: [Option<Channel>; 3],
+    grow: [Option<Channel>; 3],
 }
 
 impl RenderOnce for Thinking {

@@ -1,10 +1,7 @@
 use gpui_kit::{IntoElement, ParentElement, SharedString, Styled, div, prelude::FluentBuilder};
 
 use crate::scale::px;
-use crate::{
-    theme::{Theme},
-    typography::{MONO_FONT_FAMILY, TextSize},
-};
+use crate::{theme::Theme, typography::{MONO_FONT_FAMILY, TextSize}};
 use super::structs::{ChangedFile, Fold};
 use super::types::FOLD_AT;
 

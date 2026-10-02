@@ -16,13 +16,13 @@ use crate::{
 use super::structs::HeadButton;
 
 impl Sidebar {
-    /// Lists the sessions by project, or in one list by priority. Emits [`SidebarEvent::OptionsChanged`].
+    /// Lists the sessions by project, or in one list by priority. Emits `SidebarEvent::OptionsChanged`.
     pub fn choose_mode(&mut self, mode: ListMode, cx: &mut Context<Self>) {
         self.set_layout(SidebarLayout { mode, ..self.layout }, cx);
         cx.emit(SidebarEvent::LayoutChanged(self.layout));
     }
 
-    /// Chooses which sessions the sidebar lists. Emits [`SidebarEvent::OptionsChanged`].
+    /// Chooses which sessions the sidebar lists. Emits `SidebarEvent::OptionsChanged`.
     pub fn choose_filter(&mut self, filter: SessionFilter, cx: &mut Context<Self>) {
         self.filter_menu = false;
         self.set_layout(SidebarLayout { filter, ..self.layout }, cx);
@@ -30,13 +30,13 @@ impl Sidebar {
     }
 
     /// One menu at a time: opening one shuts the other.
-    pub(super) fn open_head_menu(&mut self, filter: bool, cx: &mut Context<Self>) {
+    fn open_head_menu(&mut self, filter: bool, cx: &mut Context<Self>) {
         self.filter_menu = filter && !self.filter_menu;
         self.add_menu = !filter && !self.add_menu;
         cx.notify();
     }
 
-    pub(super) fn head_button(look: HeadButton, press: impl Fn(&mut Window, &mut gpui_kit::App) + 'static) -> AnyElement {
+    fn head_button(look: HeadButton, press: impl Fn(&mut Window, &mut gpui_kit::App) + 'static) -> AnyElement {
         let HeadButton { id, icon, tip, lit, open, menu } = look;
         div()
             .relative()
@@ -58,7 +58,7 @@ impl Sidebar {
     }
 
     /// "Projects | Priority".
-    pub(super) fn mode_switch(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn mode_switch(&self, cx: &mut Context<Self>) -> AnyElement {
         let modes = [ListMode::Projects, ListMode::Priority];
         let this = cx.entity().downgrade();
         Segmented::new(
@@ -75,7 +75,7 @@ impl Sidebar {
         .into_any_element()
     }
 
-    pub(super) fn filter_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn filter_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity().downgrade();
         let hidden = hidden_by(&self.all, SessionFilter::Active);
         let entries: Vec<Entry> = SessionFilter::ALL
@@ -105,7 +105,7 @@ impl Sidebar {
             .into_any_element()
     }
 
-    pub(super) fn add_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
+    fn add_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity().downgrade();
         let ask = |label: &'static str, debug: &'static str, cap: &'static str, event: SidebarEvent| {
             let sidebar = this.clone();

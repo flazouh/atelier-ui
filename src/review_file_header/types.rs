@@ -1,7 +1,4 @@
-use crate::{
-    icon::IconName,
-    keys::{Command},
-    };
+use crate::{icon::IconName, keys::Command};
 
 pub(super) const GAP: f32 = 8.;
 

@@ -43,25 +43,25 @@ use super::types::{DROP_LIFT, MARGIN, TaskBoardEvent};
 
 pub struct TaskBoard {
     pub(super) tasks: Vec<TaskData>,
-    pub(super) me: SharedString,
-    pub(super) now: u64,
-    pub(super) filters: Filters,
-    pub(super) sort: Sort,
+    me: SharedString,
+    now: u64,
+    filters: Filters,
+    sort: Sort,
     pub(super) columns: Vec<Group>,
     /// What the columns' card lists read: the tasks and each column's indexes, shared so a frame clones a
     /// pointer, not the tasks.
-    pub(super) shown: Rc<Vec<TaskData>>,
-    pub(super) shown_columns: Vec<Rc<Vec<usize>>>,
+    shown: Rc<Vec<TaskData>>,
+    shown_columns: Vec<Rc<Vec<usize>>>,
     pub(super) geometry: Geometry,
-    pub(super) offset: f32,
+    offset: f32,
     pub(super) viewport: f32,
-    pub(super) scrolls: Vec<UniformListScrollHandle>,
+    scrolls: Vec<UniformListScrollHandle>,
     /// The card that just landed, and the spring that settles it.
-    pub(super) landed: Option<(SharedString, Channel)>,
+    landed: Option<(SharedString, Channel)>,
     /// The card the keyboard is on: its column, then its row.
     pub(super) cursor: Option<Spot>,
-    pub(super) picker: Option<Picker>,
-    pub(super) people: Vec<Assignee>,
+    picker: Option<Picker>,
+    people: Vec<Assignee>,
     pub(super) focus: FocusHandle,
 }
 
@@ -127,7 +127,7 @@ impl TaskBoard {
         &self.columns
     }
 
-    pub(super) fn recompute(&mut self, under: Option<SharedString>, cx: &mut Context<Self>) {
+    fn recompute(&mut self, under: Option<SharedString>, cx: &mut Context<Self>) {
         self.columns = columns(&self.tasks, &self.filters, &self.me, self.sort);
         self.shown = Rc::new(self.tasks.clone());
         self.shown_columns = self.columns.iter().map(|c| Rc::new(c.tasks.clone())).collect();
@@ -137,7 +137,7 @@ impl TaskBoard {
     }
 
     /// The id of the task under the keyboard cursor.
-    pub(super) fn cursor_task(&self) -> Option<SharedString> {
+    fn cursor_task(&self) -> Option<SharedString> {
         let index = task_at(&self.columns, self.cursor?)?;
         Some(self.tasks.get(index)?.id.clone())
     }
@@ -156,13 +156,13 @@ impl TaskBoard {
     }
 
     /// Puts the cursor on `spot` and scrolls to it: sideways to its column, down or up to its card.
-    pub(super) fn reveal(&mut self, spot: Spot) {
+    fn reveal(&mut self, spot: Spot) {
         self.cursor = Some(spot);
         self.offset = self.geometry.reveal(self.offset, self.viewport, spot.0);
         self.scrolls[spot.0].scroll_to_item(spot.1, ScrollStrategy::Nearest);
     }
 
-    pub(super) fn apply_to(&mut self, id: &SharedString, change: Change, cx: &mut Context<Self>) {
+    fn apply_to(&mut self, id: &SharedString, change: Change, cx: &mut Context<Self>) {
         let ids = vec![id.clone()];
         let by = self.me.to_string();
         if task_edit::apply(&mut self.tasks, &ids, &change, &by, self.now) > 0 {
@@ -179,7 +179,7 @@ impl TaskBoard {
         }
     }
 
-    pub(super) fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
+    fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
         let Some(index) = self.cursor.and_then(|s| task_at(&self.columns, s)) else { return };
         let task = &self.tasks[index];
         let one = [task];
@@ -201,7 +201,7 @@ impl TaskBoard {
     }
 
     /// A press on a row of the open picker: the cursor goes there and Enter follows.
-    pub(super) fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn pick_row(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
         if let Some(picker) = self.picker.as_mut() {
             picker.set_cursor(at);
         }
@@ -301,7 +301,7 @@ impl TaskBoard {
         cx.notify();
     }
 
-    pub(super) fn column_element(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    fn column_element(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let status = self.columns[index].status;
         let this = cx.entity();

@@ -31,7 +31,7 @@ use crate::{
     menu::{Entry, Menu, MenuItem, Origin},
     motion::{Channel, Curve, Spring},
     popover::{Hang, Popover, Side},
-    select::{Select},
+    select::Select,
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
@@ -90,10 +90,10 @@ impl PromptAction {
 
 /// The list open under the text: its trigger, the rows that match (indices into the commands or the
 /// files), and the one in front.
-pub(super) struct Picking {
+struct Picking {
     pub(super) trigger: Trigger,
-    pub(super) matches: Vec<usize>,
-    pub(super) active: usize,
+    matches: Vec<usize>,
+    active: usize,
 }
 
 /// The panel that morphs the Plus icon 45° open and fades in the menu above it.
@@ -101,8 +101,8 @@ pub(super) struct ActionsMenu {
     pub(super) open: bool,
     /// Pointer over the Plus trigger. A press there is not an outside press, so the trigger alone
     /// decides whether the menu toggles.
-    pub(super) trigger_hovered: bool,
-    pub(super) rotate: Channel,
+    trigger_hovered: bool,
+    rotate: Channel,
 }
 
 impl ActionsMenu {
@@ -110,7 +110,7 @@ impl ActionsMenu {
         Self { open: false, trigger_hovered: false, rotate: Channel::new(0.) }
     }
 
-    pub(super) fn set_open(&mut self, open: bool, reduce: bool) {
+    fn set_open(&mut self, open: bool, reduce: bool) {
         self.open = open;
         self.rotate.animate(if open { 45. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
     }
@@ -123,7 +123,7 @@ pub struct PromptInput {
     pub(super) modes: Vec<SharedString>,
     pub(super) mode: usize,
     pub(super) model: usize,
-    pub(super) actions: Vec<PromptAction>,
+    actions: Vec<PromptAction>,
     pub(super) menu: ActionsMenu,
     /// 0 shows Send, 1 shows Stop; animates between them on `Spring::SWAP`.
     pub(super) send_swap: Channel,
@@ -132,10 +132,10 @@ pub struct PromptInput {
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
-    pub(super) picking: Option<Picking>,
+    picking: Option<Picking>,
     /// The box, as last drawn: the list opens from it.
     pub(super) frame: Option<Bounds<Pixels>>,
-    pub(super) _subscription: Subscription,
+    _subscription: Subscription,
 }
 
 impl PromptInput {
@@ -280,7 +280,7 @@ impl PromptInput {
     }
 
     /// Opens, filters or closes the list from the text and the caret.
-    pub(super) fn refresh_picking(&mut self, cx: &mut Context<Self>) {
+    fn refresh_picking(&mut self, cx: &mut Context<Self>) {
         let (text, cursor) = {
             let t = self.text.read(cx);
             (t.value(), t.cursor())
@@ -301,7 +301,7 @@ impl PromptInput {
     }
 
     /// Fills the box and puts the caret at byte `caret`, as a pick does; the list closes.
-    pub(super) fn write(&mut self, text: &str, caret: usize, window: &mut Window, cx: &mut Context<Self>) {
+    fn write(&mut self, text: &str, caret: usize, window: &mut Window, cx: &mut Context<Self>) {
         let before = &text[..caret];
         let line = before.matches('\n').count() as u32;
         let character = before.rsplit('\n').next().map_or(0, |last| last.encode_utf16().count()) as u32;
@@ -313,7 +313,7 @@ impl PromptInput {
     }
 
     /// Moves the row in front of the open list by `by`, round the ends; false when no list is open.
-    pub(super) fn step_pick(&mut self, by: isize, cx: &mut Context<Self>) -> bool {
+    fn step_pick(&mut self, by: isize, cx: &mut Context<Self>) -> bool {
         let Some(picking) = &mut self.picking else { return false };
         let rows = picking.matches.len() as isize;
         picking.active = (picking.active as isize + by).rem_euclid(rows) as usize;
@@ -322,7 +322,7 @@ impl PromptInput {
     }
 
     /// Runs or writes the row in front of the open list.
-    pub(super) fn pick(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn pick(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(picking) = self.picking.take() else { return };
         let Some(&index) = picking.matches.get(picking.active) else { return };
         match picking.trigger {
@@ -350,7 +350,7 @@ impl PromptInput {
 
     /// Sends the text when there is some. A running turn does not block a new message; the panel queues it.
     /// With a list open, Enter takes its row. A known `/` command typed out is a command, not a message.
-    pub(super) fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.picking.is_some() {
             return self.pick(window, cx);
         }

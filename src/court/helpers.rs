@@ -1,10 +1,7 @@
 use gpui_kit::{FontWeight, IntoElement, ParentElement, SharedString, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    pr::{Checks},
-    theme::{Theme},
-    };
+use crate::{pr::Checks, theme::Theme};
 use super::structs::CourtItem;
 use super::types::Court;
 

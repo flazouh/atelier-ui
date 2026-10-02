@@ -1,8 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    theme::{Theme},
-};
+use crate::theme::Theme;
 use super::structs::{Inset, MenuLook};
 use super::types::{BORDER, CLIP_HALF, FILL_RAMP, LINE, RADIUS_END, RADIUS_START, Tone};
 

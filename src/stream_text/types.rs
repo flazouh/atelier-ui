@@ -1,7 +1,4 @@
-use std::{
-    ops::Range,
-    time::{Duration},
-};
+use std::{ops::Range, time::Duration};
 
 /// How long a piece takes to reach full ink.
 pub const FADE: Duration = Duration::from_millis(240);

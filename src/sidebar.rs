@@ -2,7 +2,7 @@
 //! decides the rows, their order, the folds and where the keys go; this draws them.
 //!
 //! Up and down move, left folds a project or goes to it from one of its sessions, right unfolds or goes in,
-//! Enter opens a session or folds a project. Motion: a new session enters with [`Entrance`]; a session whose
+//! Enter opens a session or folds a project. Motion: a new session enters with [`Entrance`](crate::entrance::Entrance); a session whose
 //! row moved (one that now needs you moves to the top) slides to its place with the Layout spring. Both
 //! stand still with Reduce Motion.
 
@@ -15,9 +15,7 @@ pub use structs::Sidebar;
 pub use types::SidebarEvent;
 
 #[cfg(test)]
-use crate::{
-    sidebar_model::{ProjectData},
-};
+use crate::sidebar_model::ProjectData;
 
 #[cfg(test)]
 mod tests;

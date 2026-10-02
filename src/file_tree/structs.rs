@@ -30,18 +30,18 @@ impl TreeRow {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FileTree {
-    pub(super) roots: Vec<Node>,
+    roots: Vec<Node>,
 }
 
 /// Folders before files, at every level; `build` orders each by name.
 #[derive(Default)]
-pub(super) struct Builder {
+struct Builder {
     pub(super) folders: BTreeMap<String, Builder>,
     pub(super) files: BTreeMap<String, ChangedFile>,
 }
 
 impl Builder {
-    pub(super) fn insert(&mut self, parts: &[&str], file: &ChangedFile) {
+    fn insert(&mut self, parts: &[&str], file: &ChangedFile) {
         match parts {
             [] => {}
             [name] => {

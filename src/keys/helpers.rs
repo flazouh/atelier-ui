@@ -127,12 +127,12 @@ pub fn cap_on(chord: &str, mac: bool) -> SharedString {
     cap.into()
 }
 
-pub(super) fn commands_for(profile: Profile, wanted: impl Fn(&str) -> bool) -> Option<Command> {
+fn commands_for(profile: Profile, wanted: impl Fn(&str) -> bool) -> Option<Command> {
     Command::ALL.iter().copied().find(|c| chords(profile, *c).iter().any(|chord| wanted(chord)))
 }
 
 /// Whether a chord held with a modifier (`⌘b`, `⌘⇧b`) is this press.
-pub(super) fn combo_matches(chord: &str, press: &Press) -> bool {
+fn combo_matches(chord: &str, press: &Press) -> bool {
     if !chord.starts_with(['⌘', '⇧']) || chord.contains(' ') {
         return false;
     }

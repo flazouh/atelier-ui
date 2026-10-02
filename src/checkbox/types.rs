@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    motion::{Curve},
-    };
+use crate::motion::Curve;
 
 /// The box, its edge and corner: `h-5 w-5`, `border-2`, `rounded-md`.
 pub(super) const BOX: f32 = 20.;

@@ -22,10 +22,10 @@ use super::types::SectionTone;
 #[derive(IntoElement)]
 pub struct RailSection {
     pub(super) name: SharedString,
-    pub(super) icon: Option<IconName>,
+    icon: Option<IconName>,
     pub(super) summary: Option<AnyElement>,
     pub(super) tone: SectionTone,
-    pub(super) body: Vec<AnyElement>,
+    body: Vec<AnyElement>,
 }
 
 impl RailSection {

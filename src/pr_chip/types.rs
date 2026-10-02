@@ -4,7 +4,7 @@ use gpui_kit::{App, Window};
 
 use crate::pr::PrChipData;
 
-/// The link scheme [`link_prs`] writes and [`PrChips`] reads.
+/// The link scheme [`link_prs`](crate::pr_chip::link_prs) writes and [`PrChips`](crate::pr_chip::PrChips) reads.
 pub(super) const SCHEME: &str = "atelier-pr:";
 
 /// The pill's height, and where its text sits, so the pill lines up with the words around it.

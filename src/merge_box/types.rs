@@ -1,8 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    merge::{Action, Choice},
-    };
+use crate::merge::{Action, Choice};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum MergeBoxEvent {

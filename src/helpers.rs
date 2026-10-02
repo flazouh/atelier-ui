@@ -1,7 +1,7 @@
 use gpui_kit::{App, Context, Subscription, Window};
 
 /// Sets up fonts, text rendering, and the theme macOS uses now. Call once, before opening a window.
-/// Pass [`Assets`] to the application so icons load.
+/// Pass [`Assets`](crate::icon::Assets) to the application so icons load.
 pub fn init(cx: &mut App) {
     // Must run before the first glyph is drawn.
     super::typography::disable_font_smoothing();

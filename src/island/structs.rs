@@ -20,23 +20,23 @@ use crate::{
 use super::types::{HEIGHT, PILL, Press, RADIUS, SHELL};
 use super::helpers::colors;
 
-pub(super) struct State {
+struct State {
     pub(super) content: Option<(f32, f32)>,
     pub(super) width: Animated,
     pub(super) height: Animated,
-    pub(super) sized: bool,
+    sized: bool,
     pub(super) clock: FrameClock,
-    pub(super) focus: Option<FocusHandle>,
+    focus: Option<FocusHandle>,
 }
 
 /// The shell: its content, and the least size of the pill.
 #[derive(IntoElement)]
 pub struct Island {
     pub(super) id: ElementId,
-    pub(super) min: (f32, f32),
+    min: (f32, f32),
     pub(super) child: Option<AnyElement>,
     pub(super) on_press: Option<Press>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Island {

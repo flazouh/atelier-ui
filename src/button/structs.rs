@@ -31,36 +31,36 @@ pub(super) struct Metrics {
 
 #[derive(IntoElement)]
 pub struct Button {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) label: Option<SharedString>,
     pub(super) icon: Option<IconName>,
-    pub(super) trailing_icon: Option<IconName>,
+    trailing_icon: Option<IconName>,
     /// The key cap after the label: a command's, from the key table, or atelier's own.
-    pub(super) command: Option<crate::keys::Command>,
-    pub(super) cap: Option<SharedString>,
+    command: Option<crate::keys::Command>,
+    cap: Option<SharedString>,
     /// The words' colour in place of the variant's, for a verb that carries a tone.
     pub(super) ink: Option<Hsla>,
     /// The icon's colour in place of the words'.
-    pub(super) icon_ink: Option<Hsla>,
-    pub(super) content: Option<AnyElement>,
+    icon_ink: Option<Hsla>,
+    content: Option<AnyElement>,
     pub(super) chip: Option<IconName>,
     pub(super) variant: ButtonVariant,
     pub(super) size: ButtonSize,
-    pub(super) pill: bool,
+    pill: bool,
     /// Which corners round; a segment of a [`crate::button_group::ButtonGroup`] squares its inner ones.
     pub(super) corners: Corners<bool>,
     /// A stop in the Tab order that Enter and Space press.
-    pub(super) focusable: bool,
+    focusable: bool,
     /// The owner's handle, when it moves focus here itself.
-    pub(super) focus_with: Option<FocusHandle>,
+    focus_with: Option<FocusHandle>,
     pub(super) tooltip: Option<SharedString>,
     /// Its menu or popover is open: the tooltip would cover it, so none shows.
     pub(super) open: bool,
-    pub(super) on_key: Option<KeyHandler>,
+    on_key: Option<KeyHandler>,
     /// A name tests find it by.
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
     pub(super) disabled: bool,
-    pub(super) on_click: Option<ClickHandler>,
+    on_click: Option<ClickHandler>,
 }
 
 impl Button {
@@ -231,14 +231,14 @@ pub(super) struct ButtonMotion {
     pub(super) hovered: bool,
     /// The menu or picker it opens is open: the hover level stays.
     pub(super) held: bool,
-    pub(super) pressed: bool,
+    pressed: bool,
     /// 0 at rest, 1 hovered: drives fill and chip colors.
     pub(super) tint: Animated,
     /// 0 at rest, 1 hovered: how far the chip icons have slid.
     pub(super) slide: Animated,
     /// 1 when the ring is out, 0 when pressed in.
     pub(super) ring: Channel,
-    pub(super) clock: FrameClock,
+    clock: FrameClock,
     pub(super) focus: Option<FocusHandle>,
 }
 
@@ -267,7 +267,7 @@ impl ButtonMotion {
     }
 
     /// Advances one frame. Returns true while the button still moves.
-    pub(super) fn advance(&mut self, reduce: bool) -> bool {
+    fn advance(&mut self, reduce: bool) -> bool {
         let dt = self.clock.tick();
         let moving = self.tint.step(dt, reduce) | self.slide.step(dt, reduce) | self.ring.is_running();
         if !moving {

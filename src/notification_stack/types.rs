@@ -61,6 +61,6 @@ pub enum TrailingTone {
 pub enum NotificationEvent {
     /// The stack opened or shut.
     Expanded(bool),
-    /// A press on the open stack, when it was given [`NotificationStack::view_all`].
+    /// A press on the open stack, when it was given [`NotificationStack::view_all`](crate::notification_stack::NotificationStack::view_all).
     ViewAll,
 }

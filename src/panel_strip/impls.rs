@@ -176,7 +176,7 @@ impl AgentPanels {
 impl AgentPanels {
     /// The soft edge of the strip, in the window's tone, where more columns lie beyond: `left` or right. None where the
     /// row ends. It follows the scroll offset, so it asks for no frames of its own.
-    pub(super) fn edge_fade(&self, left: bool, theme: &crate::theme::Theme) -> Option<AnyElement> {
+    fn edge_fade(&self, left: bool, theme: &crate::theme::Theme) -> Option<AnyElement> {
         let (before, after) = crate::panel_layout::edge_fades(self.offset, self.geometry.max_offset(self.viewport));
         let strength = if left { before } else { after };
         if strength <= 0. {

@@ -10,8 +10,8 @@ use super::helpers::segment_corners;
 
 #[derive(IntoElement)]
 pub struct ButtonGroup {
-    pub(super) id: ElementId,
-    pub(super) children: Vec<Button>,
+    id: ElementId,
+    children: Vec<Button>,
     pub(super) variant: ButtonVariant,
     pub(super) size: ButtonSize,
     pub(super) layout: Axis,

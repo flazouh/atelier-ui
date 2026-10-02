@@ -17,7 +17,7 @@ use gpui_kit::{
     Styled,
     Window,
     base::input::{self as input, TabSize},
-    component::{input::{Editor, EditorState}},
+    component::input::{Editor, EditorState},
     div,
     prelude::FluentBuilder,
 };

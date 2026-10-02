@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    merge::{Action, Choice},
-    };
+use crate::merge::{Action, Choice};
 
 pub type ActionHandler = Rc<dyn Fn(Action, &mut Window, &mut App)>;
 

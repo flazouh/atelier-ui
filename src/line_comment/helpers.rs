@@ -3,10 +3,7 @@ use super::{CancelComment, SubmitComment};
 use gpui_kit::{App, KeyBinding, Styled, div};
 
 use crate::scale::px;
-use crate::{
-    theme::{ActiveTheme, radius},
-    typography::{FONT_FAMILY},
-};
+use crate::{theme::{ActiveTheme, radius}, typography::FONT_FAMILY};
 
 /// Bound after the inline review's keys: inside the composer, `secondary-enter` sends the comment, not
 /// the review's accept, since GPUI lets the later binding win at the same depth.

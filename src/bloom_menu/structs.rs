@@ -8,7 +8,7 @@ use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
     motion::{Channel, Curve, Spring, ease},
-    theme::{ActiveTheme},
+    theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::{
@@ -30,16 +30,16 @@ impl BloomItem {
 }
 
 pub struct BloomMenu {
-    pub(super) id: ElementId,
-    pub(super) items: Vec<BloomItem>,
+    id: ElementId,
+    items: Vec<BloomItem>,
     pub(super) open: bool,
     pub(super) morph: Channel,
     pub(super) words: Channel,
     pub(super) iris: Channel,
     pub(super) arrive: Vec<Channel>,
-    pub(super) tap: Channel,
-    pub(super) focus: FocusHandle,
-    pub(super) _escape: Option<Subscription>,
+    tap: Channel,
+    focus: FocusHandle,
+    _escape: Option<Subscription>,
 }
 
 impl EventEmitter<BloomEvent> for BloomMenu {}
@@ -102,7 +102,7 @@ impl BloomMenu {
         cx.notify();
     }
 
-    pub(super) fn choose(&mut self, label: SharedString, cx: &mut Context<Self>) {
+    fn choose(&mut self, label: SharedString, cx: &mut Context<Self>) {
         cx.emit(BloomEvent::Select(label));
         self.set_open(false, cx);
     }

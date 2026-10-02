@@ -78,8 +78,8 @@ pub struct Select {
     pub(super) id: ElementId,
     pub(super) options: Vec<SelectOption>,
     pub(super) selected: Option<usize>,
-    pub(super) placeholder: SharedString,
-    pub(super) disabled: bool,
+    placeholder: SharedString,
+    disabled: bool,
     pub(super) default_open: bool,
     pub(super) compact: bool,
     pub(super) chevron: bool,
@@ -175,26 +175,26 @@ impl Select {
 }
 
 /// Open state and every animated value, kept across frames by element id.
-pub(super) struct SelectMotion {
+struct SelectMotion {
     pub(super) open: bool,
     /// When the surface last opened, for the item stagger.
-    pub(super) opened: Option<Instant>,
+    opened: Option<Instant>,
     /// Hovered or keyboard-highlighted option.
     pub(super) active: Option<usize>,
     /// The letters typed in the open list, and when the last one came: type-ahead.
     pub(super) typed: String,
-    pub(super) typed_at: Option<Instant>,
+    typed_at: Option<Instant>,
     /// Pointer over the trigger itself. The compact chip tints on this, and a press here is not an
     /// outside press, so the trigger alone decides whether the panel toggles.
-    pub(super) trigger_hovered: bool,
+    trigger_hovered: bool,
     /// 0 the trigger, 1 the panel: the shared layout's spring.
     pub(super) morph: Channel,
     pub(super) tint: Channel,
     /// Per option, 0 at rest and 1 lit (hovered, highlighted, or chosen): beui's `transition-colors`
     /// fade to `bg-muted text-foreground`.
-    pub(super) item_tints: Vec<Channel>,
+    item_tints: Vec<Channel>,
     pub(super) focus: Option<FocusHandle>,
-    pub(super) content_focus: Option<FocusHandle>,
+    content_focus: Option<FocusHandle>,
     /// The trigger's bounds in its last layout, to choose where the panel opens.
     pub(super) anchor: Option<Bounds<Pixels>>,
 }
@@ -218,7 +218,7 @@ impl SelectMotion {
     }
 
     /// Opens or closes: the surface grows to the panel, or shrinks back, on the morph spring.
-    pub(super) fn set_open(&mut self, open: bool, reduce: bool) {
+    fn set_open(&mut self, open: bool, reduce: bool) {
         if open == self.open {
             return;
         }
@@ -231,7 +231,7 @@ impl SelectMotion {
             self.active = None;
         }
     }
-    pub(super) fn set_trigger_hovered(&mut self, hovered: bool, reduce: bool) {
+    fn set_trigger_hovered(&mut self, hovered: bool, reduce: bool) {
         self.trigger_hovered = hovered;
         self.tint.animate(if hovered { 1. } else { 0. }, Curve::Spring(Spring::TINT), 0., reduce);
     }
@@ -244,7 +244,7 @@ impl SelectMotion {
 
     /// Fades each option toward lit or unlit. Call every render, so hover, arrow keys, and a new
     /// choice all fade the same way.
-    pub(super) fn retarget_items(&mut self, selected: Option<usize>, len: usize, reduce: bool) {
+    fn retarget_items(&mut self, selected: Option<usize>, len: usize, reduce: bool) {
         self.item_tints.resize_with(len, || Channel::new(0.));
         for (i, tint) in self.item_tints.iter_mut().enumerate() {
             let lit = if selected == Some(i) || self.active == Some(i) { 1. } else { 0. };
@@ -264,7 +264,7 @@ impl SelectMotion {
         let fade = cubic_bezier(ease::MOTION_DEFAULT, (t / ITEM_FADE).clamp(0., 1.));
         (fade, -ITEM_RISE * (1. - spring_unit(RISE_STIFFNESS, RISE_DAMPING, t)))
     }
-    pub(super) fn is_moving(&self, items: usize) -> bool {
+    fn is_moving(&self, items: usize) -> bool {
         self.morph.is_running()
             || self.tint.is_running()
             || self.item_tints.iter().any(|c| c.is_running())

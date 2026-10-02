@@ -1,7 +1,4 @@
-use crate::{
-    icon::{IconName},
-    theme::{Theme},
-};
+use crate::{icon::IconName, theme::Theme};
 use super::structs::BloomItem;
 use super::types::{
     CELL_H, COLUMNS, HEADER, IRIS_SIDE, IRIS_TOP, ITEM_DELAY, ITEM_STEP, PANEL_W, TRIGGER_H,

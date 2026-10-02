@@ -10,7 +10,7 @@ use super::helpers::list_height;
 
 /// A picker that opens from the chip of its field: the chip grows into the picker as one surface, as a select does
 /// (`crate::select`), and the header row turns into the filter. The owner keeps one, measures each chip into it, calls
-/// [`PickerMorph::sync`] every render and draws [`morph_popover`].
+/// [`PickerMorph::sync`] every render and draws [`morph_popover`](crate::task_picker::morph_popover).
 #[derive(Clone, Debug)]
 pub struct PickerMorph {
     /// 0 the chip, 1 the picker: the shared layout's spring.

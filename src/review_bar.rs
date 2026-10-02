@@ -1,7 +1,7 @@
 //! The bar on top of a review, for the agent's turn and the pull request view alike.
 //!
 //! - Left: "7 changed", `+62 −12` in the diff colours, a thin progress line, and "3 of 7 reviewed". The line
-//!   fills on [`Spring::LAYOUT`] when the count changes; once every file is reviewed it turns `success`,
+//!   fills on [`Spring::LAYOUT`](crate::motion::Spring::LAYOUT) when the count changes; once every file is reviewed it turns `success`,
 //!   and the words read "All 7 reviewed".
 //! - Right: the mark ("Mark file", "Seen"), Review mode, Previous and Next, each with its words and its key
 //!   cap inside it (the cap read from the key table), and a menu (…) that holds Accept all and Reject all
@@ -18,7 +18,7 @@
 //! A review with two scopes (one turn or the whole session) shows them as a switch before the summary:
 //! the scope in force on a tone, the other with the switch's cap.
 //!
-//! The owner handles every action through [`ReviewHandlers`], from these buttons and from the keys alike.
+//! The owner handles every action through [`ReviewHandlers`](crate::review::ReviewHandlers), from these buttons and from the keys alike.
 //! The bar takes focus when pressed.
 
 mod helpers;

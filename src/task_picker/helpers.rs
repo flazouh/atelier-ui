@@ -56,7 +56,7 @@ pub fn handle_key(picker: &mut Picker, key: &str, text: Option<&str>) -> Outcome
 }
 
 /// The mark that goes before a candidate.
-pub(super) fn mark(candidate: &Candidate, theme: &Theme) -> AnyElement {
+fn mark(candidate: &Candidate, theme: &Theme) -> AnyElement {
     match &candidate.change {
         Change::Status(status) => TaskStatusMark::new(*status).into_any_element(),
         Change::Priority(priority) => PriorityMark::new(*priority).into_any_element(),
@@ -74,7 +74,7 @@ pub fn enter() -> KeyDownEvent {
 }
 
 /// The candidates as a [`ComboList`], the cursor's row lit by the list's gliding pill.
-pub(super) fn picker_list(id: &'static str, picker: &Picker, theme: &Theme, pick: Option<Pick>) -> ComboList {
+fn picker_list(id: &'static str, picker: &Picker, theme: &Theme, pick: Option<Pick>) -> ComboList {
     let shown = picker.shown();
     let entries = shown.iter().enumerate().map(|(row, &index)| {
         let candidate = &picker.candidates()[index];

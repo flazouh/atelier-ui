@@ -15,9 +15,9 @@ use super::helpers::{count_text, send_text};
 /// The count of Unsent Comments and the control that sends them, on one row. Nothing shows with none.
 #[derive(IntoElement)]
 pub struct UnsentComments {
-    pub(super) id: ElementId,
+    id: ElementId,
     pub(super) count: usize,
-    pub(super) on_send: Option<crate::review::ReviewHandler>,
+    on_send: Option<crate::review::ReviewHandler>,
 }
 
 impl UnsentComments {

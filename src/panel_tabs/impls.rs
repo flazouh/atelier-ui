@@ -19,7 +19,7 @@ use super::structs::TabGhost;
 use super::types::TAB_HEIGHT;
 
 impl AgentPanels {
-    pub(super) fn project_of(&self, tab: &SharedString) -> SharedString {
+    fn project_of(&self, tab: &SharedString) -> SharedString {
         self.panels.iter().find(|p| p.id == *tab).map(|p| p.project.id.clone()).unwrap_or_default()
     }
 
@@ -103,7 +103,7 @@ impl AgentPanels {
 
     /// Scrolls the tab bar the least that shows tab number `at` whole. False while the bar has not been laid
     /// out yet, so the caller asks again next frame.
-    pub(super) fn reveal_in_tab_bar(&self, at: usize) -> bool {
+    fn reveal_in_tab_bar(&self, at: usize) -> bool {
         let (bar, offset) = (self.tab_scroll.bounds(), self.tab_scroll.offset());
         let Some(tab) = self.tab_scroll.bounds_for_item(at) else { return false };
         if f32::from(bar.size.width) < 1. {

@@ -1,10 +1,7 @@
 use gpui_kit::{IntoElement, ParentElement, SharedString, Styled, div, prelude::FluentBuilder};
 
 use crate::scale::px;
-use crate::{
-    theme::{Theme},
-    typography::TextSize,
-};
+use crate::{theme::Theme, typography::TextSize};
 use super::structs::ThreadSummary;
 use super::types::{FACE, FACE_STEP, SHOWN};
 

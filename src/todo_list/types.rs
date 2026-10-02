@@ -7,7 +7,7 @@ pub enum TodoStatus {
 }
 
 /// What to do with row `i` of the previous frame, for the todo at the matching position in the new
-/// list. Matching by [`Todo::id`] instead of index means an insertion or removal moves only the rows it
+/// list. Matching by [`Todo::id`](crate::todo_list::Todo::id) instead of index means an insertion or removal moves only the rows it
 /// actually touches.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum RowPlan {

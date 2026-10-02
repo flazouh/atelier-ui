@@ -1,9 +1,9 @@
 use std::{
     cell::RefCell,
-    collections::{HashMap},
+    collections::HashMap,
     ops::Range,
-    sync::{Arc, atomic::{Ordering}},
-    time::{Instant},
+    sync::{Arc, atomic::Ordering},
+    time::Instant,
 };
 
 use gpui_kit::{
@@ -15,9 +15,7 @@ use gpui_kit::{
     component::highlighter::{HighlightTheme, SyntaxHighlighter},
 };
 
-use crate::{
-    file_diff::{DiffLine, DiffLineKind},
-};
+use crate::file_diff::{DiffLine, DiffLineKind};
 use super::structs::{Key, Shown, SideText, SyntaxCache};
 use super::types::{LineRuns, Side};
 
@@ -71,7 +69,7 @@ pub fn language_for(path: &str) -> Option<&'static str> {
 
 thread_local! {
     /// This thread's highlighters, one per language.
-    pub(super) static HIGHLIGHTERS: RefCell<HashMap<String, SyntaxHighlighter>> = RefCell::new(HashMap::new());
+    static HIGHLIGHTERS: RefCell<HashMap<String, SyntaxHighlighter>> = RefCell::new(HashMap::new());
 }
 
 /// `text` highlighted as a whole in `language`, then split into lines, with this thread's highlighter
@@ -93,7 +91,7 @@ pub fn compute_with(highlighter: &mut SyntaxHighlighter, text: &str, theme: &Hig
 }
 
 /// Whole-text styles, cut at each line and moved to start from it.
-pub(super) fn split_lines(text: &str, styles: &[(Range<usize>, HighlightStyle)]) -> Vec<LineRuns> {
+fn split_lines(text: &str, styles: &[(Range<usize>, HighlightStyle)]) -> Vec<LineRuns> {
     let mut out = Vec::new();
     let mut start = 0;
     let mut at = 0;
@@ -167,7 +165,7 @@ pub fn carry(last_text: &str, last: &[LineRuns], text: &str) -> Vec<LineRuns> {
 }
 
 /// The editor's syntax colours for the theme in force.
-pub(super) fn theme_in(cx: &App) -> Arc<HighlightTheme> {
+fn theme_in(cx: &App) -> Arc<HighlightTheme> {
     gpui_kit::component::Theme::global(cx).highlight_theme.clone()
 }
 
@@ -181,7 +179,7 @@ pub fn highlight(language: &str, text: &str, slot: ElementId, cx: &mut App) -> O
     lines
 }
 
-pub(super) fn lookup(language: &str, text: &str, slot: ElementId, cx: &mut App) -> Option<Arc<Vec<LineRuns>>> {
+fn lookup(language: &str, text: &str, slot: ElementId, cx: &mut App) -> Option<Arc<Vec<LineRuns>>> {
     let appearance = crate::theme::ActiveTheme::theme(cx).appearance;
     let key = Key::new(language, text, appearance);
     if !cx.has_global::<SyntaxCache>() {

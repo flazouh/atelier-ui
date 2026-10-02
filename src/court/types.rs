@@ -2,10 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    icon::{IconName},
-    pr::{PrChipData},
-    };
+use crate::{icon::IconName, pr::PrChipData};
 
 /// Who owes the next move.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

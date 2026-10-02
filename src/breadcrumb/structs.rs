@@ -34,7 +34,7 @@ use super::helpers::{hidden, key_id, shown};
 /// One part of the path.
 #[derive(Clone)]
 pub struct Crumb {
-    pub(super) label: SharedString,
+    label: SharedString,
     pub(super) icon: Option<IconName>,
 }
 
@@ -49,15 +49,15 @@ impl Crumb {
     }
 }
 
-pub(super) struct State {
-    pub(super) seen: bool,
+struct State {
+    seen: bool,
     pub(super) open: bool,
-    pub(super) anchor: Option<gpui_kit::Bounds<gpui_kit::Pixels>>,
-    pub(super) focus: Vec<FocusHandle>,
+    anchor: Option<gpui_kit::Bounds<gpui_kit::Pixels>>,
+    focus: Vec<FocusHandle>,
 }
 
-pub(super) struct Entering {
-    pub(super) channel: Channel,
+struct Entering {
+    channel: Channel,
 }
 
 #[derive(IntoElement)]
@@ -66,7 +66,7 @@ pub struct Breadcrumb {
     pub(super) crumbs: Vec<Crumb>,
     pub(super) max_items: usize,
     pub(super) on_press: Option<Press>,
-    pub(super) selector: Option<&'static str>,
+    selector: Option<&'static str>,
 }
 
 impl Breadcrumb {

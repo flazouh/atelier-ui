@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-use crate::{
-    motion::{Spring},
-    };
+use crate::motion::Spring;
 
 /// The indicator's spring: `{ stiffness: 245, damping: 36, mass: 1.2 }`.
 pub const GLIDE: Spring = Spring { stiffness: 245., damping: 36., mass: 1.2 };

@@ -1,8 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{
-    task_edit::{Change},
-    };
+use crate::task_edit::Change;
 
 /// Columns are built this far past the viewport on each side.
 pub(super) const MARGIN: f32 = 200.;

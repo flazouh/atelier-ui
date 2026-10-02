@@ -6,7 +6,7 @@
 //! Everything here counts and colors per grapheme *cluster*, not per Rust `char`. A decomposed accent
 //! (a base letter followed by a combining mark), a variation selector, or a ZWJ-joined emoji sequence
 //! must light and color as one unit, the way the CLI's own grapheme-aware width count sees it. beui
-//! adds no segmentation dependency, so [`clusters`] groups these specific cases by hand from the
+//! adds no segmentation dependency, so `clusters` groups these specific cases by hand from the
 //! Unicode ranges the CLI actually needs; it is not a general grapheme-breaking algorithm.
 
 mod helpers;

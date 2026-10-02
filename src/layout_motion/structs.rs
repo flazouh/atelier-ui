@@ -21,9 +21,9 @@ use crate::motion::{Channel, Curve, Spring};
 use super::helpers::{moved, start_offset};
 
 /// What the wrapper remembers between frames.
-pub(super) struct Slot {
+struct Slot {
     /// Where the child's layout put it in the last frame, without the offset.
-    pub(super) last: Option<Point<Pixels>>,
+    last: Option<Point<Pixels>>,
     pub(super) x: Channel,
     pub(super) y: Channel,
 }

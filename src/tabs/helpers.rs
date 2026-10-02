@@ -1,8 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    theme::{Theme},
-};
+use crate::theme::Theme;
 use super::types::TabsVariant;
 
 /// How much of a tab (`tab_left`, `tab_width`) the indicator (`left`, `width`) covers, 0 to 1.

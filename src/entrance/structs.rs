@@ -19,8 +19,8 @@ pub struct EntranceFrame {
 /// Which ids a list has shown. The first call only records what is there.
 #[derive(Default)]
 pub struct Arrivals {
-    pub(super) painted: bool,
-    pub(super) seen: HashSet<ElementId>,
+    painted: bool,
+    seen: HashSet<ElementId>,
 }
 
 impl Arrivals {
@@ -46,9 +46,9 @@ impl Arrivals {
 #[derive(IntoElement)]
 pub struct Entrance {
     pub(super) id: ElementId,
-    pub(super) skip_initial: bool,
-    pub(super) delay: Duration,
-    pub(super) child: AnyElement,
+    skip_initial: bool,
+    delay: Duration,
+    child: AnyElement,
 }
 
 impl Entrance {
@@ -70,9 +70,9 @@ impl Entrance {
     }
 }
 
-pub(super) struct EntranceMotion {
-    pub(super) progress: Channel,
-    pub(super) reduce: bool,
+struct EntranceMotion {
+    progress: Channel,
+    reduce: bool,
 }
 
 impl RenderOnce for Entrance {
@@ -101,7 +101,7 @@ impl RenderOnce for Entrance {
 #[derive(IntoElement)]
 pub struct EntranceList {
     pub(super) id: ElementId,
-    pub(super) container: Div,
+    container: Div,
     pub(super) items: Vec<(ElementId, AnyElement)>,
 }
 

@@ -12,11 +12,11 @@ pub fn comment_prefix(language: &str) -> Option<&'static str> {
     }
 }
 
-pub(super) fn line_start(text: &str, offset: usize) -> usize {
+fn line_start(text: &str, offset: usize) -> usize {
     text[..offset].rfind('\n').map_or(0, |i| i + 1)
 }
 
-pub(super) fn line_end(text: &str, offset: usize) -> usize {
+fn line_end(text: &str, offset: usize) -> usize {
     text[offset..].find('\n').map_or(text.len(), |i| offset + i)
 }
 
@@ -35,7 +35,7 @@ pub fn line_span(text: &str, selection: &Range<usize>) -> Range<usize> {
 
 /// The line spans the selections touch, in text order, with spans that overlap or sit on adjacent
 /// lines merged into one block, each with the selections inside it.
-pub(super) fn blocks(text: &str, selections: &[Range<usize>]) -> Vec<(Range<usize>, Vec<Range<usize>>)> {
+fn blocks(text: &str, selections: &[Range<usize>]) -> Vec<(Range<usize>, Vec<Range<usize>>)> {
     let mut sorted = selections.to_vec();
     sorted.sort_by_key(|s| s.start);
     let mut blocks: Vec<(Range<usize>, Vec<Range<usize>>)> = Vec::new();
@@ -54,7 +54,7 @@ pub(super) fn blocks(text: &str, selections: &[Range<usize>]) -> Vec<(Range<usiz
 
 /// Joins edits that do not overlap into one [`Edit`]. Each part places its selections as if it were
 /// the only edit; here they move by the height every earlier part added or removed.
-pub(super) fn compose(text: &str, mut parts: Vec<Edit>) -> Option<Edit> {
+fn compose(text: &str, mut parts: Vec<Edit>) -> Option<Edit> {
     parts.sort_by_key(|part| part.range.start);
     let range = parts.first()?.range.start..parts.last()?.range.end;
     let mut out = String::new();
@@ -73,7 +73,7 @@ pub(super) fn compose(text: &str, mut parts: Vec<Edit>) -> Option<Edit> {
 }
 
 /// Where the first non-blank character of the line holding `offset` is.
-pub(super) fn indent_end(text: &str, offset: usize) -> usize {
+fn indent_end(text: &str, offset: usize) -> usize {
     let start = line_start(text, offset);
     let end = line_end(text, offset);
     start + text[start..end].len() - text[start..end].trim_start().len()
@@ -97,7 +97,7 @@ pub fn smart_home(text: &str, selections: &[Range<usize>]) -> Vec<Range<usize>> 
 /// that many bytes at `at`, a negative one removed them from `at` on. An offset at an insertion point
 /// moves past it, unless it `opens` a selection: then the insertion joins the selection. One inside a
 /// removed run lands where the run began.
-pub(super) fn shift(offset: usize, opens: bool, edits: &[(usize, isize)]) -> usize {
+fn shift(offset: usize, opens: bool, edits: &[(usize, isize)]) -> usize {
     let mut delta: isize = 0;
     for &(at, change) in edits {
         if change > 0 {
@@ -117,7 +117,7 @@ pub(super) fn shift(offset: usize, opens: bool, edits: &[(usize, isize)]) -> usi
 }
 
 /// The rows of a span, each with the offset it starts at.
-pub(super) fn rows<'a>(text: &'a str, span: &Range<usize>) -> Vec<(usize, &'a str)> {
+fn rows<'a>(text: &'a str, span: &Range<usize>) -> Vec<(usize, &'a str)> {
     let mut at = span.start;
     text[span.clone()]
         .split('\n')

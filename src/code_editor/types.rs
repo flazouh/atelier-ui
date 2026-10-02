@@ -1,4 +1,4 @@
-/// The key context around every [`CodeEditor`], so these keys never reach a one-line input.
+/// The key context around every [`CodeEditor`](crate::code_editor::CodeEditor), so these keys never reach a one-line input.
 pub(super) const CONTEXT: &str = "CodeEditor > Input";
 
 /// Marks a clipboard entry as one whole line, so a paste knows to put it above the caret's line.

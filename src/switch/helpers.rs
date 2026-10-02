@@ -1,9 +1,6 @@
 use gpui_kit::Hsla;
 
-use crate::{
-    motion::{keyframes},
-    theme::{Theme, mix},
-};
+use crate::{motion::keyframes, theme::{Theme, mix}};
 use super::structs::Dims;
 use super::types::{EASE_IN_OUT, SHAKE, SHAKE_DELAY, SHAKE_SECONDS, STRETCH};
 
