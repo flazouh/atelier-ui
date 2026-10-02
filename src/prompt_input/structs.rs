@@ -978,7 +978,7 @@ impl Render for PromptInput {
             };
             let click = this.clone();
             // A tap starts and a second tap stops it; with hold on, the press itself records and letting go stops.
-            let on_click: Rc<dyn Fn(&gpui_kit::ClickEvent, &mut Window, &mut App)> = Rc::new(move |_, _, cx| {
+            let on_click: crate::ClickHandler = Rc::new(move |_, _, cx| {
                 click
                     .update(cx, |this, cx| {
                         if this.voice_hold {
