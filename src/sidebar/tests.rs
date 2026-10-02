@@ -76,7 +76,7 @@ fn escape_closes_the_project_menu(cx: &mut TestAppContext) {
 }
 
 fn look() -> AgentLook {
-    let strip = crate::sprite::Strip { path: "icons/smart_toy.svg", bytes: b"", frames: 1, frame_ms: 1000, loops: false };
+    let strip = crate::sprite::Strip { path: "icons/bot.svg", bytes: b"", frames: 1, frame_ms: 1000, loops: false };
     let color = gpui_kit::Hsla::default();
     AgentLook {
         mark: crate::agent_look::Mark { working: strip, orbiting: strip, color, icon_frame: 0 },

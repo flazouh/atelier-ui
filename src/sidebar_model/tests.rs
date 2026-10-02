@@ -10,7 +10,7 @@ use crate::{
 };
 
 fn look() -> AgentLook {
-    let strip = Strip { path: "icons/smart_toy.svg", bytes: b"", frames: 1, frame_ms: 1000, loops: false };
+    let strip = Strip { path: "icons/bot.svg", bytes: b"", frames: 1, frame_ms: 1000, loops: false };
     let color = gpui_kit::Hsla::default();
     AgentLook { mark: Mark { working: strip, orbiting: strip, color, icon_frame: 0 }, message: color, glimmer: color, labels: PhaseLabels::default() }
 }
