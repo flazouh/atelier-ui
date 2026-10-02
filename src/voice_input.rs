@@ -46,6 +46,8 @@ pub enum VoiceMode {
     /// The speech model is being fetched or loaded; see [`VoiceInput::set_setup`].
     Setup,
     Listening,
+    /// The last press ended without words; the bar says why until the owner sets another mode. The microphone can be pressed.
+    Failed,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,7 +148,22 @@ pub(crate) fn key(mode: VoiceMode) -> &'static str {
         VoiceMode::Idle => "idle",
         VoiceMode::Setup => "setup",
         VoiceMode::Listening => "listening",
+        VoiceMode::Failed => "failed",
     }
+}
+
+/// The words for a press that ended without any: a warning mark and the reason, in the warning color.
+pub(crate) fn failed_row(message: SharedString, theme: &Theme) -> AnyElement {
+    div()
+        .w_full()
+        .flex()
+        .items_center()
+        .gap(px(6.))
+        .text_size(TextSize::Xs.font_size())
+        .text_color(theme.warning)
+        .child(div().flex_none().child(Icon::new(IconName::Warning).size(px(14.)).color(theme.warning)))
+        .child(div().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(message))
+        .into_any_element()
 }
 
 /// The bars and the time beside them: what the bar says while it listens.
@@ -257,7 +274,7 @@ impl Render for VoiceInput {
         let muted = theme.muted_foreground;
         let said = Morph::new("voice-input-said", key(mode), move |_, _| -> AnyElement {
             match mode {
-                VoiceMode::Idle => div()
+                VoiceMode::Idle | VoiceMode::Failed => div()
                     .w_full()
                     .text_size(TextSize::Xs.font_size() + gpui_kit::px(1.))
                     .text_color(muted)
@@ -272,7 +289,7 @@ impl Render for VoiceInput {
         let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, theme: theme.clone(), reduce };
         let slot = mic_slot(mic, move |_, _, cx| {
             this.update(cx, |this, cx| match this.mode {
-                VoiceMode::Idle => cx.emit(VoiceInputEvent::Start),
+                VoiceMode::Idle | VoiceMode::Failed => cx.emit(VoiceInputEvent::Start),
                 VoiceMode::Listening => cx.emit(VoiceInputEvent::Stop),
                 VoiceMode::Setup => {}
             })
