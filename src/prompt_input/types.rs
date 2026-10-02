@@ -13,6 +13,10 @@ pub enum PromptInputEvent {
     ModelChanged(SharedString),
     /// The user picked a different mode from [`PromptInput::modes`](crate::prompt_input::PromptInput::modes), by its words.
     ModeChanged(SharedString),
+    /// The user pressed the microphone. The owner starts the capture, or shows the setup first.
+    DictationStart,
+    /// The user pressed the stop square. The owner ends the capture and inserts the words.
+    DictationStop,
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
     Command { name: SharedString, args: SharedString },
 }

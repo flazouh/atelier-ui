@@ -1,6 +1,6 @@
 //! beui's FileDiff (`components/agents/file-diff.tsx`), class for class:
 //!
-//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, the header as compact as a strip row (`h-8 px-2.5`), the diff in a
+//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, the header as compact as a strip row (`h-8 px-3`), the diff in a
 //!   darker well that runs to the card's edges.
 //! - Root `w-full text-sm`. Header `min-h-9 gap-2`: a `size-4` file icon, the path
 //!   `text-xs` at 80% foreground, `+n`/`\u{2212}n` change counts, a `size-4` status slot (spinning loader

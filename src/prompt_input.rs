@@ -14,12 +14,21 @@
 //!   `clip-path`, so the corner-morph grow is simplified to the fade-in this codebase already uses for
 //!   `Disclosure`'s reveal; it still fades in on `card` with beui's drop-shadow, and closes at once like
 //!   `Disclosure` does, rather than tweening the exit.
+//! - Dictation (`set_dictation(true)`): a round microphone sits before Send. The first press asks the owner to start
+//!   ([`PromptInputEvent::DictationStart`]); if the speech model is missing the owner shows the setup
+//!   ([`PromptInput::set_voice_setup`]) and the left of the action row (Plus, model, mode) cross-fades into the setup
+//!   bar. While it listens ([`PromptInput::set_voice_listening`]) the same place shows rounded amber bars that follow
+//!   the voice ([`PromptInput::set_voice_level`]) with the time, and the microphone turns into a stop square on an
+//!   amber disc. Stop gives [`PromptInputEvent::DictationStop`]; the owner then hands the words to
+//!   [`PromptInput::insert_transcript`]. Send is off while it listens.
 //! - Enter sends; Shift-Enter adds a line, exactly as before.
 
+mod helpers;
 mod impls;
 mod structs;
 mod types;
 
+pub use helpers::append_transcript;
 pub use structs::{PromptAction, PromptInput, PromptModel};
 pub use types::PromptInputEvent;
 

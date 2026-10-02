@@ -137,11 +137,11 @@ impl RenderOnce for ToolCall {
             .items_center()
             .gap(px(8.))
             .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
-            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::xxl()))
+            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::card()))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::xxl() }, window, cx).on_click(move |_, _, cx| {
+                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::card() }, window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
                     toggle.update(cx, |m, cx| {
                         let open = !m.disclosure.open;
@@ -215,7 +215,6 @@ impl RenderOnce for ToolCall {
             // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
             let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
             let scroll = motion.read(cx).scroll.clone();
-            let overflows = scroll.max_offset().y > px(0.);
             body.child(
                 div()
                     .flex()
@@ -223,9 +222,8 @@ impl RenderOnce for ToolCall {
                     .overflow_hidden()
                     .when(flat, |d| d.rounded(radius::xl()))
                     .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
-                    // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the
-                    // output. While the output has more to show, it keeps the wheel.
-                    .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
+                    // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
+                    .on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
                     .child(
                         div()
                             .id(child("output"))
@@ -272,7 +270,7 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card).overflow_hidden())
+            .when(!flat, |d| d.rounded(radius::card()).bg(theme.card).overflow_hidden())
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))

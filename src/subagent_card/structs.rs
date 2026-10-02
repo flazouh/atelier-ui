@@ -140,9 +140,9 @@ impl RenderOnce for SubagentCard {
             .flex()
             .flex_col()
             .gap(px(2.))
-            .px(px(14.))
-            .py(px(10.))
-            .rounded(radius::xxl())
+            .px(px(12.))
+            .py(px(8.))
+            .rounded(radius::card())
             .when(has_calls, |d| {
                 d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
@@ -220,7 +220,7 @@ impl RenderOnce for SubagentCard {
             .flex()
             .flex_col()
             .w_full()
-            .rounded(radius::xxl())
+            .rounded(radius::card())
             .bg(theme.card)
             .child(header)
             .when(has_calls && reveal > 0.001, |d| {

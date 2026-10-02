@@ -7,7 +7,7 @@
 //!   knocked out in the page color when it is done, failed or cancelled; and a `size-3.5` chevron.
 //! - Body `pl-6 pt-1.5`: a `rounded-xl` card holding the output in mono at `p-3`, capped at 220px, and a
 //!   footer row with Copy and the status label.
-//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-2.5`), the output
+//! - A card, as in [`crate::subagent_card::SubagentCard`]: `bg-card rounded-2xl`, its header as compact as a strip row (`h-8 px-3`), the output
 //!   in a darker well inside it. [`ToolCall::flat`] drops the card and tightens the row: reading and searching are
 //!   flat, so a run of them stacks close, and so is a call that sits inside another card, as in an open subagent.
 //! - It opens while running and closes by itself when the tool finishes, like `collapseOnComplete`.

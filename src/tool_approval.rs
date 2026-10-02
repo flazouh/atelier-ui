@@ -1,6 +1,6 @@
 //! beui's ToolApproval (`components/agents/tool-approval.tsx`), class for class:
 //!
-//! - Compact, as the other cards are: row `items-start px-3.5 py-2.5`, with no status tile or icon. The title
+//! - Compact, as the other cards are: row `items-start px-3 py-2`, with no status tile or icon. The title
 //!   `font-medium` and the tool in mono `text-xs` at muted share one line, then a
 //!   status pill (`rounded-full px-2 py-0.5 text-[11px]`) tinted amber, blue, emerald, or rose by
 //!   `ToolApprovalStatus`.

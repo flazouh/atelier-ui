@@ -14,7 +14,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{MessageBubbleAlign, MessageBubbleVariant};
+use super::types::{LINE, MessageBubbleAlign, MessageBubbleVariant, PAD_X, PAD_Y};
 use super::helpers::{content_color, surface_fill};
 
 #[derive(IntoElement)]
@@ -71,11 +71,11 @@ impl RenderOnce for MessageBubble {
         let card = div()
             .relative()
             .when(!ghost, |d| {
-                d.min_w(px(36.)).max_w(relative(0.82)).px(px(14.)).py(px(10.)).rounded(radius::xxl())
+                d.min_w(px(36.)).max_w(relative(0.82)).px(px(PAD_X)).py(px(PAD_Y)).rounded(radius::xl())
             })
             .when(ghost, |d| d.w_full())
             .text_size(TextSize::Sm.font_size())
-            .line_height(px(24.))
+            .line_height(px(LINE))
             .text_color(text_color)
             .when_some(fill, |d, color| d.bg(color))
             .child(self.content);
@@ -143,7 +143,7 @@ impl RenderOnce for MessageBubbleCollapsible {
         let (open, chevron) = (m.open, m.chevron.value());
         let theme = cx.theme().clone();
         let fade_into = self.fade_into.unwrap_or(theme.card);
-        let total_h = self.collapsed_lines as f32 * 24.;
+        let total_h = self.collapsed_lines as f32 * LINE;
         let fade_h = total_h * 0.32;
 
         let clipped = div()
@@ -170,9 +170,9 @@ impl RenderOnce for MessageBubbleCollapsible {
         let toggle = motion.clone();
         let pill = div()
             .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "toggle".into()))
-            .mt(px(8.))
+            .mt(px(4.))
             .flex()
-            .h(px(28.))
+            .h(px(24.))
             .items_center()
             .gap(px(4.))
             .rounded_full()
