@@ -1,3 +1,5 @@
+use gpui_kit::ParentElement;
+use gpui_kit::Styled;
 use super::*;
 
 fn hunk(id: &str, removed: Range<usize>, added: Range<usize>) -> InlineHunk {

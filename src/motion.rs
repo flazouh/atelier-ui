@@ -3,7 +3,7 @@
 
 use std::time::Instant;
 
-/// The time every animation reads. It is the real time, except in a test that froze the clock (see [`clock`]): then
+/// The time every animation reads. It is the real time, except in a test that froze the clock (see `clock`): then
 /// it moves only when the test moves it, so a test never depends on how fast the machine runs.
 pub fn now() -> Instant {
     #[cfg(test)]
@@ -253,7 +253,7 @@ pub mod duration {
 
 /// beui's `AgentDisclosure` reveal, as a [`Curve`]: 220ms opening, 140ms closing, both eased out. Every
 /// section that opens and closes on its own: TodoList, ToolCall, FileDiff, ToolApproval, and AgentText's
-/// source panel, animates through this same curve via [`crate::reveal::Reveal`].
+/// source panel, animates through this same curve via `crate::reveal::Reveal`.
 pub fn disclosure(open: bool) -> Curve {
     Curve::Ease(if open { 0.22 } else { 0.14 }, ease::OUT)
 }

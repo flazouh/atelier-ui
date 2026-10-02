@@ -1,3 +1,4 @@
+use gpui_kit::Focusable;
 use std::{cell::RefCell, rc::Rc};
 
 use gpui_kit::{Entity, TestAppContext, VisualTestContext};

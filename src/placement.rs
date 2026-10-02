@@ -2,7 +2,7 @@
 //! panel and the space above is larger. Select and the merge menu both ask here, so a picker at the
 //! foot of a pane and a merge button near the bottom of the rail turn over the same way.
 //!
-//! The anchor's bounds come from its last layout ([`measure`]); a panel opens on a press, a frame
+//! The anchor's bounds come from its last layout (`measure`); a panel opens on a press, a frame
 //! after that layout, so the bounds are always there when the question is asked.
 
 use gpui_kit::{App, Bounds, IntoElement, Pixels, Styled, canvas};

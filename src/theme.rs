@@ -228,7 +228,7 @@ pub fn mark_on(theme: &Theme, fill: Hsla) -> Hsla {
 }
 
 /// The patch under a key cap on a `fill`: a tone of the fill, moved toward `text` as far as it goes (at most
-/// [`CAP_WASH`]) while `text` keeps [`FILL_TEXT_CONTRAST`] on it.
+/// `CAP_WASH`) while `text` keeps [`FILL_TEXT_CONTRAST`] on it.
 pub fn cap_patch(fill: Hsla, text: Hsla) -> Hsla {
     (0..=8)
         .rev()
@@ -293,7 +293,7 @@ fn sync_component_theme(theme: &Theme, cx: &mut App) {
     crate::code_editor::install_syntax_theme(theme, cx);
 }
 
-/// What a status mark says. Its tone comes from [`ramp`] through [`Theme::status_tone`].
+/// What a status mark says. Its tone comes from `ramp` through [`Theme::status_tone`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StatusTone {
     /// Work in flight: the most present mark.

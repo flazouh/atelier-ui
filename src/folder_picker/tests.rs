@@ -1,3 +1,4 @@
+use gpui_kit::Focusable;
 use gpui_kit::{Entity, Modifiers, TestAppContext, VisualTestContext, size};
 
 use super::*;

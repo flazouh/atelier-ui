@@ -1,3 +1,4 @@
+use gpui_kit::prelude::FluentBuilder;
 use std::time::Duration;
 
 use gpui_kit::{

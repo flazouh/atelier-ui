@@ -1,3 +1,5 @@
+use gpui_kit::ParentElement;
+use gpui_kit::Styled;
 use gpui_kit::{Context, IntoElement, Render, TestAppContext, Window, px, size};
 
 use super::*;

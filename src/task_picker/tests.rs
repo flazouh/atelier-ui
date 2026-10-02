@@ -62,7 +62,7 @@ fn the_cursor_moves_with_the_arrows_inside_the_matches() {
 
 mod morph {
     use super::super::*;
-    use crate::task_edit::Field;
+    use crate::task_edit::{Field, Picker};
     use crate::task_model::{Priority, TaskStatus};
 
     fn status() -> Picker {
