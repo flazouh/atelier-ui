@@ -95,3 +95,91 @@ mod folding {
         assert!(cx.debug_bounds("tool-output").is_some());
     }
 }
+
+mod clipped {
+    use std::{cell::Cell, rc::Rc};
+
+    use gpui_kit::{Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host {
+        lines: usize,
+        opened: Rc<Cell<usize>>,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let log = (0..self.lines).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            let opened = self.opened.clone();
+            div().w(px(600.)).child(
+                ToolCall::new("call", "Ran tests")
+                    .status(ToolStatus::Done)
+                    .output(log)
+                    .default_open(true)
+                    .collapse_on_complete(false)
+                    .preview_rows(6)
+                    .on_open(move |_, _| opened.set(opened.get() + 1)),
+            )
+        }
+    }
+
+    fn open(lines: usize, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, Rc<Cell<usize>>) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let opened = Rc::new(Cell::new(0));
+        let seen = opened.clone();
+        let (host, cx) = cx.add_window_view(move |_, _| Host { lines, opened });
+        cx.simulate_resize(size(px(700.), px(900.)));
+        settle(&host, cx);
+        (host, cx, seen)
+    }
+
+    fn settle(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        cx.run_until_parked();
+    }
+
+    fn height(cx: &mut gpui_kit::VisualTestContext) -> f32 {
+        f32::from(cx.debug_bounds("tool-output").unwrap().size.height)
+    }
+
+    fn press(cx: &mut gpui_kit::VisualTestContext) {
+        let at = cx.debug_bounds("tool-output").unwrap().center();
+        cx.simulate_click(at, Modifiers::none());
+    }
+
+    #[gpui_kit::test]
+    fn a_long_log_shows_only_its_last_lines(cx: &mut TestAppContext) {
+        let (_, cx, opened) = open(40, cx);
+        assert_eq!(height(cx), 6. * 20. + 24.);
+        assert_eq!(opened.get(), 0);
+    }
+
+    #[gpui_kit::test]
+    fn a_short_log_is_as_tall_as_its_lines(cx: &mut TestAppContext) {
+        let (_, cx, _) = open(2, cx);
+        assert!(height(cx) < 6. * 20. + 24.);
+    }
+
+    #[gpui_kit::test]
+    fn pressing_it_opens_it_and_a_second_press_folds_it(cx: &mut TestAppContext) {
+        let (host, cx, opened) = open(40, cx);
+        let clipped = height(cx);
+        press(cx);
+        settle(&host, cx);
+        assert_eq!(opened.get(), 1);
+        assert!(height(cx) > clipped + 100., "it grew: {} from {clipped}", height(cx));
+        press(cx);
+        settle(&host, cx);
+        assert_eq!(opened.get(), 1, "folding is silent");
+        assert_eq!(height(cx), clipped);
+    }
+}
