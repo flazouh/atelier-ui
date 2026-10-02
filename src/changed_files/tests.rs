@@ -56,3 +56,54 @@ fn review_starts_at_the_first_file() {
     assert_eq!(first_path(&files).map(|p| p.to_string()), Some("a.rs".into()));
     assert_eq!(first_path(&[]), None);
 }
+
+mod collapsible {
+    use std::{cell::Cell, rc::Rc};
+
+    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use super::file;
+    use crate::{
+        changed_files::ChangedFiles,
+        theme::{Appearance, set_appearance},
+    };
+
+    struct Host {
+        reviews: Rc<Cell<usize>>,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let reviews = self.reviews.clone();
+            div().size_full().child(
+                ChangedFiles::new("bar", vec![file("src/a.rs", 2, 1), file("b.rs", 1, 0)])
+                    .collapsible()
+                    .on_review(move |_, _, _| reviews.set(reviews.get() + 1)),
+            )
+        }
+    }
+
+    #[gpui_kit::test]
+    fn a_collapsible_list_starts_folded_and_its_header_opens_it(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Dark, cx);
+            cx.set_reduce_motion(true);
+        });
+        let reviews = Rc::new(Cell::new(0));
+        let (_host, cx) = cx.add_window_view(|_, _| Host { reviews: reviews.clone() });
+        cx.simulate_resize(size(px(500.), px(400.)));
+        cx.run_until_parked();
+        assert!(cx.debug_bounds("changed-file-src/a.rs").is_none(), "folded: no rows");
+        let review = cx.debug_bounds("changed-files-review").expect("Review is in the header");
+        cx.simulate_click(review.center(), gpui_kit::Modifiers::default());
+        cx.run_until_parked();
+        assert_eq!(reviews.get(), 1);
+        assert!(cx.debug_bounds("changed-file-src/a.rs").is_none(), "Review does not unfold the list");
+        let toggle = cx.debug_bounds("changed-files-toggle").expect("the header folds and unfolds");
+        cx.simulate_click(toggle.origin + gpui_kit::point(px(8.), px(8.)), gpui_kit::Modifiers::default());
+        cx.run_until_parked();
+        cx.run_until_parked();
+        assert!(cx.debug_bounds("changed-file-src/a.rs").is_some(), "open: the rows show");
+    }
+}

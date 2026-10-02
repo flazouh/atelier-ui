@@ -16,13 +16,6 @@ pub fn trigger(text: &str, cursor: usize) -> Option<Trigger> {
     (at_word_start && !query.contains(char::is_whitespace)).then(|| Trigger::Mention { start, query: query.to_string() })
 }
 
-/// The text with the mention from `start` to `cursor` replaced by `@path` and a space; and the caret after it.
-pub fn mention(text: &str, start: usize, cursor: usize, path: &str) -> (String, usize) {
-    let inserted = format!("@{path} ");
-    let caret = start + inserted.len();
-    (format!("{}{inserted}{}", &text[..start], &text[cursor..]), caret)
-}
-
 /// The indices of `items` that match `query`, best first; every one, in order, for no query.
 pub fn ranked(query: &str, items: &[CommandItem]) -> Vec<usize> {
     if query.is_empty() {

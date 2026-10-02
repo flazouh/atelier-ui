@@ -65,6 +65,7 @@ fn commands() -> Vec<crate::command_item::CommandItem> {
         item("compact", CommandSource::Agent, None),
         item("review", CommandSource::Atelier, None),
         item("goal", CommandSource::Atelier, Some("<the goal>")),
+        item("tidy", CommandSource::Skill, None),
     ]
 }
 
@@ -111,17 +112,89 @@ fn a_command_with_arguments_waits_for_them(cx: &mut TestAppContext) {
     assert_eq!(commands_of(&heard), [("goal".to_string(), "ship it".to_string())]);
 }
 
-/// `@` opens the project's files; Enter writes the one in front as a mention.
+/// A skill picked from the list goes into the box and waits; Enter then sends it.
 #[gpui_kit::test]
-fn an_at_sign_offers_the_files_and_enter_writes_a_mention(cx: &mut TestAppContext) {
-    let (prompt, _heard, cx) = open(cx);
+fn a_picked_skill_waits_in_the_box(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| p.set_commands(commands(), cx));
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(commands_of(&heard).is_empty(), "the pick does not run the skill");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "/tidy ");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(commands_of(&heard), [("tidy".to_string(), String::new())]);
+}
+
+/// With skills set to run when picked, the pick runs the skill and empties the box.
+#[gpui_kit::test]
+fn a_picked_skill_runs_when_set_to(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.set_commands(commands(), cx);
+        p.set_run_picked_skills(true);
+    });
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(commands_of(&heard), [("tidy".to_string(), String::new())]);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "");
+}
+
+fn sent(heard: &Rc<RefCell<Vec<PromptInputEvent>>>) -> Vec<String> {
+    heard.borrow().iter().filter_map(|e| match e {
+        PromptInputEvent::Submit(t) => Some(t.to_string()),
+        _ => None,
+    }).collect()
+}
+
+/// `@` opens the project's files; Enter takes the `@` words out of the text and shows the file as a chip,
+/// which the message sends as a mention.
+#[gpui_kit::test]
+fn an_at_sign_offers_the_files_and_enter_adds_a_chip(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
     prompt.update(cx, |p, cx| p.set_files(vec!["README.md".into(), "src/lib.rs".into(), "src/main.rs".into()], cx));
     cx.simulate_input("look at @li");
     cx.run_until_parked();
     assert!(cx.debug_bounds("file-row-src/lib.rs").is_some(), "src/lib.rs is offered for @li");
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
-    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "look at @src/lib.rs ");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "look at ");
+    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_some(), "the file shows as a chip");
+    cx.simulate_input("please");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(sent(&heard), ["@src/lib.rs look at please"]);
+    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_none(), "a sent message takes its chips");
+}
+
+/// A chip's remove button takes the file off the message; one file is one chip.
+#[gpui_kit::test]
+fn a_chip_comes_off_and_a_file_is_one_chip(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| p.set_files(vec!["README.md".into(), "src/lib.rs".into()], cx));
+    for _ in 0..2 {
+        cx.simulate_input("@li");
+        cx.run_until_parked();
+        cx.simulate_keystrokes("enter");
+        cx.run_until_parked();
+    }
+    cx.simulate_input("@READ");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).attached().len()), 2);
+    let remove = cx.debug_bounds("file-chip-remove-src/lib.rs").expect("a chip has a remove button");
+    cx.simulate_click(remove.center(), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_none());
+    cx.simulate_input("go");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert_eq!(sent(&heard), ["@README.md go"]);
 }
 
 /// Escape closes the list and keeps the text; Down moves to the next row.

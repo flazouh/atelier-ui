@@ -6,7 +6,7 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{mention, ranked, trigger};
+pub use helpers::{ranked, trigger};
 pub use structs::CommandItem;
 pub use types::{CommandSource, Trigger};
 

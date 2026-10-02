@@ -30,7 +30,7 @@ use crate::{
     typography::TextSize,
 };
 use super::types::{
-    CORNER, HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_RISE, ITEM_STEP, PANEL_PAD,
+    HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_RISE, ITEM_STEP, PANEL_PAD,
     RISE_DAMPING, RISE_STIFFNESS, ROW_GAP, SelectHandler, TYPE_AHEAD,
 };
 use super::helpers::{
@@ -415,7 +415,7 @@ impl RenderOnce for Select {
             .gap(px(8.))
             .when(!compact, |d| d.px(px(12.)).py(px(8.)))
             .when(compact, |d| d.h(px(32.)).px(px(8.)))
-            .rounded(px(CORNER))
+            .rounded(radius::lg())
             .bg(trigger_bg)
             // The surface drawn over it is the trigger while it is open or moving.
             .when(shown, |d| d.opacity(0.))
@@ -567,7 +567,7 @@ impl RenderOnce for Select {
             .gap(px(ROW_GAP))
             .p(px(PANEL_PAD))
             .children(options);
-        let edge_line = div().absolute().inset_0().rounded(px(CORNER)).border_1().border_color(edge);
+        let edge_line = div().absolute().inset_0().rounded(radius::lg()).border_1().border_color(edge);
         // The surface covers what is under it: a click on an option must not also reach that.
         let panel = div()
             .id("panel")
@@ -575,7 +575,8 @@ impl RenderOnce for Select {
             .relative()
             .w(px(surface_w))
             .h(px(surface_h))
-            .rounded(px(CORNER))
+            .rounded(radius::lg())
+
             .overflow_hidden()
             .bg(surface_fill)
             .when(self.shadow, |d| d.shadow(surface_shadows))

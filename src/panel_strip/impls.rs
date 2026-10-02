@@ -3,7 +3,7 @@ use std::time::Instant;
 use gpui_kit::{
     AnyElement, AppContext, Context, CursorStyle, DragMoveEvent, InteractiveElement,
     IntoElement, ParentElement, ScrollWheelEvent, StatefulInteractiveElement, Styled, Window,
-    div, prelude::FluentBuilder,
+    div,
 };
 
 use crate::scale::px;
@@ -76,7 +76,6 @@ impl AgentPanels {
                 }
                 None => (self.geometry.left(column), 1.),
             };
-            let active = self.tabs.active() == Some(&panel.id);
             let id = panel.id.clone();
             let edge = DraggedEdge { id: id.clone() };
             let this = cx.entity();
@@ -106,7 +105,6 @@ impl AgentPanels {
                             .rounded(radius::xl())
                             .overflow_hidden()
                             .bg(theme.card)
-                            .when(active, |d| d.bg(theme.card_strong.opacity(0.5)))
                             .child(crate::panel_types::draw_content(&panel.content)),
                     )
                     .child(

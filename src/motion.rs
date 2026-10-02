@@ -80,6 +80,8 @@ impl Spring {
     /// A choice of the bloom menu arriving (`stiffness: 440, damping: 34`).
     pub const BLOOM_ITEM: Self = Self { stiffness: 440., damping: 34., mass: 1. };
     pub const LAYOUT: Self = Self { stiffness: 360., damping: 32., mass: 0.6 };
+    /// A message arriving in the conversation (beui's `MESSAGE_POP_UP`).
+    pub const MESSAGE_POP: Self = Self { stiffness: 480., damping: 32., mass: 0.62 };
     /// Tailwind's `transition-colors` (150ms), as a spring that restarts smoothly from anywhere.
     pub const TINT: Self = Self::critical(36.);
     /// mem0's arrow chip: the arrows sliding through it, fitted to its hover.
@@ -103,6 +105,23 @@ impl Spring {
     /// bounce: 0.22 }` on the web; here twice as fast (Alex, 2026-10-01), so `duration: 0.25`. The chevron turns on it too.
     pub fn select_morph() -> Self {
         Self::bouncy(SELECT_MORPH_SECONDS, 0.22)
+    }
+
+    /// Where the spring is `t` seconds after it set off from 0, at rest, toward 1.
+    pub fn position(&self, t: f32) -> f32 {
+        let omega = (self.stiffness / self.mass).sqrt();
+        let zeta = self.damping / (2. * (self.stiffness * self.mass).sqrt());
+        let decay = (-zeta * omega * t).exp();
+        if (zeta - 1.).abs() < 1e-3 {
+            1. - decay * (1. + omega * t)
+        } else if zeta < 1. {
+            let wd = omega * (1. - zeta * zeta).sqrt();
+            1. - decay * ((wd * t).cos() + zeta * omega / wd * (wd * t).sin())
+        } else {
+            let root = (zeta * zeta - 1.).sqrt();
+            let (r1, r2) = (-omega * (zeta - root), -omega * (zeta + root));
+            1. - (r2 * (r1 * t).exp() - r1 * (r2 * t).exp()) / (r2 - r1)
+        }
     }
 }
 

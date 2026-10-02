@@ -2,9 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
-/// The surface's corner, and the item grid it measures from.
-pub(super) const CORNER: f32 = 12.;
-
+/// The item grid the surface measures from.
 pub(super) const ITEM_HEIGHT: f32 = 28.;
 
 /// The gap between rows, in every list.
