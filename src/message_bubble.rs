@@ -4,10 +4,12 @@
 //!   and `tint` fill `card`; `borderless` (beui's `outline`) fills `card_strong` in place of a border;
 //!   `danger` fills `danger` at 10% (text `danger`); `ghost` draws no surface and drops the padding,
 //!   stretching to the full row width.
-//! - Shape: `rounded-2xl`, `px-3.5 py-2.5`, `text-sm leading-6`, capped at 82% width, at least 36px wide.
+//! - Shape: compact, as the pull request view's cards are: `rounded-xl` (12), `px-3 py-1.5`, `text-sm` on 20px lines,
+//!   capped at 82% width, at least 36px wide. (beui's own is `rounded-2xl px-3.5 py-2.5 leading-6`, which is roomier
+//!   than a long chat can afford.)
 //! - Alignment: `start` or `end`; the row stacks the bubble on that edge of its column.
-//! - Grouped corners: [`message_bubble_group`] stacks consecutive bubbles `gap-1.5` (compact) or
-//!   `gap-3` (default) apart, so a speaker's turns read as one column instead of separate cards.
+//! - Grouped corners: [`message_bubble_group`] stacks consecutive bubbles 4px (compact, the stack gap of the cards above the
+//!   composer) or 12px (default) apart, so a speaker's turns read as one column instead of separate cards.
 //! - Expandable content: [`MessageBubbleCollapsible`] clips long prose to a line count behind a bottom
 //!   fade, with a "Show more/less" pill whose chevron turns on `SPRING_SWAP`.
 //! - Entrance: the shared chat [`Entrance`]: the whole bubble fades and rises 6px, like every other
@@ -29,6 +31,11 @@ use crate::{
     theme::{ActiveTheme, Theme, radius},
     typography::TextSize,
 };
+
+/// The bubble's padding across and down and its line height, in pixels.
+pub const PAD_X: f32 = 12.;
+pub const PAD_Y: f32 = 6.;
+pub const LINE: f32 = 20.;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum MessageBubbleVariant {
@@ -121,11 +128,11 @@ impl RenderOnce for MessageBubble {
         let card = div()
             .relative()
             .when(!ghost, |d| {
-                d.min_w(px(36.)).max_w(relative(0.82)).px(px(14.)).py(px(10.)).rounded(radius::xxl())
+                d.min_w(px(36.)).max_w(relative(0.82)).px(px(PAD_X)).py(px(PAD_Y)).rounded(radius::xl())
             })
             .when(ghost, |d| d.w_full())
             .text_size(TextSize::Sm.font_size())
-            .line_height(px(24.))
+            .line_height(px(LINE))
             .text_color(text_color)
             .when_some(fill, |d, color| d.bg(color))
             .child(self.content);
@@ -151,7 +158,7 @@ pub enum MessageBubbleGroupSpacing {
 /// Stacks a speaker's bubbles into one grouped column.
 pub fn message_bubble_group(spacing: MessageBubbleGroupSpacing) -> gpui_kit::Div {
     let gap = match spacing {
-        MessageBubbleGroupSpacing::Compact => px(6.),
+        MessageBubbleGroupSpacing::Compact => px(crate::subagent_strip::STACK_GAP),
         MessageBubbleGroupSpacing::Default => px(12.),
     };
     div().flex().flex_col().w_full().gap(gap)
@@ -209,7 +216,7 @@ impl RenderOnce for MessageBubbleCollapsible {
         let (open, chevron) = (m.open, m.chevron.value());
         let theme = cx.theme().clone();
         let fade_into = self.fade_into.unwrap_or(theme.card);
-        let total_h = self.collapsed_lines as f32 * 24.;
+        let total_h = self.collapsed_lines as f32 * LINE;
         let fade_h = total_h * 0.32;
 
         let clipped = div()
@@ -236,9 +243,9 @@ impl RenderOnce for MessageBubbleCollapsible {
         let toggle = motion.clone();
         let pill = div()
             .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "toggle".into()))
-            .mt(px(8.))
+            .mt(px(4.))
             .flex()
-            .h(px(28.))
+            .h(px(24.))
             .items_center()
             .gap(px(4.))
             .rounded_full()

@@ -14,6 +14,13 @@
 //!   `clip-path`, so the corner-morph grow is simplified to the fade-in this codebase already uses for
 //!   `Disclosure`'s reveal; it still fades in on `card` with beui's drop-shadow, and closes at once like
 //!   `Disclosure` does, rather than tweening the exit.
+//! - Dictation (`set_dictation(true)`): a round microphone sits before Send. The first press asks the owner to start
+//!   ([`PromptInputEvent::DictationStart`]); if the speech model is missing the owner shows the setup
+//!   ([`PromptInput::set_voice_setup`]) and the left of the action row (Plus, model, mode) cross-fades into the setup
+//!   bar. While it listens ([`PromptInput::set_voice_listening`]) the same place shows rounded amber bars that follow
+//!   the voice ([`PromptInput::set_voice_level`]) with the time, and the microphone turns into a stop square on an
+//!   amber disc. Stop gives [`PromptInputEvent::DictationStop`]; the owner then hands the words to
+//!   [`PromptInput::insert_transcript`]. Send is off while it listens.
 //! - Enter sends; Shift-Enter adds a line, exactly as before.
 
 use gpui_kit::{
@@ -23,6 +30,8 @@ use gpui_kit::{
     component::input::{InputEvent, MoveDown, MoveUp, Position, Textarea, TextareaState},
     prelude::FluentBuilder,
 };
+use std::time::Instant;
+
 use crate::scale::px;
 
 use crate::{
@@ -32,10 +41,13 @@ use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
     menu::{Entry, Menu, MenuItem, Origin},
-    motion::{Channel, Curve, Spring},
+    motion::{Channel, Curve, Spring, ease},
+    morph::Morph,
     select::{Select, SelectOption},
     theme::{ActiveTheme, radius},
     typography::TextSize,
+    voice_input::{self, VoiceMode},
+    voice_setup::{SetupPhase, VoiceSetup},
 };
 
 /// One choice in the model picker.
@@ -108,8 +120,22 @@ pub enum PromptInputEvent {
     ModelChanged(SharedString),
     /// The user picked a different mode from [`PromptInput::modes`], by its words.
     ModeChanged(SharedString),
+    /// The user pressed the microphone. The owner starts the capture, or shows the setup first.
+    DictationStart,
+    /// The user pressed the stop square. The owner ends the capture and inserts the words.
+    DictationStop,
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
     Command { name: SharedString, args: SharedString },
+}
+
+/// `existing` with `words` after it, a space between when `existing` does not end in whitespace.
+pub fn append_transcript(existing: &str, words: &str) -> String {
+    let words = words.trim();
+    if existing.is_empty() || existing.ends_with(char::is_whitespace) {
+        format!("{existing}{words}")
+    } else {
+        format!("{existing} {words}")
+    }
 }
 
 /// The list open under the text: its trigger, the rows that match (indices into the commands or the
@@ -157,6 +183,19 @@ pub struct PromptInput {
     menu: ActionsMenu,
     /// 0 shows Send, 1 shows Stop; animates between them on `Spring::SWAP`.
     send_swap: Channel,
+    /// Dictation: the microphone shows, and the owner answers its events.
+    dictation: bool,
+    voice: VoiceMode,
+    /// The last mode that was not idle, which the bar keeps showing while it fades out.
+    voice_face: VoiceMode,
+    voice_phase: SetupPhase,
+    voice_total_mb: f32,
+    voice_level: f32,
+    voice_since: Option<Instant>,
+    /// 0 shows the microphone, 1 the stop square.
+    mic_swap: Channel,
+    /// 0 shows Plus, the model and the mode; 1 shows the setup or the bars.
+    voice_fade: Channel,
     running: bool,
     disabled: bool,
     /// What `/` offers, and `@` ([`crate::command_item`]).
@@ -204,6 +243,15 @@ impl PromptInput {
             actions: Vec::new(),
             menu: ActionsMenu::new(),
             send_swap: Channel::new(0.),
+            dictation: false,
+            voice: VoiceMode::Idle,
+            voice_face: VoiceMode::Listening,
+            voice_phase: SetupPhase::Prepare,
+            voice_total_mb: 164.,
+            voice_level: 0.,
+            voice_since: None,
+            mic_swap: Channel::new(0.),
+            voice_fade: Channel::new(0.),
             running: false,
             disabled: false,
             commands: Vec::new(),
@@ -265,6 +313,77 @@ impl PromptInput {
         if running {
             self.menu.set_open(false, reduce);
         }
+        cx.notify();
+    }
+
+    /// Shows the microphone before Send, and starts hearing it.
+    pub fn set_dictation(&mut self, on: bool, cx: &mut Context<Self>) {
+        self.dictation = on;
+        if !on {
+            self.go_voice(VoiceMode::Idle, cx);
+        }
+        cx.notify();
+    }
+
+    /// Which part of dictation shows now.
+    pub fn voice_mode(&self) -> VoiceMode {
+        self.voice
+    }
+
+    pub fn set_voice_idle(&mut self, cx: &mut Context<Self>) {
+        self.go_voice(VoiceMode::Idle, cx);
+    }
+
+    /// Shows the first-use setup at `phase`; call again as it moves.
+    pub fn set_voice_setup(&mut self, phase: SetupPhase, cx: &mut Context<Self>) {
+        self.voice_phase = phase;
+        self.go_voice(VoiceMode::Setup, cx);
+    }
+
+    pub fn set_voice_listening(&mut self, cx: &mut Context<Self>) {
+        self.go_voice(VoiceMode::Listening, cx);
+    }
+
+    /// The size of the model being fetched, for the setup's words.
+    pub fn set_voice_total_mb(&mut self, total_mb: f32, cx: &mut Context<Self>) {
+        self.voice_total_mb = total_mb;
+        cx.notify();
+    }
+
+    /// The microphone's level now, 0 to 1.
+    pub fn set_voice_level(&mut self, level: f32, cx: &mut Context<Self>) {
+        self.voice_level = level;
+        cx.notify();
+    }
+
+    fn go_voice(&mut self, mode: VoiceMode, cx: &mut Context<Self>) {
+        let reduce = cx.reduce_motion();
+        let listening = mode == VoiceMode::Listening;
+        if listening && self.voice != VoiceMode::Listening {
+            self.voice_since = Some(Instant::now());
+        }
+        if mode == VoiceMode::Idle {
+            self.voice_level = 0.;
+        } else {
+            self.voice_face = mode;
+            // The menu cannot stay open behind the bars that cover its button.
+            self.menu.set_open(false, reduce);
+        }
+        self.voice = mode;
+        self.mic_swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+        self.voice_fade.animate(if mode == VoiceMode::Idle { 0. } else { 1. }, Curve::Ease(0.22, ease::OUT), 0., reduce);
+        cx.notify();
+    }
+
+    /// Writes what was said at the end of the text, after a space when the text does not end in one, and puts the caret after
+    /// it, so the user reads it, fixes it and sends it.
+    pub fn insert_transcript(&mut self, words: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let words = words.trim();
+        if words.is_empty() {
+            return;
+        }
+        let written = append_transcript(&self.text(cx), words);
+        self.write(&written, written.len(), window, cx);
         cx.notify();
     }
 
@@ -386,7 +505,7 @@ impl PromptInput {
         }
         let text = self.text(cx);
         let text: SharedString = text.trim().to_string().into();
-        if text.is_empty() || self.disabled {
+        if text.is_empty() || self.disabled || self.voice != VoiceMode::Idle {
             return;
         }
         if let Some(rest) = text.strip_prefix('/') {
@@ -498,9 +617,15 @@ impl Render for PromptInput {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
         let empty = self.text(cx).trim().is_empty();
-        let can_submit = !empty && !disabled && !self.running;
+        let can_submit = !empty && !disabled && !self.running && self.voice == VoiceMode::Idle;
 
-        if self.menu.rotate.is_running() || self.send_swap.is_running() {
+        let reduce = cx.reduce_motion();
+        if self.menu.rotate.is_running()
+            || self.send_swap.is_running()
+            || self.mic_swap.is_running()
+            || self.voice_fade.is_running()
+            || (self.voice == VoiceMode::Listening && !reduce)
+        {
             window.request_animation_frame();
         }
 
@@ -680,17 +805,75 @@ impl Render for PromptInput {
             )
         });
 
-        let toolbar = div()
+        // The left of the row: Plus, the model and the mode, which cross-fade with the setup or the bars while dictation runs.
+        let fade = self.voice_fade.value().clamp(0., 1.);
+        let seconds = self.voice_since.map_or(0., |s| s.elapsed().as_secs_f32());
+        let (face, phase, total_mb, level) = (self.voice_face, self.voice_phase, self.voice_total_mb, self.voice_level);
+        let muted = theme.muted_foreground;
+        let said = Morph::new("prompt-voice-said", voice_input::key(face), move |_, _| match face {
+            VoiceMode::Listening => voice_input::listening_row(level, seconds, muted),
+            _ => div().w_full().child(VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb)).into_any_element(),
+        });
+        let left = div()
+            .relative()
+            .flex_1()
+            .min_w_0()
+            .min_h(px(32.))
             .flex()
             .items_center()
-            .gap(px(4.))
-            .min_h(px(32.))
-            .mt(px(4.))
-            .children(add)
-            .children(model_select)
-            .children(mode_select)
-            .child(div().flex_1())
-            .child(send);
+            .when(fade < 0.999, |d| {
+                d.child(
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(4.))
+                        .opacity(1. - fade)
+                        .children(add)
+                        .children(model_select)
+                        .children(mode_select),
+                )
+            })
+            .when(fade > 0.001, |d| {
+                d.child(
+                    div()
+                        .absolute()
+                        .inset_0()
+                        .flex()
+                        .items_center()
+                        .pl(px(8.))
+                        .top(px(3. * (1. - fade)))
+                        .opacity(fade)
+                        // Nothing under the bars hears a press while they show.
+                        .occlude()
+                        .child(div().w_full().child(said)),
+                )
+            });
+
+        let mic = self.dictation.then(|| {
+            let this = cx.entity().downgrade();
+            let mic = voice_input::Mic {
+                id: "prompt-mic",
+                mode: self.voice,
+                swap: self.mic_swap.value(),
+                seconds,
+                blocked: disabled || self.running,
+                foreground: theme.foreground,
+                reduce,
+            };
+            voice_input::mic_slot(
+                mic,
+                move |_, _, cx| {
+                    this.update(cx, |this, cx| match this.voice {
+                        VoiceMode::Idle => cx.emit(PromptInputEvent::DictationStart),
+                        VoiceMode::Listening => cx.emit(PromptInputEvent::DictationStop),
+                        VoiceMode::Setup => {}
+                    })
+                    .ok();
+                },
+            )
+        });
+
+        let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(mic).child(send);
 
         let this = cx.entity().downgrade();
         let text = self.text.clone();

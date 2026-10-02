@@ -17,8 +17,8 @@
 use std::time::Instant;
 
 use gpui_kit::{
-    AnyElement, Context, EventEmitter, InteractiveElement, IntoElement, ParentElement, Render, SharedString, Styled, Window, div, hsla,
-    prelude::FluentBuilder,
+    AnyElement, App, Context, Div, EventEmitter, Hsla, InteractiveElement, IntoElement, ParentElement, Render, SharedString, Styled, Window, div,
+    hsla, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -141,12 +141,103 @@ impl VoiceInput {
     }
 }
 
-fn key(mode: VoiceMode) -> &'static str {
+pub(crate) fn key(mode: VoiceMode) -> &'static str {
     match mode {
         VoiceMode::Idle => "idle",
         VoiceMode::Setup => "setup",
         VoiceMode::Listening => "listening",
     }
+}
+
+/// The bars and the time beside them: what the bar says while it listens.
+pub(crate) fn listening_row(level: f32, seconds: f32, muted: Hsla) -> AnyElement {
+    div()
+        .w_full()
+        .flex()
+        .items_center()
+        .gap(px(12.))
+        .child(div().flex_1().min_w_0().child(VoiceWaves::new("voice-input-waves").level(level).height(px(26.)).bars(44)))
+        .child(
+            div()
+                .flex_none()
+                .w(px(34.))
+                .text_size(TextSize::Xs.font_size())
+                .text_color(muted)
+                .child(SharedString::from(clock(seconds as u64))),
+        )
+        .into_any_element()
+}
+
+/// The round button that is a microphone while idle and a stop square on an amber disc while it listens, with the ring
+/// breathing out from the disc. `swap` is 0 for the microphone and 1 for the stop square; `seconds` is how long it has
+/// listened. Pressing it calls `on_click`; it cannot be pressed while `mode` is [`VoiceMode::Setup`] or when `blocked`.
+pub(crate) struct Mic {
+    pub id: &'static str,
+    pub mode: VoiceMode,
+    pub swap: f32,
+    pub seconds: f32,
+    pub blocked: bool,
+    pub foreground: Hsla,
+    pub reduce: bool,
+}
+
+pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static) -> Div {
+    let Mic { id, mode, swap, seconds, blocked, foreground, reduce } = mic;
+    // The microphone and the stop square share one slot, blended by `swap` so neither ever pops.
+    let ink = hsla(38. / 360., 0.7, 0.1, 1.);
+    let glyphs = div()
+        .relative()
+        .size(px(16.))
+        .child(
+            div()
+                .absolute()
+                .inset_0()
+                .flex()
+                .items_center()
+                .justify_center()
+                .top(px(-3. * swap))
+                .opacity(1. - swap)
+                .child(Icon::new(IconName::Mic).size(px(16.)).color(foreground)),
+        )
+        .child(
+            div()
+                .absolute()
+                .inset_0()
+                .flex()
+                .items_center()
+                .justify_center()
+                .top(px(3. * (1. - swap)))
+                .opacity(swap)
+                .child(Icon::new(IconName::Stop).size(px(24.)).color(ink)),
+        );
+    let (ring_opacity, ring_reach) = if reduce { (0., 0.) } else { ring_at(ring_phase(seconds), swap) };
+    let button = Button::new(id)
+        .content(glyphs)
+        .pill(true)
+        .variant(ButtonVariant::Ghost)
+        .size(ButtonSize::Icon)
+        .disabled(blocked || mode == VoiceMode::Setup)
+        .tooltip(if mode == VoiceMode::Listening { "Stop" } else { "Dictate" })
+        .on_click(on_click);
+    div()
+        .relative()
+        .flex_none()
+        .size(px(BUTTON))
+        // The disc fills with amber as the square comes in.
+        .child(div().absolute().inset_0().rounded_full().bg(amber().opacity(swap)))
+        .when(ring_opacity > 0.01, |d| {
+            d.child(
+                div()
+                    .absolute()
+                    .top(px(-ring_reach))
+                    .left(px(-ring_reach))
+                    .size(px(BUTTON + 2. * ring_reach))
+                    .rounded_full()
+                    .border_1()
+                    .border_color(amber().opacity(ring_opacity)),
+            )
+        })
+        .child(button)
 }
 
 impl Render for VoiceInput {
@@ -162,98 +253,30 @@ impl Render for VoiceInput {
         // What the bar says, by mode. The closure is drawn again for the outgoing mode while it fades, so it holds its own
         // copy of everything it shows.
         let (mode, phase, total_mb, level) = (self.mode, self.phase, self.total_mb, self.level);
-        let (hint_color, time_color) = (theme.muted_foreground, theme.muted_foreground);
+        let muted = theme.muted_foreground;
         let said = Morph::new("voice-input-said", key(mode), move |_, _| -> AnyElement {
             match mode {
                 VoiceMode::Idle => div()
                     .w_full()
                     .text_size(TextSize::Xs.font_size() + gpui_kit::px(1.))
-                    .text_color(hint_color)
+                    .text_color(muted)
                     .child(SharedString::from("Press the microphone to dictate"))
                     .into_any_element(),
                 VoiceMode::Setup => div().w_full().child(VoiceSetup::new("voice-input-setup", phase).total_mb(total_mb)).into_any_element(),
-                VoiceMode::Listening => div()
-                    .w_full()
-                    .flex()
-                    .items_center()
-                    .gap(px(12.))
-                    .child(div().flex_1().min_w_0().child(VoiceWaves::new("voice-input-waves").level(level).height(px(26.)).bars(44)))
-                    .child(
-                        div()
-                            .flex_none()
-                            .w(px(34.))
-                            .text_size(TextSize::Xs.font_size())
-                            .text_color(time_color)
-                            .child(SharedString::from(clock(seconds as u64))),
-                    )
-                    .into_any_element(),
+                VoiceMode::Listening => listening_row(level, seconds, muted),
             }
         });
 
-        // The microphone and the stop square share one slot, blended by `t` so neither ever pops.
-        let ink = hsla(38. / 360., 0.7, 0.1, 1.);
-        let swap = div()
-            .relative()
-            .size(px(16.))
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .top(px(-3. * t))
-                    .opacity(1. - t)
-                    .child(Icon::new(IconName::Mic).size(px(16.)).color(theme.foreground)),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .top(px(3. * (1. - t)))
-                    .opacity(t)
-                    .child(Icon::new(IconName::Stop).size(px(24.)).color(ink)),
-            );
-
-        let (ring_opacity, ring_reach) = if reduce { (0., 0.) } else { ring_at(ring_phase(seconds), t) };
         let this = cx.entity().downgrade();
-        let button = Button::new("voice-input-button")
-            .content(swap)
-            .pill(true)
-            .variant(ButtonVariant::Ghost)
-            .size(ButtonSize::Icon)
-            .disabled(self.mode == VoiceMode::Setup)
-            .tooltip(if self.mode == VoiceMode::Listening { "Stop" } else { "Dictate" })
-            .on_click(move |_, _, cx| {
-                this.update(cx, |this, cx| match this.mode {
-                    VoiceMode::Idle => cx.emit(VoiceInputEvent::Start),
-                    VoiceMode::Listening => cx.emit(VoiceInputEvent::Stop),
-                    VoiceMode::Setup => {}
-                })
-                .ok();
-            });
-        let slot = div()
-            .relative()
-            .flex_none()
-            .size(px(BUTTON))
-            // The disc fills with amber as the square comes in.
-            .child(div().absolute().inset_0().rounded_full().bg(amber().opacity(t)))
-            .when(ring_opacity > 0.01, |d| {
-                d.child(
-                    div()
-                        .absolute()
-                        .top(px(-ring_reach))
-                        .left(px(-ring_reach))
-                        .size(px(BUTTON + 2. * ring_reach))
-                        .rounded_full()
-                        .border_1()
-                        .border_color(amber().opacity(ring_opacity)),
-                )
+        let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, foreground: theme.foreground, reduce };
+        let slot = mic_slot(mic, move |_, _, cx| {
+            this.update(cx, |this, cx| match this.mode {
+                VoiceMode::Idle => cx.emit(VoiceInputEvent::Start),
+                VoiceMode::Listening => cx.emit(VoiceInputEvent::Stop),
+                VoiceMode::Setup => {}
             })
-            .child(button);
+            .ok();
+        });
 
         div()
             .id("voice-input")

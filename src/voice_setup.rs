@@ -1,28 +1,27 @@
 //! The one-time setup of dictation: the first press of the microphone has to fetch the speech model, so the bar
-//! shows a line of words and a thin amber progress bar instead of a dead button.
+//! shows a line of words and a segmented amber progress bar instead of a dead button.
 //!
 //! SPIKE, with [`crate::voice_waves`]. The owner reports the work; this only draws it.
 //!
-//! - Download: the words say what is coming and how much (`Downloading speech model · 69 of 164 MB`), the percent
-//!   sits at the right, and the bar fills to it. The fill eases toward each new number, so a jumpy download looks
-//!   like one smooth pour instead of steps.
-//! - Prepare: the model is on disk and loads (the first run compiles shaders, a few seconds, with no number to
-//!   give). A short amber segment sweeps back and forth across the track instead of a fraction.
-//! - Ready: the bar is full, the words turn to `Ready` with a check.
-//! - A soft light travels along the filled part, so even a stalled download shows that the app is alive.
-//! - Reduce Motion: the fill jumps to the number and holds, with no sweep and no light.
+//! - The track is a row of 32 small cells, each a rounded rectangle. A cell is dark, lit, or in between at the head.
+//! - Download: the head cell fills in step with the number, and the few cells behind it burn hotter, near white, so the
+//!   edge reads as a charge arriving. A pale ripple runs through the lit cells, and a faint pulse travels out ahead of the
+//!   head over the dark ones, as if the bar were scanning for the rest. The number eases, so a jumpy download looks like
+//!   one smooth pour.
+//! - Prepare: the model is on disk and loads (the first run compiles shaders, a few seconds, with no number to give). A
+//!   short bright cluster with a trail sweeps back and forth across the cells.
+//! - Ready: every cell is lit, the ripple slows, and the words turn to `Ready` with a check.
+//! - Words at the left, the percent in mono at the right.
+//! - Reduce Motion: the fill jumps to the number; there is no ripple, no scan and no sweep.
 use std::time::Instant;
 
-use gpui_kit::{
-    App, ElementId, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div, hsla, linear_color_stop, linear_gradient,
-    prelude::FluentBuilder, relative,
-};
+use gpui_kit::{App, ElementId, Hsla, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div, hsla, prelude::FluentBuilder};
 
 use crate::{
     icon::{Icon, IconName},
     scale::px,
     theme::ActiveTheme,
-    typography::TextSize,
+    typography::{MONO_FONT_FAMILY, TextSize},
     voice_waves::amber,
 };
 
@@ -36,13 +35,14 @@ pub enum SetupPhase {
     Ready,
 }
 
-/// The height of the track in pixels.
-pub const TRACK_HEIGHT: f32 = 5.;
-/// How long the light takes to cross the fill, and the sweep to cross the track, in seconds.
-pub const SHEEN_SECONDS: f32 = 1.6;
+/// How many cells the track has, how tall each is and the space between, in pixels.
+pub const CELLS: usize = 32;
+pub const CELL_HEIGHT: f32 = 8.;
+pub const CELL_GAP: f32 = 2.;
+/// How long the bright cluster takes to cross the cells and come back, in seconds.
 pub const SWEEP_SECONDS: f32 = 1.5;
-/// How wide the sweep is, as a fraction of the track.
-pub const SWEEP_WIDTH: f32 = 0.34;
+/// How many cells behind the head burn hot.
+const HOT_REACH: f32 = 3.;
 /// How fast the fill eases toward its number: per second.
 const POUR_RATE: f32 = 9.;
 
@@ -78,18 +78,56 @@ fn smoothstep(x: f32) -> f32 {
     x * x * (3. - 2. * x)
 }
 
-/// Where the left edge of the light is, as a fraction of the fill, `seconds` in: it starts off to the left and
-/// leaves off to the right, then starts again.
-pub fn sheen_left(seconds: f32) -> f32 {
-    -0.45 + 1.45 * (seconds / SHEEN_SECONDS).fract()
+/// How lit one cell is and how hot (near white) it burns, both 0 to 1.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Cell {
+    pub lit: f32,
+    pub hot: f32,
 }
 
-/// Where the left edge of the sweep is, as a fraction of the track, `seconds` in: out to the right and back, slowing at
-/// both turns, and never leaving the track.
-pub fn sweep_left(seconds: f32) -> f32 {
+/// Where the bright cluster is, in cells, `seconds` in: out to the last cell and back, slowing at both turns.
+pub fn sweep_at(seconds: f32, cells: usize) -> f32 {
     let cycle = (seconds / SWEEP_SECONDS).rem_euclid(2.);
     let leg = if cycle < 1. { cycle } else { 2. - cycle };
-    smoothstep(leg) * (1. - SWEEP_WIDTH)
+    smoothstep(leg) * (cells.saturating_sub(1)) as f32
+}
+
+/// Cell `i` of `cells` when the bar is `fill` full (`None` while there is no number), `seconds` in. With `moving` off the
+/// ripple, the scan and the sweep are left out and the cluster rests in the middle.
+pub fn cell(i: usize, cells: usize, fill: Option<f32>, seconds: f32, moving: bool) -> Cell {
+    let at = i as f32;
+    let Some(fill) = fill else {
+        let head = if moving { sweep_at(seconds, cells) } else { (cells as f32 - 1.) / 2. };
+        let near = (1. - (at - head).abs() / 4.5).max(0.);
+        // The trail is the cluster seen a little earlier, so it stretches behind the way it moves.
+        let lit = near.powf(1.6);
+        return Cell { lit, hot: lit * lit };
+    };
+    let head = fill.clamp(0., 1.) * cells as f32;
+    let full = fill >= 1.;
+    let ripple = if moving { ((seconds * if full { 2.5 } else { 5. } - at * 0.35).sin() * 0.5 + 0.5) * 0.22 } else { 0.11 };
+    if at + 1. <= head + 1e-4 {
+        // Lit. The few just behind the head burn hotter.
+        let behind = head - at - 1.;
+        let hot = if full { 0. } else { (1. - behind / HOT_REACH).max(0.) * 0.85 };
+        Cell { lit: 0.78 + ripple, hot }
+    } else if at < head {
+        // The head cell, part way: it comes up as the number does.
+        Cell { lit: (head - at) * 0.95, hot: 1. }
+    } else {
+        // Dark, with a faint pulse running out ahead of the head.
+        let ahead = at - head;
+        let reach = (cells as f32 - head).max(1.) + 6.;
+        let pulse = if moving { (seconds * 16.) % reach } else { -10. };
+        let bump = (-(ahead - pulse).powi(2) / 3.).exp() * 0.4;
+        Cell { lit: bump, hot: 0. }
+    }
+}
+
+/// The color of a cell: dark amber to full amber by `lit`, then toward white by `hot`.
+pub fn cell_color(base: Hsla, cell: Cell) -> Hsla {
+    let alpha = 0.1 + 0.9 * cell.lit.clamp(0., 1.);
+    hsla(base.h, base.s * (1. - 0.6 * cell.hot), base.l + (0.97 - base.l) * 0.8 * cell.hot, alpha)
 }
 
 struct SetupState {
@@ -142,52 +180,17 @@ impl RenderOnce for VoiceSetup {
         let (words, percent) = copy(self.phase, self.total_mb);
         let ready = matches!(self.phase, SetupPhase::Ready);
         let base = amber();
-        let lighter = hsla(base.h, base.s, 0.68, 1.);
-        let fill = linear_gradient(90., linear_color_stop(lighter, 0.), linear_color_stop(base, 1.));
-        let light = |a: f32| gpui_kit::white().opacity(a);
-        // A gradient takes two stops, so the light is a rising half and a falling half side by side.
-        let glow = |left: f32| {
-            div()
-                .absolute()
-                .top_0()
-                .bottom_0()
-                .left(relative(left))
-                .w(relative(0.45))
-                .flex()
-                .child(div().flex_1().bg(linear_gradient(90., linear_color_stop(light(0.), 0.), linear_color_stop(light(0.5), 1.))))
-                .child(div().flex_1().bg(linear_gradient(90., linear_color_stop(light(0.5), 0.), linear_color_stop(light(0.), 1.))))
-        };
-
-        let track = div().relative().w_full().h(px(TRACK_HEIGHT)).overflow_hidden().rounded_full().bg(theme.card_strong).map(|track| {
-            match target {
-                Some(_) => track.child(
-                    div()
-                        .relative()
-                        .h_full()
-                        .w(relative(shown))
-                        .rounded_full()
-                        .overflow_hidden()
-                        .bg(fill)
-                        .when(!reduce, |d| d.child(glow(sheen_left(seconds)))),
-                ),
-                None => track.child(
-                    div()
-                        .absolute()
-                        .top_0()
-                        .bottom_0()
-                        .left(relative(if reduce { (1. - SWEEP_WIDTH) / 2. } else { sweep_left(seconds) }))
-                        .w(relative(SWEEP_WIDTH))
-                        .rounded_full()
-                        .bg(fill),
-                ),
-            }
+        let cells = (0..CELLS).map(|i| {
+            let c = cell(i, CELLS, target.map(|_| shown), seconds, !reduce);
+            div().flex_1().h(px(CELL_HEIGHT)).rounded(px(2.)).bg(cell_color(base, c))
         });
+        let track = div().w_full().flex().items_center().gap(px(CELL_GAP)).children(cells);
 
         div()
             .w_full()
             .flex()
             .flex_col()
-            .gap(px(7.))
+            .gap(px(8.))
             .child(
                 div()
                     .flex()
@@ -205,7 +208,7 @@ impl RenderOnce for VoiceSetup {
                             .when(ready, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(theme.success)))
                             .child(SharedString::from(words)),
                     )
-                    .when_some(percent, |d, percent| d.child(div().flex_none().text_color(theme.foreground).child(SharedString::from(percent)))),
+                    .when_some(percent, |d, percent| d.child(div().flex_none().font_family(MONO_FONT_FAMILY).text_color(theme.foreground).child(SharedString::from(percent)))),
             )
             .child(track)
     }

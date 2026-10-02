@@ -274,3 +274,11 @@ fn a_press_on_the_model_select_of_another_panel_switches_from_the_open_mode_list
     run_for(700, cx);
     assert_eq!(under(cx), Some("first model"), "and the first panel's model select, with the same ids, takes over");
 }
+
+#[test]
+fn a_transcript_follows_the_text_after_one_space() {
+    assert_eq!(append_transcript("", "hello there"), "hello there");
+    assert_eq!(append_transcript("fix this", "  and that "), "fix this and that");
+    assert_eq!(append_transcript("fix this ", "and that"), "fix this and that");
+    assert_eq!(append_transcript("line one\n", "line two"), "line one\nline two");
+}

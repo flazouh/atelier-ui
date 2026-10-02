@@ -32,19 +32,67 @@ fn the_fill_eases_toward_its_number_without_passing_it() {
 }
 
 #[test]
-fn the_sweep_stays_on_the_track_and_turns_around() {
+fn the_sweep_stays_on_the_cells_and_turns_around() {
     for k in 0..400 {
-        let left = sweep_left(k as f32 * 0.02);
-        assert!((0. ..=1. - SWEEP_WIDTH + 1e-6).contains(&left), "{left}");
+        let at = sweep_at(k as f32 * 0.02, CELLS);
+        assert!((0. ..=(CELLS - 1) as f32 + 1e-4).contains(&at), "{at}");
     }
-    assert!(sweep_left(0.) < 1e-6);
-    assert!((sweep_left(SWEEP_SECONDS) - (1. - SWEEP_WIDTH)).abs() < 1e-6);
-    assert!(sweep_left(2. * SWEEP_SECONDS) < 1e-6);
+    assert!(sweep_at(0., CELLS) < 1e-6);
+    assert!((sweep_at(SWEEP_SECONDS, CELLS) - (CELLS - 1) as f32).abs() < 1e-4);
+    assert!(sweep_at(2. * SWEEP_SECONDS, CELLS) < 1e-4);
 }
 
 #[test]
-fn the_light_enters_from_the_left_and_leaves_on_the_right() {
-    assert!(sheen_left(0.) < 0.);
-    assert!(sheen_left(SHEEN_SECONDS * 0.99) > 0.9);
-    assert!(sheen_left(SHEEN_SECONDS) < 0.);
+fn cells_fill_from_the_left_in_step_with_the_number() {
+    let lit = |fill: f32| (0..CELLS).filter(|&i| cell(i, CELLS, Some(fill), 0., false).lit > 0.7).count();
+    assert_eq!(lit(0.), 0);
+    assert_eq!(lit(0.5), CELLS / 2);
+    assert_eq!(lit(1.), CELLS);
+}
+
+#[test]
+fn the_head_cell_comes_up_part_way_between_two_whole_cells() {
+    // 10.5 cells of 32.
+    let head = cell(10, CELLS, Some(10.5 / CELLS as f32), 0., false);
+    assert!(head.lit > 0.3 && head.lit < 0.7 && head.hot > 0.9, "{head:?}");
+}
+
+#[test]
+fn the_cells_just_behind_the_head_burn_hotter_than_those_far_back() {
+    let fill = 20. / CELLS as f32;
+    let hot = |i| cell(i, CELLS, Some(fill), 0., false).hot;
+    assert!(hot(19) > hot(18) && hot(18) > hot(17) && hot(17) > 0.);
+    assert_eq!(hot(5), 0.);
+}
+
+#[test]
+fn a_finished_bar_has_nothing_hot() {
+    assert!((0..CELLS).all(|i| cell(i, CELLS, Some(1.), 1.3, true).hot == 0.));
+}
+
+#[test]
+fn without_a_number_a_cluster_is_bright_where_it_is_and_dark_far_off() {
+    let seconds = 0.5;
+    let at = sweep_at(seconds, CELLS);
+    let bright = cell(at.round() as usize, CELLS, None, seconds, true);
+    let far = cell(((at + 14.) as usize).min(CELLS - 1), CELLS, None, seconds, true);
+    assert!(bright.lit > 0.7 && far.lit == 0.);
+}
+
+#[test]
+fn without_motion_nothing_depends_on_the_time() {
+    for i in 0..CELLS {
+        assert_eq!(cell(i, CELLS, Some(0.4), 0., false), cell(i, CELLS, Some(0.4), 9., false));
+        assert_eq!(cell(i, CELLS, None, 0., false), cell(i, CELLS, None, 9., false));
+    }
+}
+
+#[test]
+fn a_hot_cell_is_paler_and_a_dark_one_is_fainter() {
+    let base = crate::voice_waves::amber();
+    let warm = cell_color(base, Cell { lit: 1., hot: 0. });
+    let hot = cell_color(base, Cell { lit: 1., hot: 1. });
+    let dark = cell_color(base, Cell { lit: 0., hot: 0. });
+    assert!(hot.l > warm.l && hot.s < warm.s);
+    assert!(dark.a < 0.2 && warm.a > 0.99);
 }
