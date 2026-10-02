@@ -7,8 +7,9 @@ use super::types::{PRESS_SCALE, SEGMENT_HEIGHT};
 /// or the `Secondary` button's when chosen.
 pub fn segment_fill(theme: &Theme, chosen: f32, hover: f32) -> Hsla {
     let ghost = crate::button::colors(crate::button::ButtonVariant::Ghost, theme, hover, false).0;
-    let secondary = crate::button::colors(crate::button::ButtonVariant::Secondary, theme, hover, false).0;
-    ghost.opacity(1. - chosen).blend(secondary.opacity(chosen))
+    let secondary =
+        crate::button::colors(crate::button::ButtonVariant::Secondary, theme, hover, false).0;
+    mix(ghost, secondary, chosen)
 }
 
 /// A segment's text: muted, then the foreground when chosen or hovered (`hover:text-foreground`).

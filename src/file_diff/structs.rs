@@ -19,7 +19,7 @@ use crate::{
     typography::{MONO_FONT_FAMILY, TextSize},
 };
 use super::types::{DiffLineKind, FileDiffStatus, MAX_HEIGHT, ROW_HEIGHT};
-use super::helpers::{diff_row, diff_stats, follow_status, hunk_starts};
+use super::helpers::{diff_row, diff_stats, fill, follow_status, hunk_starts};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiffLine {
@@ -83,6 +83,7 @@ pub struct FileDiff {
     max_height: f32,
     pub(super) copy_text: Option<SharedString>,
     scroll: Option<UniformListScrollHandle>,
+    inset: bool,
 }
 
 impl FileDiff {
@@ -97,6 +98,7 @@ impl FileDiff {
             max_height: MAX_HEIGHT,
             copy_text: None,
             scroll: None,
+            inset: false,
         }
     }
 
@@ -120,6 +122,12 @@ impl FileDiff {
     /// Closes itself the moment `status` goes from `Streaming` to `Complete`. On by default.
     pub fn collapse_on_complete(mut self, collapse: bool) -> Self {
         self.collapse_on_complete = collapse;
+        self
+    }
+
+    /// Sits inside a box, such as an approval, as a well instead of a box of its own.
+    pub fn inset(mut self, inset: bool) -> Self {
+        self.inset = inset;
         self
     }
 
@@ -246,7 +254,7 @@ impl RenderOnce for FileDiff {
                     .items_center()
                     .justify_center()
                     .size(px(16.))
-                    .text_color(muted.opacity(0.6))
+                    .text_color(theme.faint())
                     .child(if streaming {
                         Icon::new(IconName::Progress).size(px(14.)).turn(spin).into_any_element()
                     } else {
@@ -256,7 +264,7 @@ impl RenderOnce for FileDiff {
             .child(
                 div()
                     .flex_none()
-                    .text_color(muted.opacity(0.45))
+                    .text_color(theme.faint())
                     .group_hover("file-diff-header", |s| s.text_color(muted))
                     .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
             );
@@ -331,7 +339,7 @@ impl RenderOnce for FileDiff {
             .w_full()
             .rounded(radius::card())
             .overflow_hidden()
-            .bg(theme.card)
+            .bg(fill(&theme, self.inset))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .child(header)

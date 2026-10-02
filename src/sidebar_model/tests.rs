@@ -1,7 +1,7 @@
 use super::{
-    held_order,
-    Activation, Badge, Connection, Folds, ListMode, Location, Nav, ProjectData, Row, RowKey, SessionData, Step, activate, key_of, position_of, rows, since,
-    priority_rows, sorted, step, tasks_words,
+    Activation, Badge, Connection, Folds, ListMode, Location, Nav, ProjectData, Row,
+    SessionData, Step, activate, held_order, key_of, position_of, priority_rows, rows, since,
+    sorted, step,
 };
 use crate::{
     agent_look::{AgentLook, Mark, PhaseLabels},
@@ -25,10 +25,8 @@ fn project(id: &str, sessions: Vec<SessionData>) -> ProjectData {
         name: id.to_string().into(),
         location: Location::Local,
         connection: Connection::Connected,
-        branch: None,
         sessions,
         pulls_unavailable: None,
-        tasks_open: None,
         badge: Default::default(),
     }
 }
@@ -67,13 +65,32 @@ fn a_project_shows_five_sessions_then_a_fold_with_the_count_of_the_rest() {
     let sessions: Vec<_> = (0..12).map(|i| idle(&format!("s{i}"), 100 - i)).collect();
     let projects = [project("p", sessions)];
     let list = rows(&projects, &Folds::default());
-    assert_eq!(list.len(), 1 + 5 + 1 + 1, "the header, five sessions, the fold, the tasks");
-    assert_eq!(list[6], Row::Older { project: 0, hidden: 7, open: false });
+    assert_eq!(
+        list.len(),
+        1 + 5 + 1,
+        "the header, five sessions, the fold"
+    );
+    assert_eq!(
+        list[6],
+        Row::Older {
+            project: 0,
+            hidden: 7,
+            open: false
+        }
+    );
     let mut folds = Folds::default();
     folds.toggle_older(&"p".into());
     let open = rows(&projects, &folds);
-    assert_eq!(open.len(), 1 + 12 + 1 + 1);
-    assert_eq!(open[13], Row::Older { project: 0, hidden: 7, open: true }, "the same row says Show fewer");
+    assert_eq!(open.len(), 1 + 12 + 1);
+    assert_eq!(
+        open[13],
+        Row::Older {
+            project: 0,
+            hidden: 7,
+            open: true
+        },
+        "the same row says Show fewer"
+    );
 }
 
 #[test]
@@ -101,9 +118,16 @@ fn a_collapsed_project_shows_only_its_header_and_an_empty_one_offers_a_new_sessi
     let projects = [project("a", vec![idle("x", 1)]), project("b", vec![])];
     let mut folds = Folds::default();
     folds.set_collapsed(&"a".into(), true);
-    assert_eq!(rows(&projects, &folds), [Row::Project { project: 0 }, Row::Project { project: 1 }, Row::Empty { project: 1 }, Row::Tasks { project: 1 }]);
+    assert_eq!(
+        rows(&projects, &folds),
+        [
+            Row::Project { project: 0 },
+            Row::Project { project: 1 },
+            Row::Empty { project: 1 },
+        ]
+    );
     folds.set_collapsed(&"a".into(), false);
-    assert_eq!(rows(&projects, &folds).len(), 6);
+    assert_eq!(rows(&projects, &folds).len(), 4);
 }
 
 #[test]
@@ -239,17 +263,13 @@ fn a_held_list_keeps_its_order() {
 }
 
 #[test]
-fn each_open_project_ends_with_its_tasks_row_which_opens_the_tasks() {
-    let mut project = project("p", Vec::new());
-    project.tasks_open = Some(3);
-    let list = [project];
-    let rows = rows(&list, &Folds::default());
-    assert_eq!(rows.last(), Some(&Row::Tasks { project: 0 }), "the tasks row closes the section");
-    assert_eq!(activate(Row::Tasks { project: 0 }), Activation::OpenTasks(0));
-    assert_eq!(key_of(&list, Row::Tasks { project: 0 }), RowKey::Tasks(list[0].id.clone()));
-    assert_eq!(tasks_words(Some(3)), "Tasks 3");
-    assert_eq!(tasks_words(Some(0)), "Tasks");
-    assert_eq!(tasks_words(None), "Tasks");
+fn a_project_section_ends_with_its_last_session_and_holds_no_tasks() {
+    let list = [project("p", vec![idle("a", 2), idle("b", 1)])];
+    assert_eq!(
+        rows(&list, &Folds::default()).last(),
+        Some(&Row::Session { project: 0, session: 1 }),
+        "tasks live in the Tasks view, not under the sessions"
+    );
 }
 
 fn status_session(id: &str, status: SessionStatus, at: u64) -> SessionData {
@@ -262,10 +282,8 @@ fn two_projects(a: Vec<SessionData>, b: Vec<SessionData>) -> Vec<ProjectData> {
         name: name.to_string().into(),
         location: Location::Local,
         connection: Connection::Connected,
-        branch: None,
         sessions,
         pulls_unavailable: None,
-        tasks_open: None,
         badge: Badge::default(),
     };
     vec![project("a", a), project("b", b)]

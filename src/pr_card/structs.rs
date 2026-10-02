@@ -120,7 +120,7 @@ impl RenderOnce for PrCard {
             .pl(px(12.))
             .pr(px(6.))
             .rounded(radius::lg())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .text_size(TextSize::Xs.font_size())
             .line_height(TextSize::Xs.line_height())
             .when_some(on_open, |d, open| d.cursor_pointer().press_stop((self.id.clone(), "card-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, window, cx| open(&pr, window, cx)))

@@ -15,10 +15,16 @@ fn projects() -> Vec<ProjectData> {
         name: "atelier".into(),
         location: Location::Local,
         connection: Connection::Connected,
-        branch: Some("main".into()),
-        sessions: vec![SessionData { archived: false, in_panel: false, id: "s".into(), title: "A session".into(), look, status: SessionStatus::Idle, active_at: 1 }],
+        sessions: vec![SessionData {
+            archived: false,
+            in_panel: false,
+            id: "s".into(),
+            title: "A session".into(),
+            look,
+            status: SessionStatus::Idle,
+            active_at: 1,
+        }],
         pulls_unavailable: None,
-        tasks_open: None,
         badge: Default::default(),
     }]
 }
@@ -91,7 +97,15 @@ fn project(sessions: &[(&str, u64)]) -> Vec<ProjectData> {
         .iter()
         .map(|(id, at)| SessionData { archived: false, in_panel: false, id: (*id).into(), title: (*id).into(), look: look(), status: SessionStatus::Idle, active_at: *at })
         .collect();
-    vec![ProjectData { id: "p".into(), name: "p".into(), location: Location::Local, connection: Connection::Connected, branch: None, sessions, pulls_unavailable: None, tasks_open: None , badge: Default::default() }]
+    vec![ProjectData {
+        id: "p".into(),
+        name: "p".into(),
+        location: Location::Local,
+        connection: Connection::Connected,
+        sessions,
+        pulls_unavailable: None,
+        badge: Default::default(),
+    }]
 }
 
 fn order(sidebar: &Sidebar) -> Vec<String> {
@@ -118,25 +132,6 @@ fn the_list_holds_its_order_under_the_pointer(cx: &mut TestAppContext) {
     assert_eq!(sidebar.read_with(cx, |s, _| order(s)), ["a", "b", "c"], "c turned busy and stays put");
     sidebar.update(cx, |s, cx| s.hold(false, cx));
     assert_eq!(sidebar.read_with(cx, |s, _| order(s)), ["c", "a", "b"], "sorted again once the pointer leaves");
-}
-
-/// Each project ends with a tasks row; a press on it asks for that project's tasks.
-#[gpui_kit::test]
-fn a_press_on_the_tasks_row_asks_for_the_tasks_of_its_project(cx: &mut TestAppContext) {
-    let (sidebar, cx) = open(cx);
-    let told = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
-    let heard = told.clone();
-    let _sub = cx.update(|_, cx| {
-        cx.subscribe(&sidebar, move |_, event: &SidebarEvent, _| {
-            if let SidebarEvent::Tasks { project } = event {
-                heard.borrow_mut().push(project.to_string());
-            }
-        })
-    });
-    let row = cx.debug_bounds("sidebar-tasks").expect("the tasks row is drawn").center();
-    cx.simulate_click(row, Modifiers::default());
-    frames(&sidebar, cx, 4);
-    assert_eq!(told.borrow().len(), 1, "one press, one ask");
 }
 
 /// The head is the one place the options live: the switch and the filter change what the sidebar lists and say so in
@@ -182,4 +177,37 @@ fn the_layout_decides_what_a_row_shows_and_how_much_folds(cx: &mut TestAppContex
     frames(&sidebar, cx, 4);
     assert!(cx.debug_bounds("row-project").is_some(), "Always puts it on every row, in either list");
     assert_eq!(sidebar.read_with(cx, |s, _| order(s)).len(), 3, "three sessions show and two fold");
+}
+
+/// The head holds no switch: its ⋯ opens the sidebar's options, how it lists and what it shows, and each choice
+/// reports once.
+#[gpui_kit::test]
+fn the_head_options_live_behind_its_three_dots(cx: &mut TestAppContext) {
+    use crate::{sidebar_filter::SessionFilter, sidebar_model::ListMode};
+    let (sidebar, cx) = open(cx);
+    let heard = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let log = heard.clone();
+    let _sub = cx.update(|_, cx| {
+        cx.subscribe(&sidebar, move |_, event: &SidebarEvent, _| {
+            if let SidebarEvent::LayoutChanged(options) = event {
+                log.borrow_mut().push(*options);
+            }
+        })
+    });
+    sidebar.update(cx, |s, cx| s.set_projects(project(&[("a", 30), ("b", 20)]), 100, cx));
+    frames(&sidebar, cx, 4);
+    assert!(cx.debug_bounds("list-mode-projects").is_none(), "no switch in the head");
+    let press = |name: &'static str, cx: &mut gpui_kit::VisualTestContext| {
+        let at = cx.debug_bounds(name).unwrap_or_else(|| panic!("{name} is drawn")).center();
+        cx.simulate_click(at, Modifiers::default());
+        frames(&sidebar, cx, 4);
+    };
+    press("sidebar-options", cx);
+    press("list-mode-priority", cx);
+    assert_eq!(sidebar.read_with(cx, |s, _| s.layout().mode), ListMode::Priority);
+    assert!(cx.debug_bounds("list-mode-projects").is_none(), "a choice shuts the menu");
+    press("sidebar-options", cx);
+    press(SessionFilter::Archived.row(), cx);
+    assert_eq!(sidebar.read_with(cx, |s, _| s.layout().filter), SessionFilter::Archived, "the last row is in reach");
+    assert_eq!(heard.borrow().len(), 2, "one event for each choice");
 }

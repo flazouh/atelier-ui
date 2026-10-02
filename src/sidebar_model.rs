@@ -6,8 +6,7 @@ mod structs;
 mod types;
 
 pub use helpers::{
-    activate, held_order, key_of, position_of, priority_rows, rows, rows_held, since, sorted,
-    step, tasks_words,
+    activate, held_order, key_of, position_of, priority_rows, rows, rows_held, since, sorted, step,
 };
 pub use structs::{Badge, Folds, ProjectData, SessionData, Step};
 pub use types::{Activation, Connection, ListMode, Location, Nav, Row, RowKey, Section};

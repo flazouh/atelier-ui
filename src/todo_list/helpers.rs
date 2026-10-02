@@ -21,10 +21,10 @@ pub(super) fn status_color(status: TodoStatus, theme: &Theme) -> Hsla {
 pub(super) fn title_color(status: TodoStatus, theme: &Theme) -> Hsla {
     let muted = theme.muted_foreground;
     match status {
-        TodoStatus::Pending => muted.opacity(0.65),
+        TodoStatus::Pending => muted,
         TodoStatus::InProgress => theme.foreground,
-        TodoStatus::Done => muted.opacity(0.6),
-        TodoStatus::Cancelled => muted.opacity(0.55),
+        TodoStatus::Done => theme.faint(),
+        TodoStatus::Cancelled => theme.faint(),
     }
 }
 

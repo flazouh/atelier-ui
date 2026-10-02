@@ -173,7 +173,7 @@ impl RenderOnce for ToolCall {
                     .min_w_0()
                     .items_baseline()
                     .gap(px(8.))
-                    .when_some(self.icon, |d, icon| d.child(div().flex_none().self_center().text_color(muted.opacity(0.7)).child(Icon::new(icon).size(px(14.)))))
+                    .when_some(self.icon, |d, icon| d.child(div().flex_none().self_center().text_color(theme.faint()).child(Icon::new(icon).size(px(14.)))))
                     // The name keeps its width, up to most of the row; the path gives way first.
                     .child(
                         div()
@@ -185,7 +185,7 @@ impl RenderOnce for ToolCall {
                             .child(self.title),
                     )
                     .when_some(self.meta, |d, meta| {
-                        d.child(div().flex_none().text_size(TextSize::Xs.font_size()).text_color(muted.opacity(0.6)).child(meta))
+                        d.child(div().flex_none().text_size(TextSize::Xs.font_size()).text_color(muted).child(meta))
                     })
                     .when_some(self.file.clone(), |d, path| d.child(div().flex_none().self_center().child(FileIcon::file(&path).size(px(12.)))))
                     .when(!self.tool.is_empty(), |d| {
@@ -196,7 +196,7 @@ impl RenderOnce for ToolCall {
                                 .truncate()
                                 .font_family(MONO_FONT_FAMILY)
                                 .text_size(px(11.))
-                                .text_color(muted.opacity(0.55))
+                                .text_color(muted)
                                 .child(self.tool),
                         )
                     }),
@@ -219,7 +219,7 @@ impl RenderOnce for ToolCall {
                 d.child(
                     div()
                         .flex_none()
-                        .text_color(muted.opacity(0.5))
+                        .text_color(theme.faint())
                         .group_hover("tool-header", |s| s.text_color(muted))
                         .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
                 )
@@ -237,7 +237,7 @@ impl RenderOnce for ToolCall {
                     .flex_col()
                     .overflow_hidden()
                     .when(flat, |d| d.rounded(radius::xl()))
-                    .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
+                    .bg(if flat { theme.card_strong } else { theme.background.opacity(0.5) })
                     // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
                     .on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
                     .child(
@@ -271,7 +271,7 @@ impl RenderOnce for ToolCall {
                                     .rounded(radius::md())
                                     .cursor_pointer()
                                     .text_color(muted)
-                                    .hover(|s| s.bg(theme.card_strong).text_color(theme.foreground))
+                                    .hover(|s| s.bg(theme.muted_hover()).text_color(theme.foreground))
                                     .press_stop((self.id.clone(), "copy-focus"), crate::theme::radius::md(), window, cx)
                                     .on_click(move |_, _, cx| {
                                         CopyFeedback::click(&copy_state, |m: &mut CallMotion| &mut m.copy, text.clone(), cx);
@@ -287,7 +287,7 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!flat, |d| d.rounded(radius::card()).bg(theme.card).overflow_hidden())
+            .when(!flat, |d| d.rounded(radius::card()).bg(theme.card_strong).overflow_hidden())
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))

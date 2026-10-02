@@ -78,7 +78,6 @@ pub fn rows_held(projects: &[ProjectData], folds: &Folds, held: Option<&std::col
         }
         if data.sessions.is_empty() {
             out.push(Row::Empty { project });
-            out.push(Row::Tasks { project });
             continue;
         }
         let order = match held.and_then(|h| h.get(&data.id)) {
@@ -92,7 +91,6 @@ pub fn rows_held(projects: &[ProjectData], folds: &Folds, held: Option<&std::col
         if base < order.len() {
             out.push(Row::Older { project, hidden: order.len() - base, open });
         }
-        out.push(Row::Tasks { project });
     }
     out
 }
@@ -104,7 +102,6 @@ pub fn key_of(projects: &[ProjectData], row: Row) -> RowKey {
         Row::Session { project, session } => RowKey::Session(id(project), projects[project].sessions[session].id.clone()),
         Row::Older { project, .. } => RowKey::Older(id(project)),
         Row::Empty { project } => RowKey::Empty(id(project)),
-        Row::Tasks { project } => RowKey::Tasks(id(project)),
         Row::Section { section, .. } => RowKey::Section(section),
         Row::MoreEarlier { .. } => RowKey::MoreEarlier,
     }
@@ -152,17 +149,8 @@ pub fn activate(row: Row) -> Activation {
         Row::Session { project, session } => Activation::OpenSession { project, session },
         Row::Older { project, .. } => Activation::ToggleOlder(project),
         Row::Empty { project } => Activation::NewSession(project),
-        Row::Tasks { project } => Activation::OpenTasks(project),
         Row::MoreEarlier { .. } => Activation::ToggleEarlier,
         Row::Section { .. } => Activation::Nothing,
-    }
-}
-
-/// The words of a project's tasks row: "Tasks", and the count when there are open tasks.
-pub fn tasks_words(open: Option<usize>) -> String {
-    match open {
-        Some(n) if n > 0 => format!("Tasks {n}"),
-        _ => "Tasks".into(),
     }
 }
 

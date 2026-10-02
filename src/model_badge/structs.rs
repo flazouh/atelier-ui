@@ -93,7 +93,7 @@ impl RenderOnce for ModelBadge {
             .text_size(px(11.))
             .line_height(px(16.))
             .font_weight(FontWeight::MEDIUM)
-            .text_color(muted.opacity(0.8))
+            .text_color(muted)
             .child(self.label.clone());
         let Some(id) = self.id else { return label.into_any_element() };
 

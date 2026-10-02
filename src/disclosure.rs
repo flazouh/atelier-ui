@@ -49,7 +49,7 @@ impl RenderOnce for Disclosure {
         let open_state = window.use_keyed_state(self.id.clone(), cx, move |_, _| default_open);
         let open = *open_state.read(cx);
         let theme = cx.theme();
-        let (muted, fg) = (theme.muted_foreground, theme.foreground);
+        let (faint, fg) = (theme.faint(), theme.foreground);
         let has_body = self.body.is_some();
         let child_id = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
@@ -75,7 +75,7 @@ impl RenderOnce for Disclosure {
                     .child(
                         div()
                             .flex_none()
-                            .text_color(muted.opacity(0.5))
+                            .text_color(faint)
                             .group_hover("disclosure-header", |s| s.text_color(fg))
                             .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(14.))),
                     )

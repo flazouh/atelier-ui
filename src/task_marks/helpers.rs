@@ -111,8 +111,13 @@ pub(super) fn paint_status(bounds: Bounds<Pixels>, status: TaskStatus, theme: &T
     }
 }
 
-pub(super) fn paint_priority(bounds: Bounds<Pixels>, priority: Priority, theme: &Theme, window: &mut Window) {
-    let muted = theme.muted_foreground;
+pub(super) fn paint_priority(
+    bounds: Bounds<Pixels>,
+    priority: Priority,
+    theme: &Theme,
+    window: &mut Window,
+) {
+    let faint = theme.faint();
     match priority {
         Priority::Urgent => {
             fill_polygon(bounds, &rect(3., 3., 18., 18.), theme.warning, window);
@@ -121,14 +126,18 @@ pub(super) fn paint_priority(bounds: Bounds<Pixels>, priority: Priority, theme: 
         }
         Priority::None => {
             for x in [4., 10., 16.] {
-                fill_polygon(bounds, &rect(x, 11., 4., 2.), muted.opacity(0.6), window);
+                fill_polygon(bounds, &rect(x, 11., 4., 2.), faint, window);
             }
         }
         _ => {
             for (i, x) in [4., 10., 16.].into_iter().enumerate() {
                 let height = 6. + 4. * i as f32;
                 let on = i < priority.bars();
-                let color = if on { theme.foreground.opacity(0.85) } else { muted.opacity(0.35) };
+                let color = if on {
+                    theme.foreground.opacity(0.85)
+                } else {
+                    faint
+                };
                 fill_polygon(bounds, &rect(x, 20. - height, 4., height), color, window);
             }
         }

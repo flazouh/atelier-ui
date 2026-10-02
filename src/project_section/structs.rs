@@ -15,7 +15,7 @@ use crate::{
     sidebar_model::{Connection, Location, ProjectData},
     spinner::Spinner,
     theme::{ActiveTheme, radius},
-    typography::{MONO_FONT_FAMILY, TextSize},
+    typography::TextSize,
 };
 pub use crate::session_row::ROW_HEIGHT;
 use super::types::{Chooser, Handler, MENU_ORIGIN, MenuChoice};
@@ -185,9 +185,6 @@ impl RenderOnce for ProjectSection {
             .child(crate::project_badge::ProjectBadge::new(project.badge.label.clone(), project.badge.color).icon(project.badge.icon.clone()))
             .child(div().flex_none().max_w(px(160.)).truncate().font_weight(FontWeight::MEDIUM).child(project.name))
             .when_some(host, |d, host| d.child(chip(host, &theme)))
-            .when_some(project.branch, |d, branch| {
-                d.child(div().min_w_0().truncate().font_family(MONO_FONT_FAMILY).text_size(px(11.)).text_color(muted).child(branch))
-            })
             .child(div().flex_1())
             .when_some(words, |d, words| {
                 let offline = project.connection == Connection::Offline;

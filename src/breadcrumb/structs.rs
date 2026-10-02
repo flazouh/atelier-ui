@@ -116,7 +116,11 @@ impl RenderOnce for Breadcrumb {
         let mut items: Vec<gpui_kit::AnyElement> = Vec::new();
         for (slot, entry) in layout.iter().enumerate() {
             let separator = (slot > 0).then(|| {
-                div().flex_none().flex().items_center().child(Icon::new(IconName::ChevronRight).size(px(12.)).color(theme.muted_foreground.opacity(0.5)))
+                div().flex_none().flex().items_center().child(
+                    Icon::new(IconName::ChevronRight)
+                        .size(px(12.))
+                        .color(theme.faint()),
+                )
             });
             let body: gpui_kit::AnyElement = match entry {
                 Some(index) => {

@@ -40,9 +40,6 @@ pub(super) const TINT: Curve = Curve::Ease(0.2, [0.4, 0., 0.2, 1.]);
 
 pub(super) const DISABLED: f32 = 0.6;
 
-/// The unchecked edge is `border-muted-foreground/50`.
-pub(super) const EDGE_ALPHA: f32 = 0.5;
-
 /// The focus ring is `--ring`, the strong border: the foreground at 12%.
 pub(super) const RING_ALPHA: f32 = 0.12;
 

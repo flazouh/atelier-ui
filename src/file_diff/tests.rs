@@ -195,3 +195,27 @@ mod tail {
         assert!(from_end(&handle) > 100.);
     }
 }
+
+#[test]
+fn a_diff_parts_from_the_panel_and_from_a_box_it_sits_in() {
+    use crate::theme::{contrast, mix};
+    for theme in crate::themes::all() {
+        let shown = |fill: gpui_kit::Hsla, on: gpui_kit::Hsla| {
+            mix(on, gpui_kit::Hsla { a: 1., ..fill }, fill.a)
+        };
+        let boxed = super::helpers::fill(theme, false);
+        assert!(
+            contrast(shown(boxed, theme.card), theme.card) >= 1.05,
+            "{}: a box on the panel",
+            theme.name
+        );
+        let inset = super::helpers::fill(theme, true);
+        let well = shown(inset, theme.card_strong);
+        assert!(
+            contrast(well, theme.card_strong) >= 1.05,
+            "{}: a well in a box: {:.3}",
+            theme.name,
+            contrast(well, theme.card_strong)
+        );
+    }
+}

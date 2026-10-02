@@ -159,10 +159,14 @@ impl RenderOnce for ChangedFileTree {
                 // A folder: its fold mark, then its folder, open while unfolded. A file: the fold mark's
                 // room, so names line up, then its own icon.
                 .child(if row.is_folder() {
-                    Icon::new(if row.folded { IconName::ChevronRight } else { IconName::ChevronDown })
-                        .size(px(12.))
-                        .color(muted.opacity(0.7))
-                        .into_any_element()
+                    Icon::new(if row.folded {
+                        IconName::ChevronRight
+                    } else {
+                        IconName::ChevronDown
+                    })
+                    .size(px(12.))
+                    .color(theme.faint())
+                    .into_any_element()
                 } else {
                     div().flex_none().w(px(12.)).into_any_element()
                 })

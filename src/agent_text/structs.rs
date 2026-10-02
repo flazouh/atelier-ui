@@ -175,8 +175,8 @@ impl RenderOnce for AgentText {
                 .rounded(radius::md())
                 .cursor_pointer()
                 .text_color(if active { theme.foreground } else { muted })
-                .when(active, |d| d.bg(theme.card))
-                .hover(|s| s.bg(theme.card).text_color(theme.foreground))
+                .when(active, |d| d.bg(theme.card_strong))
+                .hover(|s| s.bg(theme.card_strong).text_color(theme.foreground))
                 .child(Icon::new(icon).size(px(14.)))
         };
 
@@ -240,7 +240,12 @@ impl RenderOnce for AgentText {
                     })
                     .child(chips)
                     .child(count_label)
-                    .child(Icon::new(IconName::ChevronDown).size(px(12.)).color(muted.opacity(0.5)).turn(chevron / 360.)),
+                    .child(
+                        Icon::new(IconName::ChevronDown)
+                            .size(px(12.))
+                            .color(theme.faint())
+                            .turn(chevron / 360.),
+                    ),
             );
         }
 
@@ -254,7 +259,7 @@ impl RenderOnce for AgentText {
                 .flex_col()
                 .gap(px(6.))
                 .rounded(radius::xl())
-                .bg(theme.card)
+                .bg(theme.card_strong)
                 .p(px(8.))
                 .children(self.sources.into_iter().map(|source| {
                     div()
@@ -267,7 +272,12 @@ impl RenderOnce for AgentText {
                                 .text_color(theme.foreground)
                                 .child(source.title),
                         )
-                        .child(div().text_size(px(11.)).text_color(muted.opacity(0.6)).child(source.domain))
+                        .child(
+                            div()
+                                .text_size(px(11.))
+                                .text_color(muted)
+                                .child(source.domain),
+                        )
                 }))
         });
 

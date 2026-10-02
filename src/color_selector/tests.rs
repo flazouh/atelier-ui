@@ -197,3 +197,18 @@ fn under_reduce_motion_a_press_does_not_sink(cx: &mut TestAppContext) {
     frames(&owner, cx, 3);
     assert_eq!(f32::from(cx.debug_bounds("color-disc-1").unwrap().size.width), rest);
 }
+
+#[gpui_kit::test]
+fn zoomed_in_the_ring_sits_on_the_chosen_swatch(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(1.5);
+    let (owner, cx, _) = open(swatches(5), Some("s3"), false, true, cx);
+    frames(&owner, cx, 3);
+    let ring = cx.debug_bounds("color-ring").expect("the ring is drawn");
+    let disc = cx.debug_bounds("color-swatch-3").unwrap();
+    crate::scale::set_zoom(1.);
+    let off = |a: gpui_kit::Pixels, b: gpui_kit::Pixels| (f32::from(a) - f32::from(b)).abs();
+    assert!(
+        off(ring.center().x, disc.center().x) < 0.6 && off(ring.center().y, disc.center().y) < 0.6,
+        "{ring:?} on {disc:?}"
+    );
+}

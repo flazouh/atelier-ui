@@ -4,9 +4,11 @@
 //!
 //! The design is borderless in every theme: surfaces part by tone and space, never by lines.
 //! `background` is the page, `card` sits one step up, and `card_strong` one more for a surface inside a
-//! card. Components never draw borders; `divider` exists only for the split between panes. The primary
-//! button is the page inverted, the accent marks highlights and the selection only, and no button
-//! carries a colour of its own.
+//! card; an agent panel is a card, so a box in it is `card_strong`. Quiet text is `muted_foreground`
+//! whole and a quiet mark is [`Theme::faint`]; neither is faded with an opacity. Components never draw
+//! borders; `divider` exists only for the split between panes. The primary button is the page
+//! inverted, the accent marks highlights and the selection only, and no button carries a colour of its
+//! own.
 
 use std::sync::Arc;
 
@@ -90,6 +92,23 @@ impl Theme {
     /// both the page and a card, in light and dark.
     pub fn muted_hover(&self) -> Hsla {
         self.foreground.opacity(0.06)
+    }
+
+    /// A surface inside a box that is itself inside a card: a thin wash of the ink, so it steps up from
+    /// whatever it sits on in every theme, where the page can be as light as `card_strong`.
+    pub fn wash(&self) -> Hsla {
+        self.foreground.opacity(0.06)
+    }
+
+    /// A quiet mark that must still be seen: a chevron, a status check, a line number, a tool's icon. Muted,
+    /// dimmed toward the card only as far as [`MARK_CONTRAST`] holds on the page, the card and `card_strong`.
+    /// Quiet text takes `muted_foreground` whole.
+    pub fn faint(&self) -> Hsla {
+        let surfaces = [self.background, self.card, self.card_strong];
+        (10..=20)
+            .map(|step| mix(self.card, self.muted_foreground, step as f32 * 0.05))
+            .find(|c| surfaces.iter().all(|bg| contrast(*c, *bg) >= MARK_CONTRAST))
+            .unwrap_or(self.muted_foreground)
     }
 
     /// The tone of a status mark: the theme's own, by presence. atelier's are a muted ramp; an imported

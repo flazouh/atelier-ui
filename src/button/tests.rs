@@ -33,6 +33,27 @@ fn a_picked_colour_fills_the_primary_button_in_every_theme_and_no_other_button()
     }
 }
 
+#[test]
+fn a_secondary_button_parts_from_every_surface_it_sits_on() {
+    use crate::theme::{contrast, mix};
+    for theme in themes::all() {
+        let (fill, _) = colors(ButtonVariant::Secondary, theme, 0., false);
+        for (surface, bg) in [
+            ("page", theme.background),
+            ("card", theme.card),
+            ("card_strong", theme.card_strong),
+        ] {
+            let shown = mix(bg, gpui_kit::Hsla { a: 1., ..fill }, fill.a);
+            let ratio = contrast(shown, bg);
+            assert!(
+                ratio >= 1.05,
+                "{}: secondary on {surface} {ratio:.3}",
+                theme.name
+            );
+        }
+    }
+}
+
 struct Host {
     focus: gpui_kit::FocusHandle,
 }

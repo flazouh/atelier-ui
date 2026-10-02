@@ -128,9 +128,20 @@ mod archive {
         let row = cx.debug_bounds("row-title:Add a subtract function").expect("the row is drawn");
         cx.simulate_mouse_move(row.center(), None, Default::default());
         cx.run_until_parked();
-        let archive = cx.debug_bounds("session-archive").expect("the archive button is drawn");
-        let more = cx.debug_bounds("session-more").expect("the more button is drawn");
-        assert!(archive.right() <= more.left(), "archive ({archive:?}) sits left of more ({more:?})");
+        let archive = cx
+            .debug_bounds("session-archive")
+            .expect("the archive button is drawn");
+        let more = cx
+            .debug_bounds("session-more")
+            .expect("the more button is drawn");
+        assert!(
+            archive.right() <= more.left(),
+            "archive ({archive:?}) sits left of more ({more:?})"
+        );
+        let time = cx.debug_bounds("row-time").expect("the time stays while the pointer is on the row");
+        assert!(more.right() <= time.left(), "the buttons stand left of the time, as in Cursor: {more:?} {time:?}");
+        let title = cx.debug_bounds("row-title:Add a subtract function").unwrap();
+        assert!(title.right() <= archive.left() + px(0.5), "and the title gives them room: {title:?} {archive:?}");
         cx.simulate_click(archive.center(), Default::default());
         cx.run_until_parked();
         assert_eq!((archived.get(), opened.get()), (1, 0));

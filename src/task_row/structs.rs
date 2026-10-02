@@ -93,7 +93,20 @@ impl RenderOnce for TaskRow {
             .children(session)
             .when_some(pr, |d, pr| d.child(PrChip::new((self.id.clone(), "pr"), pr)))
             .children(assignee)
-            .when(task.assignee.is_none(), |d| d.child(Icon::new(IconName::Add).size(px(14.)).color(muted.opacity(0.0))))
-            .child(div().flex_none().w(px(28.)).text_size(TextSize::Xs.font_size()).text_color(muted.opacity(0.8)).child(since(self.now, task.updated_at)))
+            .when(task.assignee.is_none(), |d| {
+                d.child(
+                    Icon::new(IconName::Add)
+                        .size(px(14.))
+                        .color(muted.opacity(0.0)),
+                )
+            })
+            .child(
+                div()
+                    .flex_none()
+                    .w(px(28.))
+                    .text_size(TextSize::Xs.font_size())
+                    .text_color(muted)
+                    .child(since(self.now, task.updated_at)),
+            )
     }
 }

@@ -263,7 +263,7 @@ impl RenderOnce for ChangedFiles {
             .flex_col()
             .w_full()
             .rounded(radius::card())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .child(header)
             .when(unfolded > 0.001, |d| d.child(
                 div()

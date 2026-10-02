@@ -102,7 +102,7 @@ pub(super) struct Motion {
     /// Where each swatch was in the last layout, in the window, and where the list starts.
     bounds: Vec<Option<Bounds<Pixels>>>,
     origin: Option<Point<Pixels>>,
-    /// The ring's centre in the list, and how far its colour has come from the old to the new.
+    /// The ring's centre in the list in design pixels, and how far its colour has come from the old to the new.
     pub(super) x: Channel,
     pub(super) y: Channel,
     blend: Channel,
@@ -152,7 +152,7 @@ impl RenderOnce for ColorSelector {
             if let (Some(i), Some(origin)) = (chosen, m.origin) {
                 let target = m.bounds[i].map(|b| b.center() - origin);
                 if let Some(target) = target {
-                    let (tx, ty) = (f32::from(target.x), f32::from(target.y));
+                    let (tx, ty) = (crate::scale::design(target.x), crate::scale::design(target.y));
                     let color = self.swatches[i].color;
                     if m.at.is_none() {
                         // The first time the ring is drawn it is simply there.

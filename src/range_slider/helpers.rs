@@ -1,4 +1,4 @@
-use super::types::{FILL_INSET, HANDLE_START, MOST_TICKS, TRAVEL_LOSS};
+use super::types::{FILL_INSET, HANDLE_START, KNOB, MOST_TICKS, TRAVEL_LOSS};
 
 /// The nearest legal value on `[min, max]` for `step` (`snapSliderValue`). `max` counts as a candidate when the
 /// step does not divide the range.
@@ -53,4 +53,11 @@ pub fn geometry(width: f32, percent: f32) -> (f32, f32) {
     let clip = width - 2. * FILL_INSET;
     let fill = if percent >= 100. { 0. } else { (percent - 100.) / 100. * clip + 14. - 0.16 * percent };
     (handle, fill)
+}
+
+/// The compact knob's left edge and the fill's width at `percent` of a rail `width` wide: the knob travels
+/// inside the rail, and the fill ends at its centre.
+pub fn compact_geometry(width: f32, percent: f32) -> (f32, f32) {
+    let knob_left = (width - KNOB).max(0.) * percent.clamp(0., 100.) / 100.;
+    (knob_left, knob_left + KNOB / 2.)
 }

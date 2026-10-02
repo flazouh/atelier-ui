@@ -15,11 +15,13 @@ fn project(sessions: Vec<SessionData>) -> ProjectData {
         name: "p".into(),
         location: Location::Local,
         connection: Connection::Connected,
-        branch: None,
         sessions,
         pulls_unavailable: None,
-        tasks_open: Some(0),
-        badge: crate::sidebar_model::Badge { label: "P".into(), color: 0, icon: None },
+        badge: crate::sidebar_model::Badge {
+            label: "P".into(),
+            color: 0,
+            icon: None,
+        },
     }
 }
 

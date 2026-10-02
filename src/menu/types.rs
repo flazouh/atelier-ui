@@ -52,6 +52,9 @@ pub enum Choice {
     Switch(bool),
 }
 
+/// A heading's height: 6px above, a 16px line and 4px below.
+pub(super) const LABEL: f32 = 26.;
+
 pub enum Entry {
     Item(MenuItem),
     /// A small heading over the rows that follow.
