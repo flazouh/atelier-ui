@@ -44,7 +44,7 @@ pub struct Sidebar {
     /// What the head chose, and whether the priority list shows all its earlier sessions.
     pub(super) layout: SidebarLayout,
     earlier_open: bool,
-    pub(super) filter_menu: bool,
+    pub(super) options_menu: bool,
     pub(super) add_menu: bool,
     entering: HashMap<SharedString, Instant>,
     moving: HashMap<RowKey, Channel>,
@@ -76,7 +76,7 @@ impl Sidebar {
             session_menu: None,
             layout: SidebarLayout::default(),
             earlier_open: false,
-            filter_menu: false,
+            options_menu: false,
             add_menu: false,
             entering: HashMap::new(),
             moving: HashMap::new(),
@@ -286,8 +286,9 @@ impl Sidebar {
                 self.folds.toggle_older(&id);
                 self.refresh(cx);
             }
-            Activation::NewSession(project) => cx.emit(SidebarEvent::NewSession { project: self.projects[project].id.clone() }),
-            Activation::OpenTasks(project) => cx.emit(SidebarEvent::Tasks { project: self.projects[project].id.clone() }),
+            Activation::NewSession(project) => cx.emit(SidebarEvent::NewSession {
+                project: self.projects[project].id.clone(),
+            }),
             Activation::ToggleEarlier => {
                 self.earlier_open = !self.earlier_open;
                 self.refresh(cx);
@@ -549,34 +550,6 @@ impl Sidebar {
                     .child(words)
                     .into_any_element()
             }
-            Row::Tasks { project } => {
-                let t = this.clone();
-                div()
-                    .id(name("tasks", &self.projects[project].id.clone()))
-                    .debug_selector(|| "sidebar-tasks".into())
-                    .flex()
-                    .flex_none()
-                    .items_center()
-                    .gap(px(8.))
-                    .h(px(ROW_HEIGHT))
-                    .pl(px(26.))
-                    .w_full()
-                    .rounded(radius::md())
-                    .cursor_pointer()
-                    .text_size(TextSize::Xs.font_size())
-                    .text_color(theme.muted_foreground)
-                    .when(selected, |d| d.bg(theme.card_strong))
-                    .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
-                    .press_stop(name("tasks-focus", &self.projects[project].id.clone()), radius::md(), window, cx)
-                    .on_click(move |_, _, cx| {
-                        t.update(cx, |s, cx| {
-                            s.select_row(at, cx);
-                            s.activate(row, cx)
-                        })
-                    })
-                    .child(crate::sidebar_model::tasks_words(self.projects[project].tasks_open))
-                    .into_any_element()
-            }
             Row::Empty { project } => {
                 let t = this.clone();
                 div()
@@ -619,6 +592,7 @@ impl Render for Sidebar {
         .size_full();
         div()
             .id("sidebar")
+            .debug_selector(|| "sidebar".into())
             .key_context("Sidebar")
             .track_focus(&self.focus)
             .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))

@@ -54,7 +54,7 @@ pub(super) fn preview_view(id: &ElementId, preview: &ToolPreview, theme: &Theme)
             .gap(px(8.))
             .p(px(12.))
             .rounded(radius::xl())
-            .bg(theme.card_strong)
+            .bg(theme.wash())
             .font_family(MONO_FONT_FAMILY)
             .text_size(TextSize::Xs.font_size())
             .text_color(theme.foreground.opacity(0.85))
@@ -66,6 +66,7 @@ pub(super) fn preview_view(id: &ElementId, preview: &ToolPreview, theme: &Theme)
                 .status(FileDiffStatus::Complete)
                 .default_open(true)
                 .collapse_on_complete(false)
+                .inset(true)
                 .into_any_element()
         }
     };
@@ -77,9 +78,14 @@ pub(super) fn param_value(value: ParamValue, theme: &Theme) -> impl IntoElement 
     let base = div().min_w_0().font_family(MONO_FONT_FAMILY).text_color(mono);
     match value {
         ParamValue::Text(text) => base.child(text),
-        ParamValue::Code(code) => {
-            base.child(div().rounded(radius::lg()).bg(theme.card.opacity(0.3)).px(px(10.)).py(px(8.)).child(code))
-        }
+        ParamValue::Code(code) => base.child(
+            div()
+                .rounded(radius::lg())
+                .bg(theme.wash())
+                .px(px(10.))
+                .py(px(8.))
+                .child(code),
+        ),
     }
 }
 

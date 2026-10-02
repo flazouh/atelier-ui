@@ -32,6 +32,17 @@ pub(super) const FOCUS_ALPHA: f32 = 0.3;
 
 pub(super) const DISABLED: f32 = 0.5;
 
+/// The compact slider, for a setting in a row: a 4px rail with the ink filled up to a 12px knob, in a 20px band
+/// that takes the presses. No dots.
+pub(super) const COMPACT_HEIGHT: f32 = 20.;
+
+pub(super) const RAIL: f32 = 4.;
+
+pub(super) const KNOB: f32 = 12.;
+
+/// The rail's unfilled part: the ink at this.
+pub(super) const RAIL_ALPHA: f32 = 0.15;
+
 /// More steps than this draw no dots.
 pub(super) const MOST_TICKS: usize = 50;
 

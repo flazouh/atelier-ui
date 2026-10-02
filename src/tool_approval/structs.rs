@@ -235,7 +235,7 @@ impl RenderOnce for ToolApproval {
                 .mb(px(8.))
                 .p(px(10.))
                 .rounded(radius::lg())
-                .bg(theme.card_strong)
+                .bg(theme.wash())
                 .text_size(TextSize::Xs.font_size())
                 .children(self.parameters.into_iter().map(|(label, value)| {
                     div()
@@ -288,7 +288,7 @@ impl RenderOnce for ToolApproval {
             .w_full()
             .overflow_hidden()
             .rounded(radius::card())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .text_size(TextSize::Sm.font_size())
             .child(head)
             .children(preview)

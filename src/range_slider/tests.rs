@@ -63,36 +63,69 @@ fn the_handle_starts_eight_pixels_in_and_the_fill_ends_at_the_handle() {
 struct Owner {
     value: f32,
     disabled: bool,
+    compact: bool,
     log: Rc<RefCell<Vec<f32>>>,
+    ends: Rc<RefCell<Vec<f32>>>,
 }
 
 impl Render for Owner {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let (this, log) = (cx.entity().downgrade(), self.log.clone());
-        div().w(px(300.)).p(px(20.)).child(RangeSlider::new("rs", self.value).step(5.).disabled(self.disabled).on_change(move |v, _, cx| {
-            log.borrow_mut().push(v);
-            this.update(cx, |o, cx| {
-                o.value = v;
-                cx.notify();
-            })
-            .ok();
-        }))
+        let (this, log, ends) = (cx.entity().downgrade(), self.log.clone(), self.ends.clone());
+        div().w(px(300.)).p(px(20.)).child(
+            RangeSlider::new("rs", self.value)
+                .step(5.)
+                .disabled(self.disabled)
+                .compact(self.compact)
+                .on_end(move |v, _, _| ends.borrow_mut().push(v))
+                .on_change(move |v, _, cx| {
+                    log.borrow_mut().push(v);
+                    this.update(cx, |o, cx| {
+                        o.value = v;
+                        cx.notify();
+                    })
+                    .ok();
+                }),
+        )
     }
 }
 
-fn open(value: f32, disabled: bool, reduce: bool, cx: &mut TestAppContext) -> (Entity<Owner>, &mut VisualTestContext, Rc<RefCell<Vec<f32>>>) {
+fn open(
+    value: f32,
+    disabled: bool,
+    reduce: bool,
+    cx: &mut TestAppContext,
+) -> (Entity<Owner>, &mut VisualTestContext, Rc<RefCell<Vec<f32>>>) {
+    let (owner, cx, log, _) = open_as(value, disabled, reduce, false, cx);
+    (owner, cx, log)
+}
+
+type Log = Rc<RefCell<Vec<f32>>>;
+
+fn open_as(
+    value: f32,
+    disabled: bool,
+    reduce: bool,
+    compact: bool,
+    cx: &mut TestAppContext,
+) -> (Entity<Owner>, &mut VisualTestContext, Log, Log) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         crate::motion::clock::freeze();
         set_appearance(Appearance::Light, cx);
         cx.set_reduce_motion(reduce);
     });
-    let log = Rc::new(RefCell::new(Vec::new()));
-    let seen = log.clone();
-    let (owner, cx) = cx.add_window_view(move |_, _| Owner { value, disabled, log: seen });
+    let (log, ends) = (Rc::new(RefCell::new(Vec::new())), Rc::new(RefCell::new(Vec::new())));
+    let (seen, ended) = (log.clone(), ends.clone());
+    let (owner, cx) = cx.add_window_view(move |_, _| Owner {
+        value,
+        disabled,
+        compact,
+        log: seen,
+        ends: ended,
+    });
     cx.simulate_resize(size(px(400.), px(200.)));
     frames(&owner, cx, 3);
-    (owner, cx, log)
+    (owner, cx, log, ends)
 }
 
 fn frames(owner: &Entity<Owner>, cx: &mut VisualTestContext, n: usize) {
@@ -180,4 +213,65 @@ fn with_motion_the_handle_glides_and_a_grab_stretches_it(cx: &mut TestAppContext
     crate::motion::clock::advance(std::time::Duration::from_millis(900));
     frames(&owner, cx, 3);
     assert!((f32::from(cx.debug_bounds("range-handle").unwrap().size.height) - 24.).abs() < 0.3, "and back to 24 once let go");
+}
+
+#[test]
+fn a_compact_knob_stays_on_the_rail_and_the_fill_ends_at_its_centre() {
+    use super::helpers::compact_geometry;
+    use super::types::KNOB;
+    let width = 160.;
+    for percent in [0., 23., 50., 100.] {
+        let (knob_left, fill) = compact_geometry(width, percent);
+        assert!(
+            knob_left >= 0. && knob_left + KNOB <= width,
+            "{percent}%: the knob stays inside: {knob_left}"
+        );
+        assert!(
+            (fill - (knob_left + KNOB / 2.)).abs() < 1e-4,
+            "{percent}%: the fill ends at the knob's centre"
+        );
+    }
+    assert_eq!(compact_geometry(width, 0.).0, 0.);
+    assert_eq!(compact_geometry(width, 100.).0, width - KNOB);
+}
+
+#[gpui_kit::test]
+fn zoomed_in_the_compact_fill_and_knob_stay_on_the_track(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(2.);
+    let (owner, cx, _, _) = open_as(100., false, true, true, cx);
+    frames(&owner, cx, 3);
+    let track = cx.debug_bounds("range-track").unwrap();
+    let (fill, knob) = (cx.debug_bounds("range-fill").unwrap(), cx.debug_bounds("range-handle").unwrap());
+    crate::scale::set_zoom(1.);
+    assert!(fill.right() <= track.right() + px(0.5), "the fill ends on the track: {fill:?} in {track:?}");
+    assert!(knob.right() <= track.right() + px(0.5), "the knob stays on the track: {knob:?} in {track:?}");
+    assert!(knob.right() > track.right() - px(2.), "at the maximum the knob is at the end: {knob:?} in {track:?}");
+}
+
+#[gpui_kit::test]
+fn zoomed_in_the_full_slider_handle_stays_on_the_track(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(2.);
+    let (owner, cx, _, _) = open_as(100., false, true, false, cx);
+    frames(&owner, cx, 3);
+    let track = cx.debug_bounds("range-track").unwrap();
+    let handle = cx.debug_bounds("range-handle").unwrap();
+    crate::scale::set_zoom(1.);
+    assert!(handle.right() < track.right(), "the handle stays on the track: {handle:?} in {track:?}");
+}
+
+#[gpui_kit::test]
+fn a_drag_ends_once_on_the_release_and_each_key_is_an_end(cx: &mut TestAppContext) {
+    let (owner, cx, log, ends) = open_as(40., false, true, true, cx);
+    cx.simulate_mouse_down(point(px(x_of(40.)), px(30.)), gpui_kit::MouseButton::Left, Default::default());
+    cx.simulate_mouse_move(point(px(x_of(60.)), px(30.)), gpui_kit::MouseButton::Left, Default::default());
+    cx.simulate_mouse_move(point(px(x_of(70.)), px(30.)), gpui_kit::MouseButton::Left, Default::default());
+    frames(&owner, cx, 2);
+    assert!(log.borrow().len() >= 2, "the drag reports as it goes: {:?}", log.borrow());
+    assert!(ends.borrow().is_empty(), "and has not ended while held: {:?}", ends.borrow());
+    cx.simulate_mouse_up(point(px(x_of(70.)), px(30.)), gpui_kit::MouseButton::Left, Default::default());
+    frames(&owner, cx, 2);
+    assert_eq!(ends.borrow().as_slice(), &[70.], "the release ends it at the value it reached");
+    cx.simulate_keystrokes("right");
+    frames(&owner, cx, 2);
+    assert_eq!(ends.borrow().as_slice(), &[70., 75.], "a key is a whole change");
 }

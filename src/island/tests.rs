@@ -20,10 +20,8 @@ fn project(id: &str, sessions: Vec<SessionData>) -> ProjectData {
         name: id.to_string().into(),
         location: Location::Local,
         connection: Connection::Connected,
-        branch: None,
         sessions,
         pulls_unavailable: None,
-        tasks_open: None,
         badge: Default::default(),
     }
 }

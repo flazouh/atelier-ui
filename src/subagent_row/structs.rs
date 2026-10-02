@@ -129,7 +129,7 @@ impl RenderOnce for SubagentRow {
             .h(px(ROW_HEIGHT))
             .px(px(10.))
             .rounded(radius::lg())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .text_size(TextSize::Xs.font_size())
             .line_height(TextSize::Xs.line_height())
             .child(if done {
@@ -158,8 +158,8 @@ impl RenderOnce for SubagentRow {
                 move |_, _| div().truncate().child(detail.clone()).into_any_element(),
             )))
             .when_some(self.tool_calls.filter(|_| !done), |d, count| {
-                d.child(div().flex_none().text_color(muted.opacity(0.7)).child(tool_calls_text(count)))
+                d.child(div().flex_none().text_color(muted).child(tool_calls_text(count)))
             })
-            .when(!status.is_empty(), |d| d.child(div().flex_none().text_color(muted.opacity(0.7)).child(status)))
+            .when(!status.is_empty(), |d| d.child(div().flex_none().text_color(muted).child(status)))
     }
 }

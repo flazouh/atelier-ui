@@ -24,11 +24,30 @@ pub fn status_mark(id: impl Into<ElementId>, look: &AgentLook, status: &SessionS
     let sprite_id = id.clone();
     let drawn = move |mark: &Mark| -> AnyElement {
         let drawn = match mark {
-            Mark::AgentWorking => look.mark.sprite(sprite_id.clone(), look.mark.working).size(px(14.)).into_any_element(),
-            Mark::Idle => div().size(px(8.)).rounded_full().border(px(1.5)).border_color(theme.muted_foreground.opacity(0.7)).into_any_element(),
-            Mark::Warning => Icon::new(IconName::PriorityHigh).size(px(14.)).color(theme.warning).into_any_element(),
-            Mark::Danger => Icon::new(IconName::Error).size(px(14.)).color(theme.danger).into_any_element(),
-            Mark::AmberDot => div().size(px(8.)).rounded_full().bg(theme.accent).into_any_element(),
+            Mark::AgentWorking => look
+                .mark
+                .sprite(sprite_id.clone(), look.mark.working)
+                .size(px(14.))
+                .into_any_element(),
+            Mark::Idle => div()
+                .size(px(8.))
+                .rounded_full()
+                .border(px(1.5))
+                .border_color(theme.faint())
+                .into_any_element(),
+            Mark::Warning => Icon::new(IconName::PriorityHigh)
+                .size(px(14.))
+                .color(theme.warning)
+                .into_any_element(),
+            Mark::Danger => Icon::new(IconName::Error)
+                .size(px(14.))
+                .color(theme.danger)
+                .into_any_element(),
+            Mark::AmberDot => div()
+                .size(px(8.))
+                .rounded_full()
+                .bg(theme.accent)
+                .into_any_element(),
         };
         div().flex().flex_none().size(px(MARK_BOX)).items_center().justify_center().child(drawn).into_any_element()
     };
@@ -40,8 +59,18 @@ pub fn status_mark(id: impl Into<ElementId>, look: &AgentLook, status: &SessionS
 /// question or an approval, the danger tone for a stop.
 pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionStatus, theme: &Theme, with_icon: bool) -> AnyElement {
     let working = matches!(status, SessionStatus::Working);
-    let color = if working { look.mark.color } else if status.title_is_ink() { theme.foreground.opacity(0.8) } else { theme.muted_foreground.opacity(0.7) };
-    let icon = crate::sprite::Sprite::new(id, look.mark.working, color).rest(look.mark.working).still_frame(look.mark.icon_frame).size(px(14.)).playing(working);
+    let color = if working {
+        look.mark.color
+    } else if status.title_is_ink() {
+        theme.foreground.opacity(0.8)
+    } else {
+        theme.faint()
+    };
+    let icon = crate::sprite::Sprite::new(id, look.mark.working, color)
+        .rest(look.mark.working)
+        .still_frame(look.mark.icon_frame)
+        .size(px(14.))
+        .playing(working);
     let dot = match status {
         SessionStatus::Finished => Some(theme.accent),
         SessionStatus::NeedsYou(_) => Some(theme.warning),
@@ -65,6 +94,6 @@ pub fn trailing(status: &SessionStatus, now: u64, active_at: u64, theme: &Theme)
     match status {
         SessionStatus::NeedsYou(_) => (status.words(), theme.warning),
         SessionStatus::Failed(_) => (status.words(), theme.danger),
-        _ => (since(now, active_at).into(), theme.muted_foreground.opacity(0.8)),
+        _ => (since(now, active_at).into(), theme.muted_foreground),
     }
 }

@@ -12,7 +12,7 @@ use crate::{
     typography::TextSize,
 };
 use super::types::{
-    BOX, CORNER, ChangeHandler, DISABLED, DRAW_DASH, DRAW_DELAY, DRAW_TICK, EDGE, EDGE_ALPHA,
+    BOX, CORNER, ChangeHandler, DISABLED, DRAW_DASH, DRAW_DELAY, DRAW_TICK, EDGE,
     FADE, GAP, MARK, Mark, PRESS_SCALE, RING_ALPHA, TINT, Toggle,
 };
 use super::helpers::stroke;
@@ -143,7 +143,7 @@ impl RenderOnce for Checkbox {
         let (mark, appear, draw) = (m.mark, m.appear.value().clamp(0., 1.), m.draw.value().clamp(0., 1.));
         let leaving = m.leaving.as_ref().map(|(k, c)| (*k, c.value().clamp(0., 1.)));
 
-        let rest = mix(theme.muted_foreground.opacity(EDGE_ALPHA), theme.muted_foreground, hover);
+        let rest = mix(theme.faint(), theme.muted_foreground, hover);
         let edge = mix(rest, theme.primary, tone);
         let fill = mix(theme.background, theme.primary, tone);
         let side = BOX * scale;

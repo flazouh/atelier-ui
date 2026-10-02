@@ -248,7 +248,7 @@ impl RenderOnce for TodoList {
             .child(
                 div()
                     .flex_none()
-                    .text_color(muted.opacity(0.5))
+                    .text_color(theme.faint())
                     .group_hover("todo-header", |s| s.text_color(muted))
                     .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
             );
@@ -312,7 +312,7 @@ impl RenderOnce for TodoList {
                             div()
                                 .flex_none()
                                 .text_size(TextSize::Sm.font_size())
-                                .text_color(muted.opacity(0.55))
+                                .text_color(muted)
                                 .child(detail),
                         )
                     })
@@ -325,7 +325,7 @@ impl RenderOnce for TodoList {
             .w_full()
             .overflow_hidden()
             .rounded(radius::card())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .child(header)
             .when(reveal > 0.001, |d| {
                 d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(list))

@@ -27,12 +27,9 @@ pub struct ProjectData {
     pub name: SharedString,
     pub location: Location,
     pub connection: Connection,
-    pub branch: Option<SharedString>,
     pub sessions: Vec<SessionData>,
     /// Why the project's pull requests cannot open (no forge remote), or `None` when they can.
     pub pulls_unavailable: Option<SharedString>,
-    /// How many tasks are open (not Done, not Canceled), once the project has read its tasks.
-    pub tasks_open: Option<usize>,
     /// The project's badge: its letters, its colour in the palette, and the image file that stands in for the letters.
     pub badge: Badge,
 }

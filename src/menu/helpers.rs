@@ -2,11 +2,22 @@ use gpui_kit::Hsla;
 
 use crate::theme::Theme;
 use super::structs::{Inset, MenuLook};
-use super::types::{BORDER, CLIP_HALF, FILL_RAMP, LINE, RADIUS_END, RADIUS_START, Tone};
+use super::types::{BORDER, CLIP_HALF, FILL_RAMP, LABEL, LINE, RADIUS_END, RADIUS_START, Tone};
 
 /// The height of a panel of `rows` plain rows in `look`: the padding, the rows and the 1px edge.
 pub fn height_in(look: MenuLook, rows: usize) -> f32 {
     2. * look.pad + rows as f32 * (LINE + 2. * look.row_y) + 2.
+}
+
+/// The height of a panel of `entries` in `look`: the rows, each heading over a group, and the gap between groups.
+pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
+    use super::types::Entry;
+    let rows = entries.iter().filter(|e| matches!(e, Entry::Item(_))).count();
+    entries.iter().fold(height_in(look, rows), |h, e| match e {
+        Entry::Label(_) => h + LABEL,
+        Entry::Separator => h + look.group,
+        Entry::Item(_) => h,
+    })
 }
 
 /// The height in the default look.

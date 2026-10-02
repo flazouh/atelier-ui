@@ -48,6 +48,38 @@ fn every_theme_meets_wcag_aa_for_text_and_marks() {
     assert!(failures.is_empty(), "{failures:#?}");
 }
 
+#[test]
+fn a_faint_mark_is_quieter_than_muted_and_still_seen_on_every_surface() {
+    for t in all() {
+        let faint = t.faint();
+        for (surface, bg) in [
+            ("page", t.background),
+            ("card", t.card),
+            ("card_strong", t.card_strong),
+        ] {
+            let ratio = contrast(faint, bg);
+            assert!(
+                ratio >= MARK_CONTRAST,
+                "{}: faint on {surface} {ratio:.2} < {MARK_CONTRAST}",
+                t.name
+            );
+        }
+        assert!(
+            contrast(faint, t.card) <= contrast(t.muted_foreground, t.card),
+            "{}: faint is no louder than muted",
+            t.name
+        );
+    }
+}
+
+#[test]
+fn a_box_inside_a_card_parts_from_it() {
+    for t in all() {
+        let ratio = contrast(t.card_strong, t.card);
+        assert!(ratio >= 1.05, "{}: card_strong on card {ratio:.3}", t.name);
+    }
+}
+
 struct Probe {
     seen: Rc<Cell<Option<Hsla>>>,
 }

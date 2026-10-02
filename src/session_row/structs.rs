@@ -102,9 +102,11 @@ impl RenderOnce for SessionRow {
         let ink = if data.status.title_is_ink() || self.open { theme.foreground } else { theme.muted_foreground };
         let words_of_status = data.status.words();
         let mark_id = self.id.clone();
-        // Hidden until the pointer is on the row, then it takes the place of the time; a press does not open the session.
+        // Hidden until the pointer is on the row, then it stands left of the time and the title gives it room; a press
+        // does not open the session.
         let more_open = self.more_open;
-        let has_more = self.on_more.is_some() || self.on_archive.is_some();
+        let hovered = window.use_keyed_state((self.id.clone(), "hovered"), cx, |_, _| false);
+        let has_more = (self.on_more.is_some() || self.on_archive.is_some()) && (more_open || *hovered.read(cx));
         let archive = self.on_archive.map(|(archived, press)| {
             crate::button::Button::new((self.id.clone(), "archive-button"))
                 .debug_name("session-archive")
@@ -117,7 +119,6 @@ impl RenderOnce for SessionRow {
                     press(window, cx)
                 })
         });
-        let both = archive.is_some() && self.on_more.is_some();
         let more = self.on_more.map(|press| {
             div()
                 .relative()
@@ -138,13 +139,10 @@ impl RenderOnce for SessionRow {
         });
         let ends = has_more.then(|| {
             div()
-                .absolute()
-                .right(px(4.))
-                .top(px((ROW_HEIGHT - 22.) / 2.))
+                .flex_none()
                 .flex()
                 .items_center()
                 .gap(px(2.))
-                .when(!more_open, |d| d.invisible().group_hover("session-row", |s| s.visible()))
                 .children(archive)
                 .children(more)
         });
@@ -168,9 +166,36 @@ impl RenderOnce for SessionRow {
             // The one open in front (single view only) is soft on its card.
             .when(self.open, |d| d.bg(theme.card_strong.opacity(0.6)))
             .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
-            .when_some(self.on_open, |d, open| d.on_click(move |_, window, cx| open(window, cx)))
-            .when(self.open, |d| d.child(div().absolute().left(px(12.)).top(px((ROW_HEIGHT - 16.) / 2.)).w(px(3.)).h(px(16.)).rounded_full().bg(theme.foreground).debug_selector(|| "session-row-open".into())))
-            .child(div().id((mark_id.clone(), "status")).tooltip(Tooltip::text(words_of_status)).child(mark))
+            .on_hover(move |on, _, cx| {
+                hovered.update(cx, |h, cx| {
+                    if *h != *on {
+                        *h = *on;
+                        cx.notify();
+                    }
+                })
+            })
+            .when_some(self.on_open, |d, open| {
+                d.on_click(move |_, window, cx| open(window, cx))
+            })
+            .when(self.open, |d| {
+                d.child(
+                    div()
+                        .absolute()
+                        .left(px(12.))
+                        .top(px((ROW_HEIGHT - 16.) / 2.))
+                        .w(px(3.))
+                        .h(px(16.))
+                        .rounded_full()
+                        .bg(theme.foreground)
+                        .debug_selector(|| "session-row-open".into()),
+                )
+            })
+            .child(
+                div()
+                    .id((mark_id.clone(), "status"))
+                    .tooltip(Tooltip::text(words_of_status))
+                    .child(mark),
+            )
             .child({
                 let title = data.title.clone();
                 div()
@@ -190,21 +215,28 @@ impl RenderOnce for SessionRow {
                     .tooltip(Tooltip::text(name))
                     .child(crate::project_badge::ProjectBadge::new(badge.label, badge.color).icon(badge.icon))
             }))
-            // The time makes room for the ⋯ while the pointer is on the row; short words line up in a column.
-            .when(self.show_time || !matches!(data.status, SessionStatus::Idle | SessionStatus::Working | SessionStatus::Finished), |d| d.child(
-                div()
-                    .flex_none()
-                    .min_w(px(26.))
-                    .max_w(px(150.))
-                    .truncate()
-                    .text_right()
-                    .text_size(TextSize::Xs.font_size())
-                    .text_color(tone)
-                    .when(has_more, |d| d.group_hover("session-row", |s| s.invisible()))
-                    // Two buttons take more room than the time's column.
-                    .when(both, |d| d.group_hover("session-row", |s| s.min_w(px(50.))))
-                    .child(words),
-            ))
             .children(ends)
+            // Short words line up in a column.
+            .when(
+                self.show_time
+                    || !matches!(
+                        data.status,
+                        SessionStatus::Idle | SessionStatus::Working | SessionStatus::Finished
+                    ),
+                |d| {
+                    d.child(
+                        div()
+                            .debug_selector(|| "row-time".into())
+                            .flex_none()
+                            .min_w(px(26.))
+                            .max_w(px(150.))
+                            .truncate()
+                            .text_right()
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(tone)
+                            .child(words),
+                    )
+                },
+            )
     }
 }

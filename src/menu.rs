@@ -21,7 +21,7 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{collapsed, fill_opacity, height, height_in, jump, panel_size, unfolded, walk};
+pub use helpers::{collapsed, fill_opacity, height, height_in, height_of, jump, panel_size, unfolded, walk};
 pub use structs::{Inset, Menu, MenuItem, MenuLook};
 pub use types::{BORDER, Choice, Entry, LINE, Origin, SLOT, Select, TEXT, Tone};
 

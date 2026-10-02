@@ -120,7 +120,11 @@ impl RenderOnce for CodeBlock {
             .px(px(12.))
             // The file's own icon when it has a name; the code glyph when it is a bare snippet.
             .child(if self.filename.is_empty() {
-                div().flex_none().text_color(muted.opacity(0.7)).child(Icon::new(IconName::Code).size(px(14.))).into_any_element()
+                div()
+                    .flex_none()
+                    .text_color(theme.faint())
+                    .child(Icon::new(IconName::Code).size(px(14.)))
+                    .into_any_element()
             } else {
                 FileIcon::file(&self.filename).into_any_element()
             })
@@ -140,7 +144,7 @@ impl RenderOnce for CodeBlock {
                     .flex_none()
                     .text_size(px(10.))
                     .font_weight(FontWeight::MEDIUM)
-                    .text_color(muted.opacity(0.55))
+                    .text_color(muted)
                     .child(self.language.to_uppercase()),
             )
             .child(div().flex_1())
@@ -220,7 +224,7 @@ impl RenderOnce for CodeBlock {
                         .flex_none()
                         .pr(px(12.))
                         .text_right()
-                        .text_color(muted.opacity(0.35))
+                        .text_color(theme.faint())
                         .child(gutter_numbers(line_count)),
                 )
             })

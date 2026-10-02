@@ -124,7 +124,7 @@ impl RenderOnce for SubagentCard {
             StatusMark::new(Mark::filled(theme.status_tone(StatusTone::Done), theme.background).check(1.), px(14.))
                 .into_any_element()
         } else {
-            div().text_size(TextSize::Xs.font_size()).text_color(muted.opacity(0.7)).children(self.elapsed.clone()).into_any_element()
+            div().text_size(TextSize::Xs.font_size()).text_color(muted).children(self.elapsed.clone()).into_any_element()
         };
         let toggle = disclosure.clone();
         let header = div()
@@ -189,7 +189,7 @@ impl RenderOnce for SubagentCard {
                         d.child(
                             div()
                                 .flex_none()
-                                .text_color(muted.opacity(0.5))
+                                .text_color(theme.faint())
                                 .group_hover("subagent-header", |s| s.text_color(muted))
                                 .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
                         )
@@ -221,7 +221,7 @@ impl RenderOnce for SubagentCard {
             .flex_col()
             .w_full()
             .rounded(radius::card())
-            .bg(theme.card)
+            .bg(theme.card_strong)
             .child(header)
             .when(has_calls && reveal > 0.001, |d| {
                 d.child(

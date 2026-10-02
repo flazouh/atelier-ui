@@ -26,8 +26,11 @@ pub(crate) fn colors(variant: ButtonVariant, theme: &Theme, hover: f32, has_chip
             if has_chip { theme.primary } else { mix(theme.primary, theme.primary_hover(), hover) },
             theme.primary_foreground,
         ),
-        // Borderless: one step above a card, so it still shows when it sits on one.
-        ButtonVariant::Secondary => (mix(theme.card_strong, theme.foreground, 0.05 * hover), theme.foreground),
+        // Borderless: a wash of the ink, so it steps up from the page, a card or a box inside a card alike.
+        ButtonVariant::Secondary => (
+            theme.foreground.opacity(0.07 + 0.04 * hover),
+            theme.foreground,
+        ),
         ButtonVariant::Ghost => (
             mix(transparent_black(), theme.muted_hover(), hover),
             mix(theme.muted_foreground, theme.foreground, hover),
