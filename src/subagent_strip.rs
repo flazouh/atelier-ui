@@ -14,6 +14,7 @@ mod types;
 pub use structs::SubagentStrip;
 #[cfg(test)]
 pub(crate) use structs::StripState;
+pub use types::STACK_GAP;
 
 #[cfg(test)]
 use crate::{motion::duration, subagent_row::SubagentRow};

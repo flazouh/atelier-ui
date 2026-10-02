@@ -1,7 +1,7 @@
 //! beui's ToolApproval (`components/agents/tool-approval.tsx`), class for class:
 //!
-//! - Row `items-start gap-3 p-4`: a `size-8` status tile (`ShieldCheck`, a spinning `LoaderCircle`,
-//!   `Check`, `X`, or `CircleAlert`), the title `font-medium`, the tool in mono `text-xs` at muted, and a
+//! - Compact, as the other cards are: row `items-start px-3.5 py-2.5`, with no status tile or icon. The title
+//!   `font-medium` and the tool in mono `text-xs` at muted share one line, then a
 //!   status pill (`rounded-full px-2 py-0.5 text-[11px]`) tinted amber, blue, emerald, or rose by
 //!   `ToolApprovalStatus`.
 //! - An optional description at `leading-5` muted, and a "View details" toggle (`text-xs`, a `size-3.5`

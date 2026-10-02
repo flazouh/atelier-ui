@@ -1,6 +1,6 @@
 use gpui_kit::SharedString;
 
-use crate::{animated_badge::BadgeStatus, icon::IconName};
+use crate::animated_badge::BadgeStatus;
 
 /// beui's `ToolApprovalStatus`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,18 +29,6 @@ impl ToolApprovalStatus {
 
     pub(super) fn busy(self) -> bool {
         matches!(self, Self::Approving | Self::Running)
-    }
-
-    pub(super) fn icon(self) -> IconName {
-        if self.busy() {
-            return IconName::Progress;
-        }
-        match self {
-            Self::Error => IconName::Error,
-            Self::Denied => IconName::Close,
-            Self::Approved | Self::Complete => IconName::Check,
-            _ => IconName::VerifiedUser,
-        }
     }
 
     /// The badge's status: amber, a turning ring while it works, emerald and rose.

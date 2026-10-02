@@ -227,7 +227,7 @@ pub use sidebar_model::{Connection, Location, ProjectData, SessionData};
 pub use sprite::{Sprite, Strip};
 pub use subagent_card::SubagentCard;
 pub use subagent_row::SubagentRow;
-pub use subagent_strip::SubagentStrip;
+pub use subagent_strip::{STACK_GAP, SubagentStrip};
 pub use spinner::Spinner;
 pub use theme::{ActiveTheme, Appearance, StatusTone, Theme};
 pub use morph::Morph;

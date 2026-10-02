@@ -499,7 +499,8 @@ impl Render for PromptInput {
                     .justify_center()
                     .top(px(3. * (1. - t)))
                     .opacity(t)
-                    .child(Icon::new(IconName::Stop).size(px(12.))),
+                    // The glyph fills half its box, so at 24 it is a 12px square: the stop reads as large as the arrow.
+                    .child(Icon::new(IconName::Stop).size(px(24.))),
             );
         let send = {
             let this = cx.entity().downgrade();

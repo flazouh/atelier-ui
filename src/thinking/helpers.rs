@@ -65,6 +65,17 @@ pub fn mark_strip(mark: &Mark, done: bool, subagents: usize) -> Strip {
     if !done && subagents > 0 { mark.orbiting } else { mark.working }
 }
 
+/// The strip the loading mark plays: one of `variants` chosen by `roll`, or `working` when there are none.
+pub(crate) fn loading_strip(variants: &[Strip], working: Strip, roll: u64) -> Strip {
+    if variants.is_empty() { working } else { variants[(roll % variants.len() as u64) as usize] }
+}
+
+/// A fresh random number, from the standard library's randomly seeded hasher. Nothing here needs more.
+pub(super) fn roll() -> u64 {
+    use std::hash::BuildHasher;
+    std::collections::hash_map::RandomState::new().hash_one(0u8)
+}
+
 /// The CSS keyframes `0%, to {opacity: 1} 50% {opacity: .75}`, `2s ease-in-out 3s infinite`.
 pub(super) fn breath_opacity(since_label_ms: u64) -> f32 {
     let delay = duration::BREATH_DELAY.as_millis() as u64;

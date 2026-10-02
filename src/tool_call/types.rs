@@ -1,5 +1,10 @@
 use crate::{status_mark::Mark, theme::{StatusTone, Theme}};
 
+/// A card's header, as compact as a row of the strip above the composer: [`crate::subagent_row::ROW_HEIGHT`] tall, `px-2.5`.
+pub(crate) const CARD_HEADER_HEIGHT: f32 = crate::subagent_row::ROW_HEIGHT;
+
+pub(crate) const CARD_HEADER_PAD_X: f32 = 10.;
+
 /// beui's `maxHeight` for the output.
 pub(super) const MAX_OUTPUT_HEIGHT: f32 = 220.;
 

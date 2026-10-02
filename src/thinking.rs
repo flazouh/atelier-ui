@@ -20,11 +20,14 @@ mod types;
 
 pub use helpers::{label, mark_strip, next_label_change_s, tasks_text, tokens_text};
 #[cfg(test)]
-pub(crate) use helpers::{label_color, segment_text};
+pub(crate) use helpers::{label_color, loading_strip, segment_text};
 pub use structs::Thinking;
 pub use types::{Shimmer, ThinkingPhase, ThinkingStyle};
 #[cfg(test)]
 pub(crate) use types::SEGMENT_GAP_TEXT;
+
+#[cfg(test)]
+use helpers::roll;
 
 #[cfg(test)]
 use gpui_kit::{Hsla, SharedString};

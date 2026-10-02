@@ -1,12 +1,13 @@
 use gpui_kit::SharedString;
 
-use crate::subagent_row::{done_text, tool_calls_text};
+use crate::subagent_row::done_text;
 
-/// The body line's segments: the count while it runs, then "Done in 38s" and the count. They part by
-/// space, never by a glyph. `finished` is `Some` once done, holding the run time in seconds if known.
-pub fn status_line(finished: Option<Option<u64>>, tool_calls: u64) -> Vec<SharedString> {
+/// The left side of the body line: "Done in 38s" once the card is done, else the live tool call, if any.
+/// `finished` is `Some` once done, holding the run time in seconds if known. The count sits apart, on the
+/// right.
+pub fn lead_text(finished: Option<Option<u64>>, live_tool: Option<SharedString>) -> Option<SharedString> {
     match finished {
-        None => vec![tool_calls_text(tool_calls)],
-        Some(seconds) => vec![done_text(seconds), tool_calls_text(tool_calls)],
+        Some(seconds) => Some(done_text(seconds)),
+        None => live_tool,
     }
 }

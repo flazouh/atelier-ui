@@ -2,15 +2,16 @@
 //!
 //! - Header `h-11 px-3.5`: the look's mark (orbiting while it runs, still once done), the agent's name, its
 //!   task in muted text, a [`ModelBadge`](crate::model_badge::ModelBadge), and on the right the elapsed time, or a check once done.
-//! - Body line, under the name: "12 tool calls" and the live tool call with a turning [`Spinner`](crate::spinner::Spinner). When the
-//!   live call or the count changes, the old text leaves and the new enters with [`Morph`](crate::morph::Morph). Once done it
-//!   reads "Done in 38s" and "12 tool calls", parted by [`SEGMENT_GAP`](crate::typography::SEGMENT_GAP) of space.
+//! - Body line, under the name: the live tool call flush left, under the mark rather than the name, and "12 tool calls" on the far right. The mark in
+//!   the header already shows that it runs, so the line has no spinner of its own. Every kind of call (read,
+//!   edit, search, web search) reads the same way here. When the live call or the count changes, the old text
+//!   leaves and the new enters with [`Morph`](crate::morph::Morph). Once done the left side reads "Done in 38s".
 //! - Pressing the card opens its tool calls, as [`ToolCall`](crate::tool_call::ToolCall) rows, with `Reveal`.
 
 mod helpers;
 mod structs;
 
-pub use helpers::status_line;
+pub use helpers::lead_text;
 pub use structs::SubagentCard;
 
 #[cfg(test)]

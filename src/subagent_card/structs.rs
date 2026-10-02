@@ -13,13 +13,13 @@ use crate::{
     model_badge::{BrandMark, ModelBadge},
     morph::Morph,
     reveal::Reveal,
-    spinner::Spinner,
     status_mark::{Mark, StatusMark},
+    subagent_row::tool_calls_text,
     theme::{ActiveTheme, StatusTone, radius},
     tool_call::ToolCall,
-    typography::{SEGMENT_GAP, TextSize},
+    typography::TextSize,
 };
-use super::helpers::status_line;
+use super::helpers::lead_text;
 
 #[derive(IntoElement)]
 pub struct SubagentCard {
@@ -30,8 +30,8 @@ pub struct SubagentCard {
     model: Option<SharedString>,
     model_mark: Option<BrandMark>,
     pub(super) elapsed: Option<SharedString>,
-    pub(super) tool_calls: u64,
-    live_tool: Option<SharedString>,
+    tool_calls: u64,
+    pub(super) live_tool: Option<SharedString>,
     pub(super) finished: Option<Option<u64>>,
     pub(super) calls: Vec<ToolCall>,
 }
@@ -196,33 +196,24 @@ impl RenderOnce for SubagentCard {
                     }),
             )
             .when(done || self.tool_calls > 0 || self.live_tool.is_some(), |d| d.child(
-                // Under the name: past the mark and its gap. Before the first tool call there is nothing
-                // to count, so the header stands alone.
+                // Under the header, flush with the mark on the left edge, not with the name. Before the first
+                // tool call there is nothing to count, so the header stands alone.
                 div()
                     .flex()
                     .items_center()
-                    .gap(px(8.))
-                    .pl(px(26.))
+                    .gap(px(12.))
                     .h(px(20.))
                     .text_size(TextSize::Xs.font_size())
                     .text_color(muted)
+                    .child(
+                        div().flex_1().min_w_0().overflow_hidden().whitespace_nowrap().text_color(if done { muted } else { theme.foreground.opacity(0.75) }).children(
+                            lead_text(self.finished, self.live_tool).map(|lead| Morph::new(child("live"), lead.clone(), text(lead))),
+                        ),
+                    )
                     .child(div().flex_none().child({
-                        let segments = status_line(self.finished, self.tool_calls);
-                        let key = segments.join("\n");
-                        Morph::new(child("count"), key, move |_, _| {
-                            div().flex().gap(px(SEGMENT_GAP)).whitespace_nowrap().children(segments.clone()).into_any_element()
-                        })
-                    }))
-                    .when_some(self.live_tool.filter(|_| !done), |d, tool| {
-                        d.child(Spinner::new(child("spin")).size(px(12.)).color(muted.opacity(0.7))).child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .overflow_hidden()
-                                .text_color(theme.foreground.opacity(0.75))
-                                .child(Morph::new(child("live"), tool.clone(), text(tool))),
-                        )
-                    }),
+                        let count = tool_calls_text(self.tool_calls);
+                        Morph::new(child("count"), count.clone(), move |_, _| div().whitespace_nowrap().child(count.clone()).into_any_element())
+                    })),
             ));
 
         div()
@@ -242,7 +233,7 @@ impl RenderOnce for SubagentCard {
                         .flex_col()
                         .px(px(14.))
                         .pb(px(8.))
-                        .children(self.calls),
+                        .children(self.calls.into_iter().map(ToolCall::flat)),
                 )
             })
     }

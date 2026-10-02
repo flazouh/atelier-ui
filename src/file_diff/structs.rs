@@ -189,12 +189,12 @@ impl RenderOnce for FileDiff {
             .flex()
             .items_center()
             .gap(px(8.))
-            .min_h(px(36.))
+            .min_h(px(crate::tool_call::CARD_HEADER_HEIGHT))
             .w_full()
-            .py(px(4.))
-            .rounded(radius::md())
+            .px(px(crate::tool_call::CARD_HEADER_PAD_X))
+            .rounded(radius::xxl())
             .cursor_pointer()
-            .press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx)
+            .press_stop((self.id.clone(), "head-focus"), radius::xxl(), window, cx)
             .on_click(move |_, _, cx| {
                 let reduce = cx.reduce_motion();
                 toggle.update(cx, |m, cx| {
@@ -310,12 +310,15 @@ impl RenderOnce for FileDiff {
             )
         });
 
+        // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the diff. While
+        // the diff has more to show, it keeps the wheel.
+        let overflows = scroll.0.borrow().base_handle.max_offset().y > px(0.) || scroll.0.borrow().base_handle.max_offset().x > px(0.);
         let card = div()
             .flex()
             .flex_col()
             .overflow_hidden()
-            .rounded(radius::xl())
-            .bg(theme.card.opacity(0.8))
+            .bg(theme.background.opacity(0.5))
+            .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
             .child(rows)
             .when_some(footer, |d, footer| d.child(footer));
 
@@ -323,11 +326,14 @@ impl RenderOnce for FileDiff {
             .flex()
             .flex_col()
             .w_full()
+            .rounded(radius::xxl())
+            .overflow_hidden()
+            .bg(theme.card)
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .child(header)
             .when_some((reveal > 0.001).then_some(card), |d, card| {
-                d.child(div().pl(px(24.)).pt(px(6.)).child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card)))
+                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card))
             })
     }
 }

@@ -8,7 +8,7 @@ use crate::{
     subagent_row::{ROW_HEIGHT, SubagentRow},
     wake::Wake,
 };
-use super::types::GAP;
+use super::types::STACK_GAP;
 use super::helpers::open;
 
 pub(super) struct Slot {
@@ -124,9 +124,9 @@ impl RenderOnce for SubagentStrip {
         }
         // Each slot carries the gap above its row, so a closing slot takes its gap with it; the strip's
         // own negative top margin hides the first one.
-        let slot = ROW_HEIGHT + GAP;
-        div().flex().flex_col().mt(px(-GAP)).children(m.state.slots(now).map(|(row, open)| {
-            div().flex_none().h(px(slot * open)).overflow_hidden().opacity(open).pt(px(GAP)).child(row.clone())
+        let slot = ROW_HEIGHT + STACK_GAP;
+        div().flex().flex_col().mt(px(-STACK_GAP)).children(m.state.slots(now).map(|(row, open)| {
+            div().flex_none().h(px(slot * open)).overflow_hidden().opacity(open).pt(px(STACK_GAP)).child(row.clone())
         }))
     }
 }

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
-    relative,
+    ScrollHandle, SharedString, StatefulInteractiveElement, Styled, Window, div,
+    prelude::FluentBuilder, relative,
 };
 
 use crate::scale::px;
@@ -17,7 +17,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use super::types::{MAX_OUTPUT_HEIGHT, ToolStatus};
+use super::types::{CARD_HEADER_HEIGHT, CARD_HEADER_PAD_X, MAX_OUTPUT_HEIGHT, ToolStatus};
 use super::helpers::follow_status;
 
 #[derive(IntoElement)]
@@ -30,6 +30,7 @@ pub struct ToolCall {
     pub(super) output: Option<SharedString>,
     pub(super) file: Option<SharedString>,
     pub(super) icon: Option<IconName>,
+    pub(super) flat: bool,
 }
 
 impl ToolCall {
@@ -44,7 +45,15 @@ impl ToolCall {
             output: None,
             file: None,
             icon: None,
+            flat: false,
         }
+    }
+
+    /// A plain row with no card and little height, for reading and searching, which come in runs, and for a call
+    /// that already sits inside a card.
+    pub fn flat(mut self) -> Self {
+        self.flat = true;
+        self
     }
 
     /// The icon for the kind of call, before the title.
@@ -90,6 +99,8 @@ pub(super) struct CallMotion {
     pub(super) had_body: bool,
     pub(super) disclosure: Reveal,
     copy: CopyFeedback,
+    /// The output's scroll, so the wheel can stay inside it while it has more to show.
+    scroll: ScrollHandle,
 }
 
 impl RenderOnce for ToolCall {
@@ -104,6 +115,7 @@ impl RenderOnce for ToolCall {
             had_body: has_body,
             disclosure: Reveal::new(open),
             copy: CopyFeedback::default(),
+            scroll: ScrollHandle::new(),
         });
         follow_status(&motion, status, has_body, reduce, cx);
         let m = motion.read(cx);
@@ -116,6 +128,7 @@ impl RenderOnce for ToolCall {
         let muted = theme.muted_foreground;
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
+        let flat = self.flat;
         let toggle = motion.clone();
         let header = div()
             .id(child("header"))
@@ -123,13 +136,12 @@ impl RenderOnce for ToolCall {
             .flex()
             .items_center()
             .gap(px(8.))
-            .min_h(px(32.))
-            .py(px(2.))
-            .rounded(radius::md())
+            .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
+            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::xxl()))
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, _, cx| {
+                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::xxl() }, window, cx).on_click(move |_, _, cx| {
                     let reduce = cx.reduce_motion();
                     toggle.update(cx, |m, cx| {
                         let open = !m.disclosure.open;
@@ -200,18 +212,26 @@ impl RenderOnce for ToolCall {
         let body = self.output.map(|output| {
             let copy_state = motion.clone();
             let text = output.to_string();
-            div().pl(px(24.)).pt(px(6.)).child(
+            // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
+            let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
+            let scroll = motion.read(cx).scroll.clone();
+            let overflows = scroll.max_offset().y > px(0.);
+            body.child(
                 div()
                     .flex()
                     .flex_col()
                     .overflow_hidden()
-                    .rounded(radius::xl())
-                    .bg(theme.card.opacity(0.8))
+                    .when(flat, |d| d.rounded(radius::xl()))
+                    .bg(if flat { theme.card.opacity(0.8) } else { theme.background.opacity(0.5) })
+                    // GPUI hands the wheel to every scroller under the pointer, so the page would scroll along with the
+                    // output. While the output has more to show, it keeps the wheel.
+                    .when(overflows, |d| d.on_scroll_wheel(|_, _, cx| cx.stop_propagation()))
                     .child(
                         div()
                             .id(child("output"))
                             .max_h(px(MAX_OUTPUT_HEIGHT))
                             .overflow_y_scroll()
+                            .track_scroll(&scroll)
                             .p(px(12.))
                             .font_family(MONO_FONT_FAMILY)
                             .text_size(TextSize::Xs.font_size())
@@ -248,7 +268,13 @@ impl RenderOnce for ToolCall {
             )
         });
 
-        div().flex().flex_col().w_full().child(header).when_some(body.filter(|_| reveal > 0.001), |d, body| {
+        div()
+            .flex()
+            .flex_col()
+            .w_full()
+            .when(!flat, |d| d.rounded(radius::xxl()).bg(theme.card).overflow_hidden())
+            .child(header)
+            .when_some(body.filter(|_| reveal > 0.001), |d, body| {
             d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))
         })
     }
