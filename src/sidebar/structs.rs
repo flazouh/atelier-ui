@@ -419,9 +419,9 @@ impl Sidebar {
                         popover::{Hang, Popover},
                     };
                     // A choice shuts the menu, then asks the app for its work.
-                    let ask = |label: &'static str, debug: &'static str, event: SidebarEvent| {
+                    let ask = |label: &'static str, icon: IconName, debug: &'static str, event: SidebarEvent| {
                         let sidebar = this.clone();
-                        Entry::from(MenuItem::new(label).debug_name(debug).on_select(move |_, cx| {
+                        Entry::from(MenuItem::new(label).icon(icon).debug_name(debug).on_select(move |_, cx| {
                             sidebar.update(cx, |s, cx| {
                                 s.session_menu = None;
                                 cx.emit(event.clone());
@@ -432,13 +432,14 @@ impl Sidebar {
                     let target = |event: fn(SharedString, SharedString) -> SidebarEvent| event(project_id.clone(), session_id.clone());
                     let mut entries = vec![ask(
                         if archived { "Unarchive" } else { "Archive" },
+                        if archived { IconName::Unarchive } else { IconName::Archive },
                         "session-menu-archive",
                         SidebarEvent::Archive { project: project_id.clone(), session: session_id.clone(), archive: !archived },
                     )];
                     entries.push(handoff_entry(&this, &project_id, &session_id, self.handoff.get(&project_id)));
-                    entries.push(ask("Copy session id", "session-menu-copy-id", target(|project, session| SidebarEvent::CopySessionId { project, session })));
+                    entries.push(ask("Copy session id", IconName::Copy, "session-menu-copy-id", target(|project, session| SidebarEvent::CopySessionId { project, session })));
                     if in_panel {
-                        entries.push(ask("Close panel", "session-menu-close", target(|project, session| SidebarEvent::CloseSession { project, session })));
+                        entries.push(ask("Close panel", IconName::Close, "session-menu-close", target(|project, session| SidebarEvent::CloseSession { project, session })));
                     }
                     let rows = entries.len();
                     let close = this.clone();

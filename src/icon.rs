@@ -70,6 +70,7 @@ icons! {
     CloseFullscreen => "arrow-shrink-01",
     Code => "source-code",
     Commit => "git-commit",
+    GitBranch => "git-branch",
     Command => "command",
     Control => "arrow-up-01",
     Copy => "copy-01",

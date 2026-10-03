@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::SharedString;
 
+use crate::icon::IconName;
 use crate::menu::{Branch, Entry, MenuItem, Pick, entries_of};
 use super::types::{HANDOFF, SidebarEvent};
 
@@ -12,7 +13,7 @@ pub(super) fn name(prefix: &str, id: &str) -> gpui_kit::ElementId {
 
 /// The "Handoff" row of a session's menu: a menu of the project's targets, or a dimmed row when it has none.
 pub(super) fn handoff_entry(sidebar: &gpui_kit::Entity<super::structs::Sidebar>, project: &SharedString, session: &SharedString, targets: Option<&Vec<Branch>>) -> Entry {
-    let row = MenuItem::new(HANDOFF).debug_name("session-menu-handoff");
+    let row = MenuItem::new(HANDOFF).icon(IconName::Replace).debug_name("session-menu-handoff");
     let Some(targets) = targets.filter(|targets| !targets.is_empty()) else { return row.disabled(true).into() };
     let (sidebar, project, session) = (sidebar.clone(), project.clone(), session.clone());
     // A choice shuts the session menu, then asks the app for the handoff.

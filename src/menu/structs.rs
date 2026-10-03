@@ -533,8 +533,10 @@ impl RenderOnce for Menu {
                         .children(mark)
                         .when_some(item.lead, |d, lead| d.child(lead_slot(&item.label, lead, &theme)))
                         .when_some(item.icon, |d, icon| {
+                            let name = format!("menu-icon-{}", item.label);
                             d.child(
                                 div()
+                                    .debug_selector(move || name.clone())
                                     .flex_none()
                                     .mt(px(2.))
                                     .size(px(SLOT))
