@@ -114,7 +114,7 @@ fn a_session_with_news_is_never_folded_away() {
 }
 
 #[test]
-fn a_collapsed_project_shows_only_its_header_and_an_empty_one_offers_a_new_session() {
+fn a_collapsed_project_shows_only_its_header_and_an_empty_one_is_just_its_header() {
     let projects = [project("a", vec![idle("x", 1)]), project("b", vec![])];
     let mut folds = Folds::default();
     folds.set_collapsed(&"a".into(), true);
@@ -123,11 +123,10 @@ fn a_collapsed_project_shows_only_its_header_and_an_empty_one_offers_a_new_sessi
         [
             Row::Project { project: 0 },
             Row::Project { project: 1 },
-            Row::Empty { project: 1 },
         ]
     );
     folds.set_collapsed(&"a".into(), false);
-    assert_eq!(rows(&projects, &folds).len(), 4);
+    assert_eq!(rows(&projects, &folds).len(), 3, "a's header and session, and b's header alone");
 }
 
 #[test]
@@ -153,7 +152,6 @@ fn sample() -> Vec<Row> {
         Row::Session { project: 0, session: 0 },
         Row::Session { project: 0, session: 1 },
         Row::Project { project: 1 },
-        Row::Empty { project: 1 },
     ]
 }
 
@@ -163,16 +161,16 @@ fn up_and_down_move_one_row_and_stop_at_the_ends() {
     assert_eq!(press(&r, &[], Some(1), Nav::Down).select, Some(2));
     assert_eq!(press(&r, &[], Some(1), Nav::Up).select, Some(0));
     assert_eq!(press(&r, &[], Some(0), Nav::Up).select, Some(0));
-    assert_eq!(press(&r, &[], Some(4), Nav::Down).select, Some(4));
+    assert_eq!(press(&r, &[], Some(3), Nav::Down).select, Some(3));
     assert_eq!(press(&r, &[], Some(2), Nav::First).select, Some(0));
-    assert_eq!(press(&r, &[], Some(2), Nav::Last).select, Some(4));
+    assert_eq!(press(&r, &[], Some(2), Nav::Last).select, Some(3));
 }
 
 #[test]
 fn with_nothing_selected_down_takes_the_first_row_and_up_the_last() {
     let r = sample();
     assert_eq!(press(&r, &[], None, Nav::Down).select, Some(0));
-    assert_eq!(press(&r, &[], None, Nav::Up).select, Some(4));
+    assert_eq!(press(&r, &[], None, Nav::Up).select, Some(3));
     assert_eq!(press(&r, &[], Some(99), Nav::Down).select, Some(0), "a selection past the rows is no selection");
     assert_eq!(press(&[], &[], None, Nav::Down), Step::default());
 }
@@ -183,7 +181,6 @@ fn left_on_a_session_goes_to_its_project_and_on_an_open_project_folds_it() {
     assert_eq!(press(&r, &[], Some(2), Nav::Left), Step { select: Some(0), fold: None });
     assert_eq!(press(&r, &[], Some(0), Nav::Left), Step { select: Some(0), fold: Some((0, true)) });
     assert_eq!(press(&r, &[0], Some(0), Nav::Left), Step { select: Some(0), fold: None }, "already folded");
-    assert_eq!(press(&r, &[], Some(4), Nav::Left).select, Some(3), "an empty row goes to its project too");
 }
 
 #[test]
@@ -195,11 +192,10 @@ fn right_on_a_folded_project_unfolds_it_and_on_an_open_one_goes_in() {
 }
 
 #[test]
-fn enter_opens_a_session_folds_a_project_and_starts_a_session_in_an_empty_one() {
+fn enter_opens_a_session_and_folds_a_project() {
     assert_eq!(activate(Row::Session { project: 2, session: 3 }), Activation::OpenSession { project: 2, session: 3 });
     assert_eq!(activate(Row::Project { project: 1 }), Activation::ToggleProject(1));
     assert_eq!(activate(Row::Older { project: 1, hidden: 4, open: false }), Activation::ToggleOlder(1));
-    assert_eq!(activate(Row::Empty { project: 5 }), Activation::NewSession(5));
 }
 
 #[test]

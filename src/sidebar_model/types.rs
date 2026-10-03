@@ -26,10 +26,6 @@ pub enum Row {
     Session { project: usize, session: usize },
     /// "Show 7 older" when closed, "Show fewer" when open.
     Older { project: usize, hidden: usize, open: bool },
-    /// A project with no session.
-    Empty {
-        project: usize,
-    },
     /// A heading of the priority list, with how many sessions are under it.
     Section { section: Section, count: usize },
     /// "Show 12 more" at the end of the priority list's earlier sessions, "Show fewer" when open.
@@ -42,8 +38,7 @@ impl Row {
         match self {
             Self::Project { project }
             | Self::Session { project, .. }
-            | Self::Older { project, .. }
-            | Self::Empty { project } => project,
+            | Self::Older { project, .. } => project,
             Self::Section { .. } | Self::MoreEarlier { .. } => 0,
         }
     }
@@ -122,7 +117,6 @@ pub enum RowKey {
     Project(SharedString),
     Session(SharedString, SharedString),
     Older(SharedString),
-    Empty(SharedString),
     Section(Section),
     MoreEarlier,
 }
@@ -145,7 +139,6 @@ pub enum Activation {
     OpenSession { project: usize, session: usize },
     ToggleProject(usize),
     ToggleOlder(usize),
-    NewSession(usize),
     /// "Show more" or "Show fewer" on the priority list's earlier sessions.
     ToggleEarlier,
     /// A heading does nothing.
