@@ -611,3 +611,9 @@ fn a_select_rounds_every_corner_until_it_is_told_to_join_a_row() {
     let first = Select::new("s", ["a"]).corners(corners).corners;
     assert!(first.top_left && first.bottom_left && !first.top_right && !first.bottom_right);
 }
+
+#[test]
+fn a_select_has_no_fill_of_its_own_until_given_one() {
+    assert!(Select::new("s", ["a"]).fill.is_none());
+    assert!(Select::new("s", ["a"]).fill(gpui_kit::hsla(0., 0., 0.5, 1.)).fill.is_some());
+}
