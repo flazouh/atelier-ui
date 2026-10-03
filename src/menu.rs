@@ -13,6 +13,8 @@
 //! - Open: with an [`Origin`] the panel unfolds from that point in 300ms: a clip that grows from a 16px
 //!   square around the origin to the whole panel, with the fill fading in. Without one, or under Reduce
 //!   Motion, it appears at once.
+//! - Submenus: a row made with [`MenuItem::submenu`] opens a menu of its own beside it on hover, a press or
+//!   Right; Left and Escape close it. [`entries_of`] builds a whole tree of them from [`Branch`]es.
 //!
 //! What gpui cannot draw is left out: the check's draw-on when a row toggles (the menu closes on choice, so
 //! it is rarely seen).
@@ -21,9 +23,9 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{collapsed, fill_opacity, height, height_in, height_of, jump, panel_size, unfolded, walk};
+pub use helpers::{collapsed, entries_of, fill_opacity, height, height_in, height_of, jump, panel_size, unfolded, walk};
 pub use structs::{Inset, Menu, MenuItem, MenuLook};
-pub use types::{BORDER, Choice, Entry, LINE, Origin, SLOT, Select, TEXT, Tone};
+pub use types::{BORDER, Branch, Choice, Entry, LINE, Origin, Pick, SLOT, Select, TEXT, Tone};
 
 #[cfg(test)]
 use gpui_kit::Pixels;

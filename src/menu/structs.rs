@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, Bounds, ElementId, FocusHandle, FontWeight, InteractiveElement, IntoElement,
+    Anchor, App, Bounds, ElementId, FocusHandle, FontWeight, InteractiveElement, IntoElement,
     ParentElement, Pixels, RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window,
-    div, prelude::FluentBuilder,
+    anchored, deferred, div, point, prelude::FluentBuilder,
 };
 
 use crate::scale::px;
@@ -64,6 +64,8 @@ pub struct MenuItem {
     close: bool,
     selector: Option<String>,
     pub(super) on_select: Option<Select>,
+    /// The rows of the menu this row opens beside itself.
+    pub(super) submenu: Option<Vec<Entry>>,
 }
 
 impl MenuItem {
@@ -80,7 +82,15 @@ impl MenuItem {
             close: true,
             selector: None,
             on_select: None,
+            submenu: None,
         }
+    }
+
+    /// Makes the row open `entries` as a menu beside it, on hover, on a press or on Right. Left or Escape closes that
+    /// menu and the row has focus again. The row itself chooses nothing, so it has no `on_select`.
+    pub fn submenu(mut self, entries: impl IntoIterator<Item = Entry>) -> Self {
+        self.submenu = Some(entries.into_iter().collect());
+        self
     }
 
     /// A line under the words, in the muted tone.
@@ -162,6 +172,8 @@ struct State {
     pub(super) typed: String,
     typed_at: Option<std::time::Instant>,
     pub(super) clock: FrameClock,
+    /// The row whose submenu is open.
+    pub(super) sub: Option<usize>,
 }
 
 impl State {
@@ -180,6 +192,7 @@ impl State {
             typed: String::new(),
             typed_at: None,
             clock: FrameClock::default(),
+            sub: None,
         }
     }
 }
@@ -192,12 +205,14 @@ pub struct Menu {
     pub(super) look: MenuLook,
     pub(super) origin: Option<Origin>,
     pub(super) on_dismiss: Option<Select>,
+    /// Set on a submenu: what Left and Escape do.
+    on_back: Option<Select>,
     selector: Option<&'static str>,
 }
 
 impl Menu {
     pub fn new(id: impl Into<ElementId>, entries: impl IntoIterator<Item = Entry>) -> Self {
-        Self { id: id.into(), entries: entries.into_iter().collect(), width: None, look: MenuLook::BAR, origin: None, on_dismiss: None, selector: None }
+        Self { id: id.into(), entries: entries.into_iter().collect(), width: None, look: MenuLook::BAR, origin: None, on_dismiss: None, on_back: None, selector: None }
     }
 
     /// The least width of the panel.
@@ -223,6 +238,12 @@ impl Menu {
         self
     }
 
+    /// Makes this menu a submenu: Left and Escape run `f` instead of closing everything.
+    pub(super) fn on_back(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_back = Some(Rc::new(f));
+        self
+    }
+
     /// The name a test finds the panel by with `debug_bounds`.
     pub fn debug_name(mut self, name: &'static str) -> Self {
         self.selector = Some(name);
@@ -236,6 +257,7 @@ impl RenderOnce for Menu {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
         let count = self.entries.len();
+        let menu_id = self.id.clone();
         let state = window.use_keyed_state(self.id.clone(), cx, |_, _| State::new());
         let handles = state.update(cx, |s, cx| {
             while s.handles.len() < count {
@@ -258,7 +280,8 @@ impl RenderOnce for Menu {
                 window.defer(cx, move |window, cx| window.focus(&first, cx));
             }
         }
-        let active = reachable.iter().copied().find(|i| handles[*i].is_focused(window));
+        // A row whose submenu is open keeps its pill while focus is in the submenu.
+        let active = reachable.iter().copied().find(|i| handles[*i].is_focused(window)).or(state.read(cx).sub);
         let active_tone = active.and_then(|i| match &self.entries[i] {
             Entry::Item(item) => Some(item.tone),
             _ => None,
@@ -323,6 +346,7 @@ impl RenderOnce for Menu {
 
         // The choose action of each row.
         let dismiss = self.on_dismiss.clone();
+        let sub_dismiss = dismiss.clone();
         let picks: Vec<Option<(bool, Option<Select>)>> = self
             .entries
             .iter()
@@ -331,9 +355,24 @@ impl RenderOnce for Menu {
                 _ => None,
             })
             .collect();
+        let opens: Rc<Vec<bool>> = Rc::new(self.entries.iter().map(|e| matches!(e, Entry::Item(item) if item.submenu.is_some())).collect());
+        let open_sub = {
+            let state = state.clone();
+            move |at: Option<usize>, cx: &mut App| {
+                state.update(cx, |s, cx| {
+                    if s.sub != at {
+                        s.sub = at;
+                        cx.notify();
+                    }
+                })
+            }
+        };
         let choose: Choose = {
-            let picks = Rc::new(picks);
+            let (picks, opens, open_sub) = (Rc::new(picks), opens.clone(), open_sub.clone());
             Rc::new(move |i, window, cx| {
+                if opens.get(i) == Some(&true) {
+                    return open_sub(Some(i), cx);
+                }
                 let Some(Some((close, f))) = picks.get(i) else { return };
                 if *close && let Some(d) = &dismiss {
                     d(window, cx);
@@ -372,19 +411,50 @@ impl RenderOnce for Menu {
                     .into_any_element(),
                 // No line: a gap parts the groups.
                 Entry::Separator => div().h(px(look.group)).into_any_element(),
-                Entry::Item(item) => {
+                Entry::Item(mut item) => {
                     let handle = handles[i].clone();
+                    let sub_entries = item.submenu.take();
+                    let has_sub = sub_entries.is_some();
                     let ink = match item.tone {
                         Tone::Default => theme.foreground,
                         Tone::Destructive => theme.danger,
                     };
                     let (pick, hover) = (choose.clone(), handle.clone());
+                    let hover_sub = open_sub.clone();
+                    let nested = sub_entries.filter(|_| state.read(cx).sub == Some(i)).zip(state.read(cx).rects[i]).map(|(entries, row)| {
+                        let (back_state, back_to) = (state.clone(), handle.clone());
+                        let mut menu = Menu::new(ElementId::NamedChild(std::sync::Arc::new(menu_id.clone()), format!("sub-{i}").into()), entries)
+                            .look(look)
+                            .on_back(move |window, cx| {
+                                back_state.update(cx, |s, cx| {
+                                    s.sub = None;
+                                    cx.notify();
+                                });
+                                window.focus(&back_to, cx);
+                            });
+                        if let Some(d) = sub_dismiss.clone() {
+                            menu = menu.on_dismiss(move |window, cx| d(window, cx));
+                        }
+                        let at = point(row.right() + px(2.), row.top() - px(look.pad));
+                        deferred(anchored().position(at).anchor(Anchor::TopLeft).snap_to_window_with_margin(px(8.)).child(div().occlude().child(menu)))
+                            .with_priority(crate::popover::PRIORITY + 2)
+                    });
                     let report = {
                         let state = state.clone();
                         move |b: Bounds<Pixels>, cx: &mut App| state.update(cx, |s, _| s.rects[i] = Some(b))
                     };
                     let focused = handle.is_focused(window) && keyboard;
-                    let tail = item.choice.and_then(|c| match c {
+                    let chevron = has_sub.then(|| {
+                        div()
+                            .flex_none()
+                            .ml_auto()
+                            .h(px(LINE))
+                            .flex()
+                            .items_center()
+                            .child(Icon::new(IconName::ChevronRight).size(px(16.)).color(theme.muted_foreground))
+                            .into_any_element()
+                    });
+                    let tail = chevron.or_else(|| item.choice.and_then(|c| match c {
                         Choice::Selected(on) => Some(
                             div()
                                 .size(px(20.))
@@ -407,7 +477,7 @@ impl RenderOnce for Menu {
                                 .into_any_element(),
                         ),
                         _ => None,
-                    });
+                    }));
                     let mark = item.choice.and_then(|c| match c {
                         Choice::Selected(_) | Choice::Switch(_) => None,
                         Choice::Check(on) => Some(
@@ -445,6 +515,7 @@ impl RenderOnce for Menu {
                                 .on_hover(move |on, window, cx| {
                                     if *on {
                                         window.focus(&hover, cx);
+                                        hover_sub(has_sub.then_some(i), cx);
                                     }
                                 })
                                 .on_click(move |_, window, cx| pick(i, window, cx))
@@ -485,6 +556,7 @@ impl RenderOnce for Menu {
                         }))
                         .children(item.cap.map(|keys| div().flex_none().ml_auto().pl(px(16.)).child(Kbd::new(keys))))
                         .when(focused, |d| d.child(crate::focus::row_ring(&theme, theme.popover, px(look.row_radius))))
+                        .children(nested)
                         .into_any_element()
                 }
             })
@@ -505,6 +577,7 @@ impl RenderOnce for Menu {
         };
 
         let (key_state, key_handles, key_choose, key_reach) = (state.clone(), handles.clone(), choose.clone(), reachable.clone());
+        let (key_opens, back) = (opens.clone(), self.on_back.clone());
         let on_keys = move |event: &gpui_kit::KeyDownEvent, window: &mut Window, cx: &mut App| {
             let key = event.keystroke.key.as_str();
             let now_focused = key_reach.iter().copied().find(|i| key_handles[*i].is_focused(window));
@@ -514,6 +587,15 @@ impl RenderOnce for Menu {
                 }
             };
             match key {
+                "left" | "escape" if back.is_some() => {
+                    if let Some(back) = &back {
+                        back(window, cx);
+                    }
+                }
+                "right" => match now_focused {
+                    Some(i) if key_opens.get(i) == Some(&true) => key_choose(i, window, cx),
+                    _ => return,
+                },
                 "down" => go(walk(&key_reach, now_focused, 1), window, cx),
                 "up" => go(walk(&key_reach, now_focused, -1), window, cx),
                 "home" => go(key_reach.first().copied(), window, cx),

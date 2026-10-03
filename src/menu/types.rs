@@ -32,6 +32,28 @@ pub(super) const TYPED_FOR: Duration = Duration::from_millis(500);
 
 pub type Select = Rc<dyn Fn(&mut Window, &mut App)>;
 
+/// What a menu built from a [`Branch`] tree does with the leaf the reader chose, by its id.
+pub type Pick = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
+
+/// A choice in a tree of choices. A leaf is chosen; a branch opens a menu of its own beside it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Branch {
+    /// What `pick` hears when a leaf is chosen. A branch's id is never heard.
+    pub id: SharedString,
+    pub label: SharedString,
+    pub branches: Vec<Branch>,
+}
+
+impl Branch {
+    pub fn leaf(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
+        Self { id: id.into(), label: label.into(), branches: Vec::new() }
+    }
+
+    pub fn with(id: impl Into<SharedString>, label: impl Into<SharedString>, branches: Vec<Branch>) -> Self {
+        Self { id: id.into(), label: label.into(), branches }
+    }
+}
+
 pub(super) type Choose = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

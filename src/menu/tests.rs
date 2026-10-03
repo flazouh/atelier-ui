@@ -207,3 +207,126 @@ fn the_fill_is_whole_a_sixth_of_the_way_into_the_unfold() {
     assert_eq!(fill_opacity(0.5), 1.);
     assert_eq!(fill_opacity(1.), 1.);
 }
+
+struct SubHost {
+    log: Rc<RefCell<Vec<String>>>,
+}
+
+impl Render for SubHost {
+    fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+        let log = |name: &'static str| {
+            let log = self.log.clone();
+            move |_: &mut Window, _: &mut gpui_kit::App| log.borrow_mut().push(name.to_string())
+        };
+        let menu = Menu::new(
+            "menu",
+            [
+                MenuItem::new("Plain").debug_name("row-plain").on_select(log("plain")).into(),
+                MenuItem::new("Hand off")
+                    .debug_name("row-handoff")
+                    .submenu([
+                        MenuItem::new("Claude").debug_name("row-claude").on_select(log("claude")).into(),
+                        MenuItem::new("Codex").debug_name("row-codex").on_select(log("codex")).into(),
+                    ])
+                    .into(),
+            ],
+        )
+        .on_dismiss(log("dismiss"));
+        div().p(px(40.)).flex().child(menu)
+    }
+}
+
+fn open_with_submenu(cx: &mut TestAppContext) -> (&mut VisualTestContext, Rc<RefCell<Vec<String>>>) {
+    let log = Rc::new(RefCell::new(Vec::new()));
+    let l = log.clone();
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Light, cx);
+        cx.set_reduce_motion(true);
+    });
+    let (host, cx) = cx.add_window_view(move |_, _| SubHost { log: l });
+    for _ in 0..4 {
+        cx.run_until_parked();
+        host.update(cx, |_, cx| cx.notify());
+    }
+    (cx, log)
+}
+
+fn settle(cx: &mut VisualTestContext) {
+    for _ in 0..4 {
+        cx.run_until_parked();
+        cx.update(|window, _| window.refresh());
+    }
+}
+
+#[gpui_kit::test]
+fn a_row_with_a_submenu_opens_it_beside_itself_on_hover(cx: &mut TestAppContext) {
+    let (cx, _) = open_with_submenu(cx);
+    assert!(cx.debug_bounds("row-claude").is_none(), "closed at first");
+    let at = at(cx, "row-handoff");
+    cx.simulate_mouse_move(at, None, Modifiers::default());
+    settle(cx);
+    let row = cx.debug_bounds("row-handoff").unwrap();
+    let claude = cx.debug_bounds("row-claude").expect("the submenu is open");
+    assert!(claude.left() >= row.right(), "it sits beside the row, not over it");
+}
+
+#[gpui_kit::test]
+fn a_row_of_the_submenu_chooses_and_the_row_that_opened_it_chooses_nothing(cx: &mut TestAppContext) {
+    let (cx, log) = open_with_submenu(cx);
+    let handoff = at(cx, "row-handoff");
+    cx.simulate_click(handoff, Modifiers::default());
+    settle(cx);
+    assert!(log.borrow().is_empty(), "opening a submenu is not a choice");
+    let codex = at(cx, "row-codex");
+    cx.simulate_click(codex, Modifiers::default());
+    assert_eq!(*log.borrow(), vec!["dismiss", "codex"]);
+}
+
+#[gpui_kit::test]
+fn hovering_another_row_closes_the_submenu(cx: &mut TestAppContext) {
+    let (cx, _) = open_with_submenu(cx);
+    let handoff = at(cx, "row-handoff");
+    cx.simulate_mouse_move(handoff, None, Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("row-claude").is_some());
+    let plain = at(cx, "row-plain");
+    cx.simulate_mouse_move(plain, None, Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("row-claude").is_none());
+}
+
+#[gpui_kit::test]
+fn right_opens_the_submenu_and_left_and_escape_close_only_it(cx: &mut TestAppContext) {
+    let (cx, log) = open_with_submenu(cx);
+    cx.simulate_keystrokes("down right");
+    settle(cx);
+    assert!(cx.debug_bounds("row-claude").is_some(), "Right opened it");
+    cx.simulate_keystrokes("left");
+    settle(cx);
+    assert!(cx.debug_bounds("row-claude").is_none(), "Left closed it");
+    cx.simulate_keystrokes("right escape");
+    settle(cx);
+    assert!(cx.debug_bounds("row-claude").is_none(), "Escape closed it too");
+    cx.simulate_keystrokes("right down enter");
+    settle(cx);
+    assert_eq!(*log.borrow(), vec!["dismiss", "codex"], "the keys walk the submenu and choose in it");
+}
+
+#[test]
+fn a_tree_of_branches_becomes_rows_that_open_menus_and_leaves_that_pick() {
+    let tree = vec![
+        Branch::leaf("plain", "Plain"),
+        Branch::with("agent", "Agent", vec![Branch::leaf("agent/a", "A"), Branch::leaf("agent/b", "B")]),
+    ];
+    let heard = Rc::new(RefCell::new(Vec::new()));
+    let sink = heard.clone();
+    let pick: Pick = Rc::new(move |id, _, _| sink.borrow_mut().push(id.to_string()));
+    let rows = entries_of(&tree, &pick);
+    assert_eq!(rows.len(), 2);
+    let Entry::Item(agent) = &rows[1] else { panic!("a row") };
+    assert_eq!(agent.submenu.as_ref().map(Vec::len), Some(2), "a branch holds its branches");
+    assert!(agent.on_select.is_none(), "and chooses nothing itself");
+    let Entry::Item(plain) = &rows[0] else { panic!("a row") };
+    assert!(plain.submenu.is_none() && plain.on_select.is_some(), "a leaf picks");
+}
