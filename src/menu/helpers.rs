@@ -21,12 +21,17 @@ pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
     })
 }
 
+/// A lead of `size`: the mark's image, or the monogram of `label`. For any place an agent's name shows.
+pub fn lead_icon(label: &SharedString, lead: Lead, size: f32, theme: &Theme) -> gpui_kit::AnyElement {
+    match lead {
+        Lead::Mark(mark) => gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(size)).into_any_element(),
+        Lead::Monogram => crate::select::monogram(label, size, theme).into_any_element(),
+    }
+}
+
 /// The slot before a row's words that holds its lead: a mark's image, or the monogram of the words.
 pub(super) fn lead_slot(label: &SharedString, lead: Lead, theme: &Theme) -> gpui_kit::AnyElement {
-    let inner = match lead {
-        Lead::Mark(mark) => gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(LEAD)).into_any_element(),
-        Lead::Monogram => crate::select::monogram(label, LEAD, theme).into_any_element(),
-    };
+    let inner = lead_icon(label, lead, LEAD, theme);
     let name = format!("menu-lead-{label}");
     div().debug_selector(move || name.clone()).flex_none().mt(px(2.)).size(px(SLOT)).flex().items_center().justify_center().child(inner).into_any_element()
 }
