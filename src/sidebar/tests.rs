@@ -266,3 +266,26 @@ fn handoff_with_nowhere_to_go_is_dimmed_and_hands_off_nothing(cx: &mut TestAppCo
     frames(&sidebar, cx, 6);
     assert!(cx.debug_bounds("branch-claude").is_none());
 }
+
+#[gpui_kit::test]
+fn every_row_of_the_project_menu_has_an_icon(cx: &mut TestAppContext) {
+    let (sidebar, cx) = open(cx);
+    sidebar.update(cx, |s, cx| {
+        s.menu = Some("atelier".into());
+        cx.notify();
+    });
+    frames(&sidebar, cx, 4);
+    for words in crate::project_section::MENU {
+        let name: &'static str = Box::leak(format!("menu-icon-{words}").into_boxed_str());
+        assert!(cx.debug_bounds(name).is_some(), "{words} has an icon");
+    }
+}
+
+#[gpui_kit::test]
+fn every_row_of_a_sessions_menu_has_an_icon(cx: &mut TestAppContext) {
+    let (_, cx) = open_handoff(cx);
+    for words in ["Archive", "Handoff", "Copy session id"] {
+        let name: &'static str = Box::leak(format!("menu-icon-{words}").into_boxed_str());
+        assert!(cx.debug_bounds(name).is_some(), "{words} has an icon");
+    }
+}

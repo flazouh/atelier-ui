@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use gpui_kit::{App, Window};
 
+use crate::icon::IconName;
 use crate::menu::Origin;
 
 pub(super) type Handler = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -29,6 +30,19 @@ pub enum MenuChoice {
 
 impl MenuChoice {
     pub const ALL: [MenuChoice; 7] = [Self::PullRequests, Self::Tasks, Self::Worktrees, Self::ChooseIcon, Self::Close, Self::Files, Self::CopyPath];
+
+    /// The icon before the row's words.
+    pub fn icon(self) -> IconName {
+        match self {
+            Self::PullRequests => IconName::PrOpen,
+            Self::Tasks => IconName::Checklist,
+            Self::Worktrees => IconName::GitBranch,
+            Self::ChooseIcon => IconName::AddPhoto,
+            Self::Close => IconName::Close,
+            Self::Files => IconName::Folder,
+            Self::CopyPath => IconName::Copy,
+        }
+    }
 
     /// The key that reaches the same thing from anywhere, shown on the menu row.
     pub fn cap(self) -> Option<&'static str> {

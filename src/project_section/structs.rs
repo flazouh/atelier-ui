@@ -123,6 +123,7 @@ impl RenderOnce for ProjectSection {
                     let choose = choose.clone();
                     let off = unavailable(choice, pulls.as_deref());
                     let item = MenuItem::new(choice.words())
+                        .icon(choice.icon())
                         .debug_name(format!("project-menu-{}", choice.words()))
                         .disabled(off.is_some())
                         .tone(if choice == MenuChoice::Close { Tone::Destructive } else { Tone::Default })

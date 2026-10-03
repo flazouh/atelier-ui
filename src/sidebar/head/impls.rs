@@ -125,9 +125,9 @@ impl Sidebar {
 
     fn add_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity().downgrade();
-        let ask = |label: &'static str, debug: &'static str, cap: &'static str, event: SidebarEvent| {
+        let ask = |label: &'static str, icon: IconName, debug: &'static str, cap: &'static str, event: SidebarEvent| {
             let sidebar = this.clone();
-            Entry::from(MenuItem::new(label).debug_name(debug).cap(keys::cap(cap)).on_select(move |_, cx| {
+            Entry::from(MenuItem::new(label).icon(icon).debug_name(debug).cap(keys::cap(cap)).on_select(move |_, cx| {
                 drop(sidebar.update(cx, |s, cx| {
                     s.add_menu = false;
                     cx.emit(event.clone());
@@ -136,8 +136,8 @@ impl Sidebar {
             }))
         };
         let entries = vec![
-            ask("Open folder…", "add-folder", "⌘o", SidebarEvent::AddFolder),
-            ask("Open over SSH…", "add-ssh", "⌘⇧o", SidebarEvent::AddRemote),
+            ask("Open folder…", IconName::Folder, "add-folder", "⌘o", SidebarEvent::AddFolder),
+            ask("Open over SSH…", IconName::Dns, "add-ssh", "⌘⇧o", SidebarEvent::AddRemote),
         ];
         let close = this.clone();
         Popover::new("add-menu-popover")
