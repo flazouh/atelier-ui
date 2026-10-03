@@ -19,6 +19,8 @@ pub struct SessionData {
     pub archived: bool,
     /// It has a panel open, so its menu can close it.
     pub in_panel: bool,
+    /// The provider it runs on, named quietly on its row; `None` for the default.
+    pub provider: Option<SharedString>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

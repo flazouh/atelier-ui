@@ -11,7 +11,7 @@ use crate::{
 };
 
 fn session(id: &str, status: SessionStatus, at: u64) -> SessionData {
-    SessionData { archived: false, in_panel: false, id: id.to_string().into(), title: id.to_string().into(), look: AgentLook::neutral(&crate::theme::Theme::light()), status, active_at: at }
+    SessionData { archived: false, in_panel: false, provider: None, id: id.to_string().into(), title: id.to_string().into(), look: AgentLook::neutral(&crate::theme::Theme::light()), status, active_at: at }
 }
 
 fn project(id: &str, sessions: Vec<SessionData>) -> ProjectData {
