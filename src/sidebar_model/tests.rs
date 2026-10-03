@@ -16,7 +16,7 @@ fn look() -> AgentLook {
 }
 
 fn session(id: &str, status: SessionStatus, active_at: u64) -> SessionData {
-    SessionData { archived: false, in_panel: false, id: id.to_string().into(), title: format!("Title {id}").into(), look: look(), status, active_at }
+    SessionData { archived: false, in_panel: false, provider: None, id: id.to_string().into(), title: format!("Title {id}").into(), look: look(), status, active_at }
 }
 
 fn project(id: &str, sessions: Vec<SessionData>) -> ProjectData {

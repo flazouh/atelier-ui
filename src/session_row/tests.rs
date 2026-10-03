@@ -42,7 +42,7 @@ mod open {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let data = SessionData { archived: false, in_panel: false,
+            let data = SessionData { archived: false, in_panel: false, provider: None,
                 id: "s1".into(),
                 title: "Add a subtract function".into(),
                 look: AgentLook::neutral(&crate::theme::Theme::light()),
@@ -98,6 +98,7 @@ mod archive {
             let data = SessionData {
                 archived: false,
                 in_panel: false,
+                provider: None,
                 id: "s1".into(),
                 title: "Add a subtract function".into(),
                 look: AgentLook::neutral(&crate::theme::Theme::light()),
@@ -145,5 +146,65 @@ mod archive {
         cx.simulate_click(archive.center(), Default::default());
         cx.run_until_parked();
         assert_eq!((archived.get(), opened.get()), (1, 0));
+    }
+}
+
+mod provider {
+    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use crate::{
+        agent_look::AgentLook,
+        session_row::SessionRow,
+        session_status::SessionStatus,
+        sidebar_model::SessionData,
+        theme::{Appearance, set_appearance},
+    };
+
+    const OPENROUTER: &str = "OpenRouter";
+
+    struct Host {
+        provider: Option<&'static str>,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let data = SessionData {
+                archived: false,
+                in_panel: false,
+                provider: self.provider.map(Into::into),
+                id: "s1".into(),
+                title: "Try a model".into(),
+                look: AgentLook::neutral(&crate::theme::Theme::light()),
+                status: SessionStatus::Idle,
+                active_at: 0,
+            };
+            div().w(px(300.)).child(SessionRow::new("row", data, 10))
+        }
+    }
+
+    fn draw<'a>(provider: Option<&'static str>, cx: &'a mut TestAppContext) -> &'a mut gpui_kit::VisualTestContext {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (_host, cx) = cx.add_window_view(move |_, _| Host { provider });
+        cx.simulate_resize(size(px(400.), px(100.)));
+        cx.run_until_parked();
+        cx
+    }
+
+    #[gpui_kit::test]
+    fn a_provider_other_than_the_default_is_named_on_the_row(cx: &mut TestAppContext) {
+        let cx = draw(Some(OPENROUTER), cx);
+
+        assert!(cx.debug_bounds("row-provider").is_some());
+    }
+
+    #[gpui_kit::test]
+    fn the_default_provider_is_not_named(cx: &mut TestAppContext) {
+        let cx = draw(None, cx);
+
+        assert!(cx.debug_bounds("row-provider").is_none());
     }
 }

@@ -18,6 +18,7 @@ fn projects() -> Vec<ProjectData> {
         sessions: vec![SessionData {
             archived: false,
             in_panel: false,
+            provider: None,
             id: "s".into(),
             title: "A session".into(),
             look,
@@ -95,7 +96,7 @@ fn look() -> AgentLook {
 fn project(sessions: &[(&str, u64)]) -> Vec<ProjectData> {
     let sessions = sessions
         .iter()
-        .map(|(id, at)| SessionData { archived: false, in_panel: false, id: (*id).into(), title: (*id).into(), look: look(), status: SessionStatus::Idle, active_at: *at })
+        .map(|(id, at)| SessionData { archived: false, in_panel: false, provider: None, id: (*id).into(), title: (*id).into(), look: look(), status: SessionStatus::Idle, active_at: *at })
         .collect();
     vec![ProjectData {
         id: "p".into(),

@@ -6,7 +6,7 @@ use crate::{
 };
 
 fn session(title: &str, status: SessionStatus, archived: bool) -> SessionData {
-    SessionData { in_panel: false, id: title.into(), title: title.into(), look: AgentLook::neutral(&crate::theme::Theme::light()), status, active_at: 1, archived }
+    SessionData { in_panel: false, provider: None, id: title.into(), title: title.into(), look: AgentLook::neutral(&crate::theme::Theme::light()), status, active_at: 1, archived }
 }
 
 fn project(sessions: Vec<SessionData>) -> ProjectData {

@@ -207,6 +207,16 @@ impl RenderOnce for SessionRow {
                     .when(self.open, |t| t.font_weight(FontWeight::MEDIUM))
                     .child(data.title)
             })
+            .children(data.provider.map(|provider| {
+                div()
+                    .debug_selector(|| "row-provider".into())
+                    .flex_none()
+                    .max_w(px(90.))
+                    .truncate()
+                    .text_size(TextSize::Xs.font_size())
+                    .text_color(theme.faint())
+                    .child(provider)
+            }))
             .children(self.project.map(|(badge, name)| {
                 div()
                     .id((mark_id.clone(), "project"))
