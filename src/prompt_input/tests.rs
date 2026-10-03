@@ -707,3 +707,75 @@ fn the_steer_button_tells_its_keys_on_hover(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert!(cx.debug_bounds("tooltip").is_some(), "the hint shows");
 }
+
+/// The box in a column as tall as its content, as a panel holds it: the window would stretch it otherwise.
+struct Column(Entity<PromptInput>);
+
+impl gpui_kit::Render for Column {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl gpui_kit::IntoElement {
+        gpui_kit::div().w(gpui_kit::px(600.)).child(self.0.clone())
+    }
+}
+
+fn boxed(cx: &mut TestAppContext) -> &mut VisualTestContext {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let (_, cx) = cx.add_window_view(|window, cx| {
+        let prompt = cx.new(|cx| PromptInput::new("Ask", "", window, cx).modes(vec!["Ask first".into(), "Plan".into()]));
+        prompt.update(cx, |p, cx| p.focus_handle(cx).focus(window, cx));
+        Column(prompt)
+    });
+    cx.run_until_parked();
+    cx
+}
+
+fn rows(cx: &mut VisualTestContext) -> (Bounds<Pixels>, Bounds<Pixels>, Bounds<Pixels>) {
+    (cx.debug_bounds("prompt-frame").unwrap(), cx.debug_bounds("prompt-text").unwrap(), cx.debug_bounds("prompt-toolbar").unwrap())
+}
+
+/// The box is two rows of one height: the text on top, the controls below, with the box's own padding round both.
+#[gpui_kit::test]
+fn an_empty_box_is_two_rows_of_one_height(cx: &mut TestAppContext) {
+    let cx = boxed(cx);
+    let (frame, text, bar) = rows(cx);
+    assert_eq!(text.size.height, bar.size.height, "text {text:?} bar {bar:?}");
+    assert_eq!(text.top() - frame.top(), frame.bottom() - bar.bottom(), "the same padding above and below");
+    assert_eq!(bar.top(), text.bottom(), "no gap between the rows");
+}
+
+fn write_lines(cx: &mut VisualTestContext, n: usize) {
+    for i in 0..n {
+        if i > 0 {
+            cx.simulate_keystrokes("shift-enter");
+        }
+        cx.simulate_input("line");
+    }
+    cx.run_until_parked();
+}
+
+/// Writing more lines makes the text row taller, a line at a time, and the controls stay under it.
+#[gpui_kit::test]
+fn more_lines_make_the_box_taller_with_the_controls_below(cx: &mut TestAppContext) {
+    let cx = boxed(cx);
+    let one = rows(cx).0.size.height;
+    write_lines(cx, 4);
+    let (frame, text, bar) = rows(cx);
+    assert_eq!(frame.size.height - one, gpui_kit::px(3. * 24.), "three more lines of 24px");
+    assert_eq!(bar.top(), text.bottom());
+}
+
+/// Past eight lines the box stops growing and the text scrolls inside it.
+#[gpui_kit::test]
+fn the_box_stops_growing_at_eight_lines(cx: &mut TestAppContext) {
+    let cx = boxed(cx);
+    write_lines(cx, 8);
+    let eight = rows(cx).0.size.height;
+    for _ in 0..12 {
+        cx.simulate_keystrokes("shift-enter");
+        cx.simulate_input("more");
+    }
+    cx.run_until_parked();
+    assert_eq!(rows(cx).0.size.height, eight);
+}
