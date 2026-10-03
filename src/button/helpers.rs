@@ -8,6 +8,12 @@ use crate::{
 use super::structs::{ButtonMotion, Metrics};
 use super::types::ButtonVariant;
 
+/// The padding at the side of a button: the size's when it has words, else just what centres the icon in a square as
+/// tall as the button, so an icon alone in a text size (the add button of a group) is not a wide button.
+pub(super) fn side_pad(m: &Metrics, words: bool) -> f32 {
+    if words { m.pad_x } else { (m.height - m.icon) / 2. }
+}
+
 /// Changes the pointer state of a button and restarts its motion toward the new look.
 pub(super) fn update_motion(motion: &Entity<ButtonMotion>, cx: &mut App, change: impl FnOnce(&mut ButtonMotion)) {
     let reduce = cx.reduce_motion();

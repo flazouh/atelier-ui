@@ -157,3 +157,10 @@ fn an_open_button_holds_the_hover_level() {
     assert_eq!(hover_target(false, true), 1.);
     assert_eq!(hover_target(true, true), 1.);
 }
+
+#[test]
+fn an_icon_alone_in_a_text_size_is_as_wide_as_it_is_tall() {
+    let m = ButtonSize::Sm.metrics();
+    assert_eq!(side_pad(&m, false), (m.height - m.icon) / 2., "no words to part from: the icon is centred in a square");
+    assert_eq!(side_pad(&m, true), m.pad_x, "words keep the size's padding");
+}
