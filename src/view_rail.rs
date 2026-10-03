@@ -50,6 +50,7 @@ pub fn mark(index: usize, selected: usize, open: bool) -> Mark {
 }
 
 type OnSelect = Rc<dyn Fn(usize, &mut Window, &mut App)>;
+type OnClick = Rc<dyn Fn(&mut Window, &mut App)>;
 
 #[derive(IntoElement)]
 pub struct ViewRail {
@@ -143,7 +144,7 @@ pub struct RailButton {
     icon: IconName,
     tooltip: SharedString,
     debug: &'static str,
-    on_click: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
+    on_click: Option<OnClick>,
 }
 
 impl RailButton {
