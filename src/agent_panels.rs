@@ -98,6 +98,8 @@ pub struct AgentPanels {
     pub(crate) slots: HashMap<SharedString, Slot>,
     pub(crate) offset: f32,
     pub(crate) viewport: f32,
+    /// The strip's padding at its left, 8 unless the strip sits against another card.
+    pub(crate) inset_left: f32,
     /// The bar's width at the last layout, which picks its words.
     pub(crate) origin_x: f32,
     pub(crate) glide: Option<Channel>,
@@ -131,6 +133,7 @@ impl AgentPanels {
             slots: HashMap::new(),
             offset: 0.,
             viewport: 0.,
+            inset_left: 8.,
             origin_x: 0.,
             glide: None,
             last_wheel: None,
@@ -200,6 +203,14 @@ impl AgentPanels {
         self.project_order = project_order;
         self.reveal_tab = true;
         self.relayout(cx);
+    }
+
+    /// The strip's padding at its left. Beside a sidebar card it is the panels' own gap, so the cards stand evenly apart.
+    pub fn set_inset_left(&mut self, inset: f32, cx: &mut Context<Self>) {
+        if (self.inset_left - inset).abs() > 0.1 {
+            self.inset_left = inset;
+            cx.notify();
+        }
     }
 
     /// The strip's width in this frame, from the owner that lays the column out, so the columns fit
