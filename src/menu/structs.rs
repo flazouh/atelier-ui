@@ -17,10 +17,10 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{
-    Choice, Choose, Entry, LINE, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
+    Choice, Choose, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
 };
 use super::helpers::{
-    collapsed, fill_opacity, jump, panel_shadow, panel_size, pill_fill, unfolded, walk,
+    collapsed, fill_opacity, jump, lead_slot, panel_shadow, panel_size, pill_fill, unfolded, walk,
 };
 
 /// How a site's menu looks: the numbers its own menu had before the Menu part. Motion is the same for all.
@@ -66,6 +66,7 @@ pub struct MenuItem {
     pub(super) on_select: Option<Select>,
     /// The rows of the menu this row opens beside itself.
     pub(super) submenu: Option<Vec<Entry>>,
+    lead: Option<Lead>,
 }
 
 impl MenuItem {
@@ -83,7 +84,14 @@ impl MenuItem {
             selector: None,
             on_select: None,
             submenu: None,
+            lead: None,
         }
+    }
+
+    /// A mark, or a monogram where there is none, before the words.
+    pub fn lead(mut self, lead: Lead) -> Self {
+        self.lead = Some(lead);
+        self
     }
 
     /// Makes the row open `entries` as a menu beside it, on hover, on a press or on Right. Left or Escape closes that
@@ -523,6 +531,7 @@ impl RenderOnce for Menu {
                         .when_some(item.selector, |d, name| d.debug_selector(move || name.clone()))
                         .child(measure(report))
                         .children(mark)
+                        .when_some(item.lead, |d, lead| d.child(lead_slot(&item.label, lead, &theme)))
                         .when_some(item.icon, |d, icon| {
                             d.child(
                                 div()

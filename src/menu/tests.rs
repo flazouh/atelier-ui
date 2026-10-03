@@ -330,3 +330,34 @@ fn a_tree_of_branches_becomes_rows_that_open_menus_and_leaves_that_pick() {
     let Entry::Item(plain) = &rows[0] else { panic!("a row") };
     assert!(plain.submenu.is_none() && plain.on_select.is_some(), "a leaf picks");
 }
+
+struct LeadHost;
+
+impl Render for LeadHost {
+    fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+        use crate::model_badge::BrandMark;
+        let entries: Vec<Entry> = vec![
+            MenuItem::new("Claude Code").lead(Lead::Mark(BrandMark::new("a-light.svg", "a-dark.svg"))).into(),
+            MenuItem::new("Codex").lead(Lead::of(None)).into(),
+            MenuItem::new("Plain").into(),
+        ];
+        div().p(px(40.)).flex().child(Menu::new("lead-menu", entries))
+    }
+}
+
+#[gpui_kit::test]
+fn a_row_with_a_lead_shows_it_before_its_words_a_mark_or_the_first_letter(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Light, cx);
+        cx.set_reduce_motion(true);
+    });
+    let (host, cx) = cx.add_window_view(|_, _| LeadHost);
+    for _ in 0..4 {
+        cx.run_until_parked();
+        host.update(cx, |_, cx| cx.notify());
+    }
+    assert!(cx.debug_bounds("menu-lead-Claude Code").is_some(), "the mark's slot");
+    assert!(cx.debug_bounds("select-monogram-C").is_some(), "a row without a mark gets its first letter");
+    assert!(cx.debug_bounds("menu-lead-Plain").is_none(), "a row with no lead gets nothing");
+}

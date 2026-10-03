@@ -12,6 +12,9 @@ pub const LINE: f32 = 20.;
 /// The width of the slot that holds a check, a dot or an icon.
 pub const SLOT: f32 = 16.;
 
+/// The size of a lead's mark or monogram, in the slot of an icon.
+pub(super) const LEAD: f32 = 14.;
+
 /// How long the panel takes to unfold.
 pub(super) const UNFOLD: f32 = 0.3;
 
@@ -35,22 +38,44 @@ pub type Select = Rc<dyn Fn(&mut Window, &mut App)>;
 /// What a menu built from a [`Branch`] tree does with the leaf the reader chose, by its id.
 pub type Pick = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 
+/// What stands before a row's words to say what it is: an agent's or a lab's mark, or, for one that has no mark, the
+/// first letter of its words in a round.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Lead {
+    Mark(crate::model_badge::BrandMark),
+    Monogram,
+}
+
+impl Lead {
+    /// The mark when there is one, the monogram when there is not: a row never goes without.
+    pub fn of(mark: Option<crate::model_badge::BrandMark>) -> Self {
+        mark.map_or(Self::Monogram, Self::Mark)
+    }
+}
+
 /// A choice in a tree of choices. A leaf is chosen; a branch opens a menu of its own beside it.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Branch {
     /// What `pick` hears when a leaf is chosen. A branch's id is never heard.
     pub id: SharedString,
     pub label: SharedString,
+    pub lead: Option<Lead>,
     pub branches: Vec<Branch>,
 }
 
 impl Branch {
     pub fn leaf(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), branches: Vec::new() }
+        Self { id: id.into(), label: label.into(), lead: None, branches: Vec::new() }
     }
 
     pub fn with(id: impl Into<SharedString>, label: impl Into<SharedString>, branches: Vec<Branch>) -> Self {
-        Self { id: id.into(), label: label.into(), branches }
+        Self { id: id.into(), label: label.into(), lead: None, branches }
+    }
+
+    /// The same, with `lead` before its words.
+    pub fn led(mut self, lead: Lead) -> Self {
+        self.lead = Some(lead);
+        self
     }
 }
 

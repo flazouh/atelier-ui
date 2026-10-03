@@ -1,8 +1,9 @@
-use gpui_kit::Hsla;
+use gpui_kit::{Hsla, InteractiveElement, IntoElement, ParentElement, SharedString, Styled, div};
 
+use crate::scale::px;
 use crate::theme::Theme;
 use super::structs::{Inset, MenuItem, MenuLook};
-use super::types::{BORDER, Branch, CLIP_HALF, Entry, FILL_RAMP, LABEL, LINE, Pick, RADIUS_END, RADIUS_START, Tone};
+use super::types::{BORDER, Branch, CLIP_HALF, Entry, FILL_RAMP, LABEL, LEAD, LINE, Lead, Pick, SLOT, RADIUS_END, RADIUS_START, Tone};
 
 /// The height of a panel of `rows` plain rows in `look`: the padding, the rows and the 1px edge.
 pub fn height_in(look: MenuLook, rows: usize) -> f32 {
@@ -20,6 +21,16 @@ pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
     })
 }
 
+/// The slot before a row's words that holds its lead: a mark's image, or the monogram of the words.
+pub(super) fn lead_slot(label: &SharedString, lead: Lead, theme: &Theme) -> gpui_kit::AnyElement {
+    let inner = match lead {
+        Lead::Mark(mark) => gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(LEAD)).into_any_element(),
+        Lead::Monogram => crate::select::monogram(label, LEAD, theme).into_any_element(),
+    };
+    let name = format!("menu-lead-{label}");
+    div().debug_selector(move || name.clone()).flex_none().mt(px(2.)).size(px(SLOT)).flex().items_center().justify_center().child(inner).into_any_element()
+}
+
 /// The rows of a menu for `branches`: a leaf is a row that runs `pick` with its id, a branch a row that opens the
 /// menu of its own branches. Every row is named `branch-<id>` for tests.
 pub fn entries_of(branches: &[Branch], pick: &Pick) -> Vec<Entry> {
@@ -27,6 +38,10 @@ pub fn entries_of(branches: &[Branch], pick: &Pick) -> Vec<Entry> {
         .iter()
         .map(|branch| {
             let row = MenuItem::new(branch.label.clone()).debug_name(format!("branch-{}", branch.id));
+            let row = match &branch.lead {
+                Some(lead) => row.lead(lead.clone()),
+                None => row,
+            };
             if branch.branches.is_empty() {
                 let (pick, id) = (pick.clone(), branch.id.clone());
                 row.on_select(move |window, cx| pick(&id, window, cx)).into()
