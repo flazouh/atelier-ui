@@ -13,6 +13,9 @@ pub enum SidebarEvent {
     Archive { project: SharedString, session: SharedString, archive: bool },
     /// The reader chose "Copy session id" in a row's menu.
     CopySessionId { project: SharedString, session: SharedString },
+    /// The reader chose "Continue with…" in a row's menu: a new session carries this one on, on another agent or
+    /// provider.
+    ContinueWith { project: SharedString, session: SharedString },
     /// The reader chose "Close panel" in a row's menu: the session has a panel open, and it closes.
     CloseSession { project: SharedString, session: SharedString },
     /// The reader changed the head's choices (the list mode or the filter): the app may keep them.
