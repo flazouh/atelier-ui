@@ -5,6 +5,7 @@ use gpui_kit::{
     Bounds,
     Corners,
     ElementId,
+    Hsla,
     FocusHandle,
     InteractiveElement,
     IntoElement,
@@ -84,6 +85,7 @@ pub struct Select {
     pub(super) default_open: bool,
     pub(super) compact: bool,
     pub(super) corners: Corners<bool>,
+    pub(super) fill: Option<Hsla>,
     pub(super) chevron: bool,
     pub(super) shadow: bool,
     pub(super) panel_width: Option<Pixels>,
@@ -103,6 +105,7 @@ impl Select {
             default_open: false,
             compact: false,
             corners: Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true },
+            fill: None,
             chevron: true,
             shadow: true,
             panel_width: None,
@@ -144,6 +147,12 @@ impl Select {
     /// [`crate::button_group::segment_corners`]). The open panel keeps all its corners.
     pub fn corners(mut self, corners: Corners<bool>) -> Self {
         self.corners = corners;
+        self
+    }
+
+    /// The trigger's fill at rest, for a select on a card, where the field's own `card` would not show.
+    pub fn fill(mut self, fill: Hsla) -> Self {
+        self.fill = Some(fill);
         self
     }
 
@@ -382,7 +391,7 @@ impl RenderOnce for Select {
 
         // One tone for every trigger, the Ghost button's hover; the open surface holds it.
         let held = tint.max(p.clamp(0., 1.));
-        let trigger_bg = trigger_tone(&theme, if compact { transparent_black() } else { theme.card }, held);
+        let trigger_bg = trigger_tone(&theme, if compact { transparent_black() } else { self.fill.unwrap_or(theme.card) }, held);
         let anchor = {
             let motion = motion.clone();
             measure(move |bounds, cx| motion.update(cx, |m, _| m.anchor = Some(bounds)))
