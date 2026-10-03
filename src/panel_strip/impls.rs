@@ -132,7 +132,8 @@ impl AgentPanels {
             .flex_1()
             .min_h_0()
             .overflow_hidden()
-            .px(px(8.))
+            .pl(px(self.inset_left))
+            .pr(px(8.))
             .pb(px(8.))
             .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _, cx| {
                 let delta = event.delta.pixel_delta(px(16.));
