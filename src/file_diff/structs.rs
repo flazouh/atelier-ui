@@ -170,6 +170,8 @@ pub(super) struct DiffMotion {
     scroll: UniformListScrollHandle,
     /// A clipped diff the reader pressed open.
     expanded: bool,
+    /// The rows pin their newest row while the agent writes, until the reader scrolls away from it.
+    following: bool,
 }
 
 impl RenderOnce for FileDiff {
@@ -183,6 +185,7 @@ impl RenderOnce for FileDiff {
             copy: CopyFeedback::default(),
             scroll: UniformListScrollHandle::new(),
             expanded: false,
+            following: true,
         });
         follow_status(&motion, status, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
@@ -294,9 +297,18 @@ impl RenderOnce for FileDiff {
 
         // A clipped diff shows a few rows that do not scroll, until it is pressed open to a taller view.
         let clip = self.preview_rows.filter(|_| !expanded);
-        // Streaming, the newest row stays in view, as a terminal's does; a finished diff stays where the reader left it.
-        if streaming && !self.lines.is_empty() && clip.is_none() {
-            scroll.scroll_to_item(self.lines.len() - 1, ScrollStrategy::Bottom);
+        // Streaming, the newest row stays in view, as a terminal's does, until the reader scrolls up; a finished diff stays
+        // where the reader left it. A clipped diff does not scroll, so none of this is its business.
+        let tracked = scroll.0.borrow().base_handle.clone();
+        if clip.is_none() {
+            let from_end = crate::scroll_chain::from_end(&tracked);
+            let following = motion.update(cx, |m, _| {
+                m.following = crate::scroll_chain::follows(m.following, from_end);
+                m.following
+            });
+            if streaming && following && !self.lines.is_empty() {
+                scroll.scroll_to_item(self.lines.len() - 1, ScrollStrategy::Bottom);
+            }
         }
         let total = self.lines.len();
         let lines: Rc<[DiffLine]> = self.lines.into();
@@ -343,6 +355,7 @@ impl RenderOnce for FileDiff {
             Some(limit) => {
                 let clipped = total > limit;
                 let press = motion.clone();
+                let rows_scroll = scroll.clone();
                 let on_open = self.on_open.clone();
                 div()
                     .id(child("body"))
@@ -352,6 +365,9 @@ impl RenderOnce for FileDiff {
                         let pressed = press.update(cx, |m, cx| {
                             let pressed = Press::on(m.expanded, clipped);
                             m.expanded = pressed.expanded;
+                            // Either way the rows start over: from their top, and pinned to the newest row while they stream.
+                            m.following = true;
+                            rows_scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(0.)));
                             cx.notify();
                             pressed
                         });
@@ -387,14 +403,14 @@ impl RenderOnce for FileDiff {
             )
         });
 
-        let tracked = scroll.0.borrow().base_handle.clone();
         let card = div()
             .flex()
             .flex_col()
             .overflow_hidden()
             .bg(theme.background.opacity(0.5))
-            // The diff keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
-            .on_scroll_wheel(crate::scroll_chain::keep_inside(tracked))
+            // The diff keeps the wheel while it scrolls; at its ends the wheel goes on to the panel. A clipped one does not
+            // scroll, and leaves the wheel to the panel.
+            .when(clip.is_none(), |d| d.on_scroll_wheel(crate::scroll_chain::keep_inside(tracked)))
             .child(rows)
             .when_some(footer, |d, footer| d.child(footer));
 
