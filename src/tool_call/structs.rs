@@ -159,7 +159,7 @@ impl RenderOnce for ToolCall {
             expanded: false,
             following: true,
         });
-        follow_status(&motion, status, has_body, self.collapse_on_complete, reduce, cx);
+        follow_status(&motion, status, has_body, self.default_open, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
         // Nothing spins here any more, so only the open and close reveal needs frames.
         if m.disclosure.is_moving() {
