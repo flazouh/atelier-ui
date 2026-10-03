@@ -26,6 +26,8 @@ pub struct RailView {
     pub label: SharedString,
     /// The debug selector of its button, for a test to find.
     pub debug: &'static str,
+    /// What waits on the reader in this view, as a count on the icon; none at 0.
+    pub count: usize,
 }
 
 /// How an icon of the rail draws.
@@ -107,8 +109,35 @@ impl RenderOnce for ViewRail {
                     .tooltip(crate::tooltip::Tooltip::text(view.label.clone()))
                     .when_some(on_select, |d, select| d.on_click(move |_, window, cx| select(i, window, cx)))
                     .child(Icon::new(view.icon).size(px(18.)).color(color))
+                    .when(view.count > 0, |d| d.child(count_badge(view.count, &theme)))
             }))
     }
+}
+
+/// The count over an icon's top right corner, in the colour of a session that needs the reader.
+fn count_badge(count: usize, theme: &crate::Theme) -> impl IntoElement {
+    div()
+        .debug_selector(|| "view-rail-count".into())
+        .absolute()
+        .top(px(-2.))
+        .right(px(-2.))
+        .min_w(px(14.))
+        .h(px(14.))
+        .px(px(3.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded_full()
+        .bg(theme.warning)
+        .text_color(theme.background)
+        .text_size(px(9.))
+        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+        .child(count_words(count))
+}
+
+/// A count as the badge writes it: past 9 it says "9+".
+pub fn count_words(count: usize) -> SharedString {
+    if count > 9 { "9+".into() } else { count.to_string().into() }
 }
 
 #[cfg(test)]

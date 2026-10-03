@@ -56,6 +56,7 @@ pub struct MenuItem {
     label: SharedString,
     description: Option<SharedString>,
     pub(super) icon: Option<IconName>,
+    pub(super) lead_element: Option<Rc<dyn Fn(&App) -> gpui_kit::AnyElement>>,
     pub(super) shortcut: Option<SharedString>,
     cap: Option<SharedString>,
     pub(super) choice: Option<Choice>,
@@ -75,6 +76,7 @@ impl MenuItem {
             label: label.into(),
             description: None,
             icon: None,
+            lead_element: None,
             shortcut: None,
             cap: None,
             choice: None,
@@ -109,6 +111,12 @@ impl MenuItem {
 
     pub fn icon(mut self, icon: IconName) -> Self {
         self.icon = Some(icon);
+        self
+    }
+
+    /// A small element in the icon's place, drawn each time the menu draws: a project's badge.
+    pub fn lead_element(mut self, lead: impl Fn(&App) -> gpui_kit::AnyElement + 'static) -> Self {
+        self.lead_element = Some(Rc::new(lead));
         self
     }
 
@@ -532,6 +540,9 @@ impl RenderOnce for Menu {
                         .child(measure(report))
                         .children(mark)
                         .when_some(item.lead, |d, lead| d.child(lead_slot(&item.label, lead, &theme)))
+                        .when_some(item.lead_element.as_ref().map(|lead| lead(cx)), |d, lead| {
+                            d.child(div().flex_none().mt(px(1.)).flex().items_center().justify_center().child(lead))
+                        })
                         .when_some(item.icon, |d, icon| {
                             let name = format!("menu-icon-{}", item.label);
                             d.child(
