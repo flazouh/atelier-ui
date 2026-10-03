@@ -14,7 +14,7 @@ use crate::{
 };
 use super::{
     helpers::words,
-    types::{SIGN_IN, SignInState, WAITING},
+    types::{CANCEL, SIGN_IN, SignInState, WAITING},
 };
 
 type SignIn = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -28,12 +28,13 @@ pub struct SignInNotice {
     account: Option<SharedString>,
     state: SignInState,
     on_sign_in: Option<SignIn>,
+    on_cancel: Option<SignIn>,
     action: Option<AnyElement>,
 }
 
 impl SignInNotice {
     pub fn new(id: impl Into<ElementId>, agent: impl Into<SharedString>, lead: Lead) -> Self {
-        Self { id: id.into(), agent: agent.into(), lead, account: None, state: SignInState::Ready, on_sign_in: None, action: None }
+        Self { id: id.into(), agent: agent.into(), lead, account: None, state: SignInState::Ready, on_sign_in: None, on_cancel: None, action: None }
     }
 
     /// The account the session runs on, when it is a named one.
@@ -49,6 +50,12 @@ impl SignInNotice {
 
     pub fn on_sign_in(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.on_sign_in = Some(Rc::new(f));
+        self
+    }
+
+    /// Leaves the wait for the browser: shown as a button only while the state is `Waiting`.
+    pub fn on_cancel(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_cancel = Some(Rc::new(f));
         self
     }
 
@@ -78,6 +85,19 @@ impl SignInNotice {
     }
 }
 
+impl SignInNotice {
+    fn cancel(&self) -> Option<Button> {
+        let f = self.on_cancel.clone().filter(|_| self.state == SignInState::Waiting)?;
+        Some(
+            Button::new(ElementId::from((self.id.clone(), "cancel")))
+                .label(CANCEL)
+                .variant(ButtonVariant::Ghost)
+                .debug_name("sign-in-cancel")
+                .on_click(move |_, window, cx| f(window, cx)),
+        )
+    }
+}
+
 impl RenderOnce for SignInNotice {
     fn render(mut self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
@@ -85,6 +105,7 @@ impl RenderOnce for SignInNotice {
         let failed = matches!(self.state, SignInState::Failed(_));
         let lead = lead_icon(&self.agent, self.lead.clone(), 14., &theme);
         let button = self.button();
+        let cancel = self.cancel();
         div()
             .debug_selector(|| "sign-in-notice".into())
             .mx(px(12.))
@@ -101,6 +122,7 @@ impl RenderOnce for SignInNotice {
             .child(lead)
             .child(div().flex_1().min_w_0().whitespace_normal().child(text))
             .children(button)
+            .children(cancel)
             .children(self.action.take())
     }
 }
