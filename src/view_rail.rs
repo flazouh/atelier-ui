@@ -135,6 +135,55 @@ fn count_badge(count: usize, theme: &crate::Theme) -> impl IntoElement {
         .child(count_words(count))
 }
 
+/// A button in the rail's format, for a control that sits with the rail but is no view: the sidebar's toggle.
+/// It is a rail icon at rest: the same square, icon and hover wash.
+#[derive(IntoElement)]
+pub struct RailButton {
+    id: ElementId,
+    icon: IconName,
+    tooltip: SharedString,
+    debug: &'static str,
+    on_click: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
+}
+
+impl RailButton {
+    pub fn new(id: impl Into<ElementId>, icon: IconName, tooltip: impl Into<SharedString>) -> Self {
+        Self { id: id.into(), icon, tooltip: tooltip.into(), debug: "rail-button", on_click: None }
+    }
+
+    /// The name tests and the control socket find it by.
+    pub fn debug_name(mut self, name: &'static str) -> Self {
+        self.debug = name;
+        self
+    }
+
+    pub fn on_click(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_click = Some(Rc::new(handler));
+        self
+    }
+}
+
+impl RenderOnce for RailButton {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+        let theme = cx.theme();
+        let debug = self.debug;
+        div()
+            .id(self.id)
+            .debug_selector(move || debug.into())
+            .flex()
+            .flex_none()
+            .items_center()
+            .justify_center()
+            .size(px(BUTTON))
+            .rounded(radius::md())
+            .cursor_pointer()
+            .hover(|s| s.bg(theme.muted_hover()))
+            .tooltip(crate::tooltip::Tooltip::text(self.tooltip))
+            .when_some(self.on_click, |d, click| d.on_click(move |_, window, cx| click(window, cx)))
+            .child(Icon::new(self.icon).size(px(18.)).color(theme.muted_foreground))
+    }
+}
+
 /// A count as the badge writes it: past 9 it says "9+".
 pub fn count_words(count: usize) -> SharedString {
     if count > 9 { "9+".into() } else { count.to_string().into() }
