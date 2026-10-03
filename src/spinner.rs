@@ -11,6 +11,7 @@ mod structs;
 mod types;
 
 pub use helpers::{arc, pulse_at, stroke_width, turn_at};
+pub(crate) use helpers::{dot, stroke};
 pub use structs::Spinner;
 pub use types::{PULSE_LOW, PULSE_MILLIS, RING_ALPHA, TURN_MILLIS};
 

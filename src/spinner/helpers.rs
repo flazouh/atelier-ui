@@ -31,7 +31,7 @@ pub fn arc(centre: (f32, f32), radius: f32, start: f32, sweep: f32, steps: usize
         .collect()
 }
 
-pub(super) fn stroke(points: &[(f32, f32)], width: f32, bounds: Bounds<Pixels>, color: Hsla, window: &mut Window) {
+pub(crate) fn stroke(points: &[(f32, f32)], width: f32, bounds: Bounds<Pixels>, color: Hsla, window: &mut Window) {
     let at = |p: (f32, f32)| point(bounds.origin.x + px(p.0), bounds.origin.y + px(p.1));
     let mut path = PathBuilder::stroke(px(width));
     let mut it = points.iter();
@@ -47,7 +47,7 @@ pub(super) fn stroke(points: &[(f32, f32)], width: f32, bounds: Bounds<Pixels>, 
 }
 
 /// A filled dot, to round an end of the arc (gpui's strokes have butt ends).
-pub(super) fn dot(centre: (f32, f32), radius: f32, bounds: Bounds<Pixels>, color: Hsla, window: &mut Window) {
+pub(crate) fn dot(centre: (f32, f32), radius: f32, bounds: Bounds<Pixels>, color: Hsla, window: &mut Window) {
     let mut path = PathBuilder::fill();
     for k in 0..16 {
         let a = k as f32 / 16. * TAU;

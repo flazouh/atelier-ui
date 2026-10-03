@@ -635,3 +635,16 @@ fn without_hold_a_release_stops_nothing(cx: &mut TestAppContext) {
     assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
     assert_eq!(count(&heard, PromptInputEvent::DictationStop), 0);
 }
+
+/// The context meter shows once the owner tells how full the context is, beside Send.
+#[gpui_kit::test]
+fn the_context_meter_shows_once_told(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("context-meter").is_none(), "nothing is known yet");
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_context(84_000, 200_000, cx)));
+    cx.run_until_parked();
+    let meter = cx.debug_bounds("context-meter").expect("the meter is drawn");
+    let frame = cx.debug_bounds("prompt-frame").expect("the frame is drawn");
+    assert!(meter.origin.x > frame.center().x, "it sits on the right, by Send");
+}

@@ -27,6 +27,7 @@ use gpui_kit::{
 use std::rc::Rc;
 
 use crate::scale::px;
+use crate::context_meter::ContextMeter;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     button_group::ButtonGroup,
@@ -163,6 +164,8 @@ pub struct PromptInput {
     pub(super) voice_fade: Channel,
     pub(super) running: bool,
     pub(super) disabled: bool,
+    /// The tokens the agent's context holds, and its window, once the agent has told both.
+    pub(super) context: Option<(u64, u64)>,
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
@@ -237,6 +240,7 @@ impl PromptInput {
             voice_fade: Channel::new(0.),
             running: false,
             disabled: false,
+            context: None,
             commands: Vec::new(),
             files: Vec::new(),
             attached: Vec::new(),
@@ -285,6 +289,14 @@ impl PromptInput {
         let value = value.into();
         if let Some(i) = self.models.iter().position(|m| m.value == value) {
             self.model = i;
+            cx.notify();
+        }
+    }
+
+    /// Shows how full the agent's context is: `used` tokens of `window`.
+    pub fn set_context(&mut self, used: u64, window: u64, cx: &mut Context<Self>) {
+        if self.context != Some((used, window)) {
+            self.context = Some((used, window));
             cx.notify();
         }
     }
@@ -1292,7 +1304,8 @@ impl Render for PromptInput {
             div().id("prompt-mic-group").relative().flex_none().child(control).children(menu)
         });
 
-        let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(mic).child(send);
+        let meter = self.context.map(|(used, window)| ContextMeter::new("prompt-context", used, window));
+        let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(meter).children(mic).child(send);
 
         let this = cx.entity().downgrade();
         let text = self.text.clone();
