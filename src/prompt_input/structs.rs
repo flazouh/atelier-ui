@@ -954,12 +954,8 @@ impl Render for PromptInput {
                     .ok();
                 });
             let steers = self.running && !stops;
-            div()
-                .id("prompt-send-wrap")
-                .debug_selector(|| "prompt-send".into())
-                .flex_none()
-                .when(steers, |d| d.tooltip(crate::tooltip::Tooltip::text(STEER_HINT)))
-                .child(button)
+            let button = button.debug_name("prompt-send");
+            if steers { button.tooltip(STEER_HINT) } else { button }
         };
 
         // The Plus trigger and its menu, shown only when there is something to add: as beui does.

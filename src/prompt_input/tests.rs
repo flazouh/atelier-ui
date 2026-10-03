@@ -693,3 +693,17 @@ fn queued_rows_send_now_or_come_out(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert!(cx.debug_bounds("queued-row-0").is_none(), "an empty queue shows nothing");
 }
+
+/// While a turn runs and the box has text, a hover on Send tells how to steer and how to queue.
+#[gpui_kit::test]
+fn the_steer_button_tells_its_keys_on_hover(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_running(true, cx)));
+    cx.simulate_input("and the docs");
+    cx.run_until_parked();
+    let at = cx.debug_bounds("prompt-send").expect("Send is drawn").center();
+    cx.simulate_mouse_move(at, None, gpui_kit::Modifiers::default());
+    cx.executor().advance_clock(std::time::Duration::from_secs(2));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("tooltip").is_some(), "the hint shows");
+}
