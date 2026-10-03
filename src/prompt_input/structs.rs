@@ -147,6 +147,8 @@ pub struct PromptInput {
     pub(super) voice_error: SharedString,
     pub(super) voice_level: f32,
     pub(super) live: LiveWords,
+    /// How strongly each of the live words shows while it comes in.
+    pub(super) ink: crate::live_ink::Ink,
     /// The microphones in the menu, the one chosen (`None` is the system's default), and whether a press records only while held.
     pub(super) voice_devices: Vec<VoiceDevice>,
     pub(super) voice_device: Option<SharedString>,
@@ -174,6 +176,11 @@ pub struct PromptInput {
     pub(super) frame: Option<Bounds<Pixels>>,
     _subscription: Subscription,
 }
+
+/// The padding the text field puts inside itself (its medium size), on top of ours.
+/// The live words sit where the field's own text would, so these must match it.
+const EDITOR_PAD_X: f32 = 10.;
+const EDITOR_PAD_Y: f32 = 8.;
 
 impl PromptInput {
     /// `placeholder` shows in the empty box; `default_value` seeds the text, as beui's `defaultValue`.
@@ -219,6 +226,7 @@ impl PromptInput {
             voice_error: SharedString::default(),
             voice_level: 0.,
             live: LiveWords::Off,
+            ink: crate::live_ink::Ink::new(std::time::Instant::now()),
             voice_devices: Vec::new(),
             voice_device: None,
             voice_hold: false,
@@ -452,6 +460,11 @@ impl PromptInput {
             return;
         }
         let written = live_text(&base, words);
+        if self.live == LiveWords::Off {
+            self.ink = crate::live_ink::Ink::new(std::time::Instant::now());
+        }
+        self.ink.set_still(cx.reduce_motion());
+        self.ink.observe(words.trim());
         self.write(&written, written.len(), window, cx);
         self.live = LiveWords::Showing { base, shown: words.trim().to_string() };
         cx.notify();
@@ -465,6 +478,56 @@ impl PromptInput {
             self.write(&base, base.len(), window, cx);
             cx.notify();
         }
+    }
+
+    /// The text as it is while a press records: each live word in the strength of ink it has come to, laid exactly where the
+    /// box lays the same text. `None` when no words are live, or the person has edited the box.
+    fn live_overlay(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
+        let LiveWords::Showing { base, shown } = &self.live else { return None };
+        let written = live_text(base, shown);
+        if self.text(cx) != written {
+            return None;
+        }
+        let theme = cx.theme().clone();
+        self.ink.step(std::time::Instant::now());
+        if self.ink.moving() {
+            window.request_animation_frame();
+        }
+        // The live words close `written`; they sit after the base and the space between.
+        let from = written.len() - shown.len();
+        let surface = theme.card_strong;
+        let highlights: Vec<_> = self
+            .ink
+            .words()
+            .iter()
+            .filter(|w| w.alpha < 1.)
+            .map(|w| {
+                let color = theme.foreground.blend(surface.opacity(1. - w.alpha));
+                (from + w.range.start..from + w.range.end, gpui_kit::HighlightStyle { color: Some(color), ..Default::default() })
+            })
+            .collect();
+        // The box scrolls once it passes its rows; the words go up with it.
+        let scrolled = self.text.read(cx).scroll_offset().y;
+        Some(
+            div()
+                .absolute()
+                .inset_0()
+                .overflow_hidden()
+                .child(
+                    div()
+                        .absolute()
+                        .top(scrolled)
+                        .left_0()
+                        .right_0()
+                        .px(px(4.) + gpui_kit::px(EDITOR_PAD_X))
+                        .pt(px(2.) + gpui_kit::px(EDITOR_PAD_Y))
+                        .text_size(TextSize::Sm.font_size())
+                        .line_height(px(24.))
+                        .text_color(theme.foreground)
+                        .child(crate::glyph_text::GlyphText::new(written).highlights(highlights)),
+                )
+                .into_any_element(),
+        )
     }
 
     pub fn set_disabled(&mut self, disabled: bool, cx: &mut Context<Self>) {
@@ -1233,6 +1296,7 @@ impl Render for PromptInput {
 
         let this = cx.entity().downgrade();
         let text = self.text.clone();
+        let overlay = self.live_overlay(window, cx);
         let chips = self.chips(cx);
         let picker = self.picker(cx);
 
@@ -1303,14 +1367,22 @@ impl Render for PromptInput {
             })
             .children(chips)
             .child(
-                Textarea::new(&self.text)
-
-                    .appearance(false)
-                    .disabled(disabled)
-                    .px(px(4.))
-                    .pt(px(2.))
-                    .text_size(TextSize::Sm.font_size())
-                    .line_height(px(24.)),
+                // While words come in, the words are drawn over the box (see `live_overlay`) and the box itself is
+                // not seen; it stays where it is, so the caret, the focus and the height are the same as ever.
+                div()
+                    .relative()
+                    .child(
+                        div().when(overlay.is_some(), |d| d.opacity(0.)).child(
+                            Textarea::new(&self.text)
+                                .appearance(false)
+                                .disabled(disabled)
+                                .px(px(4.))
+                                .pt(px(2.))
+                                .text_size(TextSize::Sm.font_size())
+                                .line_height(px(24.)),
+                        ),
+                    )
+                    .children(overlay),
             )
             .child(toolbar)
     }

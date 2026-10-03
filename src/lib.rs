@@ -54,6 +54,7 @@ pub mod kbd;
 pub mod keys;
 pub mod layout_motion;
 pub mod line_comment;
+pub mod live_ink;
 pub mod markdown_edit;
 pub mod menu;
 pub mod merge;
