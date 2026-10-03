@@ -103,9 +103,9 @@ impl RenderOnce for ChangedFiles {
         if disclosure.read(cx).is_moving() {
             window.request_animation_frame();
         }
-        let (expanded, reveal) = {
+        let (expanded, reveal, height) = {
             let d = disclosure.read(cx);
-            (d.open, d.reveal.value())
+            (d.open, d.reveal.value(), d.height.clone())
         };
         let collapsible = self.collapsible;
         let body = window.use_keyed_state((self.id.clone(), "body"), cx, move |_, _| Reveal::new(!collapsible));
@@ -275,7 +275,7 @@ impl RenderOnce for ChangedFiles {
                     .child(visible)
                     .when(has_rest && reveal > 0.001, |d| {
                         // Its own list: its first paint is the reveal, so only later files enter.
-                        d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(entering("rest", rest, window, cx)))
+                        d.child(crate::reveal::body(entering("rest", rest, window, cx), reveal, &height))
                     })
                     .when_some(fold_button, |d, b| d.child(b)),
             ))

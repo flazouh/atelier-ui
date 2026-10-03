@@ -153,6 +153,7 @@ impl RenderOnce for TodoList {
         let muted = theme.muted_foreground;
         let (reveal, chevron, header_done) =
             (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.header_done.value());
+        let height = m.disclosure.height.clone();
         // One turn per beui's arc duration, linear, like its spinning arc.
         let spin = (m.born.elapsed().as_secs_f32() / motion::duration::TODO_ARC_SPIN.as_secs_f32()).fract();
         let rows: Vec<_> = m.rows.iter().map(|r| r.channels().map(|c| c.value())).collect();
@@ -328,7 +329,7 @@ impl RenderOnce for TodoList {
             .bg(theme.card_strong)
             .child(header)
             .when(reveal > 0.001, |d| {
-                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(list))
+                d.child(crate::reveal::body(list, reveal, &height))
             })
     }
 }

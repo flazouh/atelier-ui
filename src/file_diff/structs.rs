@@ -191,6 +191,7 @@ impl RenderOnce for FileDiff {
             window.request_animation_frame();
         }
         let (reveal, chevron, copied) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied());
+        let height = m.disclosure.height.clone();
         let (expanded, scroll) = (m.expanded, self.scroll.clone().unwrap_or_else(|| m.scroll.clone()));
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
@@ -409,7 +410,7 @@ impl RenderOnce for FileDiff {
             .line_height(TextSize::Sm.line_height())
             .child(header)
             .when_some((reveal > 0.001).then_some(card), |d, card| {
-                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card))
+                d.child(crate::reveal::body(card, reveal, &height))
             })
     }
 }

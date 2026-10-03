@@ -140,6 +140,7 @@ impl RenderOnce for ToolApproval {
         }
         let (reveal, chevron, actions_reveal) =
             (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.actions.value());
+        let height = m.disclosure.height.clone();
 
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
@@ -293,7 +294,7 @@ impl RenderOnce for ToolApproval {
             .child(head)
             .children(preview)
             .when_some(details.filter(|_| reveal > 0.001), |d, body| {
-                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))
+                d.child(crate::reveal::body(body, reveal, &height))
             })
             .children(actions)
     }
