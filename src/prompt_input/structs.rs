@@ -44,7 +44,7 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{LiveWords, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent};
+use super::types::{LiveWords, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
 use super::helpers::{append_transcript, live_text};
 
 /// One choice in the model picker.
@@ -166,6 +166,8 @@ pub struct PromptInput {
     pub(super) disabled: bool,
     /// The tokens the agent's context holds, and its window, once the agent has told both.
     pub(super) context: Option<(u64, u64)>,
+    /// The messages waiting for the running turn to end, as the owner keeps them.
+    pub(super) queued: Vec<SharedString>,
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
@@ -203,11 +205,15 @@ impl PromptInput {
                 .default_value(default_value)
         });
         let subscription = cx.subscribe_in(&text, window, |this, _, event: &InputEvent, window, cx| match event {
-            // Enter sends, and ⌘↵ (⌃↵ elsewhere) too, as the brief's key.
-            InputEvent::PressEnter { shift: false, .. } => this.submit(window, cx),
+            // Enter sends, and ⌘↵ (⌃↵ elsewhere) too, as the brief's key; while a turn runs ⌘↵ queues instead.
+            InputEvent::PressEnter { shift: false, secondary } => {
+                let sending = if *secondary && this.running { Sending::AfterTurn } else { Sending::Now };
+                this.send(sending, window, cx)
+            }
             // Send turns on and off with the text, so redraw on every edit; a `/` or an `@` opens a list.
             InputEvent::Change => {
                 this.refresh_picking(cx);
+                this.retarget_send(cx);
                 cx.notify()
             }
             _ => {}
@@ -241,6 +247,7 @@ impl PromptInput {
             running: false,
             disabled: false,
             context: None,
+            queued: Vec::new(),
             commands: Vec::new(),
             files: Vec::new(),
             attached: Vec::new(),
@@ -301,16 +308,35 @@ impl PromptInput {
         }
     }
 
-    /// Shows Stop instead of Send while the agent works.
+    /// Shows the messages waiting for the running turn to end, over the text.
+    pub fn set_queued(&mut self, queued: Vec<SharedString>, cx: &mut Context<Self>) {
+        if self.queued != queued {
+            self.queued = queued;
+            cx.notify();
+        }
+    }
+
+    /// While the agent works, Send steers the turn when the box has text and turns into Stop when it is empty.
     pub fn set_running(&mut self, running: bool, cx: &mut Context<Self>) {
         self.running = running;
-        let reduce = cx.reduce_motion();
-        self.send_swap.animate(if running { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+        self.retarget_send(cx);
         // The Plus trigger disables while running, so its menu cannot stay open behind it.
         if running {
-            self.menu.set_open(false, reduce);
+            self.menu.set_open(false, cx.reduce_motion());
         }
         cx.notify();
+    }
+
+    /// Whether the button stops the turn: it runs, and there is nothing to send into it.
+    pub(super) fn stops(&self, cx: &App) -> bool {
+        self.running && self.text(cx).trim().is_empty() && self.attached.is_empty()
+    }
+
+    fn retarget_send(&mut self, cx: &mut Context<Self>) {
+        let target = if self.stops(cx) { 1. } else { 0. };
+        if self.send_swap.target() != target {
+            self.send_swap.animate(target, Curve::Spring(Spring::SWAP), 0., cx.reduce_motion());
+        }
     }
 
     /// Shows the microphone before Send, and starts hearing it.
@@ -671,6 +697,11 @@ impl PromptInput {
     /// Sends the text when there is some. A running turn does not block a new message; the panel queues it.
     /// With a list open, Enter takes its row. A known `/` command typed out is a command, not a message.
     fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.send(Sending::Now, window, cx)
+    }
+
+    /// Gives up what the box holds: a command at once, a message as `sending` says.
+    fn send(&mut self, sending: Sending, window: &mut Window, cx: &mut Context<Self>) {
         if self.picking.is_some() {
             return self.pick(window, cx);
         }
@@ -697,7 +728,11 @@ impl PromptInput {
         }
         let message = with(text);
         self.clear(window, cx);
-        cx.emit(PromptInputEvent::Submit(message));
+        self.retarget_send(cx);
+        cx.emit(match sending {
+            Sending::Now => PromptInputEvent::Submit(message),
+            Sending::AfterTurn => PromptInputEvent::Queue(message),
+        });
     }
 
     /// Empties the text and takes the chips off.
@@ -860,7 +895,8 @@ impl Render for PromptInput {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
         let empty = self.text(cx).trim().is_empty() && self.attached.is_empty();
-        let can_submit = !empty && !disabled && !self.running && !self.dictating();
+        let can_submit = !empty && !disabled && !self.dictating();
+        let stops = self.stops(cx);
 
         let reduce = cx.reduce_motion();
         if self.menu.rotate.is_running()
@@ -902,21 +938,28 @@ impl Render for PromptInput {
             );
         let send = {
             let this = cx.entity().downgrade();
-            Button::new("prompt-send")
+            let button = Button::new("prompt-send")
                 .content(swap)
                 .pill(true)
                 .size(ButtonSize::Icon)
-                .disabled(if self.running { false } else { !can_submit })
+                .disabled(!stops && !can_submit)
                 .on_click(move |_, window, cx| {
                     this.update(cx, |this, cx| {
-                        if this.running {
+                        if this.stops(cx) {
                             cx.emit(PromptInputEvent::Stop);
                         } else {
                             this.submit(window, cx);
                         }
                     })
                     .ok();
-                })
+                });
+            let steers = self.running && !stops;
+            div()
+                .id("prompt-send-wrap")
+                .debug_selector(|| "prompt-send".into())
+                .flex_none()
+                .when(steers, |d| d.tooltip(crate::tooltip::Tooltip::text(STEER_HINT)))
+                .child(button)
         };
 
         // The Plus trigger and its menu, shown only when there is something to add: as beui does.
@@ -1311,6 +1354,7 @@ impl Render for PromptInput {
         let text = self.text.clone();
         let overlay = self.live_overlay(window, cx);
         let chips = self.chips(cx);
+        let queued = self.queued_rows(cx);
         let picker = self.picker(cx);
 
         let (keys, measured, down, up) = (this.clone(), this.clone(), this.clone(), this.clone());
@@ -1378,6 +1422,7 @@ impl Render for PromptInput {
                     .ok();
                 }
             })
+            .children(queued)
             .children(chips)
             .child(
                 // While words come in, the words are drawn over the box (see `live_overlay`) and the box itself is
