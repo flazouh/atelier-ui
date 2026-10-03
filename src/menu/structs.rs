@@ -17,7 +17,7 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{
-    Choice, Choose, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
+    Choice, Choose, Entry, LINE, Lead, LeadElement, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
 };
 use super::helpers::{
     collapsed, fill_opacity, jump, lead_slot, panel_shadow, panel_size, pill_fill, unfolded, walk,
@@ -56,7 +56,7 @@ pub struct MenuItem {
     label: SharedString,
     description: Option<SharedString>,
     pub(super) icon: Option<IconName>,
-    pub(super) lead_element: Option<Rc<dyn Fn(&App) -> gpui_kit::AnyElement>>,
+    pub(super) lead_element: Option<LeadElement>,
     pub(super) shortcut: Option<SharedString>,
     cap: Option<SharedString>,
     pub(super) choice: Option<Choice>,
@@ -496,7 +496,7 @@ impl RenderOnce for Menu {
                     }));
                     let mark = item.choice.and_then(|c| match c {
                         Choice::Selected(_) | Choice::Switch(_) => None,
-                        Choice::Check(on) => Some(
+                        Choice::Check(on) | Choice::Radio(on) => Some(
                             div()
                                 .size(px(SLOT))
                                 .flex_none()
@@ -504,11 +504,6 @@ impl RenderOnce for Menu {
                                 .items_center()
                                 .justify_center()
                                 .when(on, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))),
-                        ),
-                        Choice::Radio(on) => Some(
-                            div().size(px(SLOT)).flex_none().flex().items_center().justify_center().when(on, |d| {
-                                d.child(div().size(px(6.)).rounded_full().bg(ink))
-                            }),
                         ),
                     });
                     div()
