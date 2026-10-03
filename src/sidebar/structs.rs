@@ -299,9 +299,6 @@ impl Sidebar {
                 self.folds.toggle_older(&id);
                 self.refresh(cx);
             }
-            Activation::NewSession(project) => cx.emit(SidebarEvent::NewSession {
-                project: self.projects[project].id.clone(),
-            }),
             Activation::ToggleEarlier => {
                 self.earlier_open = !self.earlier_open;
                 self.refresh(cx);
@@ -564,34 +561,6 @@ impl Sidebar {
                     })
                     .child(Icon::new(if open { IconName::ChevronUp } else { IconName::ChevronDown }).size(px(14.)))
                     .child(words)
-                    .into_any_element()
-            }
-            Row::Empty { project } => {
-                let t = this.clone();
-                div()
-                    .id(name("empty", &self.projects[project].id.clone()))
-                    .flex()
-                    .flex_none()
-                    .items_center()
-                    .gap(px(8.))
-                    .h(px(ROW_HEIGHT))
-                    .pl(px(26.))
-                    .w_full()
-                    .rounded(radius::md())
-                    .cursor_pointer()
-                    .text_size(TextSize::Xs.font_size())
-                    .text_color(theme.muted_foreground)
-                    .when(selected, |d| d.bg(theme.card_strong))
-                    .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
-                    .press_stop(name("empty-focus", &self.projects[project].id.clone()), radius::md(), window, cx)
-                    .on_click(move |_, _, cx| {
-                        t.update(cx, |s, cx| {
-                            s.select_row(at, cx);
-                            s.activate(row, cx)
-                        })
-                    })
-                    .child("No sessions yet")
-                    .child(div().text_color(theme.foreground).child("New session"))
                     .into_any_element()
             }
         }

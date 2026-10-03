@@ -77,7 +77,6 @@ pub fn rows_held(projects: &[ProjectData], folds: &Folds, held: Option<&std::col
             continue;
         }
         if data.sessions.is_empty() {
-            out.push(Row::Empty { project });
             continue;
         }
         let order = match held.and_then(|h| h.get(&data.id)) {
@@ -101,7 +100,6 @@ pub fn key_of(projects: &[ProjectData], row: Row) -> RowKey {
         Row::Project { project } => RowKey::Project(id(project)),
         Row::Session { project, session } => RowKey::Session(id(project), projects[project].sessions[session].id.clone()),
         Row::Older { project, .. } => RowKey::Older(id(project)),
-        Row::Empty { project } => RowKey::Empty(id(project)),
         Row::Section { section, .. } => RowKey::Section(section),
         Row::MoreEarlier { .. } => RowKey::MoreEarlier,
     }
@@ -148,7 +146,6 @@ pub fn activate(row: Row) -> Activation {
         Row::Project { project } => Activation::ToggleProject(project),
         Row::Session { project, session } => Activation::OpenSession { project, session },
         Row::Older { project, .. } => Activation::ToggleOlder(project),
-        Row::Empty { project } => Activation::NewSession(project),
         Row::MoreEarlier { .. } => Activation::ToggleEarlier,
         Row::Section { .. } => Activation::Nothing,
     }
