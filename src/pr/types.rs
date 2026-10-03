@@ -29,14 +29,9 @@ impl PrState {
         }
     }
 
-    /// The mark's colour. The palette has no purple, so merged takes `info`.
+    /// GitHub's colour for the state, from [`Theme::pull`].
     pub fn color(self, theme: &Theme) -> Hsla {
-        match self {
-            Self::Open => theme.success,
-            Self::Draft => theme.muted_foreground,
-            Self::Merged => theme.info,
-            Self::Closed => theme.danger,
-        }
+        theme.pull[self as usize]
     }
 }
 
