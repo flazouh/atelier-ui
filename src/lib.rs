@@ -211,7 +211,7 @@ pub use merge_button::MergeButton;
 pub use pr_card::PrCard;
 pub use pr_chip::PrChip;
 pub use pr_refs::pr_refs;
-pub use prompt_input::{PromptAction, PromptInput, PromptInputEvent, PromptModel};
+pub use prompt_input::{Chip, ChipLook, Message, Pasted, PromptAction, PromptInput, PromptInputEvent, PromptModel};
 pub use checks_panel::{CheckRun, CheckState, ChecksPanel, JobStep};
 pub use comment_composer::{CommentComposer, CommentComposerEvent};
 pub use commits_summary::{CommitData, CommitsSummary};

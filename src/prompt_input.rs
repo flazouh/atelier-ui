@@ -34,7 +34,7 @@ mod types;
 
 pub use helpers::append_transcript;
 pub use structs::{PromptAction, PromptInput, PromptModel};
-pub use types::PromptInputEvent;
+pub use types::{Chip, ChipLook, Message, Pasted, PromptInputEvent};
 
 #[cfg(test)]
 use gpui_kit::{Bounds, Pixels};
