@@ -648,3 +648,48 @@ fn the_context_meter_shows_once_told(cx: &mut TestAppContext) {
     let frame = cx.debug_bounds("prompt-frame").expect("the frame is drawn");
     assert!(meter.origin.x > frame.center().x, "it sits on the right, by Send");
 }
+
+fn heard_since(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, from: usize) -> Vec<PromptInputEvent> {
+    heard.borrow()[from..].iter().filter(|e| !matches!(e, PromptInputEvent::DictationDevices)).cloned().collect()
+}
+
+/// While a turn runs, Enter sends into it and ⌘↵ holds the message for after it; idle, ⌘↵ sends as ever.
+#[gpui_kit::test]
+fn while_running_enter_steers_and_command_enter_queues(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_running(true, cx)));
+    cx.simulate_input("steer");
+    cx.simulate_keystrokes("enter");
+    cx.simulate_input("later");
+    cx.simulate_keystrokes("secondary-enter");
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Submit("steer".into()), PromptInputEvent::Queue("later".into())]);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "", "the box empties both times");
+}
+
+/// While a turn runs, the button stops it when the box is empty and sends into it when the box has text.
+#[gpui_kit::test]
+fn while_running_the_button_stops_when_empty_and_steers_with_text(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_running(true, cx)));
+    cx.run_until_parked();
+    click(cx, "prompt-send");
+    cx.simulate_input("look at the tests too");
+    cx.run_until_parked();
+    click(cx, "prompt-send");
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Stop, PromptInputEvent::Submit("look at the tests too".into())]);
+}
+
+/// The queue the owner keeps shows a row each, whose buttons ask to send one now or take it out.
+#[gpui_kit::test]
+fn queued_rows_send_now_or_come_out(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_queued(vec!["first".into(), "second\nline".into()], cx)));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("queued-row-0").is_some() && cx.debug_bounds("queued-row-1").is_some());
+    click(cx, "queued-remove-1");
+    click(cx, "queued-send-0");
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Unqueue(1), PromptInputEvent::SendQueued(0)]);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_queued(Vec::new(), cx)));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("queued-row-0").is_none(), "an empty queue shows nothing");
+}

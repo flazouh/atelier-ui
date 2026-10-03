@@ -22,9 +22,13 @@
 //!   amber disc. Stop gives [`PromptInputEvent::DictationStop`]; the owner then hands the words to
 //!   [`PromptInput::insert_transcript`]. Send is off while it listens.
 //! - Enter sends; Shift-Enter adds a line, exactly as before.
+//! - While a turn runs, Send steers it when the box has text (Enter sends into the turn) and is Stop when
+//!   the box is empty. ⌘↵ (⌃↵ elsewhere) queues instead ([`PromptInputEvent::Queue`]); the owner keeps the
+//!   queue and shows it with [`PromptInput::set_queued`], one row each over the text, with Send now and ✕.
 
 mod helpers;
 mod impls;
+mod queued;
 mod structs;
 mod types;
 

@@ -7,6 +7,12 @@ pub enum PromptInputEvent {
     Submit(SharedString),
     /// Stop the running turn.
     Stop,
+    /// Hold this text until the running turn ends: ⌘↵ (⌃↵ elsewhere) while it runs. The box is already empty.
+    Queue(SharedString),
+    /// The ✕ on a queued message: take it out of the queue, by its place in [`PromptInput::set_queued`](crate::prompt_input::PromptInput::set_queued).
+    Unqueue(usize),
+    /// A queued message's arrow: send it now, into the running turn, by its place.
+    SendQueued(usize),
     /// The user chose this action's `value` from the "add to prompt" menu.
     Action(SharedString),
     /// The user picked a different model, by its `value`.
@@ -52,3 +58,18 @@ pub(super) enum LiveWords {
     /// The person edited the box meanwhile: the words stay as they are, and stop moving.
     Left,
 }
+
+/// When a message the box gives up goes: at once (into the running turn, if one runs), or after it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Sending {
+    Now,
+    AfterTurn,
+}
+
+/// The words on the Send button while a turn runs and the box has text.
+pub(super) const STEER_HINT: &str = "Enter to steer, ⌘Enter to queue";
+
+/// A queued row's height, as the Task pickers' rows, and the space between rows.
+pub(super) const QUEUED_ROW: f32 = 28.;
+
+pub(super) const QUEUED_GAP: f32 = 2.;
