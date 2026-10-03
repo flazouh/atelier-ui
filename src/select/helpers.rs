@@ -124,7 +124,7 @@ pub(super) fn type_ahead(labels: &[SharedString], current: Option<usize>, typed:
 }
 
 /// The first letter of a label in a round of `size`, where a mark would go: the model badge's monogram.
-pub(super) fn monogram(label: &SharedString, size: f32, theme: &crate::theme::Theme) -> impl IntoElement {
+pub(crate) fn monogram(label: &SharedString, size: f32, theme: &crate::theme::Theme) -> impl IntoElement {
     let letter = crate::model_badge::monogram_letter(label);
     div()
         .debug_selector({
