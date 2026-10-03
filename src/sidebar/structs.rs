@@ -47,6 +47,8 @@ pub struct Sidebar {
     earlier_open: bool,
     pub(super) options_menu: bool,
     pub(super) add_menu: bool,
+    /// Whether the head has its add button; off when the window adds projects elsewhere.
+    pub(super) add_button: bool,
     entering: HashMap<SharedString, Instant>,
     moving: HashMap<RowKey, Channel>,
     /// While the pointer is on the list: each project's sessions in the order the rows had.
@@ -81,6 +83,7 @@ impl Sidebar {
             earlier_open: false,
             options_menu: false,
             add_menu: false,
+            add_button: true,
             entering: HashMap::new(),
             moving: HashMap::new(),
             held: None,
@@ -95,6 +98,15 @@ impl Sidebar {
             self.handoff.insert(project, targets);
             cx.notify();
         }
+    }
+
+    /// Shows or hides the head's add button, for a window that offers to add a project elsewhere.
+    pub fn set_add_button(&mut self, on: bool, cx: &mut Context<Self>) {
+        self.add_button = on;
+        if !on {
+            self.add_menu = false;
+        }
+        cx.notify();
     }
 
     /// The pointer came onto the list, or left it. While it is on, the rows keep their order, so a row

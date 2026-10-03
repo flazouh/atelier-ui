@@ -1,4 +1,4 @@
-use gpui_kit::{AnyElement, Context, IntoElement, ParentElement, Styled, Window, div};
+use gpui_kit::{AnyElement, Context, IntoElement, ParentElement, Styled, Window, div, prelude::FluentBuilder};
 
 use crate::scale::px;
 use super::super::{Sidebar, SidebarEvent};
@@ -153,7 +153,8 @@ impl Sidebar {
             .into_any_element()
     }
 
-    /// The head: at the right, the ⋯ with how the sidebar lists (lit while a filter hides sessions) and the add button.
+    /// The head: at the right, the ⋯ with how the sidebar lists (lit while a filter hides sessions) and the add
+    /// button, unless the window adds projects elsewhere.
     pub(in super::super) fn head(&self, cx: &mut Context<Self>) -> AnyElement {
         let filter = self.layout.filter;
         let (toggle_options, toggle_add) = (cx.entity().downgrade(), cx.entity().downgrade());
@@ -172,10 +173,10 @@ impl Sidebar {
                 },
                 move |_, cx| drop(toggle_options.update(cx, |s, cx| s.open_head_menu(true, cx))),
             ))
-            .child(Self::head_button(
+            .when(self.add_button, |d| d.child(Self::head_button(
                 HeadButton { id: "add-project", icon: IconName::Add, tip: "Add a project".into(), lit: false, open: self.add_menu, menu: self.add_menu.then(|| self.add_menu_panel(cx)) },
                 move |_, cx| drop(toggle_add.update(cx, |s, cx| s.open_head_menu(false, cx))),
-            ));
+            )));
         div()
             .flex_none()
             .flex()
