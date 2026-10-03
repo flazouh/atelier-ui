@@ -112,9 +112,9 @@ impl RenderOnce for SubagentCard {
         if disclosure.read(cx).is_moving() {
             window.request_animation_frame();
         }
-        let (reveal, chevron) = {
+        let (reveal, chevron, height) = {
             let d = disclosure.read(cx);
-            (d.reveal.value(), d.chevron.value())
+            (d.reveal.value(), d.chevron.value(), d.height.clone())
         };
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
         let mark = &self.look.mark;
@@ -224,17 +224,11 @@ impl RenderOnce for SubagentCard {
             .bg(theme.card_strong)
             .child(header)
             .when(has_calls && reveal > 0.001, |d| {
-                d.child(
-                    div()
-                        .relative()
-                        .top(px(-4. * (1. - reveal)))
-                        .opacity(reveal)
-                        .flex()
-                        .flex_col()
-                        .px(px(14.))
-                        .pb(px(8.))
-                        .children(self.calls.into_iter().map(ToolCall::flat)),
-                )
+                d.child(crate::reveal::body(
+                    div().flex().flex_col().px(px(14.)).pb(px(8.)).children(self.calls.into_iter().map(ToolCall::flat)),
+                    reveal,
+                    &height,
+                ))
             })
     }
 }

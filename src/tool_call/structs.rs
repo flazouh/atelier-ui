@@ -163,6 +163,7 @@ impl RenderOnce for ToolCall {
             window.request_animation_frame();
         }
         let (reveal, chevron, copied, expanded) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied(), m.expanded);
+        let height = m.disclosure.height.clone();
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
@@ -347,7 +348,7 @@ impl RenderOnce for ToolCall {
             .when(!flat, |d| d.rounded(radius::card()).bg(theme.card_strong).overflow_hidden())
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
-            d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body))
+            d.child(crate::reveal::body(body, reveal, &height))
         })
     }
 }
