@@ -6,7 +6,7 @@ pub const MIN_WIDTH: f32 = 320.;
 pub const MAX_WIDTH: f32 = 960.;
 
 /// The space between two columns of a group, and between two groups.
-pub const GAP: f32 = 8.;
+pub const GAP: f32 = 2.;
 
 pub const GROUP_GAP: f32 = 24.;
 

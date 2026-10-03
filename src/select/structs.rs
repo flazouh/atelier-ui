@@ -3,6 +3,7 @@ use std::{rc::Rc, time::Instant};
 use gpui_kit::{
     App,
     Bounds,
+    Corners,
     ElementId,
     FocusHandle,
     InteractiveElement,
@@ -82,6 +83,7 @@ pub struct Select {
     disabled: bool,
     pub(super) default_open: bool,
     pub(super) compact: bool,
+    pub(super) corners: Corners<bool>,
     pub(super) chevron: bool,
     pub(super) shadow: bool,
     pub(super) panel_width: Option<Pixels>,
@@ -100,6 +102,7 @@ impl Select {
             disabled: false,
             default_open: false,
             compact: false,
+            corners: Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true },
             chevron: true,
             shadow: true,
             panel_width: None,
@@ -134,6 +137,13 @@ impl Select {
     /// transparent until hovered, instead of the full `card`-filled field.
     pub fn compact(mut self, compact: bool) -> Self {
         self.compact = compact;
+        self
+    }
+
+    /// Rounds only these corners of the trigger, for a select that is one part of a joined row (see
+    /// [`crate::button_group::segment_corners`]). The open panel keeps all its corners.
+    pub fn corners(mut self, corners: Corners<bool>) -> Self {
+        self.corners = corners;
         self
     }
 
@@ -401,6 +411,7 @@ impl RenderOnce for Select {
                             .child(selected_option.clone().map(|o| o.label).unwrap_or_else(|| placeholder.clone())),
                     )
         };
+        let round = |on: bool| if on { radius::lg() } else { px(0.) };
         let chevron_at = |turn: f32| {
             div().flex_none().text_color(theme.muted_foreground).child(Icon::new(IconName::ChevronDown).size(px(16.)).turn(turn))
         };
@@ -415,7 +426,10 @@ impl RenderOnce for Select {
             .gap(px(8.))
             .when(!compact, |d| d.px(px(12.)).py(px(8.)))
             .when(compact, |d| d.h(px(32.)).px(px(8.)))
-            .rounded(radius::lg())
+            .rounded_tl(round(self.corners.top_left))
+            .rounded_tr(round(self.corners.top_right))
+            .rounded_bl(round(self.corners.bottom_left))
+            .rounded_br(round(self.corners.bottom_right))
             .bg(trigger_bg)
             // The surface drawn over it is the trigger while it is open or moving.
             .when(shown, |d| d.opacity(0.))
