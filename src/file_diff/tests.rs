@@ -315,3 +315,168 @@ mod clipped {
         assert_eq!(height(cx, "diff-rows"), 8. * ROW_HEIGHT);
     }
 }
+
+/// The wheel over a diff in a panel: a clipped diff does not scroll, so the panel takes the wheel; an opened one scrolls its
+/// own rows first; and one folded back is a clipped diff again.
+mod wheel {
+    use gpui_kit::{
+        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
+        StatefulInteractiveElement, Styled, TestAppContext, TouchPhase, UniformListScrollHandle, Window, div, point, px, size,
+    };
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host {
+        panel: ScrollHandle,
+        inner: UniformListScrollHandle,
+        rows: usize,
+        status: FileDiffStatus,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let lines = (0..self.rows)
+                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .collect();
+            div()
+                .id("panel")
+                .w(px(600.))
+                .h(px(400.))
+                .overflow_y_scroll()
+                .track_scroll(&self.panel)
+                .child(div().h(px(100.)))
+                .child(FileDiff::new("wheel", "src/main.rs", lines).status(self.status).scroll_handle(self.inner.clone()).preview_rows(8))
+                .child(div().h(px(1500.)))
+        }
+    }
+
+    type Opened<'a> = (gpui_kit::Entity<Host>, &'a mut gpui_kit::VisualTestContext, ScrollHandle, UniformListScrollHandle);
+
+    fn open(status: FileDiffStatus, cx: &mut TestAppContext) -> Opened<'_> {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (panel, inner) = (ScrollHandle::new(), UniformListScrollHandle::new());
+        let handles = (panel.clone(), inner.clone());
+        let (host, cx) = cx.add_window_view(move |_, _| Host { panel, inner, rows: 40, status });
+        cx.simulate_resize(size(px(700.), px(500.)));
+        settle(&host, cx);
+        (host, cx, handles.0, handles.1)
+    }
+
+    fn settle(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        cx.run_until_parked();
+    }
+
+    /// A wheel of `dy` px over the diff's rows: negative moves on, positive goes back.
+    fn wheel(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext, dy: f32) {
+        let at = cx.debug_bounds("diff-body").expect("the diff is drawn").center();
+        cx.simulate_event(ScrollWheelEvent {
+            position: at,
+            delta: ScrollDelta::Pixels(point(px(0.), px(dy))),
+            modifiers: Modifiers::none(),
+            touch_phase: TouchPhase::Moved,
+        });
+        settle(host, cx);
+    }
+
+    fn press(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        let at = cx.debug_bounds("diff-body").expect("the diff is drawn").origin + point(px(40.), px(10.));
+        cx.simulate_click(at, Modifiers::none());
+        settle(host, cx);
+    }
+
+    fn top(panel: &ScrollHandle) -> f32 {
+        -f32::from(panel.offset().y)
+    }
+
+    /// How far the opened rows are from their end, in px.
+    fn from_end(inner: &UniformListScrollHandle) -> f32 {
+        crate::scroll_chain::from_end(&inner.0.borrow().base_handle)
+    }
+
+    fn inner_top(inner: &UniformListScrollHandle) -> f32 {
+        -f32::from(inner.0.borrow().base_handle.offset().y)
+    }
+
+    #[gpui_kit::test]
+    fn a_clipped_diff_hands_the_wheel_to_the_panel(cx: &mut TestAppContext) {
+        let (host, cx, panel, _) = open(FileDiffStatus::Complete, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) > 50., "the panel scrolled: {}", top(&panel));
+    }
+
+    #[gpui_kit::test]
+    fn an_opened_diff_scrolls_its_own_rows_before_the_panel(cx: &mut TestAppContext) {
+        let (host, cx, panel, inner) = open(FileDiffStatus::Complete, cx);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) < 1., "the rows took the wheel: {}", top(&panel));
+        assert!(inner_top(&inner) > 50., "and moved: {}", inner_top(&inner));
+    }
+
+    #[gpui_kit::test]
+    fn a_diff_folded_back_hands_the_wheel_to_the_panel_again(cx: &mut TestAppContext) {
+        let (host, cx, panel, _) = open(FileDiffStatus::Complete, cx);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) > 50., "the panel scrolled: {}", top(&panel));
+    }
+
+    #[gpui_kit::test]
+    fn an_opened_diff_starts_at_its_top_each_time(cx: &mut TestAppContext) {
+        let (host, cx, _, inner) = open(FileDiffStatus::Complete, cx);
+        press(&host, cx);
+        wheel(&host, cx, -100.);
+        assert!(inner_top(&inner) > 50.);
+        press(&host, cx);
+        press(&host, cx);
+        assert!(inner_top(&inner) < 1., "not where it was left: {}", inner_top(&inner));
+    }
+
+    #[gpui_kit::test]
+    fn a_streaming_diff_follows_its_newest_row_until_the_reader_scrolls_up(cx: &mut TestAppContext) {
+        let (host, cx, _, inner) = open(FileDiffStatus::Streaming, cx);
+        press(&host, cx);
+        assert!(from_end(&inner) < 1., "pinned to the newest row: {}", from_end(&inner));
+        host.update(cx, |h, cx| {
+            h.rows = 60;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(from_end(&inner) < 1., "it follows the new rows: {}", from_end(&inner));
+        wheel(&host, cx, 200.);
+        let away = from_end(&inner);
+        assert!(away > 150., "the reader scrolled up: {away}");
+        host.update(cx, |h, cx| {
+            h.rows = 80;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(from_end(&inner) > away - 1., "it does not pull them back: {} from {away}", from_end(&inner));
+    }
+
+    #[gpui_kit::test]
+    fn a_streaming_diff_follows_again_when_the_reader_comes_back_to_the_end(cx: &mut TestAppContext) {
+        let (host, cx, _, inner) = open(FileDiffStatus::Streaming, cx);
+        press(&host, cx);
+        wheel(&host, cx, 200.);
+        wheel(&host, cx, -4000.);
+        assert!(from_end(&inner) < 1.);
+        host.update(cx, |h, cx| {
+            h.rows = 80;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(from_end(&inner) < 1., "following again: {}", from_end(&inner));
+    }
+}
