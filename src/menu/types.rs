@@ -84,6 +84,13 @@ pub(super) type Choose = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 /// Draws the mark at the start of a row.
 pub(super) type LeadElement = Rc<dyn Fn(&App) -> gpui_kit::AnyElement>;
 
+/// The elements a row draws at its start and its end. Few rows have them, so a row holds them behind one box.
+#[derive(Default)]
+pub(super) struct Ends {
+    pub(super) lead: Option<LeadElement>,
+    pub(super) trailing: Option<LeadElement>,
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Tone {
     #[default]

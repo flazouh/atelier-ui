@@ -106,6 +106,7 @@ impl Tokens {
             chip_hover,
             chip_arrow,
             status,
+            pull: super::helpers::github_pull(appearance),
             syntax,
         };
         (theme, derived)
