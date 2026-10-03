@@ -186,6 +186,9 @@ pub struct PromptInput {
 /// The live words sit where the field's own text would, so these must match it.
 const EDITOR_PAD_X: f32 = 10.;
 const EDITOR_PAD_Y: f32 = 8.;
+/// How much of the field's own top and bottom padding is cut off, so the text row is a line (24px) and 8px of air,
+/// the same height as the controls' row under it, not a line and 16px.
+const TRIM_Y: f32 = 4.;
 
 impl PromptInput {
     /// `placeholder` shows in the empty box; `default_value` seeds the text, as beui's `defaultValue`.
@@ -199,7 +202,7 @@ impl PromptInput {
         let default_value = default_value.into();
         let text = cx.new(|cx| {
             TextareaState::new(window, cx)
-                .auto_grow(2, 8)
+                .auto_grow(1, 8)
                 .submit_on_enter(true)
                 .placeholder(placeholder)
                 .default_value(default_value)
@@ -558,7 +561,7 @@ impl PromptInput {
                         .left_0()
                         .right_0()
                         .px(px(4.) + gpui_kit::px(EDITOR_PAD_X))
-                        .pt(px(2.) + gpui_kit::px(EDITOR_PAD_Y))
+                        .pt(gpui_kit::px(EDITOR_PAD_Y))
                         .text_size(TextSize::Sm.font_size())
                         .line_height(px(24.))
                         .text_color(theme.foreground)
@@ -1344,7 +1347,7 @@ impl Render for PromptInput {
         });
 
         let meter = self.context.map(|(used, window)| ContextMeter::new("prompt-context", used, window));
-        let toolbar = div().flex().items_center().gap(px(4.)).min_h(px(32.)).mt(px(4.)).child(left).children(meter).children(mic).child(send);
+        let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).child(send);
 
         let this = cx.entity().downgrade();
         let text = self.text.clone();
@@ -1423,20 +1426,24 @@ impl Render for PromptInput {
             .child(
                 // While words come in, the words are drawn over the box (see `live_overlay`) and the box itself is
                 // not seen; it stays where it is, so the caret, the focus and the height are the same as ever.
-                div()
-                    .relative()
-                    .child(
-                        div().when(overlay.is_some(), |d| d.opacity(0.)).child(
-                            Textarea::new(&self.text)
-                                .appearance(false)
-                                .disabled(disabled)
-                                .px(px(4.))
-                                .pt(px(2.))
-                                .text_size(TextSize::Sm.font_size())
-                                .line_height(px(24.)),
-                        ),
-                    )
-                    .children(overlay),
+                // The field keeps its own padding; the row crops it (see `TRIM_Y`) so the text row is as high as the
+                // controls' row, and the box has the same room above the text as below the controls.
+                div().debug_selector(|| "prompt-text".into()).overflow_hidden().child(
+                    div()
+                        .relative()
+                        .my(px(-TRIM_Y))
+                        .child(
+                            div().when(overlay.is_some(), |d| d.opacity(0.)).child(
+                                Textarea::new(&self.text)
+                                    .appearance(false)
+                                    .disabled(disabled)
+                                    .px(px(4.))
+                                    .text_size(TextSize::Sm.font_size())
+                                    .line_height(px(24.)),
+                            ),
+                        )
+                        .children(overlay),
+                ),
             )
             .child(toolbar)
     }
