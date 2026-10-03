@@ -17,3 +17,5 @@ pub enum SignInState {
 pub const SIGN_IN: &str = "Sign in";
 /// The button's words while the browser waits.
 pub const WAITING: &str = "Waiting…";
+/// The button that leaves the wait.
+pub const CANCEL: &str = "Cancel";
