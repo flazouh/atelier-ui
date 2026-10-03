@@ -242,3 +242,150 @@ mod motion {
         assert!(opening.windows(2).all(|w| w[1] >= w[0] - 0.5), "and only down: {opening:?}");
     }
 }
+
+/// The wheel over a call's output in a panel, as for a diff: a clipped output leaves it to the panel, an opened one scrolls
+/// first, and a running one follows its end until the reader scrolls up.
+mod wheel {
+    use gpui_kit::{
+        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
+        StatefulInteractiveElement, Styled, TestAppContext, TouchPhase, Window, div, point, px, size,
+    };
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host {
+        panel: ScrollHandle,
+        lines: usize,
+        status: ToolStatus,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let log = (0..self.lines).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            div()
+                .id("panel")
+                .w(px(600.))
+                .h(px(400.))
+                .overflow_y_scroll()
+                .track_scroll(&self.panel)
+                .child(div().h(px(100.)))
+                .child(ToolCall::new("call", "Ran tests").status(self.status).output(log).default_open(true).collapse_on_complete(false).preview_rows(6))
+                .child(div().h(px(1500.)))
+        }
+    }
+
+    fn open(status: ToolStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, ScrollHandle) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let panel = ScrollHandle::new();
+        let handle = panel.clone();
+        let (host, cx) = cx.add_window_view(move |_, _| Host { panel, lines: 60, status });
+        cx.simulate_resize(size(px(700.), px(500.)));
+        settle(&host, cx);
+        (host, cx, handle)
+    }
+
+    fn settle(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        cx.run_until_parked();
+    }
+
+    fn wheel(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext, dy: f32) {
+        let at = cx.debug_bounds("tool-output").expect("the output is drawn").center();
+        cx.simulate_event(ScrollWheelEvent {
+            position: at,
+            delta: ScrollDelta::Pixels(point(px(0.), px(dy))),
+            modifiers: Modifiers::none(),
+            touch_phase: TouchPhase::Moved,
+        });
+        settle(host, cx);
+    }
+
+    fn press(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
+        let at = cx.debug_bounds("tool-output").expect("the output is drawn").origin + point(px(40.), px(10.));
+        cx.simulate_click(at, Modifiers::none());
+        settle(host, cx);
+    }
+
+    fn top(panel: &ScrollHandle) -> f32 {
+        -f32::from(panel.offset().y)
+    }
+
+    /// How far the text has scrolled up inside its box, in px: its own padding is not scroll.
+    fn text_top(cx: &mut gpui_kit::VisualTestContext) -> f32 {
+        let (text, frame) = (cx.debug_bounds("tool-output-text").unwrap(), cx.debug_bounds("tool-output").unwrap());
+        f32::from(frame.top() - text.top()) + 12.
+    }
+
+    /// How far the text's end is below its box's bottom, in px.
+    fn below(cx: &mut gpui_kit::VisualTestContext) -> f32 {
+        let (text, frame) = (cx.debug_bounds("tool-output-text").unwrap(), cx.debug_bounds("tool-output").unwrap());
+        f32::from(text.bottom() - frame.bottom())
+    }
+
+    #[gpui_kit::test]
+    fn a_clipped_output_hands_the_wheel_to_the_panel(cx: &mut TestAppContext) {
+        let (host, cx, panel) = open(ToolStatus::Done, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) > 50., "the panel scrolled: {}", top(&panel));
+    }
+
+    #[gpui_kit::test]
+    fn an_opened_output_scrolls_its_own_lines_before_the_panel(cx: &mut TestAppContext) {
+        let (host, cx, panel) = open(ToolStatus::Done, cx);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) < 1., "the lines took the wheel: {}", top(&panel));
+        assert!(text_top(cx) > 50., "and moved: {}", text_top(cx));
+    }
+
+    #[gpui_kit::test]
+    fn an_output_folded_back_hands_the_wheel_to_the_panel_again(cx: &mut TestAppContext) {
+        let (host, cx, panel) = open(ToolStatus::Done, cx);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        press(&host, cx);
+        wheel(&host, cx, -60.);
+        assert!(top(&panel) > 50., "the panel scrolled: {}", top(&panel));
+    }
+
+    #[gpui_kit::test]
+    fn an_opened_output_starts_at_its_top_each_time(cx: &mut TestAppContext) {
+        let (host, cx, _) = open(ToolStatus::Done, cx);
+        press(&host, cx);
+        wheel(&host, cx, -100.);
+        assert!(text_top(cx) > 50.);
+        press(&host, cx);
+        press(&host, cx);
+        assert!(text_top(cx).abs() < 1., "not where it was left: {}", text_top(cx));
+    }
+
+    #[gpui_kit::test]
+    fn a_running_output_follows_its_end_until_the_reader_scrolls_up(cx: &mut TestAppContext) {
+        let (host, cx, _) = open(ToolStatus::Running, cx);
+        press(&host, cx);
+        assert!(below(cx).abs() < 14., "its end is in view: {}", below(cx));
+        host.update(cx, |h, cx| {
+            h.lines = 90;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(below(cx).abs() < 14., "it follows the new lines: {}", below(cx));
+        wheel(&host, cx, 300.);
+        let away = below(cx);
+        assert!(away > 200., "the reader scrolled up: {away}");
+        host.update(cx, |h, cx| {
+            h.lines = 120;
+            cx.notify();
+        });
+        settle(&host, cx);
+        assert!(below(cx) >= away, "it does not pull them back: {} from {away}", below(cx));
+    }
+}
