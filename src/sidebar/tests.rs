@@ -213,23 +213,56 @@ fn the_head_options_live_behind_its_three_dots(cx: &mut TestAppContext) {
     assert_eq!(heard.borrow().len(), 2, "one event for each choice");
 }
 
-#[gpui_kit::test]
-fn continue_with_in_a_sessions_menu_asks_the_app_to_carry_it_on(cx: &mut TestAppContext) {
-    use std::{cell::RefCell, rc::Rc};
-    const CONTINUE: &str = "session-menu-continue";
+fn targets() -> Vec<crate::menu::Branch> {
+    use crate::menu::Branch;
+    vec![Branch::with("claude", "Claude Code", vec![Branch::leaf("claude/me", "me@work"), Branch::leaf("claude/openrouter", "OpenRouter")]), Branch::leaf("codex", "Codex")]
+}
+
+fn open_handoff(cx: &mut TestAppContext) -> (Entity<Sidebar>, &mut VisualTestContext) {
     let (sidebar, cx) = open(cx);
+    sidebar.update(cx, |s, cx| {
+        s.set_handoff("atelier".into(), targets(), cx);
+        s.session_menu = Some("s".into());
+        cx.notify();
+    });
+    frames(&sidebar, cx, 4);
+    (sidebar, cx)
+}
+
+#[gpui_kit::test]
+fn handoff_in_a_sessions_menu_opens_the_agents_and_a_click_on_a_provider_hands_off_at_once(cx: &mut TestAppContext) {
+    use std::{cell::RefCell, rc::Rc};
+    let (sidebar, cx) = open_handoff(cx);
     let heard: Rc<RefCell<Vec<SidebarEvent>>> = Rc::default();
     let hearing = heard.clone();
     let _listening = cx.update(|_, cx| cx.subscribe(&sidebar, move |_, event: &SidebarEvent, _| hearing.borrow_mut().push(event.clone())));
+
+    let handoff = cx.debug_bounds("session-menu-handoff").expect("the menu offers it").center();
+    cx.simulate_mouse_move(handoff, None, Modifiers::default());
+    frames(&sidebar, cx, 6);
+    let agent = cx.debug_bounds("branch-claude").expect("the agents open beside it").center();
+    cx.simulate_mouse_move(agent, None, Modifiers::default());
+    frames(&sidebar, cx, 6);
+    let provider = cx.debug_bounds("branch-claude/openrouter").expect("an agent with a choice opens its providers").center();
+    cx.simulate_click(provider, Modifiers::default());
+    frames(&sidebar, cx, 4);
+
+    let target = SidebarEvent::Handoff { project: "atelier".into(), session: "s".into(), target: "claude/openrouter".into() };
+    assert_eq!(*heard.borrow(), vec![target]);
+    assert!(sidebar.read_with(cx, |s, _| s.session_menu.is_none()), "and the menu is shut");
+}
+
+#[gpui_kit::test]
+fn handoff_with_nowhere_to_go_is_dimmed_and_hands_off_nothing(cx: &mut TestAppContext) {
+    let (sidebar, cx) = open(cx);
     sidebar.update(cx, |s, cx| {
         s.session_menu = Some("s".into());
         cx.notify();
     });
     frames(&sidebar, cx, 4);
 
-    let entry = cx.debug_bounds(CONTINUE).expect("the menu offers it").center();
-    cx.simulate_click(entry, Modifiers::default());
-    frames(&sidebar, cx, 4);
-
-    assert!(heard.borrow().contains(&SidebarEvent::ContinueWith { project: "atelier".into(), session: "s".into() }));
+    let handoff = cx.debug_bounds("session-menu-handoff").expect("the row is there").center();
+    cx.simulate_mouse_move(handoff, None, Modifiers::default());
+    frames(&sidebar, cx, 6);
+    assert!(cx.debug_bounds("branch-claude").is_none());
 }

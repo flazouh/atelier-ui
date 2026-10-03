@@ -2,6 +2,9 @@ use gpui_kit::SharedString;
 
 use crate::sidebar_layout::SidebarLayout;
 
+/// The words of the row in a session's menu that carries it on elsewhere.
+pub(super) const HANDOFF: &str = "Handoff";
+
 /// How long a new session's row is wrapped in its entrance.
 pub(super) const ENTERING: std::time::Duration = std::time::Duration::from_millis(500);
 
@@ -13,9 +16,9 @@ pub enum SidebarEvent {
     Archive { project: SharedString, session: SharedString, archive: bool },
     /// The reader chose "Copy session id" in a row's menu.
     CopySessionId { project: SharedString, session: SharedString },
-    /// The reader chose "Continue with…" in a row's menu: a new session carries this one on, on another agent or
-    /// provider.
-    ContinueWith { project: SharedString, session: SharedString },
+    /// The reader chose a target in a row's Handoff menu: a new session carries this one on, on that agent and
+    /// provider. `target` is the id of the leaf of the project's [`Branch`](crate::menu::Branch) tree.
+    Handoff { project: SharedString, session: SharedString, target: SharedString },
     /// The reader chose "Close panel" in a row's menu: the session has a panel open, and it closes.
     CloseSession { project: SharedString, session: SharedString },
     /// The reader changed the head's choices (the list mode or the filter): the app may keep them.

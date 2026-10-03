@@ -1,8 +1,8 @@
 use gpui_kit::Hsla;
 
 use crate::theme::Theme;
-use super::structs::{Inset, MenuLook};
-use super::types::{BORDER, CLIP_HALF, FILL_RAMP, LABEL, LINE, RADIUS_END, RADIUS_START, Tone};
+use super::structs::{Inset, MenuItem, MenuLook};
+use super::types::{BORDER, Branch, CLIP_HALF, Entry, FILL_RAMP, LABEL, LINE, Pick, RADIUS_END, RADIUS_START, Tone};
 
 /// The height of a panel of `rows` plain rows in `look`: the padding, the rows and the 1px edge.
 pub fn height_in(look: MenuLook, rows: usize) -> f32 {
@@ -18,6 +18,23 @@ pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
         Entry::Separator => h + look.group,
         Entry::Item(_) => h,
     })
+}
+
+/// The rows of a menu for `branches`: a leaf is a row that runs `pick` with its id, a branch a row that opens the
+/// menu of its own branches. Every row is named `branch-<id>` for tests.
+pub fn entries_of(branches: &[Branch], pick: &Pick) -> Vec<Entry> {
+    branches
+        .iter()
+        .map(|branch| {
+            let row = MenuItem::new(branch.label.clone()).debug_name(format!("branch-{}", branch.id));
+            if branch.branches.is_empty() {
+                let (pick, id) = (pick.clone(), branch.id.clone());
+                row.on_select(move |window, cx| pick(&id, window, cx)).into()
+            } else {
+                row.submenu(entries_of(&branch.branches, pick)).into()
+            }
+        })
+        .collect()
 }
 
 /// The height in the default look.

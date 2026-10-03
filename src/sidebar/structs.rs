@@ -11,6 +11,7 @@ use crate::scale::px;
 use crate::{
     entrance::Entrance,
     focus::PressStop,
+    menu::Branch,
     icon::{Icon, IconName},
     keys::{self, Command, Press},
     motion::{Channel, Curve, Spring},
@@ -23,7 +24,7 @@ use crate::{
     typography::TextSize,
 };
 use super::types::{ENTERING, SidebarEvent};
-use super::helpers::name;
+use super::helpers::{handoff_entry, name};
 
 pub struct Sidebar {
     /// Every project with every session, as the app gave them.
@@ -50,6 +51,8 @@ pub struct Sidebar {
     moving: HashMap<RowKey, Channel>,
     /// While the pointer is on the list: each project's sessions in the order the rows had.
     held: Option<HashMap<SharedString, Vec<SharedString>>>,
+    /// Each project's targets for a handoff, by project id: an agent opens a menu of its providers.
+    handoff: HashMap<SharedString, Vec<Branch>>,
 }
 
 impl EventEmitter<SidebarEvent> for Sidebar {}
@@ -81,6 +84,16 @@ impl Sidebar {
             entering: HashMap::new(),
             moving: HashMap::new(),
             held: None,
+            handoff: HashMap::new(),
+        }
+    }
+
+    /// Where a session of `project` can be handed off to. The app gives a tree: an agent that has a choice of
+    /// provider is a branch, one that has none a leaf.
+    pub fn set_handoff(&mut self, project: SharedString, targets: Vec<Branch>, cx: &mut Context<Self>) {
+        if self.handoff.get(&project) != Some(&targets) {
+            self.handoff.insert(project, targets);
+            cx.notify();
         }
     }
 
@@ -422,7 +435,7 @@ impl Sidebar {
                         "session-menu-archive",
                         SidebarEvent::Archive { project: project_id.clone(), session: session_id.clone(), archive: !archived },
                     )];
-                    entries.push(ask("Continue with…", "session-menu-continue", target(|project, session| SidebarEvent::ContinueWith { project, session })));
+                    entries.push(handoff_entry(&this, &project_id, &session_id, self.handoff.get(&project_id)));
                     entries.push(ask("Copy session id", "session-menu-copy-id", target(|project, session| SidebarEvent::CopySessionId { project, session })));
                     if in_panel {
                         entries.push(ask("Close panel", "session-menu-close", target(|project, session| SidebarEvent::CloseSession { project, session })));
