@@ -17,7 +17,7 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{ButtonSize, ButtonVariant, Hold, KeyHandler, ROUND};
-use super::helpers::{chip, colors, hover_target, update_motion};
+use super::helpers::{chip, colors, hover_target, side_pad, update_motion};
 
 pub(super) struct Metrics {
     pub(super) height: f32,
@@ -326,7 +326,9 @@ impl RenderOnce for Button {
         let icon_color = self.icon_ink.unwrap_or(foreground);
         let square = matches!(self.size, ButtonSize::Icon | ButtonSize::IconSm);
         let corner = if self.pill { px(m.height / 2.) } else { radius::lg() };
-        let pad_right = if self.chip.is_some() { m.chip_inset } else { m.pad_x };
+        let words = self.label.is_some() || self.content.is_some() || self.cap.is_some();
+        let pad = side_pad(&m, words || self.icon.is_none());
+        let pad_right = if self.chip.is_some() { m.chip_inset } else { pad };
         let inset = 1. - ring;
         let round = |on: bool| if on { corner - px(inset) } else { px(0.) };
         let c = self.corners;
@@ -341,7 +343,7 @@ impl RenderOnce for Button {
             .items_center()
             .h(px(m.height))
             .when(square, |d| d.w(px(m.height)).justify_center())
-            .when(!square, |d| d.pl(px(m.pad_x)).pr(px(pad_right)).gap(px(m.gap)))
+            .when(!square, |d| d.pl(px(pad)).pr(px(pad_right)).gap(px(m.gap)))
             .font_family(FONT_FAMILY)
             .font_weight(FontWeight::NORMAL)
             .text_size(px(m.text))

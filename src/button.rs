@@ -19,6 +19,8 @@ pub use types::{ButtonSize, ButtonVariant, ROUND};
 
 #[cfg(test)]
 use helpers::hover_target;
+#[cfg(test)]
+use helpers::side_pad;
 
 #[cfg(test)]
 mod tests;
