@@ -57,6 +57,7 @@ pub struct MenuItem {
     description: Option<SharedString>,
     pub(super) icon: Option<IconName>,
     pub(super) lead_element: Option<LeadElement>,
+    trailing: Option<LeadElement>,
     pub(super) shortcut: Option<SharedString>,
     cap: Option<SharedString>,
     pub(super) choice: Option<Choice>,
@@ -77,6 +78,7 @@ impl MenuItem {
             description: None,
             icon: None,
             lead_element: None,
+            trailing: None,
             shortcut: None,
             cap: None,
             choice: None,
@@ -117,6 +119,13 @@ impl MenuItem {
     /// A small element in the icon's place, drawn each time the menu draws: a project's badge.
     pub fn lead_element(mut self, lead: impl Fn(&App) -> gpui_kit::AnyElement + 'static) -> Self {
         self.lead_element = Some(Rc::new(lead));
+        self
+    }
+
+    /// A small element at the end of the row, drawn each time the menu draws: a project's host or how many
+    /// of its sessions wait, on the row's one line.
+    pub fn trailing(mut self, trailing: impl Fn(&App) -> gpui_kit::AnyElement + 'static) -> Self {
+        self.trailing = Some(Rc::new(trailing));
         self
     }
 
@@ -560,6 +569,7 @@ impl RenderOnce for Menu {
                             }),
                         )
                         .children(tail)
+                        .children(item.trailing.map(|trailing| div().flex_none().ml_auto().pl(px(16.)).flex().items_center().h(px(LINE)).child(trailing(cx))))
                         .children(item.shortcut.map(|keys| {
                             div()
                                 .flex_none()
