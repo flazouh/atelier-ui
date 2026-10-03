@@ -81,6 +81,9 @@ impl Branch {
 
 pub(super) type Choose = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
+/// Draws the mark at the start of a row.
+pub(super) type LeadElement = Rc<dyn Fn(&App) -> gpui_kit::AnyElement>;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Tone {
     #[default]
@@ -88,7 +91,7 @@ pub enum Tone {
     Destructive,
 }
 
-/// A row that holds a state: a check for a switch, a dot for one choice of several.
+/// A row that holds a state. A check and one choice of several both show a check at the row's start.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Choice {
     Check(bool),
