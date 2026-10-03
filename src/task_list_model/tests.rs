@@ -64,6 +64,9 @@ fn each_quick_filter_keeps_what_it_names() {
     assert_eq!(kept(&Filters { label: Some("ui".into()), ..Filters::default() }), ["LAT-2", "LAT-4", "LAT-6"]);
     assert_eq!(kept(&Filters { priority: Some(Priority::High), ..Filters::default() }), ["LAT-1", "LAT-6", "LAT-8"]);
     assert_eq!(kept(&Filters { priority: Some(Priority::None), ..Filters::default() }), ["LAT-5"]);
+    let active = vec![TaskStatus::Todo, TaskStatus::InProgress, TaskStatus::InReview];
+    assert_eq!(kept(&Filters { statuses: active, ..Filters::default() }), ["LAT-1", "LAT-2", "LAT-3", "LAT-5", "LAT-8"]);
+    assert_eq!(kept(&Filters { statuses: vec![TaskStatus::Backlog], ..Filters::default() }), ["LAT-6"]);
 }
 
 #[test]

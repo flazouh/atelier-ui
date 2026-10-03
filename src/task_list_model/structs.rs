@@ -19,6 +19,8 @@ pub struct Filters {
     pub priority: Option<Priority>,
     /// Words the title or the key must hold, whatever the case.
     pub text: String,
+    /// The statuses a task must be in, for a view such as Active or Backlog; any status when empty.
+    pub statuses: Vec<TaskStatus>,
 }
 
 impl Filters {
@@ -51,6 +53,7 @@ impl Filters {
             && self.assignee.as_ref().is_none_or(|name| assigned == Some(name.as_ref()))
             && self.label.as_ref().is_none_or(|label| task.labels.iter().any(|l| l.name == *label))
             && self.priority.is_none_or(|p| task.priority == p)
+            && (self.statuses.is_empty() || self.statuses.contains(&task.status))
             && (self.text.is_empty() || {
                 let needle = self.text.to_lowercase();
                 task.title.to_lowercase().contains(&needle) || task.key.to_lowercase().contains(&needle)
