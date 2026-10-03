@@ -212,3 +212,24 @@ fn the_head_options_live_behind_its_three_dots(cx: &mut TestAppContext) {
     assert_eq!(sidebar.read_with(cx, |s, _| s.layout().filter), SessionFilter::Archived, "the last row is in reach");
     assert_eq!(heard.borrow().len(), 2, "one event for each choice");
 }
+
+#[gpui_kit::test]
+fn continue_with_in_a_sessions_menu_asks_the_app_to_carry_it_on(cx: &mut TestAppContext) {
+    use std::{cell::RefCell, rc::Rc};
+    const CONTINUE: &str = "session-menu-continue";
+    let (sidebar, cx) = open(cx);
+    let heard: Rc<RefCell<Vec<SidebarEvent>>> = Rc::default();
+    let hearing = heard.clone();
+    let _listening = cx.update(|_, cx| cx.subscribe(&sidebar, move |_, event: &SidebarEvent, _| hearing.borrow_mut().push(event.clone())));
+    sidebar.update(cx, |s, cx| {
+        s.session_menu = Some("s".into());
+        cx.notify();
+    });
+    frames(&sidebar, cx, 4);
+
+    let entry = cx.debug_bounds(CONTINUE).expect("the menu offers it").center();
+    cx.simulate_click(entry, Modifiers::default());
+    frames(&sidebar, cx, 4);
+
+    assert!(heard.borrow().contains(&SidebarEvent::ContinueWith { project: "atelier".into(), session: "s".into() }));
+}

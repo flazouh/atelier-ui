@@ -40,7 +40,7 @@ pub struct Sidebar {
     focus: FocusHandle,
     pub(super) menu: Option<SharedString>,
     /// The session whose ⋯ menu is open, by id.
-    session_menu: Option<SharedString>,
+    pub(super) session_menu: Option<SharedString>,
     /// What the head chose, and whether the priority list shows all its earlier sessions.
     pub(super) layout: SidebarLayout,
     earlier_open: bool,
@@ -422,6 +422,7 @@ impl Sidebar {
                         "session-menu-archive",
                         SidebarEvent::Archive { project: project_id.clone(), session: session_id.clone(), archive: !archived },
                     )];
+                    entries.push(ask("Continue with…", "session-menu-continue", target(|project, session| SidebarEvent::ContinueWith { project, session })));
                     entries.push(ask("Copy session id", "session-menu-copy-id", target(|project, session| SidebarEvent::CopySessionId { project, session })));
                     if in_panel {
                         entries.push(ask("Close panel", "session-menu-close", target(|project, session| SidebarEvent::CloseSession { project, session })));
