@@ -17,3 +17,6 @@ pub(crate) enum TreeKey {
     Right,
     Enter,
 }
+
+/// The space between two rows, in pixels.
+pub(super) const ROW_GAP: f32 = 1.;
