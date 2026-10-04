@@ -40,6 +40,7 @@ fn open_at<'a>(
                 IconPickerEvent::Choose(path) => format!("choose {path}"),
                 IconPickerEvent::Clear => "clear".to_string(),
                 IconPickerEvent::Cancel => "cancel".to_string(),
+                IconPickerEvent::Color(index) => format!("color {index}"),
             })
         })
         .detach();
@@ -114,4 +115,31 @@ fn a_remote_project_shows_the_file_mark_instead(cx: &mut TestAppContext) {
     let (_, _, cx) = open_at(&["logo.svg"], None, cx);
     assert!(cx.debug_bounds("icon-thumb-0").is_none());
     assert_eq!(rows(cx), 1);
+}
+
+/// The palette is on offer as a disc for each colour; a press on one says which, and marks it with a tick.
+#[gpui_kit::test]
+fn a_press_on_a_swatch_chooses_that_colour_of_the_palette(cx: &mut TestAppContext) {
+    let (picker, events, cx) = open(&["logo.png"], cx);
+    for i in 0..crate::project_badge::COUNT {
+        assert!(cx.debug_bounds(Box::leak(format!("icon-color-{i}").into_boxed_str())).is_some(), "swatch {i} is drawn");
+    }
+    let at = cx.debug_bounds("icon-color-4").unwrap().center();
+    cx.simulate_click(at, gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    assert_eq!(*events.borrow(), ["color 4"]);
+    assert_eq!(picker.read_with(cx, |p, _| p.color), Some(4));
+}
+
+/// The owner hands the colour in force, so the ring is on it from the start.
+#[gpui_kit::test]
+fn the_colour_in_force_is_marked(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Light, cx);
+        cx.set_reduce_motion(true);
+    });
+    let (host, cx) = cx.add_window_view(|window, cx| Host { picker: cx.new(|cx| IconPicker::new(Vec::new(), None, window, cx).with_color(7)) });
+    cx.run_until_parked();
+    assert_eq!(host.read_with(cx, |h, cx| h.picker.read(cx).color), Some(7));
 }
