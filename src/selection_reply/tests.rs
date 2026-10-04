@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use gpui_kit::{
     AppContext as _, Context, Entity, InteractiveElement, IntoElement, Modifiers, MouseButton, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window,
-    base::TextSelectionLayer, div, point, px, size,
+    base::{SelectableText, TextSelectionLayer}, div, point, px, size,
 };
 
 use super::helpers::shown;
@@ -34,6 +34,7 @@ impl Render for Host {
                     .w(px(450.))
                     .h(px(100.))
                     .child(div().debug_selector(|| "words".into()).w(px(400.)).child(AgentText::new("words", "The build fails on the second run").status(AgentTextStatus::Complete)))
+                    .child(div().debug_selector(|| "plain".into()).w(px(400.)).child(SelectableText::new("plain", "alpha beta gamma delta")))
                     .child(self.reply.clone()),
             )
     }
@@ -59,9 +60,12 @@ fn open(cx: &mut TestAppContext) -> (Entity<Host>, Heard, &mut VisualTestContext
     (host, heard, cx)
 }
 
+/// Lets the frames come: the selection is read after one is drawn, and what it offers is drawn in the next.
 fn settle(cx: &mut VisualTestContext) {
-    cx.run_until_parked();
-    cx.update(|window, cx| window.draw(cx).clear(cx));
+    for _ in 0..2 {
+        cx.run_until_parked();
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+    }
     cx.run_until_parked();
 }
 
@@ -191,4 +195,27 @@ fn edit_opens_the_box_on_an_earlier_reply(cx: &mut TestAppContext) {
     assert_eq!(quote.as_ref(), "The build fails");
     assert_eq!(note.as_ref(), "old note more");
     assert_eq!(key.as_deref(), Some("quote-1"));
+}
+
+/// Plain selectable text works out its selected words as it paints: the quote is the words selected, not the whole run.
+#[gpui_kit::test]
+fn the_quote_of_plain_text_is_the_words_selected(cx: &mut TestAppContext) {
+    let (_host, heard, cx) = open(cx);
+    let plain = cx.debug_bounds("plain").expect("the plain text is drawn");
+    let y = plain.top() + px(10.);
+    cx.simulate_mouse_down(point(plain.left() + px(1.), y), MouseButton::Left, Modifiers::default());
+    settle(cx);
+    let to = point(plain.left() + px(40.), y);
+    cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    let offer = cx.debug_bounds("selection-reply-offer").expect("the button is up");
+    cx.simulate_click(offer.center(), Modifiers::default());
+    settle(cx);
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    let events = heard.borrow().clone();
+    let [SelectionReplyEvent::Reply { quote, .. }] = events.as_slice() else { panic!("{events:?}") };
+    assert!(quote.starts_with("al") && !quote.contains("delta"), "only the selected words: {quote:?}");
 }

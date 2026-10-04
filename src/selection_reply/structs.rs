@@ -22,6 +22,8 @@ use super::types::{CONTEXT, Phase, QUOTE_SHOWN, SelectionReplyEvent};
 /// The reply to a selection: a button where the selection ended, then a small box for the note.
 pub struct SelectionReply {
     phase: Phase,
+    /// A press was released here and the selection is yet to be read (see [`Self::released`]); `bool`: inside the parent.
+    released: Option<(gpui_kit::Point<gpui_kit::Pixels>, bool)>,
     note: Entity<TextareaState>,
     add_label: SharedString,
     _note: Subscription,
@@ -43,7 +45,7 @@ impl SelectionReply {
                 cx.notify()
             }
         });
-        Self { phase: Phase::Idle, note, add_label: "Add".into(), _note: subscription }
+        Self { phase: Phase::Idle, released: None, note, add_label: "Add".into(), _note: subscription }
     }
 
     /// The word on the button that adds the reply.
@@ -57,15 +59,25 @@ impl SelectionReply {
         !matches!(self.phase, Phase::Idle)
     }
 
-    /// A press was released at `at`: if words are selected the button comes up there, and if not it goes. With the box open the
-    /// reader is writing, so a release elsewhere changes nothing.
-    fn released(&mut self, at: gpui_kit::Point<gpui_kit::Pixels>, inside: bool, window: &mut Window, cx: &mut Context<Self>) {
+    /// A press was released at `at`. What is selected is read in the next frame's paint (see [`Self::settle`]), not now: a run of
+    /// plain text works out its selected words as it paints, and until then the window's selection holds the whole run. With the
+    /// box open the reader is writing, so a release elsewhere changes nothing.
+    fn released(&mut self, at: gpui_kit::Point<gpui_kit::Pixels>, inside: bool, cx: &mut Context<Self>) {
         if matches!(self.phase, Phase::Writing { .. }) {
             return;
         }
-        let quote = TextSelection::selected_text(window, cx);
+        self.released = Some((at, inside));
+        cx.notify();
+    }
+
+    /// The frame has painted the selection: `quote` is what it holds. If words are selected the button comes up where the press
+    /// was released, and if not it goes. A selection that ends beyond the parent belongs to someone else's reply.
+    fn settle(&mut self, quote: &str, cx: &mut Context<Self>) {
+        let Some((at, inside)) = self.released.take() else { return };
+        if matches!(self.phase, Phase::Writing { .. }) {
+            return;
+        }
         let quote = quote.trim();
-        // A selection that ends beyond the parent belongs to someone else's reply.
         self.phase = if quote.is_empty() || !inside { Phase::Idle } else { Phase::Offer { at, quote: quote.to_string().into() } };
         cx.notify();
     }
@@ -117,21 +129,27 @@ impl SelectionReply {
 }
 
 impl Render for SelectionReply {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let this = cx.entity().downgrade();
         // Whatever the reader does, a release is where a selection ends. It is read after the frame's own handlers have run, so
         // the selection is settled by then.
         let watch = canvas(
             |_, _, _| {},
-            move |bounds, _, window, _| {
+            move |bounds, _, window, cx| {
+                // This paints after the words it replies to, so their selection is settled by now.
+                if this.read_with(cx, |reply, _| reply.released.is_some()).unwrap_or(false) {
+                    let quote = TextSelection::selected_text(window, cx);
+                    this.update(cx, |reply, cx| reply.settle(&quote, cx)).ok();
+                }
                 let this = this.clone();
                 window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
                     if phase != DispatchPhase::Capture || event.button != MouseButton::Left {
                         return;
                     }
                     let (this, at, inside) = (this.clone(), event.position, bounds.contains(&event.position));
-                    window.defer(cx, move |window, cx| {
-                        this.update(cx, |reply, cx| reply.released(at, inside, window, cx)).ok();
+                    // After the frame's own handlers have run, the selection is settled.
+                    window.defer(cx, move |_, cx| {
+                        this.update(cx, |reply, cx| reply.released(at, inside, cx)).ok();
                     });
                 });
             },
@@ -148,8 +166,8 @@ impl Render for SelectionReply {
                     .variant(ButtonVariant::Secondary)
                     .size(ButtonSize::Sm)
                     .on_click(cx.listener(|this, _, window, cx| this.write(window, cx)));
-                let card = div().debug_selector(|| "selection-reply-offer".into()).rounded(radius::lg()).shadow_md().child(button);
-                Some(self.floating(*at + point(px(4.), px(12.)), card.into_any_element()))
+                let card = div().debug_selector(|| "selection-reply-offer".into()).rounded(radius::lg()).bg(theme.card_strong).shadow_md().child(button);
+                Some(floating(*at, window, card.into_any_element()))
             }
             Phase::Writing { at, quote, .. } => {
                 let card = div()
@@ -206,17 +224,18 @@ impl Render for SelectionReply {
                             )
                             .child(Kbd::new("↵")),
                     );
-                Some(self.floating(*at + point(px(4.), px(12.)), card.into_any_element()))
+                Some(floating(*at, window, card.into_any_element()))
             }
         };
         div().absolute().inset_0().child(watch).children(overlay)
     }
 }
 
-impl SelectionReply {
-    /// `content` over everything, below-right of `at`, kept inside the window.
-    fn floating(&self, at: gpui_kit::Point<gpui_kit::Pixels>, content: gpui_kit::AnyElement) -> gpui_kit::Deferred {
-        deferred(anchored().position(at).anchor(Anchor::TopLeft).snap_to_window_with_margin(px(8.)).child(div().occlude().child(content)))
-            .with_priority(PRIORITY + 1)
-    }
+/// `content` over everything, next to `at`: below and right of it, or above it when it is in the lower half of the window, and
+/// kept inside the window.
+fn floating(at: gpui_kit::Point<gpui_kit::Pixels>, window: &Window, content: gpui_kit::AnyElement) -> gpui_kit::Deferred {
+    let low = at.y > window.viewport_size().height / 2.;
+    let (anchor, at) = if low { (Anchor::BottomLeft, at + point(px(4.), px(-12.))) } else { (Anchor::TopLeft, at + point(px(4.), px(12.))) };
+    deferred(anchored().position(at).anchor(anchor).snap_to_window_with_margin(px(8.)).child(div().occlude().child(content)))
+        .with_priority(PRIORITY + 1)
 }
