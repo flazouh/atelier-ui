@@ -199,7 +199,7 @@ pub use bloom_menu::{BloomEvent, BloomItem, BloomMenu};
 pub use focus::PressStop;
 pub use focus::Field;
 pub use folder_picker::{FolderError, FolderPicker, FolderPickerEvent};
-pub use atelier_mark::{AtelierMark, MarkLook};
+pub use atelier_mark::AtelierMark;
 pub use multi_select::{MultiOption, MultiSelect, MultiSelectEvent};
 pub use notification_stack::{
     NotificationEvent, NotificationItem, NotificationStack, Trailing, TrailingTone,
