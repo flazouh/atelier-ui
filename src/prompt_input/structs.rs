@@ -285,6 +285,11 @@ impl PromptInput {
         self
     }
 
+    /// The mode the picker shows, by its words; `None` when there is no picker.
+    pub fn mode(&self) -> Option<&SharedString> {
+        self.modes.get(self.mode)
+    }
+
     pub fn set_mode(&mut self, words: &str, cx: &mut Context<Self>) {
         if let Some(i) = self.modes.iter().position(|m| m == words) {
             self.mode = i;

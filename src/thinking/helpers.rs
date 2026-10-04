@@ -14,6 +14,8 @@ pub fn label(labels: &PhaseLabels, phase: ThinkingPhase, elapsed_s: f32) -> Shar
             let text = thresholds.iter().rev().find(|(at, _)| elapsed_s >= *at).or(thresholds.first()).map_or("", |(_, text)| text);
             SharedString::new_static(text)
         }
+        // A thought with no time to tell (a session read back from history, or under a second) says only that it happened.
+        ThinkingPhase::Thought { seconds: 0 } => "Thought".into(),
         ThinkingPhase::Thought { seconds } => format!("Thought for {seconds}s").into(),
         ThinkingPhase::Connecting => labels.connecting.clone(),
         ThinkingPhase::Sending => labels.sending.clone(),

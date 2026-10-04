@@ -987,3 +987,16 @@ fn backspace_in_an_empty_box_takes_chips_off_from_the_end(cx: &mut TestAppContex
     cx.simulate_keystrokes("backspace");
     assert!(cx.debug_bounds("chip-command").is_none());
 }
+
+/// The owner can say which mode the agent runs in: the picker shows it, a word it does not offer changes nothing, and
+/// nobody is told (a mode the owner set is not one the reader chose).
+#[gpui_kit::test]
+fn the_owner_sets_the_mode_the_picker_shows(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Ask first"));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_mode("Plan", cx)));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_mode("Bypass", cx)));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
+    assert!(heard.borrow().iter().all(|e| !matches!(e, PromptInputEvent::ModeChanged(_))));
+}
