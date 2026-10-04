@@ -75,9 +75,12 @@ impl RenderOnce for PrChip {
         let animate = !cx.reduce_motion() && !delay.is_zero();
         let trigger = pill(&self.id, &self.pr, self.on_open.clone(), &theme, window, cx);
         let hover = child("hover");
+        // Where the pill was last drawn: in the window's top half the card opens below it, else above.
+        let high = window.use_keyed_state(child("high"), cx, |_, _| false);
+        let anchor = if *high.read(cx) { Anchor::TopLeft } else { Anchor::BottomLeft };
         let (id, pr) = (self.id, self.pr);
-        HoverCard::new(hover)
-            .anchor(Anchor::BottomLeft)
+        let card = HoverCard::new(hover)
+            .anchor(anchor)
             .open_delay(delay)
             .close_delay(CLOSE_DELAY)
             .on_open_change(move |open, _, cx| {
@@ -101,7 +104,14 @@ impl RenderOnce for PrChip {
                     body.into_any_element()
                 };
                 div().id(ElementId::NamedChild(Arc::new(id.clone()), "card".into())).child(body)
+            });
+        div()
+            .on_children_prepainted(move |bounds, window, cx| {
+                let Some(pill) = bounds.first() else { return };
+                let is_high = pill.top() < window.viewport_size().height / 2.;
+                high.update(cx, |high, _| *high = is_high);
             })
+            .child(card)
     }
 }
 
