@@ -153,7 +153,7 @@ impl RenderOnce for ChangedFileTree {
                 .when(is_current, |d| d.bg(theme.accent.opacity(0.18)))
                 .when(!is_current && is_cursor, |d| d.bg(theme.muted_hover()))
                 .when(!is_current, |d| d.hover(|s| s.bg(theme.muted_hover())))
-                .when(is_cursor, |d| d.child(crate::focus::row_ring(&theme, theme.background, radius::md())))
+                .when(is_cursor, |d| d.child(crate::focus::row_ring(theme, theme.background, radius::md())))
                 .on_click(move |_, window, cx| {
                     focus.focus(window, cx);
                     state.update(cx, |s, cx| {
