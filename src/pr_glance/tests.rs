@@ -1,4 +1,4 @@
-use super::helpers::{added_squares, age, checks_count, short_path};
+use super::helpers::{added_squares, age, checks_count, short_path, tail_path};
 use crate::pr::{Checks, ChecksSummary};
 use super::*;
 
@@ -19,6 +19,13 @@ fn the_checks_count_as_passed_out_of_all() {
     assert_eq!(count(18, 2, 0), Some(("18/20".into(), ChecksSummary::Failing(2))));
     assert_eq!(count(12, 0, 8), Some(("12/20".into(), ChecksSummary::Running)));
     assert_eq!(count(0, 0, 0), None, "no checks, no section");
+}
+
+#[test]
+fn a_file_shows_by_its_last_two_parts() {
+    assert_eq!(tail_path("crates/relay/src/stream.rs"), "src/stream.rs");
+    assert_eq!(tail_path("src/lib.rs"), "src/lib.rs");
+    assert_eq!(tail_path("Cargo.toml"), "Cargo.toml");
 }
 
 #[test]
@@ -103,7 +110,7 @@ fn one_draw_of_a_full_card(cx: &mut gpui_kit::TestAppContext) {
             base: "main".into(),
             conflicting: false,
             reviewers: vec![PrReviewer { who: "ana".into(), verdict: PrVerdict::Approved }, PrReviewer { who: "core".into(), verdict: PrVerdict::Waiting }],
-            standing: Some(PrStanding { tone: StandingTone::Held, word: "Blocked".into(), detail: "a required check fails".into() }),
+            standing: Some(PrStanding { tone: StandingTone::Held, word: "Blocked".into(), detail: "a check fails".into() }),
         }),
     };
     struct Empty;

@@ -69,6 +69,9 @@ pub(super) const CONFIRM_FOR: Duration = Duration::from_secs(4);
 /// The card's width: fixed, so the card does not jump from one pull request to the next.
 pub(crate) const CARD_WIDTH: f32 = 340.;
 
+/// The column of the names of the card's lines: Checks, Review, Changes, From.
+pub(super) const LABEL_WIDTH: f32 = 52.;
+
 /// The squares of the size bar, as GitHub draws them.
 pub(super) const SIZE_SQUARES: u32 = 5;
 
