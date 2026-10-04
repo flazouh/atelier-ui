@@ -21,7 +21,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::Handler;
+use super::types::{CARD_MAX_WIDTH, Handler};
 use super::helpers::{item_size, tick_scale};
 
 /// One message on the rail: its words, and the start of what came back.
@@ -121,27 +121,27 @@ impl RenderOnce for MessageRail {
                 .when_some(press, |d, press| d.on_click(move |_, window, cx| press(i, window, cx)))
                 .child(div().h(px(1.5)).w(px(16. * scales.get(i).copied().unwrap_or(0.25))).rounded_full().bg(if highlighted { theme.foreground } else { theme.muted_foreground }))
         });
-        // The card: beside the hovered tick, to its left, rising and fading in.
+        // The card: beside the hovered tick, to its left, rising and fading in. It is as big as its words and no more:
+        // a line of label, and the answer's start when there is one. A frame of no height centres it on the tick.
         let card_el = shown.filter(|_| hovered.is_some()).and_then(|i| self.items.get(i).map(|item| (i, item.clone()))).map(|(i, item)| {
-            div()
-                .absolute()
-                .right(px(32.))
-                .top(px(size * i as f32 + size / 2. - 40.))
-                .w(px(256.))
-                .h(px(80.))
-                .opacity(card)
-                .mt(px(4. * (1. - card)))
-                .overflow_hidden()
-                .rounded(radius::xl())
-                .bg(theme.popover)
-                .shadow(crate::theme::popover_shadow(&theme))
-                .p(px(12.))
-                .flex()
-                .flex_col()
-                .gap(px(4.))
-                .debug_selector(|| "rail-card".into())
-                .child(div().truncate().text_size(TextSize::Xs.font_size()).font_weight(gpui_kit::FontWeight::MEDIUM).text_color(theme.foreground).child(item.label))
-                .children(item.description.map(|d| div().line_clamp(2).text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(d)))
+            div().absolute().right(px(32.)).top(px(size * i as f32 + size / 2.)).h_0().flex().items_center().child(
+                div()
+                    .max_w(px(CARD_MAX_WIDTH))
+                    .opacity(card)
+                    .mt(px(4. * (1. - card)))
+                    .overflow_hidden()
+                    .rounded(radius::lg())
+                    .bg(theme.popover)
+                    .shadow(crate::theme::popover_shadow(&theme))
+                    .px(px(10.))
+                    .py(px(7.))
+                    .flex()
+                    .flex_col()
+                    .gap(px(2.))
+                    .debug_selector(|| "rail-card".into())
+                    .child(div().truncate().text_size(TextSize::Xs.font_size()).font_weight(gpui_kit::FontWeight::MEDIUM).text_color(theme.foreground).child(item.label))
+                    .children(item.description.map(|d| div().line_clamp(2).text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(d))),
+            )
         });
         div()
             .absolute()

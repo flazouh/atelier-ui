@@ -15,6 +15,7 @@ use gpui_kit::{
     ParentElement,
     Render,
     SharedString,
+    StatefulInteractiveElement,
     Styled,
     Subscription,
     Window,
@@ -31,10 +32,16 @@ use crate::{
     focus::Field,
     icon::{Icon, IconName},
     icon_candidates,
+    project_badge::{fill, ink_on, palette},
+    tooltip::Tooltip,
     theme::ActiveTheme,
     typography::TextSize,
 };
 use super::types::IconPickerEvent;
+
+/// A swatch's size, and the gap between swatches: twelve in two rows of six would be 6 x 24 + 5 x 8.
+const SWATCH: f32 = 24.;
+const SWATCH_GAP: f32 = 8.;
 
 pub struct IconPicker {
     input: Entity<InputState>,
@@ -43,6 +50,8 @@ pub struct IconPicker {
     /// Where a local project's files are, for the thumbnails.
     pub(super) root: Option<PathBuf>,
     active: usize,
+    /// The colour in force, an index of the palette; none marked until the owner says.
+    pub(super) color: Option<usize>,
     _subscription: Subscription,
 }
 
@@ -66,7 +75,47 @@ impl IconPicker {
             }
         });
         let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-        Self { input, all: icon_candidates::rank(&refs), root, active: 0, _subscription: subscription }
+        Self { input, all: icon_candidates::rank(&refs), root, active: 0, color: None, _subscription: subscription }
+    }
+    /// Marks the colour the badge has now, an index of the palette.
+    pub fn with_color(mut self, color: usize) -> Self {
+        self.color = Some(color);
+        self
+    }
+    pub(super) fn pick_color(&mut self, index: usize, cx: &mut Context<Self>) {
+        self.color = Some(index);
+        cx.emit(IconPickerEvent::Color(index));
+        cx.notify();
+    }
+    /// The swatches: one disc for each colour of the palette, a tick on the one in force.
+    fn swatches(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.theme().clone();
+        let this = cx.entity().downgrade();
+        div()
+            .debug_selector(|| "icon-colors".into())
+            .flex()
+            .flex_wrap()
+            .items_center()
+            .gap(px(SWATCH_GAP))
+            .children(palette().iter().enumerate().map(|(i, swatch)| {
+                let (fill, on) = (fill(i), self.color == Some(i));
+                let pick = this.clone();
+                div()
+                    .id(("icon-color", i))
+                    .debug_selector(move || format!("icon-color-{i}"))
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .size(px(SWATCH))
+                    .rounded_full()
+                    .bg(fill)
+                    .border_2()
+                    .border_color(if on { theme.foreground } else { gpui_kit::transparent_black() })
+                    .cursor_pointer()
+                    .tooltip(Tooltip::text(swatch.name.clone()))
+                    .on_click(move |_, _, cx| drop(pick.update(cx, |picker, cx| picker.pick_color(i, cx))))
+                    .children(on.then(|| Icon::new(IconName::Check).size(px(12.)).color(ink_on(fill))))
+            }))
     }
     fn found(&self, cx: &gpui_kit::App) -> Vec<String> {
         icon_candidates::filter(&self.all, self.input.read(cx).value().as_ref())
@@ -132,6 +181,14 @@ impl Render for IconPicker {
             .gap(px(12.))
             .w_full()
             .child(div().text_size(TextSize::Sm.font_size()).font_weight(FontWeight::MEDIUM).child("Choose an icon"))
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(6.))
+                    .child(div().text_size(TextSize::Xs.font_size()).text_color(muted).child("Colour of the letter"))
+                    .child(self.swatches(cx)),
+            )
             .child(
                 div()
                     .capture_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| this.key(event, cx)))

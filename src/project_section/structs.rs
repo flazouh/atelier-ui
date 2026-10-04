@@ -171,6 +171,7 @@ impl RenderOnce for ProjectSection {
             .h(px(ROW_HEIGHT))
             .px(px(10.))
             .w_full()
+            .overflow_hidden()
             .rounded(radius::md())
             .cursor_pointer()
             .text_size(TextSize::Sm.font_size())
@@ -184,7 +185,7 @@ impl RenderOnce for ProjectSection {
                     .color(muted),
             )
             .child(crate::project_badge::ProjectBadge::new(project.badge.label.clone(), project.badge.color).icon(project.badge.icon.clone()))
-            .child(div().flex_none().max_w(px(160.)).truncate().font_weight(FontWeight::MEDIUM).child(project.name))
+            .child(div().min_w_0().max_w(px(160.)).truncate().font_weight(FontWeight::MEDIUM).child(project.name))
             .when_some(host, |d, host| d.child(chip(host, &theme)))
             .child(div().flex_1())
             .when_some(words, |d, words| {
@@ -222,6 +223,7 @@ impl RenderOnce for ProjectSection {
             .when_some(self.on_new, |d, new| {
                 d.child(
                     Button::new((id.clone(), "new"))
+                        .debug_name("project-new-session")
                         .icon(IconName::Add)
                         .variant(ButtonVariant::Ghost)
                         .size(ButtonSize::IconSm)
@@ -235,6 +237,7 @@ impl RenderOnce for ProjectSection {
             .when_some(self.on_menu, |d, open| {
                 d.child(
                     Button::new((id.clone(), "menu"))
+                        .debug_name("project-more")
                         .icon(IconName::MoreHoriz)
                         .variant(ButtonVariant::Ghost)
                         .size(ButtonSize::IconSm)
