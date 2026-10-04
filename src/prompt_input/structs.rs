@@ -19,7 +19,7 @@ use gpui_kit::{
     Styled,
     Subscription,
     Window,
-    component::input::{InputEvent, MoveDown, MoveUp, Position, Textarea, TextareaState},
+    component::input::{Backspace, InputEvent, MoveDown, MoveUp, Position, Textarea, TextareaState},
     div,
     prelude::FluentBuilder,
 };
@@ -45,7 +45,7 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{LiveWords, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
+use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
 use super::helpers::{append_transcript, live_text};
 
 /// One choice in the model picker.
@@ -175,10 +175,14 @@ pub struct PromptInput {
     /// What `/` offers, and `@` ([`crate::command_item`]).
     pub(super) commands: Vec<CommandItem>,
     pub(super) files: Vec<SharedString>,
-    /// The files picked from the `@` list, as chips over the text; a message sends each as `@path`.
-    pub(super) attached: Vec<SharedString>,
+    /// The chips over the text: the files picked from the `@` list, and whatever the owner adds.
+    pub(super) chips: Vec<Chip>,
     /// A skill picked from the list runs at once instead of waiting in the box.
     run_picked_skills: bool,
+    /// A command picked from the `/` list that waits for its words, shown as a chip in front: the next message runs it.
+    command: Option<SharedString>,
+    /// Whether a paste or a drop is handed to the owner ([`PromptInputEvent::Paste`]) instead of going into the text.
+    paste_chips: bool,
     picking: Option<Picking>,
 
     /// The box, as last drawn: the list opens from it.
@@ -259,8 +263,10 @@ impl PromptInput {
             queued: Vec::new(),
             commands: Vec::new(),
             files: Vec::new(),
-            attached: Vec::new(),
+            chips: Vec::new(),
             run_picked_skills: false,
+            paste_chips: false,
+            command: None,
             picking: None,
             frame: None,
             _subscription: subscription,
@@ -354,7 +360,7 @@ impl PromptInput {
 
     /// Whether the button stops the turn: it runs, and there is nothing to send into it.
     pub(super) fn stops(&self, cx: &App) -> bool {
-        self.running && self.text(cx).trim().is_empty() && self.attached.is_empty()
+        self.running && self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none()
     }
 
     fn retarget_send(&mut self, cx: &mut Context<Self>) {
@@ -622,14 +628,73 @@ impl PromptInput {
         self.run_picked_skills = run;
     }
 
+    /// Whether what is pasted or dropped goes to the owner ([`PromptInputEvent::Paste`]) rather than into the text:
+    /// text, images and files alike. Off by default, when text pastes into the box and the rest is ignored.
+    pub fn set_paste_chips(&mut self, on: bool) {
+        self.paste_chips = on;
+    }
+
+    /// A paste, when the owner takes them: images before files before text, as the clipboard offers the most specific thing
+    /// first. True when it was taken.
+    fn pasted(&mut self, item: &gpui_kit::ClipboardItem, cx: &mut Context<Self>) -> bool {
+        if !self.paste_chips || self.disabled {
+            return false;
+        }
+        use gpui_kit::ClipboardEntry;
+        let entries = item.entries();
+        let found = entries
+            .iter()
+            .find_map(|e| if let ClipboardEntry::Image(image) = e { Some(Pasted::Image(std::sync::Arc::new(image.clone()))) } else { None })
+            .or_else(|| entries.iter().find_map(|e| if let ClipboardEntry::ExternalPaths(paths) = e { Some(Pasted::Files(paths.paths().to_vec())) } else { None }))
+            .or_else(|| item.text().filter(|t| !t.is_empty()).map(|t| Pasted::Text(t.into())));
+        match found {
+            Some(pasted) => {
+                cx.emit(PromptInputEvent::Paste(pasted));
+                true
+            }
+            None => false,
+        }
+    }
+
     /// What `/` offers now.
     pub fn commands(&self) -> &[CommandItem] {
         &self.commands
     }
 
-    /// The files on the next message, as their chips show them.
-    pub fn attached(&self) -> &[SharedString] {
-        &self.attached
+    /// The chips on the next message.
+    pub fn chips(&self) -> &[Chip] {
+        &self.chips
+    }
+
+    /// Puts a chip over the text. One with the id of a chip already there is not added again.
+    pub fn add_chip(&mut self, chip: Chip, cx: &mut Context<Self>) {
+        if self.chips.iter().all(|c| c.id != chip.id) {
+            self.chips.push(chip);
+            cx.notify();
+        }
+    }
+
+    /// Backspace in an empty box: the last chip comes off, or else the command in front. False when there is nothing to take
+    /// or the box has words (the key is then the text's own).
+    fn take_last_chip(&mut self, cx: &mut Context<Self>) -> bool {
+        let t = self.text.read(cx);
+        if !t.value().is_empty() {
+            return false;
+        }
+        if self.chips.pop().is_some() || self.command.take().is_some() {
+            cx.notify();
+            return true;
+        }
+        false
+    }
+
+    /// Takes the chip with this id off.
+    pub fn remove_chip(&mut self, id: &str, cx: &mut Context<Self>) {
+        let before = self.chips.len();
+        self.chips.retain(|c| c.id != id);
+        if self.chips.len() != before {
+            cx.notify();
+        }
     }
 
     /// What `@` offers now.
@@ -695,9 +760,9 @@ impl PromptInput {
                 let command = self.commands[index].clone();
                 let waits = command.source == CommandSource::Skill && !self.run_picked_skills;
                 if command.args_hint.is_some() || waits {
-                    let written = format!("/{} ", command.name);
-
-                    self.write(&written, written.len(), window, cx);
+                    // It waits as a chip in front of the words, not as text in them.
+                    self.write("", 0, window, cx);
+                    self.command = Some(command.name);
                 } else {
                     self.text.update(cx, |t, cx| t.set_value("", window, cx));
                     cx.emit(PromptInputEvent::Command { name: command.name, args: SharedString::default() });
@@ -711,9 +776,7 @@ impl PromptInput {
                 let written = format!("{}{}", &text[..start], &text[cursor..]);
                 self.write(&written, start, window, cx);
                 let path = self.files[index].clone();
-                if !self.attached.contains(&path) {
-                    self.attached.push(path);
-                }
+                self.add_chip(Chip::file(path), cx);
             }
         }
         cx.notify();
@@ -732,10 +795,10 @@ impl PromptInput {
         }
         let text = self.text(cx);
         let text = text.trim();
-        if (text.is_empty() && self.attached.is_empty()) || self.disabled || self.dictating() {
+        if (text.is_empty() && self.chips.is_empty() && self.command.is_none()) || self.disabled || self.dictating() {
             return;
         }
-        let mentions = self.attached.iter().map(|path| format!("@{path}")).collect::<Vec<_>>().join(" ");
+        let mentions = self.chips.iter().filter_map(|c| c.mention.as_deref()).collect::<Vec<_>>().join(" ");
         let with = |words: &str| -> SharedString {
             match (mentions.is_empty(), words.is_empty()) {
                 (true, _) => words.to_string().into(),
@@ -743,6 +806,11 @@ impl PromptInput {
                 (false, false) => format!("{mentions} {words}").into(),
             }
         };
+        if let Some(name) = self.command.clone() {
+            let args = with(text);
+            self.clear(window, cx);
+            return cx.emit(PromptInputEvent::Command { name, args });
+        }
         if let Some(rest) = text.strip_prefix('/') {
             let (name, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
             if self.commands.iter().any(|c| c.name == name) {
@@ -751,7 +819,7 @@ impl PromptInput {
                 return cx.emit(PromptInputEvent::Command { name, args });
             }
         }
-        let message = with(text);
+        let message = Message { text: with(text), chips: self.chips.clone() };
         self.clear(window, cx);
         self.retarget_send(cx);
         cx.emit(match sending {
@@ -763,23 +831,38 @@ impl PromptInput {
     /// Empties the text and takes the chips off.
     fn clear(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.text.update(cx, |t, cx| t.set_value("", window, cx));
-        self.attached.clear();
+        self.chips.clear();
+        self.command = None;
     }
 
-    /// The picked files over the text, each with its icon, its name and a button that takes it off.
-    fn chips(&self, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
-        if self.attached.is_empty() {
+    /// The chips over the text, each with its picture, its label and a button that takes it off.
+    fn chip_row(&self, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
+        if self.chips.is_empty() && self.command.is_none() {
             return None;
         }
         let theme = cx.theme().clone();
         let this = cx.entity().downgrade();
-        Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(self.attached.iter().map(|path| {
-            let name = path.rsplit(['/', '\\']).next().unwrap_or(path).to_string();
-            let (chip_path, remove_path, gone) = (path.clone(), path.clone(), path.clone());
+        // The command goes first: it is the beginning of the message.
+        let command = self.command.as_ref().map(|name| {
+            let mut chip = Chip::new("command", format!("/{name}")).look(ChipLook::Icon(IconName::Command));
+            chip.mention = None;
+            (chip, true)
+        });
+        let all = command.into_iter().chain(self.chips.iter().cloned().map(|c| (c, false))).collect::<Vec<_>>();
+        Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(all.into_iter().map(|(chip, is_command)| {
+            let (id, remove_id, gone) = (chip.id.clone(), chip.id.clone(), chip.id.clone());
             let owner = this.clone();
+            let picture = match &chip.look {
+                ChipLook::None => None,
+                ChipLook::Icon(name) => Some(Icon::new(*name).size(px(12.)).color(theme.muted_foreground).into_any_element()),
+                ChipLook::File(path) => Some(crate::file_icon::FileIcon::file(path).size(px(12.)).into_any_element()),
+                ChipLook::Image(image) => Some(
+                    <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(image.clone()), gpui_kit::ObjectFit::Cover).flex_none().size(px(16.)).rounded(px(3.)).into_any_element(),
+                ),
+            };
             div()
-                .id(SharedString::from(format!("file-chip-{path}")))
-                .debug_selector(move || format!("file-chip-{chip_path}"))
+                .id(SharedString::from(format!("chip-{id}")))
+                .debug_selector(move || format!("chip-{id}"))
                 .flex()
                 .items_center()
                 .gap(px(4.))
@@ -791,13 +874,16 @@ impl PromptInput {
                 .hover(|d| d.bg(theme.chip_hover))
                 .text_size(TextSize::Xs.font_size())
                 .text_color(theme.foreground)
-                .tooltip(crate::tooltip::Tooltip::text(path.clone()))
-                .child(crate::file_icon::FileIcon::file(path).size(px(12.)))
-                .child(name)
+                .tooltip(crate::tooltip::Tooltip::text(chip.detail.clone().unwrap_or_else(|| chip.label.clone())))
+                .children(picture)
+                .child(chip.label.clone())
                 .child(
                     div()
-                        .id(SharedString::from(format!("file-chip-remove-{path}")))
-                        .debug_selector(move || format!("file-chip-remove-{remove_path}"))
+                        .id(SharedString::from(format!("chip-remove-{remove_id}")))
+                        .debug_selector({
+                            let remove_id = remove_id.clone();
+                            move || format!("chip-remove-{remove_id}")
+                        })
                         .flex()
                         .items_center()
                         .justify_center()
@@ -811,8 +897,12 @@ impl PromptInput {
                             cx.stop_propagation();
                             owner
                                 .update(cx, |p, cx| {
-                                    p.attached.retain(|f| *f != gone);
-                                    cx.notify();
+                                    if is_command {
+                                        p.command = None;
+                                        cx.notify();
+                                    } else {
+                                        p.remove_chip(&gone, cx);
+                                    }
                                 })
                                 .ok();
                         }),
@@ -919,7 +1009,7 @@ impl Render for PromptInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
-        let empty = self.text(cx).trim().is_empty() && self.attached.is_empty();
+        let empty = self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none();
         let can_submit = !empty && !disabled && !self.dictating();
         let stops = self.stops(cx);
 
@@ -1414,9 +1504,10 @@ impl Render for PromptInput {
         let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).child(send);
 
         let this = cx.entity().downgrade();
+        let (pasting, dropping, backing) = (this.clone(), this.clone(), this.clone());
         let text = self.text.clone();
         let overlay = self.live_overlay(window, cx);
-        let chips = self.chips(cx);
+        let chips = self.chip_row(cx);
         let queued = self.queued_rows(cx);
         let picker = self.picker(cx);
 
@@ -1439,6 +1530,12 @@ impl Render for PromptInput {
                 .ok();
             })
             // The text binds Up and Down to its caret as actions, which a key listener never sees first.
+            // Backspace in an empty box takes off the last chip, then the command in front: the text binds it as an action too.
+            .capture_action(move |_: &Backspace, _, cx| {
+                if backing.update(cx, |p, cx| p.take_last_chip(cx)).unwrap_or(false) {
+                    cx.stop_propagation();
+                }
+            })
             .capture_action(move |_: &MoveDown, _, cx| {
                 if down.update(cx, |p, cx| p.step_pick(1, cx)).unwrap_or(false) {
                     cx.stop_propagation();
@@ -1462,6 +1559,16 @@ impl Render for PromptInput {
                     .ok();
             }))
             .children(picker)
+            // Files dropped on the box go to the owner like a paste, when it takes them.
+            .on_drop(move |paths: &gpui_kit::ExternalPaths, _, cx| {
+                dropping
+                    .update(cx, |p, cx| {
+                        if p.paste_chips && !p.disabled {
+                            cx.emit(PromptInputEvent::Paste(Pasted::Files(paths.paths().to_vec())));
+                        }
+                    })
+                    .ok();
+            })
             // A press anywhere in the box writes in it. A picker's own click comes after, and takes the
             // focus it needs.
             .on_mouse_down(gpui_kit::MouseButton::Left, move |_, window, cx| text.update(cx, |t, cx| t.focus(window, cx)))
@@ -1499,6 +1606,7 @@ impl Render for PromptInput {
                         .child(
                             div().when(overlay.is_some(), |d| d.opacity(0.)).child(
                                 Textarea::new(&self.text)
+                                    .on_paste(move |item, _, cx| pasting.update(cx, |p, cx| p.pasted(item, cx)).unwrap_or(false))
                                     .appearance(false)
                                     .disabled(disabled)
                                     .px(px(4.))
