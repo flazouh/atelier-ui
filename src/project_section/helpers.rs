@@ -21,7 +21,7 @@ pub fn unavailable(choice: MenuChoice, pulls: Option<&str>) -> Option<&str> {
 
 pub(super) fn chip(text: SharedString, theme: &crate::theme::Theme) -> impl IntoElement {
     div()
-        .flex_none()
+        .min_w_0()
         .px(px(6.))
         .h(px(18.))
         .flex()
@@ -31,5 +31,5 @@ pub(super) fn chip(text: SharedString, theme: &crate::theme::Theme) -> impl Into
         .font_family(MONO_FONT_FAMILY)
         .text_size(px(10.))
         .text_color(theme.muted_foreground)
-        .child(text)
+        .child(div().min_w_0().truncate().child(text))
 }
