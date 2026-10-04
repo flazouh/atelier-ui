@@ -2,11 +2,11 @@
 //! conventional-commit head cut to fit, and `+120 −34` once the forge said. Pressing it reports it.
 //!
 //! Hovering opens a card by it after 120 ms, and at once while another card is open or has just closed, so
-//! the pointer can go from chip to chip. The card is a fixed 340px: `owner/repo #N` and the state, the whole
-//! title, the author, the age and the comments, the checks, the review and the size bar, then Open, Copy link
-//! and Open in browser. It is the app's one popover look, Select's menu: a `card` fill, no border, and
-//! [`popover_shadow`](crate::theme::popover_shadow). Only the first card fades and rises 2px in, on
-//! `duration::REVEAL`; one that takes over from another swaps in place.
+//! the pointer can go from chip to chip. The card is a [`PrGlanceCard`](crate::pr_glance::PrGlanceCard), one
+//! view per chip: it opens below a pill in the window's top half and above one lower down. It is the app's one
+//! popover look, Select's menu: a `card` fill, no border, and [`popover_shadow`](crate::theme::popover_shadow).
+//! Only the first card fades and rises 2px in, on `duration::REVEAL`; one that takes over from another swaps
+//! in place. Each open and close goes to [`PrCardStore::on_open`](crate::pr_glance::PrCardStore::on_open).
 //!
 //! [`crate::agent_text::AgentText`] makes chips from agent text: [`link_prs`] rewrites each `#N` the app
 //! knows into a link to `atelier-pr:N`, and [`PrChips`], a Markdown plugin, draws those links as chips.
