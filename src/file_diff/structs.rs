@@ -304,6 +304,7 @@ impl RenderOnce for FileDiff {
         // The widest row sets the list's width, so long lines scroll sideways.
         let widest = lines.iter().enumerate().max_by_key(|(_, l)| l.text.len()).map(|(i, _)| i);
         let row_theme = theme.clone();
+        let faint = theme.faint();
         let make_row = move |i: usize| {
             let runs = row_sides[i].zip(side_runs.as_ref()).and_then(|((side, at), (old, new))| {
                 let lines = match side {
@@ -312,7 +313,7 @@ impl RenderOnce for FileDiff {
                 }?;
                 lines.get(at).cloned()
             });
-            diff_row(&lines[i], runs, &row_theme)
+            diff_row(&lines[i], runs, &row_theme, faint)
         };
         let viewport = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
         let rows = match clip {

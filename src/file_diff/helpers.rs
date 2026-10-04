@@ -51,7 +51,8 @@ pub(super) fn follow_status(motion: &Entity<DiffMotion>, status: FileDiffStatus,
 }
 
 /// One row: the two line numbers, the sign, and the text with its colours, [`ROW_HEIGHT`] tall.
-pub(super) fn diff_row(line: &DiffLine, runs: Option<LineRuns>, theme: &Theme) -> AnyElement {
+/// `faint` is `theme.faint()`, which searches for a colour: the caller works it out once for all the rows.
+pub(super) fn diff_row(line: &DiffLine, runs: Option<LineRuns>, theme: &Theme, faint: gpui_kit::Hsla) -> AnyElement {
     let muted = theme.muted_foreground;
     let num_col = |n: Option<u32>| {
         div()
@@ -60,7 +61,7 @@ pub(super) fn diff_row(line: &DiffLine, runs: Option<LineRuns>, theme: &Theme) -
             .pr(px(8.))
             .flex()
             .justify_end()
-            .text_color(theme.faint())
+            .text_color(faint)
             .children(n.map(|n| n.to_string()))
     };
     let (bg, sign, sign_color) = match line.kind {
@@ -70,7 +71,7 @@ pub(super) fn diff_row(line: &DiffLine, runs: Option<LineRuns>, theme: &Theme) -
             "\u{2212}",
             theme.diff_color(false),
         ),
-        DiffLineKind::Context | DiffLineKind::Hunk => (None, "", theme.faint()),
+        DiffLineKind::Context | DiffLineKind::Hunk => (None, "", faint),
     };
     let hunk = line.kind == DiffLineKind::Hunk;
     let text = line.text.clone();
