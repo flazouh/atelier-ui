@@ -602,3 +602,18 @@ fn the_header_inset_eases_from_the_trigger_to_the_options() {
     assert_eq!(header_inset(12., 0.5), 13.);
     assert_eq!(header_inset(12., 2.), 14., "the overshoot does not push it past");
 }
+
+#[test]
+fn a_select_rounds_every_corner_until_it_is_told_to_join_a_row() {
+    let all = Select::new("s", ["a"]).corners;
+    assert!(all.top_left && all.top_right && all.bottom_left && all.bottom_right);
+    let corners = crate::button_group::segment_corners(0, 2, gpui_kit::Axis::Horizontal);
+    let first = Select::new("s", ["a"]).corners(corners).corners;
+    assert!(first.top_left && first.bottom_left && !first.top_right && !first.bottom_right);
+}
+
+#[test]
+fn a_select_has_no_fill_of_its_own_until_given_one() {
+    assert!(Select::new("s", ["a"]).fill.is_none());
+    assert!(Select::new("s", ["a"]).fill(gpui_kit::hsla(0., 0., 0.5, 1.)).fill.is_some());
+}

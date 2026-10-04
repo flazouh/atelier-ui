@@ -191,6 +191,7 @@ impl RenderOnce for FileDiff {
             window.request_animation_frame();
         }
         let (reveal, chevron, copied) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied());
+        let height = m.disclosure.height.clone();
         let (expanded, scroll) = (m.expanded, self.scroll.clone().unwrap_or_else(|| m.scroll.clone()));
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
@@ -333,7 +334,9 @@ impl RenderOnce for FileDiff {
                 .with_sizing_behavior(ListSizingBehavior::Infer)
                 .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
                 .with_width_from_item(widest)
-                .max_h(px(viewport))
+                // A height, not a cap: in a column the list is measured at its content's height, which `max_h` does
+                // not bound, and every row would be laid out.
+                .h(px(viewport.min(total as f32 * ROW_HEIGHT)))
                 .font_family(MONO_FONT_FAMILY)
                 .text_size(TextSize::Xs.font_size())
                 .line_height(px(ROW_HEIGHT))
@@ -410,7 +413,7 @@ impl RenderOnce for FileDiff {
             .line_height(TextSize::Sm.line_height())
             .child(header)
             .when_some((reveal > 0.001).then_some(card), |d, card| {
-                d.child(div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(card))
+                d.child(crate::reveal::body(card, reveal, &height))
             })
     }
 }

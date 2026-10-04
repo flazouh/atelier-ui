@@ -63,6 +63,8 @@ pub struct Theme {
     pub chip_arrow: Hsla,
     /// The status marks by presence: running, done, failed, pending, cancelled.
     pub status: [Hsla; 5],
+    /// A pull request's state marks in GitHub's own colours, whatever the theme: open, draft, merged, closed.
+    pub pull: [Hsla; 4],
     /// The code's colours, by syntax name.
     pub syntax: Arc<HighlightTheme>,
 }

@@ -69,3 +69,12 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
     crate::theme::raise_marks(&mut theme);
     Ok((theme, derived))
 }
+
+/// GitHub's (Primer's) open, draft, done and closed colours, so a pull request reads as it does there.
+pub(crate) fn github_pull(appearance: Appearance) -> [Hsla; 4] {
+    let hex = match appearance {
+        Appearance::Light => [0x1A7F37, 0x59636E, 0x8250DF, 0xCF222E],
+        Appearance::Dark => [0x3FB950, 0x9198A1, 0xA371F7, 0xF85149],
+    };
+    hex.map(|c| gpui_kit::rgb(c).into())
+}

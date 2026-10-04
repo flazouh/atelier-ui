@@ -159,6 +159,7 @@ impl RenderOnce for AgentText {
             window.request_animation_frame();
         }
         let (reveal, chevron, sources_reveal) = (m.reveal.value(), m.sources.chevron.value(), m.sources.reveal.value());
+        let sources_height = m.sources.height.clone();
 
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
@@ -250,11 +251,7 @@ impl RenderOnce for AgentText {
         }
 
         let sources_panel = (has_sources && sources_reveal > 0.001).then(|| {
-            div()
-                .relative()
-                .top(px(-4. * (1. - sources_reveal)))
-                .opacity(sources_reveal)
-                .mt(px(8.))
+            let panel = div()
                 .flex()
                 .flex_col()
                 .gap(px(6.))
@@ -278,7 +275,8 @@ impl RenderOnce for AgentText {
                                 .text_color(muted)
                                 .child(source.domain),
                         )
-                }))
+                }));
+            crate::reveal::body(div().pt(px(8.)).child(panel), sources_reveal, &sources_height)
         });
 
         let actions = (reveal > 0.001).then(|| {

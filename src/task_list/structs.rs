@@ -595,7 +595,7 @@ impl Render for TaskList {
                             .debug_selector(|| "tasks-empty-title".into())
                             .text_size(TextSize::Sm.font_size())
                             .line_height(TextSize::Sm.line_height())
-                            .child("No tasks match"),
+                            .child("No issues match"),
                     )
                     .child(
                         div()
@@ -603,7 +603,7 @@ impl Render for TaskList {
                             .text_size(TextSize::Xs.font_size())
                             .line_height(TextSize::Xs.line_height())
                             .text_color(theme.muted_foreground)
-                            .child("Change a filter, or add one with New task."),
+                            .child("Change a filter, or add one with New issue."),
                     )
                     .into_any_element()
             } else {

@@ -17,7 +17,7 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{
-    Choice, Choose, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
+    Choice, Choose, Ends, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
 };
 use super::helpers::{
     collapsed, fill_opacity, jump, lead_slot, panel_shadow, panel_size, pill_fill, unfolded, walk,
@@ -56,6 +56,7 @@ pub struct MenuItem {
     label: SharedString,
     description: Option<SharedString>,
     pub(super) icon: Option<IconName>,
+    ends: Option<Box<Ends>>,
     pub(super) shortcut: Option<SharedString>,
     cap: Option<SharedString>,
     pub(super) choice: Option<Choice>,
@@ -75,6 +76,7 @@ impl MenuItem {
             label: label.into(),
             description: None,
             icon: None,
+            ends: None,
             shortcut: None,
             cap: None,
             choice: None,
@@ -109,6 +111,19 @@ impl MenuItem {
 
     pub fn icon(mut self, icon: IconName) -> Self {
         self.icon = Some(icon);
+        self
+    }
+
+    /// A small element in the icon's place, drawn each time the menu draws: a project's badge.
+    pub fn lead_element(mut self, lead: impl Fn(&App) -> gpui_kit::AnyElement + 'static) -> Self {
+        self.ends.get_or_insert_default().lead = Some(Rc::new(lead));
+        self
+    }
+
+    /// A small element at the end of the row, drawn each time the menu draws: a project's host or how many
+    /// of its sessions wait, on the row's one line.
+    pub fn trailing(mut self, trailing: impl Fn(&App) -> gpui_kit::AnyElement + 'static) -> Self {
+        self.ends.get_or_insert_default().trailing = Some(Rc::new(trailing));
         self
     }
 
@@ -488,7 +503,7 @@ impl RenderOnce for Menu {
                     }));
                     let mark = item.choice.and_then(|c| match c {
                         Choice::Selected(_) | Choice::Switch(_) => None,
-                        Choice::Check(on) => Some(
+                        Choice::Check(on) | Choice::Radio(on) => Some(
                             div()
                                 .size(px(SLOT))
                                 .flex_none()
@@ -496,11 +511,6 @@ impl RenderOnce for Menu {
                                 .items_center()
                                 .justify_center()
                                 .when(on, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))),
-                        ),
-                        Choice::Radio(on) => Some(
-                            div().size(px(SLOT)).flex_none().flex().items_center().justify_center().when(on, |d| {
-                                d.child(div().size(px(6.)).rounded_full().bg(ink))
-                            }),
                         ),
                     });
                     div()
@@ -532,6 +542,9 @@ impl RenderOnce for Menu {
                         .child(measure(report))
                         .children(mark)
                         .when_some(item.lead, |d, lead| d.child(lead_slot(&item.label, lead, &theme)))
+                        .when_some(item.ends.as_ref().and_then(|e| e.lead.as_ref()).map(|lead| lead(cx)), |d, lead| {
+                            d.child(div().flex_none().mt(px(1.)).flex().items_center().justify_center().child(lead))
+                        })
                         .when_some(item.icon, |d, icon| {
                             let name = format!("menu-icon-{}", item.label);
                             d.child(
@@ -554,6 +567,7 @@ impl RenderOnce for Menu {
                             }),
                         )
                         .children(tail)
+                        .children(item.ends.and_then(|e| e.trailing).map(|trailing| div().flex_none().ml_auto().pl(px(16.)).flex().items_center().h(px(LINE)).child(trailing(cx))))
                         .children(item.shortcut.map(|keys| {
                             div()
                                 .flex_none()

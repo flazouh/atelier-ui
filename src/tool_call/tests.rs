@@ -183,3 +183,62 @@ mod clipped {
         assert_eq!(height(cx), clipped);
     }
 }
+
+mod motion {
+    use std::time::Duration;
+
+    use gpui_kit::{Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, point, px, size};
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host;
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let log = (0..6).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            div()
+                .w(px(600.))
+                .flex()
+                .flex_col()
+                .child(ToolCall::new("call", "Ran tests").status(ToolStatus::Done).output(log).default_open(true).collapse_on_complete(false))
+                .child(div().debug_selector(|| "below".into()).h(px(10.)))
+        }
+    }
+
+    /// Where the row under the call sits, frame by frame, while the call opens or closes.
+    fn below_over_time(cx: &mut gpui_kit::VisualTestContext, host: &gpui_kit::Entity<Host>) -> Vec<f32> {
+        (0..30)
+            .map(|_| {
+                crate::motion::clock::advance(Duration::from_millis(16));
+                host.update(cx, |_, cx| cx.notify());
+                cx.run_until_parked();
+                f32::from(cx.debug_bounds("below").unwrap().top())
+            })
+            .collect()
+    }
+
+    #[gpui_kit::test]
+    fn what_is_under_a_call_glides_as_it_closes_and_opens(cx: &mut TestAppContext) {
+        crate::motion::clock::freeze();
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+        });
+        let (host, cx) = cx.add_window_view(|_, _| Host);
+        cx.simulate_resize(size(px(700.), px(900.)));
+        let open_at = below_over_time(cx, &host).last().copied().unwrap();
+        cx.simulate_click(point(px(300.), px(10.)), Modifiers::none());
+        let closing = below_over_time(cx, &host);
+        let closed_at = *closing.last().unwrap();
+        assert!(closed_at < open_at - 50., "it closed: {open_at} to {closed_at}");
+        let between = |path: &[f32], from: f32, to: f32| path.iter().filter(|y| **y < from.max(to) - 1. && **y > from.min(to) + 1.).count();
+        assert!(between(&closing, open_at, closed_at) >= 4, "the row under it moves through the close, not at its end: {closing:?}");
+        assert!(closing.windows(2).all(|w| w[1] <= w[0] + 0.5), "and only up: {closing:?}");
+        cx.simulate_click(point(px(300.), px(10.)), Modifiers::none());
+        let opening = below_over_time(cx, &host);
+        assert!((opening.last().unwrap() - open_at).abs() < 0.5, "it opened back to where it was: {opening:?}");
+        assert!(between(&opening, closed_at, open_at) >= 4, "the row under it moves through the open, not at its start: {opening:?}");
+        assert!(opening.windows(2).all(|w| w[1] >= w[0] - 0.5), "and only down: {opening:?}");
+    }
+}

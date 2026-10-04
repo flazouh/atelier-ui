@@ -26,6 +26,8 @@ pub struct RailView {
     pub label: SharedString,
     /// The debug selector of its button, for a test to find.
     pub debug: &'static str,
+    /// What waits on the reader in this view, as a count on the icon; none at 0.
+    pub count: usize,
 }
 
 /// How an icon of the rail draws.
@@ -48,6 +50,7 @@ pub fn mark(index: usize, selected: usize, open: bool) -> Mark {
 }
 
 type OnSelect = Rc<dyn Fn(usize, &mut Window, &mut App)>;
+type OnClick = Rc<dyn Fn(&mut Window, &mut App)>;
 
 #[derive(IntoElement)]
 pub struct ViewRail {
@@ -107,8 +110,84 @@ impl RenderOnce for ViewRail {
                     .tooltip(crate::tooltip::Tooltip::text(view.label.clone()))
                     .when_some(on_select, |d, select| d.on_click(move |_, window, cx| select(i, window, cx)))
                     .child(Icon::new(view.icon).size(px(18.)).color(color))
+                    .when(view.count > 0, |d| d.child(count_badge(view.count, &theme)))
             }))
     }
+}
+
+/// The count over an icon's top right corner, in the colour of a session that needs the reader.
+fn count_badge(count: usize, theme: &crate::Theme) -> impl IntoElement {
+    div()
+        .debug_selector(|| "view-rail-count".into())
+        .absolute()
+        .top(px(-2.))
+        .right(px(-2.))
+        .min_w(px(14.))
+        .h(px(14.))
+        .px(px(3.))
+        .flex()
+        .items_center()
+        .justify_center()
+        .rounded_full()
+        .bg(theme.warning)
+        .text_color(theme.background)
+        .text_size(px(9.))
+        .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+        .child(count_words(count))
+}
+
+/// A button in the rail's format, for a control that sits with the rail but is no view: the sidebar's toggle.
+/// It is a rail icon at rest: the same square, icon and hover wash.
+#[derive(IntoElement)]
+pub struct RailButton {
+    id: ElementId,
+    icon: IconName,
+    tooltip: SharedString,
+    debug: &'static str,
+    on_click: Option<OnClick>,
+}
+
+impl RailButton {
+    pub fn new(id: impl Into<ElementId>, icon: IconName, tooltip: impl Into<SharedString>) -> Self {
+        Self { id: id.into(), icon, tooltip: tooltip.into(), debug: "rail-button", on_click: None }
+    }
+
+    /// The name tests and the control socket find it by.
+    pub fn debug_name(mut self, name: &'static str) -> Self {
+        self.debug = name;
+        self
+    }
+
+    pub fn on_click(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
+        self.on_click = Some(Rc::new(handler));
+        self
+    }
+}
+
+impl RenderOnce for RailButton {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+        let theme = cx.theme();
+        let debug = self.debug;
+        div()
+            .id(self.id)
+            .debug_selector(move || debug.into())
+            .flex()
+            .flex_none()
+            .items_center()
+            .justify_center()
+            .size(px(BUTTON))
+            .rounded(radius::md())
+            .cursor_pointer()
+            .hover(|s| s.bg(theme.muted_hover()))
+            .tooltip(crate::tooltip::Tooltip::text(self.tooltip))
+            .when_some(self.on_click, |d, click| d.on_click(move |_, window, cx| click(window, cx)))
+            .child(Icon::new(self.icon).size(px(18.)).color(theme.muted_foreground))
+    }
+}
+
+/// A count as the badge writes it: past 9 it says "9+".
+pub fn count_words(count: usize) -> SharedString {
+    if count > 9 { "9+".into() } else { count.to_string().into() }
 }
 
 #[cfg(test)]
