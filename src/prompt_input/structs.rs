@@ -693,6 +693,15 @@ impl PromptInput {
         false
     }
 
+    /// Puts `chip` where the chip with its id is, or at the end if there is none.
+    pub fn replace_chip(&mut self, chip: Chip, cx: &mut Context<Self>) {
+        match self.chips.iter_mut().find(|c| c.id == chip.id) {
+            Some(held) => *held = chip,
+            None => self.chips.push(chip),
+        }
+        cx.notify();
+    }
+
     /// Takes the chip with this id off.
     pub fn remove_chip(&mut self, id: &str, cx: &mut Context<Self>) {
         let before = self.chips.len();

@@ -200,6 +200,20 @@ fn a_chip_comes_off_and_a_file_is_one_chip(cx: &mut TestAppContext) {
     assert_eq!(sent(&heard), ["@README.md go"]);
 }
 
+/// A chip replaced stays where it was; one that was not there goes last.
+#[gpui_kit::test]
+fn a_replaced_chip_keeps_its_place(cx: &mut TestAppContext) {
+    let (prompt, _heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("a", "A"), cx);
+        p.add_chip(Chip::new("b", "B"), cx);
+        p.replace_chip(Chip::new("a", "A again"), cx);
+        p.replace_chip(Chip::new("c", "C"), cx);
+    });
+    let labels: Vec<String> = prompt.read_with(cx, |p, _| p.chips().iter().map(|c| c.label.to_string()).collect());
+    assert_eq!(labels, ["A again", "B", "C"]);
+}
+
 /// A press on a chip reports it by its id; the ✕ takes the chip off and reports nothing.
 #[gpui_kit::test]
 fn a_chip_press_is_reported_and_its_cross_is_not(cx: &mut TestAppContext) {
