@@ -649,6 +649,52 @@ fn the_context_meter_shows_once_told(cx: &mut TestAppContext) {
     assert!(meter.origin.x > frame.center().x, "it sits on the right, by Send");
 }
 
+/// A press on the ring opens the panel with the parts the owner told; the cross closes it, and the ring opens it again.
+#[gpui_kit::test]
+fn a_press_on_the_ring_opens_the_usage_panel_and_the_cross_closes_it(cx: &mut TestAppContext) {
+    use crate::context_usage::ContextPart;
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let mut made = None;
+    let (_root, cx) = cx.add_window_view(|window, cx| {
+        let prompt = cx.new(|cx| PromptInput::new("Ask", "", window, cx));
+        made = Some(prompt.clone());
+        Foot(prompt)
+    });
+    let prompt = made.unwrap();
+    cx.update(|_, cx| {
+        prompt.update(cx, |p, cx| {
+            p.set_context(106_300, 300_000, cx);
+            p.set_context_parts(vec![ContextPart::new("System prompt", 4_100), ContextPart::new("Conversation", 69_700)], cx);
+        })
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("context-usage").is_none(), "closed until pressed");
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage").is_some(), "the panel opens");
+    assert!(cx.debug_bounds("context-usage-part-1").is_some(), "with a row for each part");
+    assert!(cx.debug_bounds("context-usage-part-2").is_none(), "and no more");
+    let (panel, ring) = (cx.debug_bounds("context-usage").unwrap(), cx.debug_bounds("context-meter").unwrap());
+    assert!(panel.bottom() <= ring.top(), "it opens above the ring");
+    click(cx, "context-usage-close");
+    assert!(cx.debug_bounds("context-usage").is_none(), "the cross closes it");
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage").is_some(), "the ring opens it again");
+}
+
+/// Told no parts, the panel still opens, with one row for what is in use.
+#[gpui_kit::test]
+fn the_usage_panel_without_parts_shows_one_row(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_context(84_000, 200_000, cx)));
+    cx.run_until_parked();
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage-part-0").is_some());
+    assert!(cx.debug_bounds("context-usage-part-1").is_none());
+}
+
 fn heard_since(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, from: usize) -> Vec<PromptInputEvent> {
     heard.borrow()[from..].iter().filter(|e| !matches!(e, PromptInputEvent::DictationDevices)).cloned().collect()
 }
