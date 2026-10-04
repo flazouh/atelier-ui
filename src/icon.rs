@@ -179,7 +179,7 @@ impl AssetSource for Assets {
         if let Some(bytes) = icon_bytes(path)
             .or_else(|| component_icon(path))
             .or_else(|| crate::file_icon::bytes(path))
-            .or_else(|| crate::atelier_mark::bytes(path))
+            .or_else(|| crate::atelier_mark::AtelierMark::bytes(path))
         {
             return Ok(Some(Cow::Borrowed(bytes)));
         }
