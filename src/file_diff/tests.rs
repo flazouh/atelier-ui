@@ -315,3 +315,50 @@ mod clipped {
         assert_eq!(height(cx, "diff-rows"), 8. * ROW_HEIGHT);
     }
 }
+
+mod capped {
+    use gpui_kit::{Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use super::super::*;
+    use crate::theme::{Appearance, set_appearance};
+
+    struct Host(usize);
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let lines = (0..self.0)
+                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .collect();
+            let diff = FileDiff::new("capped", "src/main.rs", lines).status(FileDiffStatus::Complete).collapse_on_complete(false).max_height(300.);
+            div().size_full().flex().flex_col().child(div().debug_selector(|| "capped".into()).child(diff))
+        }
+    }
+
+    fn height(rows: usize, cx: &mut TestAppContext) -> f32 {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (host, cx) = cx.add_window_view(move |_, _| Host(rows));
+        cx.simulate_resize(size(px(700.), px(900.)));
+        for _ in 0..4 {
+            cx.run_until_parked();
+            host.update(cx, |_, cx| cx.notify());
+        }
+        f32::from(cx.debug_bounds("capped").unwrap().size.height)
+    }
+
+    /// A long file's rows scroll in the height they are given, and only the rows in sight are laid out.
+    #[gpui_kit::test]
+    fn a_long_diff_scrolls_in_its_max_height(cx: &mut TestAppContext) {
+        let h = height(500, cx);
+        assert!(h <= 300. + crate::tool_call::CARD_HEADER_HEIGHT + 8., "500 rows in 300 px: {h}");
+    }
+
+    #[gpui_kit::test]
+    fn a_short_diff_under_its_max_height_is_as_tall_as_its_rows(cx: &mut TestAppContext) {
+        let h = height(3, cx);
+        assert!(h < 3. * ROW_HEIGHT + crate::tool_call::CARD_HEADER_HEIGHT + 8., "3 rows: {h}");
+    }
+}

@@ -333,7 +333,9 @@ impl RenderOnce for FileDiff {
                 .with_sizing_behavior(ListSizingBehavior::Infer)
                 .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
                 .with_width_from_item(widest)
-                .max_h(px(viewport))
+                // A height, not a cap: in a column the list is measured at its content's height, which `max_h` does
+                // not bound, and every row would be laid out.
+                .h(px(viewport.min(total as f32 * ROW_HEIGHT)))
                 .font_family(MONO_FONT_FAMILY)
                 .text_size(TextSize::Xs.font_size())
                 .line_height(px(ROW_HEIGHT))
