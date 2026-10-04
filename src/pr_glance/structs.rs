@@ -147,7 +147,6 @@ pub struct PrGlanceCard {
     pub(super) pr: PrChipData,
     pub(super) on_open: Option<PrOpenHandler>,
     pub(super) store: Entity<PrCardStore>,
-    pub(super) menu: bool,
     /// Merge was pressed once: a second press within `CONFIRM_FOR` merges.
     pub(super) confirming: Option<Instant>,
     pub(super) actions: Entity<LinkActions>,
@@ -160,13 +159,7 @@ impl PrGlanceCard {
         let store = super::helpers::pr_cards(cx);
         let _store = cx.observe(&store, |_, _, cx| cx.notify());
         let actions = cx.new(|_| LinkActions::default());
-        Self { id: id.into(), pr, on_open, store, menu: false, confirming: None, actions, unconfirm: Task::ready(()), _store }
-    }
-
-    /// Shows the parts menu in place of the card's body, or the body again.
-    pub fn set_menu(&mut self, open: bool, cx: &mut Context<Self>) {
-        self.menu = open;
-        cx.notify();
+        Self { id: id.into(), pr, on_open, store, confirming: None, actions, unconfirm: Task::ready(()), _store }
     }
 
     /// The chip's newest data, as the text that holds it draws again.

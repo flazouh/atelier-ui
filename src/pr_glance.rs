@@ -3,8 +3,10 @@
 //!
 //! The card draws from the chip's data at once, then from what the app read once it opened: fresher facts, the
 //! first failing check and the first line of its log that says why, the biggest changed files, and the session
-//! the pull request came from. Each part has a key ([`PrPart`]) the reader can hide, from the three dots in the
-//! card's header or from Settings; both change the store's [`PrParts`]. Merge asks once more before it merges.
+//! the pull request came from. Each sits in its own section: Checks, Review, Changes and Session, with the merge
+//! standing beside Merge at the foot. Each part has a key ([`PrPart`]) the reader can hide from Settings, which
+//! changes the store's [`PrParts`]. Merge asks once more before it merges, and the state pill opens the pull
+//! request in the app.
 //!
 //! The app sets [`PrCardStore::on_open`] to hear each card open and close, so it reads only while one is open,
 //! and [`PrCardStore::on_action`] for the card's buttons.

@@ -1,4 +1,5 @@
-use super::helpers::{added_squares, short_path};
+use super::helpers::{added_squares, age, checks_count, short_path};
+use crate::pr::{Checks, ChecksSummary};
 use super::*;
 
 #[test]
@@ -9,6 +10,21 @@ fn the_size_bar_splits_its_squares_as_github_does() {
     assert_eq!(added_squares(50, 50), 3);
     assert_eq!(added_squares(1000, 1), 4, "a side with any lines keeps a square");
     assert_eq!(added_squares(1, 1000), 1, "a side with any lines keeps a square");
+}
+
+#[test]
+fn the_checks_count_as_passed_out_of_all() {
+    let count = |passed, failed, running| checks_count(Checks { passed, failed, running });
+    assert_eq!(count(20, 0, 0), Some(("20/20".into(), ChecksSummary::Passed(20))));
+    assert_eq!(count(18, 2, 0), Some(("18/20".into(), ChecksSummary::Failing(2))));
+    assert_eq!(count(12, 0, 8), Some(("12/20".into(), ChecksSummary::Running)));
+    assert_eq!(count(0, 0, 0), None, "no checks, no section");
+}
+
+#[test]
+fn the_state_pill_says_how_long_ago() {
+    assert_eq!(age(1_000, 1_000 + 2 * 3600), "2h ago");
+    assert_eq!(age(1_000, 1_010), "just now");
 }
 
 #[test]

@@ -7,7 +7,6 @@ use crate::pr::PrChipData;
 /// One part of a pull request's card that the reader can hide.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum PrPart {
-    Branches,
     Failing,
     Reviewers,
     Merge,
@@ -18,13 +17,11 @@ pub enum PrPart {
 }
 
 impl PrPart {
-    pub const ALL: [PrPart; 8] =
-        [Self::Branches, Self::Failing, Self::Reviewers, Self::Merge, Self::Sessions, Self::Files, Self::Actions, Self::Live];
+    pub const ALL: [PrPart; 7] = [Self::Failing, Self::Reviewers, Self::Merge, Self::Sessions, Self::Files, Self::Actions, Self::Live];
 
     /// The part's name in saved settings: it never changes.
     pub fn key(self) -> &'static str {
         match self {
-            Self::Branches => "branches",
             Self::Failing => "failing-check",
             Self::Reviewers => "reviewers",
             Self::Merge => "merge",
@@ -37,20 +34,6 @@ impl PrPart {
 
     pub fn from_key(key: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|p| p.key() == key)
-    }
-
-    /// The part's name in the card's menu.
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Branches => "Branches",
-            Self::Failing => "The failing check",
-            Self::Reviewers => "Reviewers",
-            Self::Merge => "Merge standing",
-            Self::Sessions => "Linked sessions",
-            Self::Files => "Top changed files",
-            Self::Actions => "Merge and approve",
-            Self::Live => "Live while open",
-        }
     }
 
     pub(super) fn bit(self) -> u8 {
@@ -67,8 +50,6 @@ pub enum PrAction {
     AskToFix,
     OpenSession,
     OpenLog,
-    /// Open the Settings section for the card.
-    Settings,
 }
 
 /// An action's progress, as the card says it under the buttons.
