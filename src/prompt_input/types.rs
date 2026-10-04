@@ -125,6 +125,8 @@ pub enum PromptInputEvent {
     /// ([`PromptInput::set_paste_chips`](crate::prompt_input::PromptInput::set_paste_chips)). The owner decides what it becomes:
     /// usually a chip ([`PromptInput::add_chip`](crate::prompt_input::PromptInput::add_chip)), or text it writes back.
     Paste(Pasted),
+    /// A chip was pressed (not its ✕), by its `id`. A quote chip, for one, opens its box again.
+    ChipPressed(SharedString),
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
     Command { name: SharedString, args: SharedString },
 }

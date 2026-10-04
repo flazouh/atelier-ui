@@ -200,6 +200,29 @@ fn a_chip_comes_off_and_a_file_is_one_chip(cx: &mut TestAppContext) {
     assert_eq!(sent(&heard), ["@README.md go"]);
 }
 
+/// A press on a chip reports it by its id; the ✕ takes the chip off and reports nothing.
+#[gpui_kit::test]
+fn a_chip_press_is_reported_and_its_cross_is_not(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("quote-1", "The build fails"), cx);
+        p.add_chip(Chip::new("quote-2", "Second"), cx);
+    });
+    cx.run_until_parked();
+    let chip = cx.debug_bounds("chip-quote-1").expect("the chip is drawn");
+    cx.simulate_click(chip.origin + gpui_kit::point(gpui_kit::px(10.), chip.size.height / 2.), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    let pressed = |heard: &Rc<RefCell<Vec<PromptInputEvent>>>| {
+        heard.borrow().iter().filter_map(|e| match e { PromptInputEvent::ChipPressed(id) => Some(id.to_string()), _ => None }).collect::<Vec<_>>()
+    };
+    assert_eq!(pressed(&heard), ["quote-1"]);
+    let cross = cx.debug_bounds("chip-remove-quote-2").expect("a chip has a cross");
+    cx.simulate_click(cross.center(), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    assert_eq!(pressed(&heard), ["quote-1"], "the cross is not a press on the chip");
+    assert!(cx.debug_bounds("chip-quote-2").is_none());
+}
+
 /// Escape closes the list and keeps the text; Down moves to the next row.
 #[gpui_kit::test]
 fn escape_closes_the_list_and_down_moves_in_it(cx: &mut TestAppContext) {

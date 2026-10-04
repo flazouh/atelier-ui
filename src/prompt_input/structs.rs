@@ -855,8 +855,9 @@ impl PromptInput {
         });
         let all = command.into_iter().chain(self.chips.iter().cloned().map(|c| (c, false))).collect::<Vec<_>>();
         Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(all.into_iter().map(|(chip, is_command)| {
-            let (id, remove_id, gone) = (chip.id.clone(), chip.id.clone(), chip.id.clone());
+            let (id, remove_id, gone, pressed) = (chip.id.clone(), chip.id.clone(), chip.id.clone(), chip.id.clone());
             let owner = this.clone();
+            let presser = this.clone();
             let picture = match &chip.look {
                 ChipLook::None => None,
                 ChipLook::Icon(name) => Some(Icon::new(*name).size(px(12.)).color(theme.muted_foreground).into_any_element()),
@@ -879,6 +880,11 @@ impl PromptInput {
                 .hover(|d| d.bg(theme.chip_hover))
                 .text_size(TextSize::Xs.font_size())
                 .text_color(theme.foreground)
+                .when(!is_command, |d| {
+                    d.on_click(move |_, _, cx| {
+                        presser.update(cx, |_, cx| cx.emit(PromptInputEvent::ChipPressed(pressed.clone()))).ok();
+                    })
+                })
                 .tooltip(crate::tooltip::Tooltip::text(chip.detail.clone().unwrap_or_else(|| chip.label.clone())))
                 .children(picture)
                 .child(chip.label.clone())
