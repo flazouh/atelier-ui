@@ -70,9 +70,15 @@ impl SelectionReply {
         cx.notify();
     }
 
-    /// Opens the box at `at` with `quote` and `note` already in it, to change a reply made before. Adding sends the same event.
-    pub fn edit(&mut self, at: gpui_kit::Point<gpui_kit::Pixels>, quote: impl Into<SharedString>, note: &str, window: &mut Window, cx: &mut Context<Self>) {
-        self.phase = Phase::Writing { at, quote: quote.into() };
+    /// Opens the box at `at` with `quote` and `note` already in it, to change a reply made before. Adding sends the same event, with `key` in it.
+    pub fn edit(
+        &mut self,
+        at: gpui_kit::Point<gpui_kit::Pixels>,
+        quote: impl Into<SharedString>,
+        note: &str,
+        key: impl Into<SharedString>,
+        window: &mut Window, cx: &mut Context<Self>) {
+        self.phase = Phase::Writing { at, quote: quote.into(), key: Some(key.into()) };
         let line = note.matches('\n').count() as u32;
         let character = note.rsplit('\n').next().map_or(0, |last| last.encode_utf16().count()) as u32;
         // The caret goes to the end, where a reader goes on writing.
@@ -86,18 +92,18 @@ impl SelectionReply {
 
     fn write(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Phase::Offer { at, quote } = std::mem::replace(&mut self.phase, Phase::Idle) {
-            self.phase = Phase::Writing { at, quote };
+            self.phase = Phase::Writing { at, quote, key: None };
             window.focus(&self.note.focus_handle(cx), cx);
             cx.notify();
         }
     }
 
     fn add(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Phase::Writing { quote, .. } = std::mem::replace(&mut self.phase, Phase::Idle) else { return };
+        let Phase::Writing { quote, key, .. } = std::mem::replace(&mut self.phase, Phase::Idle) else { return };
         let note: SharedString = self.note.read(cx).value().trim().to_string().into();
         self.note.update(cx, |t, cx| t.set_value("", window, cx));
         TextSelection::clear(window, cx);
-        cx.emit(SelectionReplyEvent::Reply { quote, note });
+        cx.emit(SelectionReplyEvent::Reply { quote, note, key });
         cx.notify();
     }
 
@@ -145,7 +151,7 @@ impl Render for SelectionReply {
                 let card = div().debug_selector(|| "selection-reply-offer".into()).rounded(radius::lg()).shadow_md().child(button);
                 Some(self.floating(*at + point(px(4.), px(12.)), card.into_any_element()))
             }
-            Phase::Writing { at, quote } => {
+            Phase::Writing { at, quote, .. } => {
                 let card = div()
                     .debug_selector(|| "selection-reply-box".into())
                     .key_context(CONTEXT)

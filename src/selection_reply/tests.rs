@@ -108,7 +108,8 @@ fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
     settle(cx);
     let events = heard.borrow().clone();
     assert_eq!(events.len(), 1, "{events:?}");
-    let SelectionReplyEvent::Reply { quote, note } = &events[0];
+    let SelectionReplyEvent::Reply { quote, note, key } = &events[0];
+    assert!(key.is_none(), "a new reply has no key");
     assert!(quote.starts_with("The build fails"), "the quote is what was selected: {quote:?}");
     assert_eq!(note.as_ref(), "it is the cache");
     assert!(cx.debug_bounds("selection-reply-box").is_none(), "the box is gone");
@@ -179,14 +180,15 @@ fn a_selection_ending_outside_the_parent_is_not_offered(cx: &mut TestAppContext)
 #[gpui_kit::test]
 fn edit_opens_the_box_on_an_earlier_reply(cx: &mut TestAppContext) {
     let (host, heard, cx) = open(cx);
-    host.update_in(cx, |h, window, cx| h.reply.update(cx, |r, cx| r.edit(point(px(100.), px(100.)), "The build fails", "old note", window, cx)));
+    host.update_in(cx, |h, window, cx| h.reply.update(cx, |r, cx| r.edit(point(px(100.), px(100.)), "The build fails", "old note", "quote-1", window, cx)));
     settle(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "the box is open");
     cx.simulate_input(" more");
     cx.simulate_keystrokes("enter");
     settle(cx);
     let events = heard.borrow().clone();
-    let [SelectionReplyEvent::Reply { quote, note }] = events.as_slice() else { panic!("{events:?}") };
+    let [SelectionReplyEvent::Reply { quote, note, key }] = events.as_slice() else { panic!("{events:?}") };
     assert_eq!(quote.as_ref(), "The build fails");
     assert_eq!(note.as_ref(), "old note more");
+    assert_eq!(key.as_deref(), Some("quote-1"));
 }
