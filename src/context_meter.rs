@@ -6,7 +6,7 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{fraction, level, summary, tokens};
+pub use helpers::{fraction, ink, level, summary, tokens};
 pub use structs::ContextMeter;
 pub use types::{FULL_AT, Level, WARN_AT};
 

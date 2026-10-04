@@ -12,8 +12,9 @@ pub(super) const SEAM: f32 = 2.;
 /// The size of the square before a part's name.
 pub(super) const SWATCH: f32 = 8.;
 
-/// The label of the one part shown when the agent could not tell the parts.
+/// The rows shown when the agent could not tell the parts: what is in use, and what is left of the window.
 pub(super) const WHOLE: &str = "In context";
+pub(super) const FREE: &str = "Free";
 
 /// One part of what fills the window: a name and the tokens it holds.
 #[derive(Clone, Debug, PartialEq, Eq)]

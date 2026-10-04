@@ -684,15 +684,16 @@ fn a_press_on_the_ring_opens_the_usage_panel_and_the_cross_closes_it(cx: &mut Te
     assert!(cx.debug_bounds("context-usage").is_some(), "the ring opens it again");
 }
 
-/// Told no parts, the panel still opens, with one row for what is in use.
+/// Told no parts, the panel still opens, with a row for what is in use and one for what is free.
 #[gpui_kit::test]
-fn the_usage_panel_without_parts_shows_one_row(cx: &mut TestAppContext) {
+fn the_usage_panel_without_parts_shows_what_is_in_use_and_what_is_free(cx: &mut TestAppContext) {
     let (prompt, _, cx) = open(cx);
     cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_context(84_000, 200_000, cx)));
     cx.run_until_parked();
     click(cx, "context-meter");
-    assert!(cx.debug_bounds("context-usage-part-0").is_some());
-    assert!(cx.debug_bounds("context-usage-part-1").is_none());
+    assert!(cx.debug_bounds("context-usage-part-0").is_some(), "what is in use");
+    assert!(cx.debug_bounds("context-usage-part-1").is_some(), "and what is free");
+    assert!(cx.debug_bounds("context-usage-part-2").is_none());
 }
 
 fn heard_since(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, from: usize) -> Vec<PromptInputEvent> {

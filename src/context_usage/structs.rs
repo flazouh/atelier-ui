@@ -11,8 +11,9 @@ use crate::{
     theme::{ActiveTheme, dropdown_edge, popover_shadow},
     typography::{FONT_FAMILY, MONO_FONT_FAMILY},
 };
+use crate::context_meter::{fraction, ink, level};
 use super::helpers::{header, precise, shares, swatch};
-use super::types::{BAR, ContextPart, SEAM, SWATCH, WHOLE, WIDTH};
+use super::types::{BAR, ContextPart, FREE, SEAM, SWATCH, WHOLE, WIDTH};
 
 #[derive(IntoElement)]
 pub struct ContextUsage {
@@ -44,8 +45,14 @@ impl ContextUsage {
 impl RenderOnce for ContextUsage {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
-        let parts = if self.parts.is_empty() { vec![ContextPart::new(WHOLE, self.used)] } else { self.parts };
+        // An agent that cannot break the window down gets two rows instead: what is in use and what is left.
+        let bare = self.parts.is_empty();
+        let parts = if bare { vec![ContextPart::new(WHOLE, self.used)] } else { self.parts };
+        let free = bare.then(|| ContextPart::new(FREE, self.window.saturating_sub(self.used)));
         let (share, numbers) = header(self.used, self.window);
+        // A bar that is one part wears the ring's colour, so it turns amber and red as the ring does.
+        let whole = ink(level(fraction(self.used, self.window)), &theme);
+        let tint = |i: usize| if bare && i == 0 { whole } else { swatch(&theme, i) };
 
         let bar = parts.iter().zip(shares(&parts, self.window)).enumerate().fold(
             div()
@@ -59,19 +66,22 @@ impl RenderOnce for ContextUsage {
             |bar, (i, (_, share))| {
                 bar.child(
                     div().flex_none().h_full().w(relative(share)).child(
-                        div().size_full().mr(px(SEAM)).rounded_full().bg(swatch(&theme, i)).debug_selector(move || format!("context-usage-segment-{i}")),
+                        div().size_full().mr(px(SEAM)).rounded_full().bg(tint(i)).debug_selector(move || format!("context-usage-segment-{i}")),
                     ),
                 )
             },
         );
 
-        let rows = parts.into_iter().enumerate().map(|(i, part)| {
+        let free_at = parts.len();
+        let rows = parts.into_iter().chain(free).enumerate().map(|(i, part)| {
+            // The free row wears the colour of the bar's empty track.
+            let colour = if bare && i == free_at { theme.card_strong } else { tint(i) };
             div()
                 .debug_selector(move || format!("context-usage-part-{i}"))
                 .flex()
                 .items_center()
                 .gap(px(8.))
-                .child(div().flex_none().size(px(SWATCH)).rounded(px(2.)).bg(swatch(&theme, i)))
+                .child(div().flex_none().size(px(SWATCH)).rounded(px(2.)).bg(colour))
                 .child(div().flex_1().min_w_0().truncate().text_color(theme.muted_foreground).child(part.label))
                 .child(div().flex_none().font_family(MONO_FONT_FAMILY).text_color(theme.foreground).child(precise(part.tokens)))
         });

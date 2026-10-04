@@ -46,9 +46,10 @@ pub fn swatch(theme: &Theme, index: usize) -> Hsla {
     }
 }
 
-/// The height of the panel with `rows` rows, for a popover that has to know it before it draws.
-pub fn height(rows: usize) -> f32 {
-    let rows = rows.max(1) as f32;
+/// The height of the panel told `parts` parts, for a popover that has to know it before it draws. With none it shows
+/// two rows, what is in use and what is free.
+pub fn height(parts: usize) -> f32 {
+    let rows = if parts == 0 { 2. } else { parts as f32 };
     // The border, the padding, the title and numbers, the bar, then the rows, with the gaps between all.
     2. + 32. + 38. + BAR + 3. * 12. + rows * 18. + (rows - 1.) * 6.
 }

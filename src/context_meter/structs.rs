@@ -3,17 +3,17 @@ use std::f32::consts::TAU;
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ClickEvent, ElementId, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, StatefulInteractiveElement,
+    App, ClickEvent, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, StatefulInteractiveElement,
     Styled, Window, canvas, div, prelude::FluentBuilder, px,
 };
 
 use crate::{
     spinner::{RING_ALPHA, arc, dot, stroke},
-    theme::{ActiveTheme, Theme},
+    theme::ActiveTheme,
     tooltip::Tooltip,
 };
-use super::helpers::{fraction, level, summary};
-use super::types::{Level, SIZE, SLOT, STEPS, STROKE};
+use super::helpers::{fraction, ink, level, summary};
+use super::types::{SIZE, SLOT, STEPS, STROKE};
 
 #[derive(IntoElement)]
 pub struct ContextMeter {
@@ -40,14 +40,6 @@ impl ContextMeter {
     pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
-    }
-}
-
-fn ink(level: Level, theme: &Theme) -> Hsla {
-    match level {
-        Level::Room => theme.muted_foreground,
-        Level::Filling => theme.warning,
-        Level::Full => theme.danger,
     }
 }
 

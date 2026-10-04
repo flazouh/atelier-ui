@@ -37,6 +37,6 @@ fn parts_past_the_window_shrink_to_fill_it_exactly() {
 
 #[test]
 fn the_panel_grows_by_a_row_at_a_time() {
-    assert_eq!(height(0), height(1), "an empty list still shows one row");
+    assert_eq!(height(0), height(2), "told no parts, the panel shows two rows");
     assert_eq!(height(3) - height(2), 24.);
 }
