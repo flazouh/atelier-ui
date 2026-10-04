@@ -46,7 +46,7 @@ use crate::{
     voice_setup::{SetupPhase, VoiceSetup},
 };
 use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
-use super::helpers::{append_transcript, live_text};
+use super::helpers::{append_transcript, is_inline_paste, live_text};
 
 /// One choice in the model picker.
 #[derive(Clone, Debug)]
@@ -640,7 +640,7 @@ impl PromptInput {
     }
 
     /// A paste, when the owner takes them: images before files before text, as the clipboard offers the most specific thing
-    /// first. True when it was taken.
+    /// first. True when it was taken. A short line of text is not taken: it goes into the box like any typed words.
     fn pasted(&mut self, item: &gpui_kit::ClipboardItem, cx: &mut Context<Self>) -> bool {
         if !self.paste_chips || self.disabled {
             return false;
@@ -651,7 +651,7 @@ impl PromptInput {
             .iter()
             .find_map(|e| if let ClipboardEntry::Image(image) = e { Some(Pasted::Image(std::sync::Arc::new(image.clone()))) } else { None })
             .or_else(|| entries.iter().find_map(|e| if let ClipboardEntry::ExternalPaths(paths) = e { Some(Pasted::Files(paths.paths().to_vec())) } else { None }))
-            .or_else(|| item.text().filter(|t| !t.is_empty()).map(|t| Pasted::Text(t.into())));
+            .or_else(|| item.text().filter(|t| !t.is_empty() && !is_inline_paste(t)).map(|t| Pasted::Text(t.into())));
         match found {
             Some(pasted) => {
                 cx.emit(PromptInputEvent::Paste(pasted));

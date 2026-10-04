@@ -12,3 +12,13 @@ pub fn append_transcript(existing: &str, words: &str) -> String {
         format!("{existing} {words}")
     }
 }
+
+/// The most characters of one line of pasted text that go into the box as they are; more is a chip.
+const MOST_INLINE_PASTE: usize = 200;
+
+/// Whether pasted `text` is short enough to belong in the box as typed: one line (a trailing line break aside) of a
+/// few words, a path, a link or a command. Anything longer or taller is something to hand over, not to read in place.
+pub(super) fn is_inline_paste(text: &str) -> bool {
+    let line = text.trim_end_matches(['\n', '\r']);
+    !line.contains(['\n', '\r']) && line.chars().count() <= MOST_INLINE_PASTE
+}
