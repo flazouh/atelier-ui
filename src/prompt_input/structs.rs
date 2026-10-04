@@ -862,6 +862,7 @@ impl PromptInput {
             chip.mention = None;
             (chip, true)
         });
+        let (chip_bg, ink) = (theme.chip_rest, theme.foreground);
         let all = command.into_iter().chain(self.chips.iter().cloned().map(|c| (c, false))).collect::<Vec<_>>();
         Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(all.into_iter().map(|(chip, is_command)| {
             let (id, remove_id, gone, pressed) = (chip.id.clone(), chip.id.clone(), chip.id.clone(), chip.id.clone());
@@ -886,7 +887,8 @@ impl PromptInput {
                 .pr(px(2.))
                 .rounded(radius::md())
                 .bg(theme.chip_rest)
-                .hover(|d| d.bg(theme.chip_hover))
+                // Not `chip_hover`: that is the light end of the arrow chips, which would wash the label out.
+                .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.1)))
                 .text_size(TextSize::Xs.font_size())
                 .text_color(theme.foreground)
                 .when(!is_command, |d| {
