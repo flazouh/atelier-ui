@@ -1,6 +1,6 @@
 use gpui_kit::SharedString;
 
-use super::types::{ChecksSummary, PrState, ReviewState};
+use super::types::{ChecksSummary, PrState, PrVerdict, ReviewState, StandingTone};
 
 /// Everything a chip shows about one pull request.
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +44,30 @@ pub struct PrFacts {
     pub checks: Option<Checks>,
     /// Unix seconds; 0 when the forge did not say.
     pub updated_at: u64,
+    /// The branch and the one it goes into; empty when the forge did not say.
+    pub head: SharedString,
+    pub base: SharedString,
+    /// The branch and its base change the same lines.
+    pub conflicting: bool,
+    /// Who reviewed and who is asked to, verdicts first.
+    pub reviewers: Vec<PrReviewer>,
+    /// Whether it can merge now, and what holds it.
+    pub standing: Option<PrStanding>,
+}
+
+/// One reviewer and where they stand.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrReviewer {
+    pub who: SharedString,
+    pub verdict: PrVerdict,
+}
+
+/// A pull request's merge standing in a word and a few more: `Blocked`, `1 check failing`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrStanding {
+    pub tone: StandingTone,
+    pub word: SharedString,
+    pub detail: SharedString,
 }
 
 /// How many checks of each kind a pull request has.

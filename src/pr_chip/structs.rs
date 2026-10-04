@@ -21,11 +21,11 @@ use crate::scale::px;
 use crate::{
     motion::{cubic_bezier, duration, ease},
     pr::PrChipData,
-    pr_card::LinkActions,
+    pr_glance::{PrGlanceCard, pr_cards},
     theme::ActiveTheme,
 };
 use super::types::{CLOSE_DELAY, PILL_BASELINE, PrOpenHandler};
-use super::helpers::{card, chip_number, open_delay, pill};
+use super::helpers::{chip_number, open_delay, pill};
 
 #[derive(IntoElement)]
 pub struct PrChip {
@@ -65,31 +65,40 @@ impl RenderOnce for PrChip {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
-        let actions = window.use_keyed_state(child("actions"), cx, |_, _| LinkActions::default());
+        let glance = window.use_keyed_state(child("glance"), cx, {
+            let (id, pr, on_open) = (self.id.clone(), self.pr.clone(), self.on_open.clone());
+            move |_, cx| PrGlanceCard::new(id, pr, on_open, cx)
+        });
+        glance.update(cx, |card, cx| card.set_pr(self.pr.clone(), cx));
         let delay = open_delay(cx);
         // A card that takes over from another swaps in place; only the first fades in.
         let animate = !cx.reduce_motion() && !delay.is_zero();
         let trigger = pill(&self.id, &self.pr, self.on_open.clone(), &theme, window, cx);
         let hover = child("hover");
-        let (id, pr, on_open) = (self.id, self.pr, self.on_open);
+        let (id, pr) = (self.id, self.pr);
         HoverCard::new(hover)
             .anchor(Anchor::BottomLeft)
             .open_delay(delay)
             .close_delay(CLOSE_DELAY)
-            .on_open_change(|open, _, cx| *cx.default_global::<Warmth>() = Warmth { open: *open, changed: Some(Instant::now()) })
+            .on_open_change(move |open, _, cx| {
+                *cx.default_global::<Warmth>() = Warmth { open: *open, changed: Some(Instant::now()) };
+                let handler = pr_cards(cx).read(cx).on_open.clone();
+                if let Some(handler) = handler {
+                    handler(&pr, *open, cx);
+                }
+            })
             .trigger(trigger)
-            .content(move |_, window, cx| {
-                let theme = cx.theme().clone();
-                let card = card(&id, &pr, on_open, &actions, &theme, window, cx);
+            .content(move |_, _, _| {
+                let body = div().my(px(6.)).child(glance.clone());
                 let body = if animate {
-                    card.with_animation(
+                    body.with_animation(
                         ElementId::NamedChild(Arc::new(id.clone()), "enter".into()),
                         Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
                         |card, t| card.opacity(t).relative().top(px(2. * (1. - t))),
                     )
                     .into_any_element()
                 } else {
-                    card.into_any_element()
+                    body.into_any_element()
                 };
                 div().id(ElementId::NamedChild(Arc::new(id.clone()), "card".into())).child(body)
             })

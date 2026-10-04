@@ -37,17 +37,6 @@ fn a_chip_link_reads_back_as_its_number() {
 }
 
 #[test]
-fn the_size_bar_splits_its_squares_as_github_does() {
-    use super::helpers::added_squares;
-    assert_eq!(added_squares(0, 0), 0);
-    assert_eq!(added_squares(10, 0), 5);
-    assert_eq!(added_squares(0, 10), 0);
-    assert_eq!(added_squares(50, 50), 3);
-    assert_eq!(added_squares(1000, 1), 4, "a side with any lines keeps a square");
-    assert_eq!(added_squares(1, 1000), 1, "a side with any lines keeps a square");
-}
-
-#[test]
 fn a_card_opens_at_once_while_one_is_open_or_just_closed() {
     use std::time::{Duration, Instant};
     use super::{helpers::warm, structs::Warmth};
