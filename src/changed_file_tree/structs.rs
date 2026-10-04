@@ -5,7 +5,7 @@ use std::{collections::HashSet, rc::Rc, sync::Arc};
 use gpui_kit::{
     App, ElementId, FocusHandle, FontWeight, InteractiveElement, IntoElement, ParentElement,
     RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div,
-    prelude::FluentBuilder,
+    prelude::FluentBuilder, uniform_list,
 };
 
 use crate::scale::px;
@@ -17,7 +17,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{CONTEXT, INDENT, OpenHandler, TreeKey};
+use super::types::{CONTEXT, INDENT, OpenHandler, ROW_GAP, TreeKey};
 use super::helpers::{counts, key, unfolds};
 
 #[derive(IntoElement)]
@@ -29,11 +29,19 @@ pub struct ChangedFileTree {
     on_open: Option<OpenHandler>,
     pub(super) focus: Option<FocusHandle>,
     reveal: Option<(u64, SharedString)>,
+    virtualised: bool,
 }
 
 impl ChangedFileTree {
     pub fn new(id: impl Into<ElementId>, files: Vec<ChangedFile>) -> Self {
-        Self { id: id.into(), files, reviewed: HashSet::new(), current: None, on_open: None, focus: None, reveal: None }
+        Self { id: id.into(), files, reviewed: HashSet::new(), current: None, on_open: None, focus: None, reveal: None, virtualised: false }
+    }
+
+    /// Draws only the rows in view, and scrolls them itself. The tree then fills the height its parent gives it, so
+    /// the parent must not scroll it, and a long list costs what a screen of it costs.
+    pub fn virtualised(mut self) -> Self {
+        self.virtualised = true;
+        self
     }
 
     /// Opens `folder` and the folders round it. It does this once for each `token`: the owner bumps the token to ask again, as
@@ -102,7 +110,6 @@ impl RenderOnce for ChangedFileTree {
             (self.focus.clone().unwrap_or_else(|| s.focus.clone()), tree.rows(&s.folded), s.cursor.clone())
         };
         let focused = focus.is_focused(window);
-        let child = |name: String| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
         let on_key = |action: TreeKey| {
             let (state, tree, open) = (state.clone(), tree.clone(), self.on_open.clone());
@@ -121,12 +128,16 @@ impl RenderOnce for ChangedFileTree {
         let (up, down, left, right, enter) =
             (on_key(TreeKey::Up), on_key(TreeKey::Down), on_key(TreeKey::Left), on_key(TreeKey::Right), on_key(TreeKey::Enter));
 
-        let row_el = |row: TreeRow| {
-            let is_current = self.current.as_ref() == Some(&row.path);
+        let (row_id, current, reviewed_set, on_open) = (self.id.clone(), self.current.clone(), self.reviewed.clone(), self.on_open.clone());
+        let (row_state, row_focus, row_theme) = (state.clone(), focus.clone(), theme.clone());
+        let row_el = Rc::new(move |row: TreeRow| {
+            let theme = &row_theme;
+            let child = |name: String| ElementId::NamedChild(Arc::new(row_id.clone()), name.into());
+            let is_current = current.as_ref() == Some(&row.path);
             let is_cursor = focused && cursor.as_ref() == Some(&row.path);
-            let reviewed = !row.is_folder() && self.reviewed.contains(&row.path);
-            let (state, open, path, is_folder) = (state.clone(), self.on_open.clone(), row.path.clone(), row.is_folder());
-            let focus = focus.clone();
+            let reviewed = !row.is_folder() && reviewed_set.contains(&row.path);
+            let (state, open, path, is_folder) = (row_state.clone(), on_open.clone(), row.path.clone(), row.is_folder());
+            let focus = row_focus.clone();
             div()
                 .id(child(format!("row-{}", row.path)))
                 .relative()
@@ -142,7 +153,7 @@ impl RenderOnce for ChangedFileTree {
                 .when(is_current, |d| d.bg(theme.accent.opacity(0.18)))
                 .when(!is_current && is_cursor, |d| d.bg(theme.muted_hover()))
                 .when(!is_current, |d| d.hover(|s| s.bg(theme.muted_hover())))
-                .when(is_cursor, |d| d.child(crate::focus::row_ring(&theme, theme.background, radius::md())))
+                .when(is_cursor, |d| d.child(crate::focus::row_ring(theme, theme.background, radius::md())))
                 .on_click(move |_, window, cx| {
                     focus.focus(window, cx);
                     state.update(cx, |s, cx| {
@@ -182,16 +193,16 @@ impl RenderOnce for ChangedFileTree {
                         })
                         .child(row.name.clone()),
                 )
-                .child(counts(gpui_kit::SharedString::from(format!("counts-{}", row.path)), row.added, row.removed, &theme))
+                .child(counts(gpui_kit::SharedString::from(format!("counts-{}", row.path)), row.added, row.removed, theme))
                 .child(
                     div()
                         .flex_none()
                         .w(px(12.))
                         .when(reviewed, |d| d.child(Icon::new(IconName::Check).size(px(12.)).color(theme.success))),
                 )
-        };
+        });
 
-        div()
+        let body = div()
             .id(self.id.clone())
             .key_context(CONTEXT)
             .track_focus(&focus)
@@ -202,8 +213,14 @@ impl RenderOnce for ChangedFileTree {
             .on_action(move |_: &OpenRow, window, cx| enter(window, cx))
             .flex()
             .flex_col()
-            .gap(px(1.))
-            .p(px(6.))
-            .children(rows.into_iter().map(row_el))
+            .p(px(6.));
+        if self.virtualised {
+            let rows = Rc::new(rows);
+            let list = uniform_list(ElementId::NamedChild(Arc::new(self.id.clone()), "rows".into()), rows.len(), move |range, _, _| {
+                range.map(|i| div().pb(px(ROW_GAP)).child(row_el(rows[i].clone()))).collect()
+            });
+            return body.size_full().child(list.size_full());
+        }
+        body.gap(px(ROW_GAP)).children(rows.into_iter().map(|row| row_el(row)))
     }
 }
