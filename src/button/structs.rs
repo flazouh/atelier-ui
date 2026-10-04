@@ -63,6 +63,8 @@ pub struct Button {
     on_click: Option<ClickHandler>,
     /// Hears the press and the release, for a button that acts while it is held.
     hold: Option<(Hold, Hold)>,
+    /// Gives way when its row is too narrow, its content cut, instead of pushing the row wider.
+    shrink: bool,
 }
 
 impl Button {
@@ -91,6 +93,7 @@ impl Button {
             disabled: false,
             on_click: None,
             hold: None,
+            shrink: false,
         }
     }
 
@@ -146,6 +149,13 @@ impl Button {
     }
 
     /// Replaces the icon and label with `content`, for a slot the caller animates itself.
+    /// The button gives way when the row is too narrow: its content (which must cut itself, as a `truncate` text
+    /// does) is clipped, and the rest of the row keeps its place.
+    pub fn shrink(mut self, shrink: bool) -> Self {
+        self.shrink = shrink;
+        self
+    }
+
     pub fn content(mut self, content: impl IntoElement) -> Self {
         self.content = Some(content.into_any_element());
         self
@@ -338,7 +348,8 @@ impl RenderOnce for Button {
             .id(self.id.clone())
             .relative()
             .flex()
-            .flex_none()
+            .when(!self.shrink, |d| d.flex_none())
+            .when(self.shrink, |d| d.flex_shrink().min_w_0().overflow_hidden())
             .when(keyed, |d| d.rounded(corner).shadow(crate::focus::ring_shadow(&theme, theme.background)))
             .items_center()
             .h(px(m.height))
@@ -361,7 +372,7 @@ impl RenderOnce for Button {
                     .bg(fill),
             )
             .when(keyed, |d| d.child(div().absolute().inset_0().debug_selector(|| "button-ring".into())))
-            .when_some(self.content, |d, content| d.child(div().relative().child(content)))
+            .when_some(self.content, |d, content| d.child(div().relative().when(self.shrink, |d| d.min_w_0().flex_shrink().overflow_hidden()).child(content)))
             .when_some(self.icon, |d, icon| {
                 d.child(div().relative().child(Icon::new(icon).size(px(m.icon)).color(icon_color)))
             })
