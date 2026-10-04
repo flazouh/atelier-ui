@@ -67,7 +67,7 @@ impl RenderOnce for ButtonGroup {
             .id(self.id)
             .flex()
             .when(!self.fit, |d| d.flex_none())
-            .when(self.fit, |d| d.flex_shrink().min_w_0())
+            .when(self.fit, |d| d.min_w_0())
             .when(vertical, |d| d.flex_col())
             .when(!vertical, |d| d.items_center())
             .gap(px(SEAM))

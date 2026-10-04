@@ -349,7 +349,7 @@ impl RenderOnce for Button {
             .relative()
             .flex()
             .when(!self.shrink, |d| d.flex_none())
-            .when(self.shrink, |d| d.flex_shrink().min_w_0().overflow_hidden())
+            .when(self.shrink, |d| d.min_w_0().overflow_hidden())
             .when(keyed, |d| d.rounded(corner).shadow(crate::focus::ring_shadow(&theme, theme.background)))
             .items_center()
             .h(px(m.height))
@@ -372,7 +372,7 @@ impl RenderOnce for Button {
                     .bg(fill),
             )
             .when(keyed, |d| d.child(div().absolute().inset_0().debug_selector(|| "button-ring".into())))
-            .when_some(self.content, |d, content| d.child(div().relative().when(self.shrink, |d| d.min_w_0().flex_shrink().overflow_hidden()).child(content)))
+            .when_some(self.content, |d, content| d.child(div().relative().when(self.shrink, |d| d.min_w_0().overflow_hidden()).child(content)))
             .when_some(self.icon, |d, icon| {
                 d.child(div().relative().child(Icon::new(icon).size(px(m.icon)).color(icon_color)))
             })
