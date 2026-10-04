@@ -163,6 +163,12 @@ impl PrGlanceCard {
         Self { id: id.into(), pr, on_open, store, menu: false, confirming: None, actions, unconfirm: Task::ready(()), _store }
     }
 
+    /// Shows the parts menu in place of the card's body, or the body again.
+    pub fn set_menu(&mut self, open: bool, cx: &mut Context<Self>) {
+        self.menu = open;
+        cx.notify();
+    }
+
     /// The chip's newest data, as the text that holds it draws again.
     pub fn set_pr(&mut self, pr: PrChipData, cx: &mut Context<Self>) {
         if self.pr != pr {
