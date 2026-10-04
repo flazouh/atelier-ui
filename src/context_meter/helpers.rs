@@ -1,3 +1,6 @@
+use gpui_kit::Hsla;
+
+use crate::theme::Theme;
 use super::types::{FULL_AT, Level, MILLION, THOUSAND, WARN_AT};
 
 /// The share of `window` that `used` fills, from 0 to 1. An empty window counts as full.
@@ -35,4 +38,13 @@ pub fn tokens(count: u64) -> String {
 pub fn summary(used: u64, window: u64) -> String {
     let percent = (fraction(used, window) * 100.).round() as u32;
     format!("{} of {} tokens ({percent}%)", tokens(used), tokens(window))
+}
+
+/// The colour of the ring at `level`, and of a part of the bar that stands for the whole of what is in use.
+pub fn ink(level: Level, theme: &Theme) -> Hsla {
+    match level {
+        Level::Room => theme.muted_foreground,
+        Level::Filling => theme.warning,
+        Level::Full => theme.danger,
+    }
 }

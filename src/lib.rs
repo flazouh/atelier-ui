@@ -27,6 +27,7 @@ pub mod command_item;
 pub mod comment_composer;
 pub mod commits_summary;
 pub mod context_meter;
+pub mod context_usage;
 pub mod conversation;
 pub(crate) mod copy_feedback;
 pub mod court;

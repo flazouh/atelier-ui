@@ -28,6 +28,7 @@ use std::rc::Rc;
 
 use crate::scale::px;
 use crate::context_meter::ContextMeter;
+use crate::context_usage::{self, ContextPart, ContextUsage};
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     button_group::ButtonGroup,
@@ -166,6 +167,9 @@ pub struct PromptInput {
     pub(super) disabled: bool,
     /// The tokens the agent's context holds, and its window, once the agent has told both.
     pub(super) context: Option<(u64, u64)>,
+    /// What fills the context, as the agent could tell it, for the panel the ring opens.
+    context_parts: Vec<ContextPart>,
+    context_open: bool,
     /// The messages waiting for the running turn to end, as the owner keeps them.
     pub(super) queued: Vec<SharedString>,
     /// What `/` offers, and `@` ([`crate::command_item`]).
@@ -250,6 +254,8 @@ impl PromptInput {
             running: false,
             disabled: false,
             context: None,
+            context_parts: Vec::new(),
+            context_open: false,
             queued: Vec::new(),
             commands: Vec::new(),
             files: Vec::new(),
@@ -307,6 +313,22 @@ impl PromptInput {
     pub fn set_context(&mut self, used: u64, window: u64, cx: &mut Context<Self>) {
         if self.context != Some((used, window)) {
             self.context = Some((used, window));
+            cx.notify();
+        }
+    }
+
+    /// Tells what fills the context, for the panel the ring opens. With none, the panel shows only what is in use.
+    pub fn set_context_parts(&mut self, parts: Vec<ContextPart>, cx: &mut Context<Self>) {
+        if self.context_parts != parts {
+            self.context_parts = parts;
+            cx.notify();
+        }
+    }
+
+    /// Opens or closes the panel the context ring opens. It shows only while the context is known.
+    pub fn set_context_open(&mut self, open: bool, cx: &mut Context<Self>) {
+        if self.context_open != open {
+            self.context_open = open;
             cx.notify();
         }
     }
@@ -1346,7 +1368,49 @@ impl Render for PromptInput {
             div().id("prompt-mic-group").relative().flex_none().child(control).children(menu)
         });
 
-        let meter = self.context.map(|(used, window)| ContextMeter::new("prompt-context", used, window));
+        let meter = self.context.map(|(used, window)| {
+            let this = cx.entity().downgrade();
+            let open = self.context_open;
+            let ring = ContextMeter::new("prompt-context", used, window).tip(!open).on_click({
+                let this = this.clone();
+                move |_, _, cx| {
+                    this.update(cx, |this, cx| {
+                        this.context_open = !this.context_open;
+                        cx.notify();
+                    })
+                    .ok();
+                }
+            });
+            let panel = open.then(|| {
+                let text_focus = self.text.focus_handle(cx);
+                let (close, cross) = (this.clone(), this.clone());
+                let rows = self.context_parts.len();
+                let usage = ContextUsage::new(used, window).parts(self.context_parts.clone()).on_close(move |_, _, cx| {
+                    cross.update(cx, |this, cx| {
+                        this.context_open = false;
+                        cx.notify();
+                    })
+                    .ok();
+                });
+                Popover::new("prompt-context-popover")
+                    .open(true)
+                    .hang(Hang::Right(0., 0.))
+                    .side(Side::Auto)
+                    .gap(8.)
+                    .height(context_usage::height(rows))
+                    .return_focus(&text_focus)
+                    .on_close(move |_, cx| {
+                        close
+                            .update(cx, |this, cx| {
+                                this.context_open = false;
+                                cx.notify();
+                            })
+                            .ok();
+                    })
+                    .child(usage)
+            });
+            div().id("prompt-context-wrap").relative().flex_none().child(ring).children(panel)
+        });
         let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).child(send);
 
         let this = cx.entity().downgrade();
