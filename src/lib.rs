@@ -190,7 +190,7 @@ pub use message_bubble::{
 };
 pub use model_badge::{BrandMark, ModelBadge};
 pub use pane::{pane_header_height, drag_space, pane_header};
-pub use pr::{Checks, ChecksSummary, PrChipData, PrState, ReviewState};
+pub use pr::{Checks, ChecksSummary, PrChipData, PrFacts, PrState, ReviewState};
 pub use merge_box::{MergeBox, MergeBoxEvent};
 pub use button_group::ButtonGroup;
 pub use checkbox::Checkbox;
