@@ -15,11 +15,12 @@ pub struct ButtonGroup {
     pub(super) variant: ButtonVariant,
     pub(super) size: ButtonSize,
     pub(super) layout: Axis,
+    fit: bool,
 }
 
 impl ButtonGroup {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), children: Vec::new(), variant: ButtonVariant::default(), size: ButtonSize::default(), layout: Axis::Horizontal }
+        Self { id: id.into(), children: Vec::new(), variant: ButtonVariant::default(), size: ButtonSize::default(), layout: Axis::Horizontal, fit: false }
     }
 
     pub fn child(mut self, child: Button) -> Self {
@@ -44,6 +45,12 @@ impl ButtonGroup {
         self
     }
 
+    /// The group gives way when its row is too narrow, for a segment that shrinks ([`Button::shrink`]).
+    pub fn fit(mut self, fit: bool) -> Self {
+        self.fit = fit;
+        self
+    }
+
     /// Side by side (the default) or stacked.
     pub fn layout(mut self, layout: Axis) -> Self {
         self.layout = layout;
@@ -59,7 +66,8 @@ impl RenderOnce for ButtonGroup {
         div()
             .id(self.id)
             .flex()
-            .flex_none()
+            .when(!self.fit, |d| d.flex_none())
+            .when(self.fit, |d| d.min_w_0())
             .when(vertical, |d| d.flex_col())
             .when(!vertical, |d| d.items_center())
             .gap(px(SEAM))

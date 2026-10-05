@@ -139,6 +139,8 @@ pub(super) struct CallMotion {
     scroll: ScrollHandle,
     /// A clipped output the reader pressed open.
     expanded: bool,
+    /// A running call's output pins its end until the reader scrolls away from it.
+    following: bool,
 }
 
 impl RenderOnce for ToolCall {
@@ -155,8 +157,9 @@ impl RenderOnce for ToolCall {
             copy: CopyFeedback::default(),
             scroll: ScrollHandle::new(),
             expanded: false,
+            following: true,
         });
-        follow_status(&motion, status, has_body, self.collapse_on_complete, reduce, cx);
+        follow_status(&motion, status, has_body, self.default_open, self.collapse_on_complete, reduce, cx);
         let m = motion.read(cx);
         // Nothing spins here any more, so only the open and close reveal needs frames.
         if m.disclosure.is_moving() {
@@ -262,7 +265,19 @@ impl RenderOnce for ToolCall {
                 Some(rows) => text.lines().skip(total - rows).collect::<Vec<_>>().join("\n").into(),
                 None => output,
             };
+            // An output that scrolls pins its end while the call runs, until the reader scrolls up; clipped, it does not scroll.
+            if clip.is_none() {
+                let from_end = crate::scroll_chain::from_end(&scroll);
+                let following = motion.update(cx, |m, _| {
+                    m.following = crate::scroll_chain::follows(m.following, from_end);
+                    m.following
+                });
+                if status == ToolStatus::Running && following {
+                    scroll.scroll_to_bottom();
+                }
+            }
             let viewport = self.preview_rows.map_or(MAX_OUTPUT_HEIGHT, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT + 24.);
+            let lines = div().debug_selector(|| "tool-output-text".into()).child(shown);
             let text_box = div()
                 .id(child("output"))
                 .debug_selector(|| "tool-output".into())
@@ -273,8 +288,8 @@ impl RenderOnce for ToolCall {
                 .text_color(theme.foreground.opacity(0.85));
             let text_box = match clip {
                 // The last lines stay in view: what does not fit runs off the top.
-                Some(rows) => text_box.flex().flex_col().justify_end().max_h(px(rows as f32 * ROW_HEIGHT + 24.)).overflow_hidden().child(shown),
-                None => text_box.max_h(px(viewport)).overflow_y_scroll().track_scroll(&scroll).child(shown),
+                Some(rows) => text_box.flex().flex_col().justify_end().max_h(px(rows as f32 * ROW_HEIGHT + 24.)).overflow_hidden().child(lines),
+                None => text_box.max_h(px(viewport)).overflow_y_scroll().track_scroll(&scroll).child(lines),
             };
             // With a clip set, the output and its hint are one press target: they open, and tell the owner.
             let text_box = match self.preview_rows {
@@ -289,6 +304,9 @@ impl RenderOnce for ToolCall {
                             let pressed = press.update(cx, |m, cx| {
                                 let pressed = Press::on(m.expanded, clipped);
                                 m.expanded = pressed.expanded;
+                                // Either way the output starts over: from its top, and pinned to its end while it runs.
+                                m.following = true;
+                                m.scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
                                 cx.notify();
                                 pressed
                             });
@@ -309,8 +327,9 @@ impl RenderOnce for ToolCall {
                     .overflow_hidden()
                     .when(flat, |d| d.rounded(radius::xl()))
                     .bg(if flat { theme.card_strong } else { theme.background.opacity(0.5) })
-                    // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel.
-                    .on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
+                    // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel. A clipped one does not
+                    // scroll, and leaves the wheel to the panel.
+                    .when(clip.is_none(), |d| d.on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone())))
                     .child(text_box)
                     .child(
                         div()

@@ -5,7 +5,7 @@ use std::time::Instant;
 pub enum ThinkingPhase {
     /// Thinking since `since`. The label changes at 15, 30, 45, and 60 seconds.
     Thinking { since: Instant },
-    /// Thinking has ended: "Thought for {seconds}s", with no shimmer.
+    /// Thinking has ended: "Thought for {seconds}s" (just "Thought" for 0), with no shimmer.
     Thought { seconds: u64 },
     Connecting,
     Sending,

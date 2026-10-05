@@ -37,3 +37,21 @@ fn a_sideways_wheel_counts_on_the_sideways_axis() {
     assert!(used_the_wheel(point(px(-20.), px(0.)), max, point(px(-5.), px(0.))));
     assert!(!used_the_wheel(point(px(5.), px(0.)), max, point(px(5.), px(0.))));
 }
+
+#[test]
+fn a_box_at_its_end_keeps_following() {
+    assert!(follows(true, 0.));
+    assert!(follows(true, FOLLOW_REACH));
+}
+
+#[test]
+fn a_reader_who_scrolls_up_past_the_reach_lets_go() {
+    assert!(!follows(true, FOLLOW_REACH + 1.));
+}
+
+#[test]
+fn it_takes_hold_again_only_at_the_end() {
+    assert!(!follows(false, FOLLOW_REACH));
+    assert!(!follows(false, 20.));
+    assert!(follows(false, 0.5));
+}

@@ -36,7 +36,7 @@ fn enter_and_command_enter_send_and_shift_enter_does_not(cx: &mut TestAppContext
     cx.simulate_input("three");
     cx.simulate_keystrokes("shift-enter");
     let sent: Vec<String> = heard.borrow().iter().filter_map(|e| match e {
-        PromptInputEvent::Submit(t) => Some(t.to_string()),
+        PromptInputEvent::Submit(m) => Some(m.text.to_string()),
         _ => None,
     }).collect();
     assert_eq!(sent, ["one", "two"]);
@@ -97,7 +97,7 @@ fn a_slash_offers_the_commands_and_enter_runs_one(cx: &mut TestAppContext) {
     assert!(cx.debug_bounds("command-row-compact").is_none(), "the list closes");
 }
 
-/// A command that takes words writes its name and waits for them; Enter then sends the whole line.
+/// A command that takes words waits for them as a chip in front of the box; Enter then runs it with what was written.
 #[gpui_kit::test]
 fn a_command_with_arguments_waits_for_them(cx: &mut TestAppContext) {
     let (prompt, heard, cx) = open(cx);
@@ -106,14 +106,15 @@ fn a_command_with_arguments_waits_for_them(cx: &mut TestAppContext) {
     cx.run_until_parked();
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
-    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "/goal ");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "", "the name is a chip, not text");
+    assert!(cx.debug_bounds("chip-command").is_some(), "the command waits as a chip");
     cx.simulate_input("ship it");
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert_eq!(commands_of(&heard), [("goal".to_string(), "ship it".to_string())]);
 }
 
-/// A skill picked from the list goes into the box and waits; Enter then sends it.
+/// A skill picked from the list waits as a chip; Enter then runs it.
 #[gpui_kit::test]
 fn a_picked_skill_waits_in_the_box(cx: &mut TestAppContext) {
     let (prompt, heard, cx) = open(cx);
@@ -123,7 +124,8 @@ fn a_picked_skill_waits_in_the_box(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert!(commands_of(&heard).is_empty(), "the pick does not run the skill");
-    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "/tidy ");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "");
+    assert!(cx.debug_bounds("chip-command").is_some());
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert_eq!(commands_of(&heard), [("tidy".to_string(), String::new())]);
@@ -147,7 +149,7 @@ fn a_picked_skill_runs_when_set_to(cx: &mut TestAppContext) {
 
 fn sent(heard: &Rc<RefCell<Vec<PromptInputEvent>>>) -> Vec<String> {
     heard.borrow().iter().filter_map(|e| match e {
-        PromptInputEvent::Submit(t) => Some(t.to_string()),
+        PromptInputEvent::Submit(m) => Some(m.text.to_string()),
         _ => None,
     }).collect()
 }
@@ -164,12 +166,12 @@ fn an_at_sign_offers_the_files_and_enter_adds_a_chip(cx: &mut TestAppContext) {
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "look at ");
-    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_some(), "the file shows as a chip");
+    assert!(cx.debug_bounds("chip-src/lib.rs").is_some(), "the file shows as a chip");
     cx.simulate_input("please");
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
     assert_eq!(sent(&heard), ["@src/lib.rs look at please"]);
-    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_none(), "a sent message takes its chips");
+    assert!(cx.debug_bounds("chip-src/lib.rs").is_none(), "a sent message takes its chips");
 }
 
 /// A chip's remove button takes the file off the message; one file is one chip.
@@ -187,11 +189,11 @@ fn a_chip_comes_off_and_a_file_is_one_chip(cx: &mut TestAppContext) {
     cx.run_until_parked();
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
-    assert_eq!(cx.update(|_, cx| prompt.read(cx).attached().len()), 2);
-    let remove = cx.debug_bounds("file-chip-remove-src/lib.rs").expect("a chip has a remove button");
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).chips().len()), 2);
+    let remove = cx.debug_bounds("chip-remove-src/lib.rs").expect("a chip has a remove button");
     cx.simulate_click(remove.center(), gpui_kit::Modifiers::default());
     cx.run_until_parked();
-    assert!(cx.debug_bounds("file-chip-src/lib.rs").is_none());
+    assert!(cx.debug_bounds("chip-src/lib.rs").is_none());
     cx.simulate_input("go");
     cx.simulate_keystrokes("enter");
     cx.run_until_parked();
@@ -402,7 +404,7 @@ fn words_waiting_for_the_model_hold_nothing_up(cx: &mut TestAppContext) {
     cx.run_until_parked();
     cx.simulate_input("typed meanwhile");
     cx.simulate_keystrokes("enter");
-    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(t) if t == "typed meanwhile")));
+    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(m) if m.text == "typed meanwhile")));
     click(cx, "prompt-mic");
     assert_eq!(count(&heard, PromptInputEvent::DictationStart), 1);
 }
@@ -452,7 +454,7 @@ fn nothing_is_sent_while_it_listens(cx: &mut TestAppContext) {
     cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_voice_idle(cx)));
     cx.run_until_parked();
     cx.simulate_keystrokes("enter");
-    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(t) if t == "hello")));
+    assert!(heard.borrow().iter().any(|e| matches!(e, PromptInputEvent::Submit(m) if m.text == "hello")));
 }
 
 /// A failed press shows why, still lets the user send and press the microphone again.
@@ -649,6 +651,53 @@ fn the_context_meter_shows_once_told(cx: &mut TestAppContext) {
     assert!(meter.origin.x > frame.center().x, "it sits on the right, by Send");
 }
 
+/// A press on the ring opens the panel with the parts the owner told; the cross closes it, and the ring opens it again.
+#[gpui_kit::test]
+fn a_press_on_the_ring_opens_the_usage_panel_and_the_cross_closes_it(cx: &mut TestAppContext) {
+    use crate::context_usage::ContextPart;
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let mut made = None;
+    let (_root, cx) = cx.add_window_view(|window, cx| {
+        let prompt = cx.new(|cx| PromptInput::new("Ask", "", window, cx));
+        made = Some(prompt.clone());
+        Foot(prompt)
+    });
+    let prompt = made.unwrap();
+    cx.update(|_, cx| {
+        prompt.update(cx, |p, cx| {
+            p.set_context(106_300, 300_000, cx);
+            p.set_context_parts(vec![ContextPart::new("System prompt", 4_100), ContextPart::new("Conversation", 69_700)], cx);
+        })
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("context-usage").is_none(), "closed until pressed");
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage").is_some(), "the panel opens");
+    assert!(cx.debug_bounds("context-usage-part-1").is_some(), "with a row for each part");
+    assert!(cx.debug_bounds("context-usage-part-2").is_none(), "and no more");
+    let (panel, ring) = (cx.debug_bounds("context-usage").unwrap(), cx.debug_bounds("context-meter").unwrap());
+    assert!(panel.bottom() <= ring.top(), "it opens above the ring");
+    click(cx, "context-usage-close");
+    assert!(cx.debug_bounds("context-usage").is_none(), "the cross closes it");
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage").is_some(), "the ring opens it again");
+}
+
+/// Told no parts, the panel still opens, with a row for what is in use and one for what is free.
+#[gpui_kit::test]
+fn the_usage_panel_without_parts_shows_what_is_in_use_and_what_is_free(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_context(84_000, 200_000, cx)));
+    cx.run_until_parked();
+    click(cx, "context-meter");
+    assert!(cx.debug_bounds("context-usage-part-0").is_some(), "what is in use");
+    assert!(cx.debug_bounds("context-usage-part-1").is_some(), "and what is free");
+    assert!(cx.debug_bounds("context-usage-part-2").is_none());
+}
+
 fn heard_since(heard: &Rc<RefCell<Vec<PromptInputEvent>>>, from: usize) -> Vec<PromptInputEvent> {
     heard.borrow()[from..].iter().filter(|e| !matches!(e, PromptInputEvent::DictationDevices)).cloned().collect()
 }
@@ -662,7 +711,7 @@ fn while_running_enter_steers_and_command_enter_queues(cx: &mut TestAppContext) 
     cx.simulate_keystrokes("enter");
     cx.simulate_input("later");
     cx.simulate_keystrokes("secondary-enter");
-    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Submit("steer".into()), PromptInputEvent::Queue("later".into())]);
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Submit(Message::text("steer")), PromptInputEvent::Queue(Message::text("later"))]);
     assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "", "the box empties both times");
 }
 
@@ -676,7 +725,7 @@ fn while_running_the_button_stops_when_empty_and_steers_with_text(cx: &mut TestA
     cx.simulate_input("look at the tests too");
     cx.run_until_parked();
     click(cx, "prompt-send");
-    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Stop, PromptInputEvent::Submit("look at the tests too".into())]);
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Stop, PromptInputEvent::Submit(Message::text("look at the tests too"))]);
 }
 
 /// The queue the owner keeps shows a row each, whose buttons ask to send one now or take it out.
@@ -778,4 +827,201 @@ fn the_box_stops_growing_at_eight_lines(cx: &mut TestAppContext) {
     }
     cx.run_until_parked();
     assert_eq!(rows(cx).0.size.height, eight);
+}
+
+fn submitted(heard: &Rc<RefCell<Vec<PromptInputEvent>>>) -> Vec<Message> {
+    heard.borrow().iter().filter_map(|e| if let PromptInputEvent::Submit(m) = e { Some(m.clone()) } else { None }).collect()
+}
+
+/// The owner puts a chip of its own over the text; one with a mention writes it in front, one without adds no words,
+/// and the message carries both for the owner to read back by id.
+#[gpui_kit::test]
+fn a_chip_the_owner_adds_rides_with_the_message(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("note-1", "Pasted text").look(ChipLook::Icon(crate::icon::IconName::Copy)).detail("12 lines"), cx);
+        p.add_chip(Chip::new("see", "Spec").mention("@spec.md"), cx);
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("chip-note-1").is_some() && cx.debug_bounds("chip-see").is_some());
+    cx.simulate_input("go");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    let sent = submitted(&heard);
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].text, "@spec.md go");
+    assert_eq!(sent[0].chips.iter().map(|c| c.id.to_string()).collect::<Vec<_>>(), ["note-1", "see"]);
+    assert!(prompt.read_with(cx, |p, _| p.chips().is_empty()), "a sent message takes its chips");
+}
+
+/// A chip with an id already there is not added twice, and the owner can take one off by id.
+#[gpui_kit::test]
+fn a_chip_id_is_added_once_and_removed_by_id(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("a", "A"), cx);
+        p.add_chip(Chip::new("a", "A again"), cx);
+        p.add_chip(Chip::new("b", "B"), cx);
+    });
+    assert_eq!(prompt.read_with(cx, |p, _| p.chips().len()), 2);
+    prompt.update(cx, |p, cx| p.remove_chip("a", cx));
+    assert_eq!(prompt.read_with(cx, |p, _| p.chips().iter().map(|c| c.id.to_string()).collect::<Vec<_>>()), ["b"]);
+}
+
+/// A chip alone is enough to send: its words are the message, and without a mention there are none.
+#[gpui_kit::test]
+fn a_chip_alone_can_be_sent(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| p.add_chip(Chip::new("img", "Image"), cx));
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    let sent = submitted(&heard);
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0].text, "");
+    assert_eq!(sent[0].chips.len(), 1);
+}
+
+fn pastes(heard: &Rc<RefCell<Vec<PromptInputEvent>>>) -> Vec<Pasted> {
+    heard.borrow().iter().filter_map(|e| if let PromptInputEvent::Paste(p) = e { Some(p.clone()) } else { None }).collect()
+}
+
+fn paste(cx: &mut VisualTestContext, item: gpui_kit::ClipboardItem) {
+    cx.update(|_, cx| cx.write_to_clipboard(item));
+    cx.simulate_keystrokes("secondary-v");
+    cx.run_until_parked();
+}
+
+/// By default a paste is text in the box and nothing more; the owner hears nothing.
+#[gpui_kit::test]
+fn a_paste_is_text_in_the_box_unless_the_owner_takes_pastes(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    paste(cx, gpui_kit::ClipboardItem::new_string("some words".into()));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "some words");
+    assert!(pastes(&heard).is_empty());
+}
+
+/// Even when the owner takes pastes, a short line is words for the box: a link, a path, a name.
+#[gpui_kit::test]
+fn a_short_line_pastes_into_the_box_even_when_the_owner_takes_pastes(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, _| p.set_paste_chips(true));
+    paste(cx, gpui_kit::ClipboardItem::new_string("https://example.com/a?b=c".into()));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "https://example.com/a?b=c");
+    assert!(pastes(&heard).is_empty());
+    assert!(cx.update(|_, cx| prompt.read(cx).chips().is_empty()));
+}
+
+/// A line copied with its line break is still one line; a line past 200 characters, or two lines, is a chip.
+#[test]
+fn only_one_short_line_is_an_inline_paste() {
+    use super::helpers::is_inline_paste;
+    assert!(is_inline_paste("word"));
+    assert!(is_inline_paste("a line copied from a terminal\n"));
+    assert!(is_inline_paste("windows line\r\n"));
+    assert!(is_inline_paste(&"x".repeat(200)));
+    assert!(!is_inline_paste(&"x".repeat(201)));
+    assert!(!is_inline_paste("two\nlines"));
+    assert!(!is_inline_paste("two\nlines\n"));
+    assert!(!is_inline_paste("a\r\nb"));
+}
+
+/// When the owner takes pastes, text goes to it and the box stays as it was.
+#[gpui_kit::test]
+fn a_pasted_text_goes_to_the_owner_when_it_takes_pastes(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, _| p.set_paste_chips(true));
+    paste(cx, gpui_kit::ClipboardItem::new_string("a long\nlog".into()));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "");
+    assert_eq!(pastes(&heard), [Pasted::Text("a long\nlog".into())]);
+}
+
+/// An image on the clipboard is told apart from the text beside it, and wins: a browser puts both.
+#[gpui_kit::test]
+fn a_pasted_image_comes_before_the_text_beside_it(cx: &mut TestAppContext) {
+    use gpui_kit::{ClipboardEntry, ClipboardString, Image, ImageFormat};
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, _| p.set_paste_chips(true));
+    let image = Image::from_bytes(ImageFormat::Png, vec![1, 2, 3]);
+    paste(cx, gpui_kit::ClipboardItem { entries: vec![ClipboardEntry::String(ClipboardString::new("<img>".into())), ClipboardEntry::Image(image.clone())] });
+    assert_eq!(pastes(&heard), [Pasted::Image(std::sync::Arc::new(image))]);
+}
+
+/// Copied files arrive as files.
+#[gpui_kit::test]
+fn pasted_files_arrive_as_paths(cx: &mut TestAppContext) {
+    use gpui_kit::{ClipboardEntry, ExternalPaths};
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, _| p.set_paste_chips(true));
+    paste(cx, gpui_kit::ClipboardItem { entries: vec![ClipboardEntry::ExternalPaths(ExternalPaths(["/tmp/a.png".into(), "/tmp/b.rs".into()].into_iter().collect()))] });
+    assert_eq!(pastes(&heard), [Pasted::Files(vec!["/tmp/a.png".into(), "/tmp/b.rs".into()])]);
+}
+
+/// An image chip shows its thumbnail where a file chip shows its icon.
+#[gpui_kit::test]
+fn an_image_chip_is_drawn(cx: &mut TestAppContext) {
+    use gpui_kit::{Image, ImageFormat};
+    let (prompt, _, cx) = open(cx);
+    let image = std::sync::Arc::new(Image::from_bytes(ImageFormat::Png, vec![1, 2, 3]));
+    prompt.update(cx, |p, cx| p.add_chip(Chip::new("img-1", "Image").look(ChipLook::Image(image)), cx));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("chip-img-1").is_some());
+}
+
+/// The ✕ on the command chip lets go of the command: the next message is a plain message.
+#[gpui_kit::test]
+fn the_command_chips_cross_lets_go_of_the_command(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| p.set_commands(commands(), cx));
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    let cross = cx.debug_bounds("chip-remove-command").expect("the chip has a cross");
+    cx.simulate_click(cross.center(), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("chip-command").is_none());
+    cx.simulate_input("hello");
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    assert!(commands_of(&heard).is_empty());
+    assert_eq!(sent(&heard), ["hello"]);
+}
+
+/// Backspace in an empty box takes the last chip off, then the command; with words in the box it is the text's own.
+#[gpui_kit::test]
+fn backspace_in_an_empty_box_takes_chips_off_from_the_end(cx: &mut TestAppContext) {
+    let (prompt, _, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.set_commands(commands(), cx);
+        p.add_chip(Chip::new("a", "A"), cx);
+        p.add_chip(Chip::new("b", "B"), cx);
+    });
+    cx.simulate_input("/tid");
+    cx.run_until_parked();
+    cx.simulate_keystrokes("enter");
+    cx.run_until_parked();
+    cx.simulate_input("xy");
+    cx.simulate_keystrokes("backspace");
+    assert_eq!(prompt.read_with(cx, |p, cx| p.text(cx).to_string()), "x", "with words, backspace is the text's");
+    assert_eq!(prompt.read_with(cx, |p, _| p.chips().len()), 2);
+    cx.simulate_keystrokes("backspace");
+    cx.simulate_keystrokes("backspace");
+    assert_eq!(prompt.read_with(cx, |p, _| p.chips().iter().map(|c| c.id.to_string()).collect::<Vec<_>>()), ["a"], "the last chip goes first");
+    cx.simulate_keystrokes("backspace");
+    assert!(cx.debug_bounds("chip-command").is_some(), "the command stays until the chips are gone");
+    cx.simulate_keystrokes("backspace");
+    assert!(cx.debug_bounds("chip-command").is_none());
+}
+
+/// The owner can say which mode the agent runs in: the picker shows it, a word it does not offer changes nothing, and
+/// nobody is told (a mode the owner set is not one the reader chose).
+#[gpui_kit::test]
+fn the_owner_sets_the_mode_the_picker_shows(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Ask first"));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_mode("Plan", cx)));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_mode("Bypass", cx)));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
+    assert!(heard.borrow().iter().all(|e| !matches!(e, PromptInputEvent::ModeChanged(_))));
 }

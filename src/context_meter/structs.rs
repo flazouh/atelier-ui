@@ -1,37 +1,45 @@
 use std::f32::consts::TAU;
 
+use std::rc::Rc;
+
 use gpui_kit::{
-    App, ElementId, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, StatefulInteractiveElement,
-    Styled, Window, canvas, div, px,
+    App, ClickEvent, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, StatefulInteractiveElement,
+    Styled, Window, canvas, div, prelude::FluentBuilder, px,
 };
 
 use crate::{
     spinner::{RING_ALPHA, arc, dot, stroke},
-    theme::{ActiveTheme, Theme},
+    theme::ActiveTheme,
     tooltip::Tooltip,
 };
-use super::helpers::{fraction, level, summary};
-use super::types::{Level, SIZE, SLOT, STEPS, STROKE};
+use super::helpers::{fraction, ink, level, summary};
+use super::types::{SIZE, SLOT, STEPS, STROKE};
 
 #[derive(IntoElement)]
 pub struct ContextMeter {
     id: ElementId,
     used: u64,
     window: u64,
+    tip: bool,
+    on_click: Option<Rc<dyn Fn(&ClickEvent, &mut Window, &mut App)>>,
 }
 
 impl ContextMeter {
     /// `used` tokens of a window of `window`.
     pub fn new(id: impl Into<ElementId>, used: u64, window: u64) -> Self {
-        Self { id: id.into(), used, window }
+        Self { id: id.into(), used, window, tip: true, on_click: None }
     }
-}
 
-fn ink(level: Level, theme: &Theme) -> Hsla {
-    match level {
-        Level::Room => theme.muted_foreground,
-        Level::Filling => theme.warning,
-        Level::Full => theme.danger,
+    /// Whether a hover tells the numbers. An owner that shows them in a panel turns it off while the panel is open.
+    pub fn tip(mut self, tip: bool) -> Self {
+        self.tip = tip;
+        self
+    }
+
+    /// Makes the ring a button: a press runs `handler`.
+    pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+        self.on_click = Some(Rc::new(handler));
+        self
     }
 }
 
@@ -65,7 +73,8 @@ impl RenderOnce for ContextMeter {
             .flex()
             .items_center()
             .justify_center()
-            .tooltip(Tooltip::text(summary(self.used, self.window)))
+            .when(self.tip, |d| d.tooltip(Tooltip::text(summary(self.used, self.window))))
+            .when_some(self.on_click, |d, click| d.cursor_pointer().on_click(move |event, window, cx| click(event, window, cx)))
             .child(ring)
     }
 }

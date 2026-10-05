@@ -28,6 +28,7 @@ fn the_label_changes_at_each_threshold() {
 #[test]
 fn a_finished_thought_names_its_length() {
     assert_eq!(label(&labels(), ThinkingPhase::Thought { seconds: 4 }, 99.), "Thought for 4s");
+    assert_eq!(label(&labels(), ThinkingPhase::Thought { seconds: 0 }, 99.), "Thought", "no time to tell, so none is claimed");
 }
 
 #[test]
