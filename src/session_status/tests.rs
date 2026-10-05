@@ -35,13 +35,13 @@ fn the_amber_dot_and_the_warning_belong_to_different_statuses() {
 }
 
 #[test]
-fn only_a_session_that_owes_the_reader_something_shows_its_words() {
+fn only_a_session_that_waits_for_the_reader_shows_its_words() {
     for (status, note) in [
         (SessionStatus::Working, false),
         (SessionStatus::NeedsYou(Need::Approval), true),
         (SessionStatus::Finished, false),
         (SessionStatus::Idle, false),
-        (SessionStatus::Failed("x".into()), true),
+        (SessionStatus::Failed("x".into()), false),
     ] {
         assert_eq!(status.has_note(), note, "{status:?}");
     }
