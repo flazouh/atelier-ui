@@ -200,6 +200,43 @@ fn a_chip_comes_off_and_a_file_is_one_chip(cx: &mut TestAppContext) {
     assert_eq!(sent(&heard), ["@README.md go"]);
 }
 
+/// A chip replaced stays where it was; one that was not there goes last.
+#[gpui_kit::test]
+fn a_replaced_chip_keeps_its_place(cx: &mut TestAppContext) {
+    let (prompt, _heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("a", "A"), cx);
+        p.add_chip(Chip::new("b", "B"), cx);
+        p.replace_chip(Chip::new("a", "A again"), cx);
+        p.replace_chip(Chip::new("c", "C"), cx);
+    });
+    let labels: Vec<String> = prompt.read_with(cx, |p, _| p.chips().iter().map(|c| c.label.to_string()).collect());
+    assert_eq!(labels, ["A again", "B", "C"]);
+}
+
+/// A press on a chip reports it by its id; the ✕ takes the chip off and reports nothing.
+#[gpui_kit::test]
+fn a_chip_press_is_reported_and_its_cross_is_not(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, cx| {
+        p.add_chip(Chip::new("quote-1", "The build fails"), cx);
+        p.add_chip(Chip::new("quote-2", "Second"), cx);
+    });
+    cx.run_until_parked();
+    let chip = cx.debug_bounds("chip-quote-1").expect("the chip is drawn");
+    cx.simulate_click(chip.origin + gpui_kit::point(gpui_kit::px(10.), chip.size.height / 2.), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    let pressed = |heard: &Rc<RefCell<Vec<PromptInputEvent>>>| {
+        heard.borrow().iter().filter_map(|e| match e { PromptInputEvent::ChipPressed(id) => Some(id.to_string()), _ => None }).collect::<Vec<_>>()
+    };
+    assert_eq!(pressed(&heard), ["quote-1"]);
+    let cross = cx.debug_bounds("chip-remove-quote-2").expect("a chip has a cross");
+    cx.simulate_click(cross.center(), gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    assert_eq!(pressed(&heard), ["quote-1"], "the cross is not a press on the chip");
+    assert!(cx.debug_bounds("chip-quote-2").is_none());
+}
+
 /// Escape closes the list and keeps the text; Down moves to the next row.
 #[gpui_kit::test]
 fn escape_closes_the_list_and_down_moves_in_it(cx: &mut TestAppContext) {
@@ -1024,4 +1061,13 @@ fn the_owner_sets_the_mode_the_picker_shows(cx: &mut TestAppContext) {
     cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_mode("Bypass", cx)));
     assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
     assert!(heard.borrow().iter().all(|e| !matches!(e, PromptInputEvent::ModeChanged(_))));
+}
+
+#[test]
+fn a_chips_ink_reads_on_its_fill_in_the_light_and_the_dark_theme() {
+    for theme in [crate::theme::Theme::light(), crate::theme::Theme::dark()] {
+        let ink = super::helpers::chip_ink(&theme);
+        let seen = crate::theme::contrast(ink, theme.chip_rest);
+        assert!(seen >= 4.5, "{:?}: the ink on a chip has contrast {seen}", theme.appearance);
+    }
 }

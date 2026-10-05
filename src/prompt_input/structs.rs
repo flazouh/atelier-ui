@@ -693,6 +693,15 @@ impl PromptInput {
         false
     }
 
+    /// Puts `chip` where the chip with its id is, or at the end if there is none.
+    pub fn replace_chip(&mut self, chip: Chip, cx: &mut Context<Self>) {
+        match self.chips.iter_mut().find(|c| c.id == chip.id) {
+            Some(held) => *held = chip,
+            None => self.chips.push(chip),
+        }
+        cx.notify();
+    }
+
     /// Takes the chip with this id off.
     pub fn remove_chip(&mut self, id: &str, cx: &mut Context<Self>) {
         let before = self.chips.len();
@@ -853,13 +862,16 @@ impl PromptInput {
             chip.mention = None;
             (chip, true)
         });
+        let (chip_bg, ink) = (theme.chip_rest, super::helpers::chip_ink(&theme));
+        let quiet = crate::theme::mix(ink, chip_bg, 0.4);
         let all = command.into_iter().chain(self.chips.iter().cloned().map(|c| (c, false))).collect::<Vec<_>>();
         Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(all.into_iter().map(|(chip, is_command)| {
-            let (id, remove_id, gone) = (chip.id.clone(), chip.id.clone(), chip.id.clone());
+            let (id, remove_id, gone, pressed) = (chip.id.clone(), chip.id.clone(), chip.id.clone(), chip.id.clone());
             let owner = this.clone();
+            let presser = this.clone();
             let picture = match &chip.look {
                 ChipLook::None => None,
-                ChipLook::Icon(name) => Some(Icon::new(*name).size(px(12.)).color(theme.muted_foreground).into_any_element()),
+                ChipLook::Icon(name) => Some(Icon::new(*name).size(px(12.)).color(quiet).into_any_element()),
                 ChipLook::File(path) => Some(crate::file_icon::FileIcon::file(path).size(px(12.)).into_any_element()),
                 ChipLook::Image(image) => Some(
                     <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(image.clone()), gpui_kit::ObjectFit::Cover).flex_none().size(px(16.)).rounded(px(3.)).into_any_element(),
@@ -876,9 +888,15 @@ impl PromptInput {
                 .pr(px(2.))
                 .rounded(radius::md())
                 .bg(theme.chip_rest)
-                .hover(|d| d.bg(theme.chip_hover))
+                // Not `chip_hover`: that is the light end of the arrow chips, which would wash the label out.
+                .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.1)))
                 .text_size(TextSize::Xs.font_size())
-                .text_color(theme.foreground)
+                .text_color(ink)
+                .when(!is_command, |d| {
+                    d.on_click(move |_, _, cx| {
+                        presser.update(cx, |_, cx| cx.emit(PromptInputEvent::ChipPressed(pressed.clone()))).ok();
+                    })
+                })
                 .tooltip(crate::tooltip::Tooltip::text(chip.detail.clone().unwrap_or_else(|| chip.label.clone())))
                 .children(picture)
                 .child(chip.label.clone())
@@ -894,8 +912,8 @@ impl PromptInput {
                         .justify_center()
                         .size(px(18.))
                         .rounded(px(4.))
-                        .text_color(theme.muted_foreground)
-                        .hover(|d| d.bg(theme.muted_hover()).text_color(theme.foreground))
+                        .text_color(quiet)
+                        .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.2)).text_color(ink))
                         .child(Icon::new(IconName::Close).size(px(12.)))
                         .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation())
                         .on_click(move |_, _, cx| {

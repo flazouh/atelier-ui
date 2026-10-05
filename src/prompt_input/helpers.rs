@@ -22,3 +22,9 @@ pub(super) fn is_inline_paste(text: &str) -> bool {
     let line = text.trim_end_matches(['\n', '\r']);
     !line.contains(['\n', '\r']) && line.chars().count() <= MOST_INLINE_PASTE
 }
+
+/// The ink for a chip, a queued message or their buttons: `chip_rest` is dark in both themes, so the page's ink would
+/// vanish on it in the light one.
+pub(super) fn chip_ink(theme: &crate::theme::Theme) -> gpui_kit::Hsla {
+    crate::project_badge::ink_on(theme.chip_rest)
+}

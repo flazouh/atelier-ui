@@ -277,7 +277,8 @@ impl RenderOnce for ToolCall {
                 }
             }
             let viewport = self.preview_rows.map_or(MAX_OUTPUT_HEIGHT, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT + 24.);
-            let lines = div().debug_selector(|| "tool-output-text".into()).child(shown);
+            // The words can be selected and replied to; a drag over them is not a press on the output.
+            let lines = div().debug_selector(|| "tool-output-text".into()).child(gpui_kit::base::SelectableText::new(child("output-text"), shown));
             let text_box = div()
                 .id(child("output"))
                 .debug_selector(|| "tool-output".into())
@@ -301,6 +302,9 @@ impl RenderOnce for ToolCall {
                         .id(child("body"))
                         .cursor_pointer()
                         .on_click(move |_, window, cx| {
+                            if gpui_kit::base::TextSelection::has_selection(window, cx) {
+                                return;
+                            }
                             let pressed = press.update(cx, |m, cx| {
                                 let pressed = Press::on(m.expanded, clipped);
                                 m.expanded = pressed.expanded;

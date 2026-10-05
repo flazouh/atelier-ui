@@ -16,6 +16,7 @@ pub fn init(cx: &mut App) {
     // After the inline review's keys, so the composer's own win inside it.
     super::line_comment::bind_keys(cx);
     super::comment_composer::bind_keys(cx);
+    super::selection_reply::bind_keys(cx);
     super::accessibility::sync_reduce_motion(cx);
     super::typography::load_fonts(cx);
     super::theme::follow_system(cx);

@@ -23,7 +23,13 @@ pub struct MessageBubble {
     pub(super) variant: MessageBubbleVariant,
     align: MessageBubbleAlign,
     animate_in: bool,
-    pub(super) content: AnyElement,
+    content: Content,
+}
+
+/// What a bubble holds: something made, or words that can be selected.
+enum Content {
+    Element(AnyElement),
+    Words(gpui_kit::SharedString),
 }
 
 impl MessageBubble {
@@ -33,13 +39,15 @@ impl MessageBubble {
             variant: MessageBubbleVariant::default(),
             align: MessageBubbleAlign::default(),
             animate_in: false,
-            content: content.into_any_element(),
+            content: Content::Element(content.into_any_element()),
         }
     }
 
-    /// Plain text, for a bubble with no nested markup.
+    /// Plain text, for a bubble with no nested markup. The words can be selected.
     pub fn text(id: impl Into<ElementId>, body: impl Into<gpui_kit::SharedString>) -> Self {
-        Self::new(id, div().child(body.into()))
+        let mut bubble = Self::new(id, div());
+        bubble.content = Content::Words(body.into());
+        bubble
     }
 
     pub fn variant(mut self, variant: MessageBubbleVariant) -> Self {
@@ -78,7 +86,13 @@ impl RenderOnce for MessageBubble {
             .line_height(px(LINE))
             .text_color(text_color)
             .when_some(fill, |d, color| d.bg(color))
-            .child(self.content);
+            .child(match self.content {
+                Content::Element(element) => element,
+                // The wash is the text's own colour, so it shows on a light bubble and a dark one alike.
+                Content::Words(words) => gpui_kit::base::SelectableText::new(ElementId::NamedChild(Arc::new(self.id.clone()), "words".into()), words)
+                    .selection_color(text_color.opacity(0.25))
+                    .into_any_element(),
+            });
 
         let row = div()
             .flex()
