@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Instant};
 
 use gpui_kit::{
     AnyElement, App, AppContext, Context, Div, ElementId, Entity, FontWeight, HighlightStyle, Hsla, InteractiveElement, IntoElement, ParentElement,
-    StatefulInteractiveElement, StyledText, Styled, Window, black, div, prelude::FluentBuilder, white,
+    StatefulInteractiveElement, StyledText, Styled, Window, div, prelude::FluentBuilder,
 };
 
 use crate::scale::px;
@@ -127,19 +127,12 @@ fn open_in_app(card: &PrGlanceCard) -> Option<impl Fn(&gpui_kit::ClickEvent, &mu
     Some(move |_: &gpui_kit::ClickEvent, window: &mut Window, cx: &mut App| open(&pr, window, cx))
 }
 
-/// Text that reads on `fill`: dark on a bright fill, white on a dark one.
-pub(super) fn ink_on(fill: Hsla) -> Hsla {
-    let c = fill.to_rgb();
-    let luminance = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-    if luminance > 0.4 { mix(fill, black(), 0.72) } else { white() }
-}
-
 /// The state filled in its colour and how long since the pull request changed: `Open 2h ago`. A press opens the
 /// pull request in the app.
 fn state_pill(card: &PrGlanceCard, updated_at: u64, theme: &Theme) -> impl IntoElement {
     let state = card.pr.state;
     let fill = state.color(theme);
-    let ink = ink_on(fill);
+    let ink = crate::project_badge::ink_on(fill);
     div()
         .id(child_id(&card.id, "state"))
         .flex()
@@ -151,7 +144,7 @@ fn state_pill(card: &PrGlanceCard, updated_at: u64, theme: &Theme) -> impl IntoE
         .rounded(radius::md())
         .bg(fill)
         .text_color(ink)
-        .when_some(open_in_app(card), |d, open| d.cursor_pointer().hover(|s| s.bg(mix(fill, white(), 0.12))).on_click(open))
+        .when_some(open_in_app(card), |d, open| d.cursor_pointer().hover(|s| s.bg(mix(fill, ink, 0.12))).on_click(open))
         .child(Icon::new(state.icon()).size(px(12.)).color(ink))
         .child(div().font_weight(FontWeight::SEMIBOLD).child(state.label()))
         .when(updated_at > 0, |d| d.child(div().opacity(0.8).child(age(updated_at, now_secs()))))
