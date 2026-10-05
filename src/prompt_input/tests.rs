@@ -1062,3 +1062,12 @@ fn the_owner_sets_the_mode_the_picker_shows(cx: &mut TestAppContext) {
     assert_eq!(cx.update(|_, cx| prompt.read(cx).mode().cloned()).as_deref(), Some("Plan"));
     assert!(heard.borrow().iter().all(|e| !matches!(e, PromptInputEvent::ModeChanged(_))));
 }
+
+#[test]
+fn a_chips_ink_reads_on_its_fill_in_the_light_and_the_dark_theme() {
+    for theme in [crate::theme::Theme::light(), crate::theme::Theme::dark()] {
+        let ink = super::helpers::chip_ink(&theme);
+        let seen = crate::theme::contrast(ink, theme.chip_rest);
+        assert!(seen >= 4.5, "{:?}: the ink on a chip has contrast {seen}", theme.appearance);
+    }
+}
