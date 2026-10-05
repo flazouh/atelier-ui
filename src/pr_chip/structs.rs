@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use gpui_kit::{
     Anchor,
@@ -6,34 +6,26 @@ use gpui_kit::{
     AnimationExt,
     App,
     ElementId,
-    FontWeight,
+    Global,
     InteractiveElement,
     IntoElement,
     ParentElement,
     RenderOnce,
-    StatefulInteractiveElement,
     Styled,
     Window,
     base::{HoverCard, text::{InlineElement, InlineRenderContext, MarkdownNode, MarkdownParseContext, MarkdownPlugin, markdown_ast}},
     div,
-    prelude::FluentBuilder,
 };
 
 use crate::scale::px;
 use crate::{
-    button::{Button, ButtonSize, ButtonVariant},
-    copy_feedback::CopyFeedback,
-    focus::PressStop,
-    icon::Icon,
-    icon::IconName,
     motion::{cubic_bezier, duration, ease},
     pr::PrChipData,
-    pr_card::LinkActions,
-    theme::{ActiveTheme, mix, popover_shadow, radius},
-    typography::{MONO_FONT_FAMILY, TextSize},
+    pr_glance::{PrGlanceCard, pr_cards},
+    theme::ActiveTheme,
 };
-use super::types::{CARD_MAX_WIDTH, PILL_BASELINE, PILL_HEIGHT, PrOpenHandler};
-use super::helpers::chip_number;
+use super::types::{CLOSE_DELAY, PILL_BASELINE, PrOpenHandler};
+use super::helpers::{chip_number, open_delay, pill};
 
 #[derive(IntoElement)]
 pub struct PrChip {
@@ -58,94 +50,68 @@ impl PrChip {
     }
 }
 
+/// Whether a chip's card is open, and when one last opened or closed, across every chip: the pointer going
+/// from chip to chip opens the next card at once. A chip that leaves the screen with its card open leaves
+/// `open` set until another card closes.
+#[derive(Default)]
+pub(super) struct Warmth {
+    pub(super) open: bool,
+    pub(super) changed: Option<Instant>,
+}
+
+impl Global for Warmth {}
+
 impl RenderOnce for PrChip {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
-        let reduce = cx.reduce_motion();
         let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
-        let actions = window.use_keyed_state(child("actions"), cx, |_, _| LinkActions::default());
-        let (pr, on_open) = (self.pr.clone(), self.on_open.clone());
-
-        let pill = div()
-            .id(child("pill"))
-            .flex()
-            .items_center()
-            .gap(px(4.))
-            .h(px(PILL_HEIGHT))
-            .px(px(6.))
-            .rounded(radius::md())
-            .bg(theme.card_strong)
-            .hover(|s| s.bg(mix(theme.card_strong, theme.foreground, 0.06)))
-            .cursor_pointer()
-            .text_size(TextSize::Xs.font_size())
-            .line_height(px(PILL_HEIGHT))
-            .font_family(MONO_FONT_FAMILY)
-            .font_weight(FontWeight::MEDIUM)
-            .text_color(theme.foreground.opacity(0.9))
-            .when_some(on_open, |d, open| d.press_stop((self.id.clone(), "chip-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, window, cx| open(&pr, window, cx)))
-            .child(Icon::new(self.pr.state.icon()).size(px(12.)).color(self.pr.state.color(&theme)))
-            .child(self.pr.label());
-
-        let id = self.id.clone();
-        let pr = self.pr;
-        HoverCard::new(child("hover")).anchor(Anchor::BottomLeft).trigger(pill).content(move |_, _, cx| {
-            let theme = cx.theme().clone();
-            let muted = theme.muted_foreground;
-            let copied = actions.read(cx).copy.copied();
-            let button = |name: &'static str, icon: IconName, label: &'static str| {
-                Button::new(ElementId::NamedChild(Arc::new(id.clone()), name.into()))
-                    .icon(icon)
-                    .label(label)
-                    .variant(ButtonVariant::Ghost)
-                    .size(ButtonSize::Sm)
-            };
-            let (copy_url, open_url, copy_state) = (pr.url.to_string(), pr.url.to_string(), actions.clone());
-            let copy = button("copy", if copied { IconName::Check } else { IconName::Copy }, if copied { "Copied" } else { "Copy link" })
-                .on_click(move |_, _, cx| CopyFeedback::click(&copy_state, |s: &mut LinkActions| &mut s.copy, copy_url.clone(), cx));
-            let open = button("open", IconName::OpenInNew, "Open in browser").on_click(move |_, _, cx| cx.open_url(&open_url));
-            let card = div()
-                .my(px(6.))
-                .max_w(px(CARD_MAX_WIDTH))
-                .flex()
-                .flex_col()
-                .gap(px(4.))
-                .p(px(12.))
-                .rounded(radius::xl())
-                .bg(theme.card)
-                .shadow(popover_shadow(&theme))
-                .text_size(TextSize::Xs.font_size())
-                .line_height(TextSize::Xs.line_height())
-                .child(
-                    div()
-                        .flex()
-                        .items_center()
-                        .gap(px(6.))
-                        .text_color(muted)
-                        .child(Icon::new(pr.state.icon()).size(px(12.)).color(pr.state.color(&theme)))
-                        .child(div().flex_1().min_w_0().truncate().child(format!("{} {}", pr.repo, pr.label())))
-                        .child(div().flex_none().font_weight(FontWeight::MEDIUM).text_color(pr.state.color(&theme)).child(pr.state.label())),
-                )
-                .child(
-                    div()
-                        .text_size(TextSize::Sm.font_size())
-                        .line_height(TextSize::Sm.line_height())
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(theme.foreground.opacity(0.9))
-                        .child(pr.title.clone()),
-                )
-                .child(div().flex().gap(px(4.)).mt(px(6.)).ml(px(-8.)).child(copy).child(open));
-            let body = if reduce {
-                card.into_any_element()
-            } else {
-                card.with_animation(
-                    ElementId::NamedChild(Arc::new(id.clone()), "enter".into()),
-                    Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
-                    |card, t| card.opacity(t).relative().top(px(4. * (1. - t))),
-                )
-                .into_any_element()
-            };
-            div().id(ElementId::NamedChild(Arc::new(id.clone()), "card".into())).child(body)
-        })
+        let glance = window.use_keyed_state(child("glance"), cx, {
+            let (id, pr, on_open) = (self.id.clone(), self.pr.clone(), self.on_open.clone());
+            move |_, cx| PrGlanceCard::new(id, pr, on_open, cx)
+        });
+        glance.update(cx, |card, cx| card.set_pr(self.pr.clone(), cx));
+        let delay = open_delay(cx);
+        // A card that takes over from another swaps in place; only the first fades in.
+        let animate = !cx.reduce_motion() && !delay.is_zero();
+        let trigger = pill(&self.id, &self.pr, self.on_open.clone(), &theme, window, cx);
+        let hover = child("hover");
+        // Where the pill was last drawn: in the window's top half the card opens below it, else above.
+        let high = window.use_keyed_state(child("high"), cx, |_, _| false);
+        let anchor = if *high.read(cx) { Anchor::TopLeft } else { Anchor::BottomLeft };
+        let (id, pr) = (self.id, self.pr);
+        let card = HoverCard::new(hover)
+            .anchor(anchor)
+            .open_delay(delay)
+            .close_delay(CLOSE_DELAY)
+            .on_open_change(move |open, _, cx| {
+                *cx.default_global::<Warmth>() = Warmth { open: *open, changed: Some(Instant::now()) };
+                let handler = pr_cards(cx).read(cx).on_open.clone();
+                if let Some(handler) = handler {
+                    handler(&pr, *open, cx);
+                }
+            })
+            .trigger(trigger)
+            .content(move |_, _, _| {
+                let body = div().my(px(6.)).child(glance.clone());
+                let body = if animate {
+                    body.with_animation(
+                        ElementId::NamedChild(Arc::new(id.clone()), "enter".into()),
+                        Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
+                        |card, t| card.opacity(t).relative().top(px(2. * (1. - t))),
+                    )
+                    .into_any_element()
+                } else {
+                    body.into_any_element()
+                };
+                div().id(ElementId::NamedChild(Arc::new(id.clone()), "card".into())).child(body)
+            });
+        div()
+            .on_children_prepainted(move |bounds, window, cx| {
+                let Some(pill) = bounds.first() else { return };
+                let is_high = pill.top() < window.viewport_size().height / 2.;
+                high.update(cx, |high, _| *high = is_high);
+            })
+            .child(card)
     }
 }
 

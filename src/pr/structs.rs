@@ -1,6 +1,6 @@
 use gpui_kit::SharedString;
 
-use super::types::{ChecksSummary, PrState};
+use super::types::{ChecksSummary, PrState, PrVerdict, ReviewState, StandingTone};
 
 /// Everything a chip shows about one pull request.
 #[derive(Clone, Debug, PartialEq)]
@@ -12,6 +12,8 @@ pub struct PrChipData {
     pub state: PrState,
     /// Where Open and Copy link point.
     pub url: SharedString,
+    /// What the forge said beyond the title, once it said it.
+    pub facts: Option<PrFacts>,
 }
 
 impl PrChipData {
@@ -19,6 +21,53 @@ impl PrChipData {
     pub fn label(&self) -> SharedString {
         format!("#{}", self.number).into()
     }
+
+    /// The title without a conventional-commit head: `chore(ui): Faster chips` is `Faster chips`.
+    pub fn short_title(&self) -> &str {
+        let title = self.title.as_ref();
+        let Some((head, rest)) = title.split_once(": ") else { return title };
+        let kind = head.split('(').next().unwrap_or(head).trim_end_matches('!');
+        let conventional = !kind.is_empty() && kind.chars().all(|c| c.is_ascii_lowercase()) && !rest.is_empty();
+        if conventional { rest } else { title }
+    }
+}
+
+/// A pull request's author, size, talk, review and checks, as a list row knows them.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrFacts {
+    pub author: SharedString,
+    pub added: u32,
+    pub removed: u32,
+    pub comments: u32,
+    pub review: ReviewState,
+    /// `None` until the checks are known.
+    pub checks: Option<Checks>,
+    /// Unix seconds; 0 when the forge did not say.
+    pub updated_at: u64,
+    /// The branch and the one it goes into; empty when the forge did not say.
+    pub head: SharedString,
+    pub base: SharedString,
+    /// The branch and its base change the same lines.
+    pub conflicting: bool,
+    /// Who reviewed and who is asked to, verdicts first.
+    pub reviewers: Vec<PrReviewer>,
+    /// Whether it can merge now, and what holds it.
+    pub standing: Option<PrStanding>,
+}
+
+/// One reviewer and where they stand.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrReviewer {
+    pub who: SharedString,
+    pub verdict: PrVerdict,
+}
+
+/// A pull request's merge standing in a word and a few more: `Blocked`, `1 check failing`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PrStanding {
+    pub tone: StandingTone,
+    pub word: SharedString,
+    pub detail: SharedString,
 }
 
 /// How many checks of each kind a pull request has.

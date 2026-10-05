@@ -3,7 +3,7 @@ use crate::pr::{PrChipData, PrState};
 
 fn pr(number: u64, court: Court, changed_at: u64) -> CourtItem {
     CourtItem {
-        pr: PrChipData { number, repo: "o/r".into(), title: format!("PR {number}").into(), state: PrState::Open, url: "u".into() },
+        pr: PrChipData { number, repo: "o/r".into(), title: format!("PR {number}").into(), state: PrState::Open, url: "u".into(), facts: None },
         author: "Maya".into(),
         court,
         why: "".into(),

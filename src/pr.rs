@@ -5,8 +5,8 @@
 mod structs;
 mod types;
 
-pub use structs::{Checks, PrChipData};
-pub use types::{ChecksSummary, PrState, ReviewState};
+pub use structs::{Checks, PrChipData, PrFacts, PrReviewer, PrStanding};
+pub use types::{ChecksSummary, PrState, PrVerdict, ReviewState, StandingTone};
 
 #[cfg(test)]
 mod tests;
