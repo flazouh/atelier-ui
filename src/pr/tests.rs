@@ -40,7 +40,7 @@ fn each_state_has_its_word_and_its_own_mark() {
 
 #[test]
 fn a_chip_reads_as_its_number() {
-    let pr = PrChipData { number: 3344, repo: "o/r".into(), title: "t".into(), state: PrState::Open, url: "u".into() };
+    let pr = PrChipData { number: 3344, repo: "o/r".into(), title: "t".into(), state: PrState::Open, url: "u".into(), facts: None };
     assert_eq!(pr.label(), "#3344");
 }
 
@@ -50,4 +50,20 @@ fn each_state_wears_githubs_colour_for_it() {
     let hex = |theme: &Theme| states.map(|s| { let c = s.color(theme).to_rgb(); [c.r, c.g, c.b].map(|v| (v * 255.).round() as u32).iter().fold(0, |n, v| n << 8 | v) });
     assert_eq!(hex(&Theme::light()), [0x1A7F37, 0x59636E, 0x8250DF, 0xCF222E]);
     assert_eq!(hex(&Theme::dark()), [0x3FB950, 0x9198A1, 0xA371F7, 0xF85149]);
+}
+
+#[test]
+fn a_short_title_drops_a_conventional_commit_head_only() {
+    let title = |t: &str| PrChipData { number: 1, repo: "o/r".into(), title: t.to_string().into(), state: PrState::Open, url: "u".into(), facts: None };
+    let cases = [
+        ("chore(primevideo): Effect helpers in the TTML parser", "Effect helpers in the TTML parser"),
+        ("feat!: Faster chips", "Faster chips"),
+        ("fix: x", "x"),
+        ("Fix: the Mac build", "Fix: the Mac build"),
+        ("Plain title", "Plain title"),
+        ("note: ", "note: "),
+    ];
+    for (full, short) in cases {
+        assert_eq!(title(full).short_title(), short, "{full}");
+    }
 }

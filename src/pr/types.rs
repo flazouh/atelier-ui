@@ -91,3 +91,53 @@ impl ReviewState {
         }
     }
 }
+
+/// Where one reviewer stands: a verdict, or still asked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrVerdict {
+    Approved,
+    ChangesAsked,
+    Commented,
+    Waiting,
+}
+
+impl PrVerdict {
+    pub fn text(self) -> &'static str {
+        match self {
+            Self::Approved => "approved",
+            Self::ChangesAsked => "changes",
+            Self::Commented => "commented",
+            Self::Waiting => "waiting",
+        }
+    }
+
+    pub fn color(self, theme: &Theme) -> Hsla {
+        match self {
+            Self::Approved => theme.success,
+            Self::ChangesAsked => theme.warning,
+            Self::Commented | Self::Waiting => theme.muted_foreground,
+        }
+    }
+}
+
+/// How a merge standing reads: it can go, something holds it, it waits its turn, or it is over.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StandingTone {
+    Ready,
+    Held,
+    Waiting,
+    Merged,
+    Closed,
+}
+
+impl StandingTone {
+    pub fn color(self, theme: &Theme) -> Hsla {
+        match self {
+            Self::Ready => theme.success,
+            Self::Held => theme.warning,
+            Self::Waiting => theme.muted_foreground,
+            Self::Merged => PrState::Merged.color(theme),
+            Self::Closed => PrState::Closed.color(theme),
+        }
+    }
+}

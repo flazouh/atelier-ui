@@ -9,6 +9,7 @@ mod structs;
 mod types;
 
 pub use structs::PrCard;
+pub(crate) use helpers::link_actions;
 pub(crate) use structs::LinkActions;
 
 #[cfg(test)]

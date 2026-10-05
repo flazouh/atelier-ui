@@ -19,7 +19,7 @@ impl Render for Owner {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         let cards = self.facts.iter().enumerate().map(|(i, facts)| {
             let (opened, merged) = (self.log.clone(), self.log.clone());
-            let pr = PrChipData { number: 7, repo: "o/r".into(), title: "Fix".into(), state: PrState::Open, url: "https://x".into() };
+            let pr = PrChipData { number: 7, repo: "o/r".into(), title: "Fix".into(), state: PrState::Open, url: "https://x".into(), facts: None };
             PrCard::new(("card", i), pr)
                 .on_open(move |_, _, _| opened.borrow_mut().push("open".into()))
                 .merge(facts.clone(), first_choice(facts, None))
