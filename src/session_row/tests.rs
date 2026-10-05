@@ -9,12 +9,19 @@ fn theme() -> Theme {
 }
 
 #[test]
-fn a_session_that_owes_the_reader_shows_its_words_in_the_warning_tone_and_a_failure_in_the_danger_tone() {
+fn a_session_that_owes_the_reader_shows_its_words_in_the_warning_tone() {
     let theme = theme();
     let (words, tone) = trailing(&SessionStatus::NeedsYou(Need::Approval), 1000, 900, &theme);
     assert_eq!((words.as_ref(), tone), ("Needs approval", theme.warning));
-    let (words, tone) = trailing(&SessionStatus::Failed("exit code 3".into()), 1000, 900, &theme);
-    assert_eq!((words.as_ref(), tone), ("Stopped: exit code 3", theme.danger));
+}
+
+#[test]
+fn a_failure_prints_no_reason_in_the_row_and_leaves_it_to_its_red_dot() {
+    let theme = theme();
+    let (words, tone) = trailing(&SessionStatus::Failed("exit code 3".into()), 1000 + 120, 1000, &theme);
+    assert_eq!((words.as_ref(), tone), ("2m", theme.muted_foreground), "the time, as for any session at rest");
+    assert!(!SessionStatus::Failed("exit code 3".into()).has_note(), "and nothing under the title");
+    assert_eq!(SessionStatus::Failed("x".into()).mark(), crate::session_status::Mark::Danger);
 }
 
 #[test]

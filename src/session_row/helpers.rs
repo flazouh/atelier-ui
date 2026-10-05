@@ -89,11 +89,11 @@ pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionSt
         .into_any_element()
 }
 
-/// The words on the right of a row: what is owed, or the time since it last did anything.
+/// The words on the right of a row: what is owed, or the time since it last did anything. A stop shows the time like a
+/// session at rest: its red dot says it stopped, and the reason is not printed in a list.
 pub fn trailing(status: &SessionStatus, now: u64, active_at: u64, theme: &Theme) -> (SharedString, gpui_kit::Hsla) {
     match status {
         SessionStatus::NeedsYou(_) => (status.words(), theme.warning),
-        SessionStatus::Failed(_) => (status.words(), theme.danger),
         _ => (since(now, active_at).into(), theme.muted_foreground),
     }
 }

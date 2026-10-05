@@ -20,7 +20,8 @@ pub enum SessionStatus {
     Finished,
     /// Seen, and nothing going on.
     Idle,
-    /// The session stopped. The reason is short.
+    /// The session stopped. The reason is short, and for a tooltip and a screen reader ([`SessionStatus::words`]); a row
+    /// shows a red dot and no words.
     Failed(SharedString),
 }
 
@@ -55,10 +56,10 @@ impl SessionStatus {
         }
     }
 
-    /// Whether a row shows the words under its title. A working, finished or idle session shows none: its
-    /// mark says it.
+    /// Whether a row shows the words under its title. Only a session that waits for the reader does. A working,
+    /// finished, idle or stopped session shows none: its mark says it, and a stop's reason is not for a list.
     pub fn has_note(&self) -> bool {
-        matches!(self, Self::NeedsYou(_) | Self::Failed(_))
+        matches!(self, Self::NeedsYou(_))
     }
 
     pub fn mark(&self) -> Mark {
