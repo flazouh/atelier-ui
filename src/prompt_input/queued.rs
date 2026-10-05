@@ -21,6 +21,8 @@ impl PromptInput {
             return None;
         }
         let theme = cx.theme().clone();
+        let (ink, chip_bg) = (super::helpers::chip_ink(&theme), theme.chip_rest);
+        let quiet = crate::theme::mix(ink, chip_bg, 0.4);
         let this = cx.entity().downgrade();
         let rows = self.queued.iter().enumerate().map(|(place, text)| {
             let first_line: SharedString = text.lines().next().unwrap_or_default().to_string().into();
@@ -36,10 +38,10 @@ impl PromptInput {
                 .rounded(radius::md())
                 .bg(theme.chip_rest)
                 .text_size(TextSize::Xs.font_size())
-                .text_color(theme.muted_foreground)
+                .text_color(quiet)
                 .tooltip(Tooltip::text(text.clone()))
                 .child(Icon::new(IconName::Schedule).size(px(12.)))
-                .child(div().flex_1().min_w_0().truncate().text_color(theme.foreground).child(first_line))
+                .child(div().flex_1().min_w_0().truncate().text_color(ink).child(first_line))
                 .child(row_button("queued-send", place, IconName::ArrowUp, "Send now", &theme, &this, PromptInputEvent::SendQueued(place)))
                 .child(row_button("queued-remove", place, IconName::Close, "Remove", &theme, &this, PromptInputEvent::Unqueue(place)))
         });
@@ -57,6 +59,7 @@ fn row_button(
     event: PromptInputEvent,
 ) -> impl IntoElement {
     let owner = owner.clone();
+    let (ink, rest) = (super::helpers::chip_ink(theme), theme.chip_rest);
     div()
         .id(ElementId::NamedInteger(name.into(), place as u64))
         .debug_selector(move || format!("{name}-{place}"))
@@ -66,8 +69,8 @@ fn row_button(
         .justify_center()
         .size(px(22.))
         .rounded(px(4.))
-        .text_color(theme.muted_foreground)
-        .hover(|d| d.bg(theme.muted_hover()).text_color(theme.foreground))
+        .text_color(crate::theme::mix(ink, rest, 0.4))
+        .hover(move |d| d.bg(crate::theme::mix(rest, ink, 0.2)).text_color(ink))
         .tooltip(Tooltip::text(words))
         .child(Icon::new(icon).size(px(12.)))
         .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation())
