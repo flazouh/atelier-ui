@@ -2,7 +2,7 @@ use super::*;
 use crate::pr::PrState;
 
 fn pr(number: u64) -> PrChipData {
-    PrChipData { number, repo: "o/r".into(), title: "t".into(), state: PrState::Open, url: "u".into() }
+    PrChipData { number, repo: "o/r".into(), title: "t".into(), state: PrState::Open, url: "u".into(), facts: None }
 }
 
 fn known(n: u64) -> Option<PrChipData> {
@@ -34,4 +34,15 @@ fn a_chip_link_reads_back_as_its_number() {
     assert_eq!(chip_number("atelier-pr:3344"), Some(3344));
     assert_eq!(chip_number("https://example.com"), None);
     assert_eq!(chip_number("atelier-pr:x"), None);
+}
+
+#[test]
+fn a_card_opens_at_once_while_one_is_open_or_just_closed() {
+    use std::time::{Duration, Instant};
+    use super::{helpers::warm, structs::Warmth};
+    let now = Instant::now();
+    assert!(!warm(None, now), "the first card waits");
+    assert!(warm(Some(&Warmth { open: true, changed: Some(now - Duration::from_secs(30)) }), now));
+    assert!(warm(Some(&Warmth { open: false, changed: Some(now - Duration::from_millis(200)) }), now));
+    assert!(!warm(Some(&Warmth { open: false, changed: Some(now - Duration::from_secs(2)) }), now));
 }

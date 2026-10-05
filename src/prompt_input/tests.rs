@@ -937,6 +937,31 @@ fn a_paste_is_text_in_the_box_unless_the_owner_takes_pastes(cx: &mut TestAppCont
     assert!(pastes(&heard).is_empty());
 }
 
+/// Even when the owner takes pastes, a short line is words for the box: a link, a path, a name.
+#[gpui_kit::test]
+fn a_short_line_pastes_into_the_box_even_when_the_owner_takes_pastes(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    prompt.update(cx, |p, _| p.set_paste_chips(true));
+    paste(cx, gpui_kit::ClipboardItem::new_string("https://example.com/a?b=c".into()));
+    assert_eq!(cx.update(|_, cx| prompt.read(cx).text(cx).to_string()), "https://example.com/a?b=c");
+    assert!(pastes(&heard).is_empty());
+    assert!(cx.update(|_, cx| prompt.read(cx).chips().is_empty()));
+}
+
+/// A line copied with its line break is still one line; a line past 200 characters, or two lines, is a chip.
+#[test]
+fn only_one_short_line_is_an_inline_paste() {
+    use super::helpers::is_inline_paste;
+    assert!(is_inline_paste("word"));
+    assert!(is_inline_paste("a line copied from a terminal\n"));
+    assert!(is_inline_paste("windows line\r\n"));
+    assert!(is_inline_paste(&"x".repeat(200)));
+    assert!(!is_inline_paste(&"x".repeat(201)));
+    assert!(!is_inline_paste("two\nlines"));
+    assert!(!is_inline_paste("two\nlines\n"));
+    assert!(!is_inline_paste("a\r\nb"));
+}
+
 /// When the owner takes pastes, text goes to it and the box stays as it was.
 #[gpui_kit::test]
 fn a_pasted_text_goes_to_the_owner_when_it_takes_pastes(cx: &mut TestAppContext) {
