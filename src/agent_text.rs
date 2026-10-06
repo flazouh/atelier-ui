@@ -20,6 +20,7 @@
 //! `Thinking` while nothing has arrived yet, then swap to an `AgentText` in `Streaming` (silent, no row)
 //! and finally `Complete` (with the actions row) once the response settles.
 
+mod helpers;
 mod structs;
 mod types;
 
