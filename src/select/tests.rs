@@ -617,3 +617,18 @@ fn a_select_has_no_fill_of_its_own_until_given_one() {
     assert!(Select::new("s", ["a"]).fill.is_none());
     assert!(Select::new("s", ["a"]).fill(gpui_kit::hsla(0., 0., 0.5, 1.)).fill.is_some());
 }
+
+#[test]
+fn the_panel_is_square_where_the_trigger_is_square_and_round_at_its_far_end() {
+    use gpui_kit::Corners;
+    // The right part of two: its left side meets a neighbour.
+    let right_part = Corners { top_left: false, top_right: true, bottom_left: false, bottom_right: true };
+    let down = super::helpers::panel_corners(right_part, false);
+    assert_eq!((down.top_left, down.top_right), (false, true), "the top follows the trigger");
+    assert_eq!((down.bottom_left, down.bottom_right), (true, true), "the far end is round");
+    let up = super::helpers::panel_corners(right_part, true);
+    assert_eq!((up.bottom_left, up.bottom_right), (false, true), "opening up, the bottom follows it");
+    assert_eq!((up.top_left, up.top_right), (true, true));
+    let alone = Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true };
+    assert_eq!(super::helpers::panel_corners(alone, false), alone, "a lone select is round all round");
+}

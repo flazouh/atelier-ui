@@ -144,7 +144,8 @@ impl Select {
     }
 
     /// Rounds only these corners of the trigger, for a select that is one part of a joined row (see
-    /// [`crate::button_group::segment_corners`]). The open panel keeps all its corners.
+    /// [`crate::button_group::segment_corners`]). The open panel is drawn over the trigger, so the corners at its trigger's
+    /// edge follow it: a square corner of the trigger is square in the panel too, and the far corners stay round.
     pub fn corners(mut self, corners: Corners<bool>) -> Self {
         self.corners = corners;
         self
@@ -590,7 +591,16 @@ impl RenderOnce for Select {
             .gap(px(ROW_GAP))
             .p(px(PANEL_PAD))
             .children(options);
-        let edge_line = div().absolute().inset_0().rounded(radius::lg()).border_1().border_color(edge);
+        let shape = super::helpers::panel_corners(self.corners, upward);
+        let edge_line = div()
+            .absolute()
+            .inset_0()
+            .rounded_tl(round(shape.top_left))
+            .rounded_tr(round(shape.top_right))
+            .rounded_bl(round(shape.bottom_left))
+            .rounded_br(round(shape.bottom_right))
+            .border_1()
+            .border_color(edge);
         // The surface covers what is under it: a click on an option must not also reach that.
         let panel = div()
             .id("panel")
@@ -598,7 +608,10 @@ impl RenderOnce for Select {
             .relative()
             .w(px(surface_w))
             .h(px(surface_h))
-            .rounded(radius::lg())
+            .rounded_tl(round(shape.top_left))
+            .rounded_tr(round(shape.top_right))
+            .rounded_bl(round(shape.bottom_left))
+            .rounded_br(round(shape.bottom_right))
 
             .overflow_hidden()
             .bg(surface_fill)
