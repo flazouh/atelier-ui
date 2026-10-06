@@ -334,7 +334,20 @@ impl RenderOnce for AgentText {
             }
             None => (body.clone(), None),
         };
-        let mut text = TextView::markdown(self.id.clone(), markdown).style(style).selectable(true);
+        // The Markdown body fades what a stream adds to it, as the plain tail does, so a list or a code span is not the one
+        // thing that pops in. It is told every frame, as a view with no policy keeps the last one it had.
+        let was_plain = window.use_keyed_state(child_id("was-plain"), cx, |_, _| false);
+        let joining_now = *was_plain.read(cx);
+        was_plain.update(cx, |w, _| *w = tail.is_some());
+        let fade_body = super::helpers::fades_markdown(streaming, self.fade_tail, reduce, tail.is_some(), joining_now);
+        let motion = if fade_body {
+            gpui_kit::component::text::TextViewMotion::default()
+                .with_stream_fade(crate::stream_text::FADE)
+                .with_stream_fade_easing(gpui_kit::base::motion::Easing::EaseInOut)
+        } else {
+            gpui_kit::component::text::TextViewMotion::default()
+        };
+        let mut text = TextView::markdown(self.id.clone(), markdown).style(style).selectable(true).motion(motion);
         if let Some(chips) = chips {
             text = text.markdown_extensions(chips);
         }
