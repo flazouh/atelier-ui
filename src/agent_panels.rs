@@ -108,6 +108,9 @@ pub struct AgentPanels {
     pub(crate) tab_scroll: ScrollHandle,
     /// The tab bar scrolls the active tab into view at the next paint.
     pub(crate) reveal_tab: bool,
+    /// The owner draws the tab bar itself (in its title bar, with [`crate::panel_tabs::TabStrip`]), so the single
+    /// view leaves its own bar out.
+    pub(crate) tabs_hoisted: bool,
 }
 
 impl EventEmitter<PanelsEvent> for AgentPanels {}
@@ -140,7 +143,20 @@ impl AgentPanels {
             focus: cx.focus_handle(),
             tab_scroll: ScrollHandle::new(),
             reveal_tab: false,
+            tabs_hoisted: false,
         }
+    }
+
+    /// Whether the owner draws the single view's tab bar elsewhere. Only a change redraws.
+    pub fn set_tabs_hoisted(&mut self, hoisted: bool, cx: &mut Context<Self>) {
+        if self.tabs_hoisted != hoisted {
+            self.tabs_hoisted = hoisted;
+            cx.notify();
+        }
+    }
+
+    pub fn tabs_hoisted(&self) -> bool {
+        self.tabs_hoisted
     }
 
     pub fn state(&self) -> PanelsState {

@@ -125,7 +125,8 @@ impl AgentPanels {
         true
     }
 
-    pub(crate) fn single(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    /// The tabs and the project names between them, scrolled to the active tab once the bar is laid out.
+    fn bar_items(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let theme = cx.theme().clone();
         let groups = if self.grouped { grouped(self.tabs.order(), |t| self.project_of(t), &self.project_order) } else { Vec::new() };
         let mut bar: Vec<AnyElement> = Vec::new();
@@ -171,6 +172,29 @@ impl AgentPanels {
         if self.reveal_tab {
             window.request_animation_frame();
         }
+        bar
+    }
+
+    /// The tab bar on its own, as long as its owner gives it: it scrolls sideways when the tabs overflow. The owner
+    /// sets the height and the margins, and this fills them.
+    pub fn tab_strip(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        let bar = self.bar_items(window, cx);
+        div()
+            .id("tab-bar")
+            .flex()
+            .size_full()
+            .min_w_0()
+            .items_center()
+            .gap(px(2.))
+            .overflow_x_scroll()
+            .track_scroll(&self.tab_scroll)
+            .children(bar)
+            .into_any_element()
+    }
+
+    pub(crate) fn single(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+        let theme = cx.theme().clone();
+        let bar = (!self.tabs_hoisted).then(|| self.tab_strip(window, cx));
         let content = self
             .tabs
             .active()
@@ -181,19 +205,7 @@ impl AgentPanels {
             .min_h_0()
             .flex()
             .flex_col()
-            .child(
-                div()
-                    .id("tab-bar")
-                    .flex()
-                    .flex_none()
-                    .items_center()
-                    .gap(px(2.))
-                    .px(px(8.))
-                    .h(px(TAB_HEIGHT + 4.))
-                    .overflow_x_scroll()
-                    .track_scroll(&self.tab_scroll)
-                    .children(bar),
-            )
+            .children(bar.map(|bar| div().flex().flex_none().px(px(8.)).h(px(TAB_HEIGHT + 4.)).child(bar)))
             .child(
                 div()
                     .flex_1()

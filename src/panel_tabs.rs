@@ -7,4 +7,5 @@ mod impls;
 mod structs;
 mod types;
 
+pub use structs::TabStrip;
 pub use types::TAB_HEIGHT;
