@@ -27,6 +27,9 @@ const CUSTOM_PLACEHOLDER: &str = "Add another response…";
 /// What the reader answered, a question's text and the words that answer it, in the order the questions came.
 pub type SubmitHandler = Rc<dyn Fn(Vec<(SharedString, SharedString)>, &mut Window, &mut App)>;
 
+/// What pressing a choice does.
+type PressHandler = Rc<dyn Fn(&mut Window, &mut App)>;
+
 #[derive(IntoElement)]
 pub struct QuestionCard {
     id: ElementId,
@@ -220,7 +223,7 @@ fn pending_body(
     let multiple = question.multiple;
     let rows = question.options.iter().enumerate().map(|(i, (label, description))| {
         let (press_state, press_input) = (state.clone(), input.clone());
-        let handler: Rc<dyn Fn(&mut Window, &mut App)> = Rc::new(move |window, cx| {
+        let handler: PressHandler = Rc::new(move |window, cx| {
             press_state.update(cx, |s, cx| {
                 let next = pressed(&s.picks[step], i, multiple);
                 s.picks[step] = next;
@@ -342,7 +345,7 @@ fn option_row(
     description: &SharedString,
     multiple: bool,
     selected: bool,
-    on_press: Option<Rc<dyn Fn(&mut Window, &mut App)>>,
+    on_press: Option<PressHandler>,
 ) -> impl IntoElement {
     let ink = theme.foreground;
     let line = theme.muted_foreground;
