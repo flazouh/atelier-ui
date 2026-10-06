@@ -143,3 +143,13 @@ pub(crate) fn monogram(label: &SharedString, size: f32, theme: &crate::theme::Th
         .text_color(theme.muted_foreground)
         .child(letter)
 }
+
+/// The corners the open panel rounds. It grows from the trigger, down or up, so the two corners on the trigger's side
+/// follow the trigger's own (square beside a neighbour in a button group) and the far two are round.
+pub(crate) fn panel_corners(trigger: gpui_kit::Corners<bool>, upward: bool) -> gpui_kit::Corners<bool> {
+    if upward {
+        gpui_kit::Corners { top_left: true, top_right: true, bottom_left: trigger.bottom_left, bottom_right: trigger.bottom_right }
+    } else {
+        gpui_kit::Corners { top_left: trigger.top_left, top_right: trigger.top_right, bottom_left: true, bottom_right: true }
+    }
+}
