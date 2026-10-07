@@ -112,7 +112,10 @@ impl RenderOnce for ChangedFiles {
         if body.read(cx).is_moving() {
             window.request_animation_frame();
         }
-        let unfolded = body.read(cx).reveal.value();
+        let (unfolded, body_height) = {
+            let b = body.read(cx);
+            (b.reveal.value(), b.height.clone())
+        };
         let child = |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
 
         let (added, removed) = totals(&self.files);
@@ -259,26 +262,28 @@ impl RenderOnce for ChangedFiles {
         });
 
         div()
+            .debug_selector(|| "changed-files-card".into())
             .flex()
             .flex_col()
             .w_full()
             .rounded(radius::card())
             .bg(theme.card_strong)
             .child(header)
-            .when(unfolded > 0.001, |d| d.child(
-                div()
+            .when(unfolded > 0.001, |d| {
+                let rows = div()
                     .flex()
                     .flex_col()
                     .px(px(8.))
                     .pb(px(8.))
-                    .when(collapsible, |d| d.opacity(unfolded))
                     .child(visible)
                     .when(has_rest && reveal > 0.001, |d| {
                         // Its own list: its first paint is the reveal, so only later files enter.
                         d.child(crate::reveal::body(entering("rest", rest, window, cx), reveal, &height))
                     })
-                    .when_some(fold_button, |d, b| d.child(b)),
-            ))
-
+                    .when_some(fold_button, |d, b| d.child(b));
+                // A collapsible card folds like every section: the rows fade and the card takes `unfolded` of their height,
+                // so what stands below it moves with it, not all at once when the fade ends.
+                if collapsible { d.child(crate::reveal::body(rows, unfolded, &body_height)) } else { d.child(rows) }
+            })
     }
 }
