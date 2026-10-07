@@ -106,4 +106,37 @@ mod collapsible {
         cx.run_until_parked();
         assert!(cx.debug_bounds("changed-file-src/a.rs").is_some(), "open: the rows show");
     }
+    /// Folding takes the rows' height with it as it goes: the card passes through heights between open and folded, so what
+    /// stands below it moves with it and does not jump when the fade ends.
+    #[gpui_kit::test]
+    fn folding_shrinks_the_card_through_the_heights_between(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Dark, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (_host, cx) = cx.add_window_view(|_, _| Host { reviews: Rc::new(Cell::new(0)) });
+        cx.simulate_resize(size(px(500.), px(400.)));
+        cx.run_until_parked();
+        let toggle = cx.debug_bounds("changed-files-toggle").expect("the header");
+        let press = toggle.origin + gpui_kit::point(px(8.), px(8.));
+        let folded = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
+        cx.simulate_click(press, gpui_kit::Modifiers::default());
+        cx.run_until_parked();
+        cx.run_until_parked();
+        let open = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
+        assert!(open > folded + 20., "open is taller: {open} against {folded}");
+        cx.update(|_, cx| cx.set_reduce_motion(false));
+        cx.simulate_click(press, gpui_kit::Modifiers::default());
+        let mut between = false;
+        for _ in 0..60 {
+            cx.run_until_parked();
+            cx.update(|window, _| window.refresh());
+            let height = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
+            assert!(height <= open + 0.5 && height >= folded - 0.5, "{height} stays within {folded} and {open}");
+            between |= height > folded + 2. && height < open - 2.;
+            std::thread::sleep(std::time::Duration::from_millis(8));
+        }
+        assert!(between, "the card never passed between open and folded: it jumped");
+    }
 }
