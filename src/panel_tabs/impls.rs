@@ -10,7 +10,8 @@ use crate::{
     focus::PressStop,
     icon::{Icon, IconName},
     panel_types::{DraggedTab, PanelData, element_id},
-    session_row::status_mark,
+    project_badge::ProjectBadge,
+    session_row::agent_icon,
     tab_order::{grouped, visual_order},
     theme::{ActiveTheme, radius},
     typography::TextSize,
@@ -38,7 +39,8 @@ impl AgentPanels {
         let id = panel.id.clone();
         let (select, close, drop_on) = (cx.entity(), cx.entity(), cx.entity());
         let (select_id, close_id, drop_id) = (id.clone(), id.clone(), id.clone());
-        let mark = status_mark(element_id("tab-mark", &id.clone()), &panel.look, &panel.status, window, cx);
+        let mark = agent_icon(element_id("tab-mark", &id.clone()), &panel.look, &panel.status, &theme, true);
+        let project = panel.project.badge.clone().map(|b| ProjectBadge::new(b.label, b.color).icon(b.icon));
         let ghost = DraggedTab { id: id.clone(), title: panel.title.clone() };
         div()
             .id(element_id("tab", &id.clone()))
@@ -70,6 +72,7 @@ impl AgentPanels {
                 })
             })
             .child(mark)
+            .children(project)
             .child(
                 div()
                     .max_w(px(200.))
@@ -205,13 +208,11 @@ impl AgentPanels {
             .min_h_0()
             .flex()
             .flex_col()
-            .children(bar.map(|bar| div().flex().flex_none().px(px(8.)).h(px(TAB_HEIGHT + 4.)).child(bar)))
+            .children(bar.map(|bar| div().flex().flex_none().h(px(TAB_HEIGHT + 4.)).child(bar)))
             .child(
                 div()
                     .flex_1()
                     .min_h_0()
-                    .mx(px(8.))
-                    .mb(px(8.))
                     .rounded(radius::xl())
                     .overflow_hidden()
                     .bg(theme.card)

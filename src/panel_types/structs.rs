@@ -9,6 +9,8 @@ pub struct ProjectLabel {
     pub id: SharedString,
     pub name: SharedString,
     pub location: Location,
+    /// The project's badge, for a tab and a panel header; none draws the name.
+    pub badge: Option<crate::sidebar_model::Badge>,
 }
 
 /// A view that draws `f`, for content with no view of its own (a story, a test).
