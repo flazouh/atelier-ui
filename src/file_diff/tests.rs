@@ -527,3 +527,14 @@ mod wheel {
         assert!(from_end(&inner) < 1., "following again: {}", from_end(&inner));
     }
 }
+
+/// The card clips to a rectangle, so the row at its bottom edge rounds its own corners: only when a row is there.
+#[test]
+fn the_last_row_rounds_its_corners_when_it_stands_at_the_cards_bottom() {
+    use super::helpers::bottom_row;
+    assert_eq!(bottom_row(3, false, false, false), Some(2), "the rows end the card");
+    assert_eq!(bottom_row(0, false, false, false), None, "no rows");
+    assert_eq!(bottom_row(3, true, false, false), None, "the hint stands under the rows");
+    assert_eq!(bottom_row(3, false, true, false), None, "the copy footer stands under the rows");
+    assert_eq!(bottom_row(30, false, false, true), None, "scrolling rows are cut anywhere");
+}
