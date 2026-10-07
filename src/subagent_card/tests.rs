@@ -40,10 +40,10 @@ mod mark {
         cx.run_until_parked();
         cx.debug_bounds("subagent-mark").is_some()
     }
-    /// A running card has its coloured mark (a turning arc for an agent with no logo); a finished one has none, its check says it is done.
+    /// A card keeps its coloured mark when it is done: the logo at rest, or for an agent with no logo a filled check.
     #[gpui_kit::test]
-    fn only_a_running_card_has_a_mark(cx: &mut TestAppContext) {
+    fn a_card_keeps_its_mark_when_it_is_done(cx: &mut TestAppContext) {
         assert!(drawn(false, cx), "running: the mark is drawn");
-        assert!(!drawn(true, cx), "finished: no mark");
+        assert!(drawn(true, cx), "finished: the mark stays");
     }
 }

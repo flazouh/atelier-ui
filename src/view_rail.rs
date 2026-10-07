@@ -84,7 +84,7 @@ impl RenderOnce for ViewRail {
             .flex_col()
             .flex_none()
             .items_center()
-            .gap(px(4.))
+            .gap(px(crate::panel_layout::GAP))
             .w(px(WIDTH))
             .h_full()
             .pt(px(8.))
