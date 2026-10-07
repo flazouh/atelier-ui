@@ -1626,6 +1626,9 @@ impl Render for PromptInput {
                     div()
                         .relative()
                         .my(px(-TRIM_Y))
+                        // The field's own padding (its 4 and the editor's 10) puts the caret that far in; the box shifts left by it so the
+                        // caret starts where the first control starts.
+                        .ml(px(-(4. + EDITOR_PAD_X)))
                         .child(
                             div().when(overlay.is_some(), |d| d.opacity(0.)).child(
                                 Textarea::new(&self.text)

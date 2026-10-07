@@ -203,21 +203,17 @@ impl AgentPanels {
             .active()
             .and_then(|id| self.panels.iter().find(|p| p.id == *id))
             .map(|panel| crate::panel_types::draw_content(&panel.content));
+        // The same room round the panes as the strip leaves: its inset at the left, 8 at the right and the foot.
         div()
             .flex_1()
             .min_h_0()
             .flex()
             .flex_col()
+            .pl(px(self.inset_left))
+            .pr(px(8.))
+            .pb(px(8.))
             .children(bar.map(|bar| div().flex().flex_none().h(px(TAB_HEIGHT + 4.)).child(bar)))
-            .child(
-                div()
-                    .flex_1()
-                    .min_h_0()
-                    .rounded(radius::xl())
-                    .overflow_hidden()
-                    .bg(theme.card)
-                    .children(content),
-            )
+            .child(div().flex_1().min_h_0().rounded(radius::xl()).overflow_hidden().bg(theme.card).children(content))
             .into_any_element()
     }
 }

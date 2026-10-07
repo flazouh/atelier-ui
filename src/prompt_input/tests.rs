@@ -1071,3 +1071,31 @@ fn a_chips_ink_reads_on_its_fill_in_the_light_and_the_dark_theme() {
         assert!(seen >= 4.5, "{:?}: the ink on a chip has contrast {seen}", theme.appearance);
     }
 }
+
+/// The caret of an empty box stands at the left edge of the first control, so the text and the controls share one line down the
+/// box's left side.
+#[gpui_kit::test]
+fn the_caret_starts_where_the_first_control_starts(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let (column, cx) = cx.add_window_view(|window, cx| {
+        let prompt = cx.new(|cx| {
+            PromptInput::new("Ask", "", window, cx)
+                .models(vec![PromptModel::new("a", "Model A"), PromptModel::new("b", "Model B")])
+                .modes(vec!["Ask first".into(), "Plan".into()])
+        });
+        prompt.update(cx, |p, cx| p.focus_handle(cx).focus(window, cx));
+        Column(prompt)
+    });
+    cx.simulate_resize(gpui_kit::size(px(900.), px(600.)));
+    run_for(100, cx);
+    let model = cx.debug_bounds("prompt-model-select").expect("the model select is drawn");
+    let caret = cx.update(|_, cx| {
+        let text = column.read(cx).0.read(cx).text.clone();
+        text.read(cx).range_to_bounds(&(0..0)).map(|b| b.left())
+    });
+    let caret = caret.expect("the caret has a place");
+    assert!((f32::from(caret) - f32::from(model.left())).abs() < 0.6, "the caret is at {caret:?}, the model select at {:?}", model.left());
+}
