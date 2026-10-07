@@ -13,6 +13,7 @@ use crate::{
     model_badge::{BrandMark, ModelBadge},
     morph::Morph,
     reveal::Reveal,
+    sprite::Sprite,
     status_mark::{Mark, StatusMark},
     subagent_row::tool_calls_text,
     theme::{ActiveTheme, StatusTone, radius},
@@ -34,6 +35,7 @@ pub struct SubagentCard {
     pub(super) live_tool: Option<SharedString>,
     pub(super) finished: Option<Option<u64>>,
     pub(super) calls: Vec<ToolCall>,
+    tint: Option<gpui_kit::Hsla>,
 }
 
 impl SubagentCard {
@@ -55,7 +57,14 @@ impl SubagentCard {
             live_tool: None,
             finished: None,
             calls: Vec::new(),
+            tint: None,
         }
+    }
+    /// The colour of the mark while it runs: the agent's logo, or a turning arc for an agent with no logo. A finished card has
+    /// no mark, since its check says it is done.
+    pub fn tint(mut self, color: gpui_kit::Hsla) -> Self {
+        self.tint = Some(color);
+        self
     }
 
     /// The model it runs on, such as "Opus 5.5".
@@ -159,7 +168,15 @@ impl RenderOnce for SubagentCard {
                     .items_center()
                     .gap(px(10.))
                     .h(px(24.))
-                    .child(mark.sprite(child("mark"), mark.orbiting).size(px(16.)).playing(!done))
+                    .when(!done, |d| {
+                        let color = self.tint.unwrap_or(mark.color);
+                        let drawn = if mark.is_own() {
+                            Sprite::new(child("mark"), mark.orbiting, color).rest(mark.working).size(px(16.)).playing(true).into_any_element()
+                        } else {
+                            crate::spinner::Spinner::new(child("mark")).size(px(16.)).color(color).into_any_element()
+                        };
+                        d.child(div().debug_selector(|| "subagent-mark".into()).flex_none().child(drawn))
+                    })
                     .child(
                         div()
                             .flex_none()
