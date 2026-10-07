@@ -303,7 +303,8 @@ impl RenderOnce for AgentText {
             .paragraph_gap(rems(0.75))
             .table(table_frame)
             .table_tiles(gpui_kit::component::text::TableTiles { head: ink.opacity(0.10), cell: ink.opacity(0.055), hover: ink.opacity(0.085) })
-            .table_cell(cell_text);
+            .table_cell(cell_text)
+            .code_block(super::helpers::code_block_style(&theme));
         // The paragraph still growing draws in runs that fade in; what is finished stays Markdown.
         let mut tail: Option<(String, Vec<crate::stream_text::Piece>)> = None;
         let mut body = self.markdown.clone();
