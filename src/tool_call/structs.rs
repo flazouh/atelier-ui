@@ -67,7 +67,7 @@ impl ToolCall {
         self
     }
 
-    /// Runs when the reader presses a clipped output open (see [`Self::preview_rows`]).
+    /// Runs when the reader presses output that fits its rows. A clipped output only opens or folds in place (see [`Self::preview_rows`]).
     pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.on_open = Some(Rc::new(handler));
         self

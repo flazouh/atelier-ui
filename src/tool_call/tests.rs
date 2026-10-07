@@ -180,16 +180,16 @@ mod clipped {
     }
 
     #[gpui_kit::test]
-    fn pressing_it_opens_it_and_a_second_press_folds_it(cx: &mut TestAppContext) {
+    fn pressing_it_opens_it_in_place_and_a_second_press_folds_it(cx: &mut TestAppContext) {
         let (host, cx, opened) = open(40, cx);
         let clipped = height(cx);
         press(cx);
         settle(&host, cx);
-        assert_eq!(opened.get(), 1);
+        assert_eq!(opened.get(), 0);
         assert!(height(cx) > clipped + 100., "it grew: {} from {clipped}", height(cx));
         press(cx);
         settle(&host, cx);
-        assert_eq!(opened.get(), 1, "folding is silent");
+        assert_eq!(opened.get(), 0, "neither press tells the owner");
         assert_eq!(height(cx), clipped);
     }
 }
