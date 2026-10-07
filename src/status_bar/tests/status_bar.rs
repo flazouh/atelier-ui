@@ -124,8 +124,8 @@ mod cards {
         status_bar::{HEIGHT, StatusBar, SystemLoad},
         theme::{Appearance, set_appearance},
     };
-    /// The bar's items are cards as the panels are: each stands in its own card, the cards are the panels' gap apart, and a card
-    /// leaves that gap above and below it.
+    /// The bar's items are cards as the panels are: each stands in its own card, the cards share the bar's whole width a panels' gap
+    /// apart, and a card leaves that gap above and below it.
     #[gpui_kit::test]
     fn the_bars_items_are_cards_the_panels_gap_apart(cx: &mut TestAppContext) {
         cx.update(|cx| {
@@ -136,11 +136,14 @@ mod cards {
         let (_host, cx) = cx.add_window_view(|_, _| Bar(load.clone()));
         cx.simulate_resize(size(px(600.), px(200.)));
         cx.run_until_parked();
-        let (cpu, memory) = (cx.debug_bounds("status-cpu").unwrap(), cx.debug_bounds("status-memory").unwrap());
-        let between = f32::from(memory.left() - cpu.right());
-        assert!((between - (20. + GAP)).abs() < 0.6, "the clusters stand {between} apart: two card paddings and the gap");
         let bar = cx.debug_bounds("status-bar").unwrap();
-        assert!(f32::from(cpu.top() - bar.top()) > GAP, "the card leaves the gap above its content");
+        let (cpu, memory) = (cx.debug_bounds("status-card-cpu").unwrap(), cx.debug_bounds("status-card-memory").unwrap());
+        let between = f32::from(memory.left() - cpu.right());
+        assert!((between - GAP).abs() < 0.6, "the cards stand {between} apart, not the panels' gap");
+        assert!((f32::from(cpu.left() - bar.left())).abs() < 0.6, "the first card starts at the bar's edge");
+        assert!((f32::from(bar.right() - memory.right())).abs() < 0.6, "the last card ends at the bar's edge: the cards take the whole width");
+        assert!((f32::from(cpu.size.width) - f32::from(memory.size.width)).abs() < 0.6, "the cards share the width");
+        assert!((f32::from(cpu.top() - bar.top()) - GAP).abs() < 0.6, "the card leaves the gap above it");
         assert_eq!(f32::from(bar.size.height), HEIGHT);
     }
     struct Bar(SystemLoad);

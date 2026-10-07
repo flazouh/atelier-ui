@@ -48,12 +48,15 @@ impl StatusBar {
     }
 }
 
-/// What the bar shows as one card, as a panel is one: the card tone, the panels' corners, and a height that leaves the panels'
+/// What the bar shows as one card, as a panel is one, the cards sharing the bar's whole width: the card tone, the panels' corners, and a height that leaves the panels'
 /// gap above and below it.
-fn card(content: AnyElement, theme: &Theme) -> AnyElement {
+fn card(content: AnyElement, debug: String, theme: &Theme) -> AnyElement {
     div()
+        .debug_selector(move || debug.clone())
         .flex()
-        .flex_none()
+        .flex_1()
+        .min_w_0()
+        .overflow_hidden()
         .items_center()
         .h(px(HEIGHT - 2. * GAP))
         .px(px(10.))
@@ -141,7 +144,7 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> Vec<Any
         .child("RAM")
         .child(gauge_bar(load.memory_fraction(), theme))
         .child(load.memory_words());
-    vec![card(cpu.into_any_element(), theme), card(memory.into_any_element(), theme)]
+    vec![card(cpu.into_any_element(), "status-card-cpu".into(), theme), card(memory.into_any_element(), "status-card-memory".into(), theme)]
 }
 
 fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
@@ -158,6 +161,7 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
             .children((work.working > 0).then(|| div().text_color(theme.accent).child(work.working_words())))
             .children((work.needs_you > 0).then(|| div().text_color(theme.warning).child(work.needs_you_words())))
             .into_any_element(),
+        "status-card-work".into(),
         theme,
     ))
 }
@@ -187,7 +191,7 @@ fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> An
                 .child(format!("{} {}", gauge.label, gauge.percent()))
         }))
         .children(tightest.is_none().then(|| div().child("–")));
-    card(chip.into_any_element(), theme)
+    card(chip.into_any_element(), format!("status-card-{}", provider.name), theme)
 }
 
 impl RenderOnce for StatusBar {
@@ -216,7 +220,6 @@ impl RenderOnce for StatusBar {
             .text_color(theme.muted_foreground)
             .children(load)
             .children(work_cluster(self.work, &theme))
-            .child(div().flex_1())
             .children(providers)
     }
 }
