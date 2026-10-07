@@ -294,12 +294,12 @@ mod clipped {
     }
 
     #[gpui_kit::test]
-    fn pressing_it_opens_it_and_tells_the_owner_once(cx: &mut TestAppContext) {
+    fn pressing_it_opens_it_without_telling_the_owner(cx: &mut TestAppContext) {
         let (host, cx, opened) = open(30, FileDiffStatus::Complete, cx);
         let before = height(cx, "diff-body");
         press_body(cx);
         settle(&host, cx);
-        assert_eq!(opened.get(), 1);
+        assert_eq!(opened.get(), 0);
         assert!(cx.debug_bounds("diff-rows").is_none(), "the clipped rows give way to the taller view");
         assert!(height(cx, "diff-body") > before + 100., "it grew: {} from {before}", height(cx, "diff-body"));
     }
@@ -311,7 +311,7 @@ mod clipped {
         settle(&host, cx);
         press_body(cx);
         settle(&host, cx);
-        assert_eq!(opened.get(), 1);
+        assert_eq!(opened.get(), 0);
         assert_eq!(height(cx, "diff-rows"), 8. * ROW_HEIGHT);
     }
 }
