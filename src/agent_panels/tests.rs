@@ -41,7 +41,7 @@ fn a_press_on_an_input_in_a_panel_keeps_the_focus_in_the_input(cx: &mut TestAppC
         let look = AgentLook::neutral(cx.theme());
         let panel = PanelData {
             id: "p".into(),
-            project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local },
+            project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
             title: "A session".into(),
             look,
             status: SessionStatus::Idle,
@@ -73,7 +73,7 @@ fn a_panel_fits_its_column_in_the_frame_the_column_narrows(cx: &mut TestAppConte
     let look = cx.update(|_, cx| AgentLook::neutral(cx.theme()));
     let panel = PanelData {
         id: "p".into(),
-        project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local },
+        project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
         title: "A session".into(),
         look,
         status: SessionStatus::Idle,
@@ -95,6 +95,42 @@ fn a_panel_fits_its_column_in_the_frame_the_column_narrows(cx: &mut TestAppConte
     }
 }
 
+/// The single view sits as far from the sidebar as the strip's own inset, with no margin of its own: the gap between panes
+/// is the strip's alone.
+#[gpui_kit::test]
+fn the_single_view_sits_at_the_strips_inset(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+        cx.set_reduce_motion(true);
+    });
+    let cx = cx.add_empty_window();
+    let panels = cx.update(|_, cx| cx.new(AgentPanels::new));
+    let look = cx.update(|_, cx| AgentLook::neutral(cx.theme()));
+    let panel = PanelData {
+        id: "p".into(),
+        project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
+        title: "A session".into(),
+        look,
+        status: SessionStatus::Idle,
+        content: cx.update(|_, cx| crate::panel_types::content_from(|_, _| div().size_full().debug_selector(|| "panel".into()).into_any_element(), cx)),
+    };
+    cx.update(|_, cx| panels.update(cx, |p, cx| {
+        p.set_panels(vec![panel], vec!["project".into()], cx);
+        p.set_inset_left(2., cx);
+    }));
+    let frame = |cx: &mut gpui_kit::VisualTestContext, width: f32| {
+        let panels = panels.clone();
+        cx.update(|_, cx| panels.update(cx, |p, cx| p.fit_to(width - 16., cx)));
+        cx.draw(gpui_kit::point(px(0.), px(0.)), gpui_kit::size(px(width), px(800.)), move |_, _| div().size_full().child(panels));
+    };
+    frame(cx, 620.);
+    frame(cx, 620.);
+    frame(cx, 800.);
+    frame(cx, 800.);
+    let at = cx.debug_bounds("panel").expect("the panel draws");
+    assert!((f32::from(at.left()) - 2.).abs() < 0.5, "the panel starts at {:?}, not at the strip's inset", at.left());
+}
 struct Strip {
     panels: Entity<AgentPanels>,
 }
@@ -118,7 +154,7 @@ fn the_strip_fades_each_edge_only_while_more_lies_beyond_it(cx: &mut TestAppCont
         let list: Vec<PanelData> = (0..4)
             .map(|i| PanelData {
                 id: format!("p{i}").into(),
-                project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local },
+                project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
                 title: format!("Session {i}").into(),
                 look: look.clone(),
                 status: SessionStatus::Idle,

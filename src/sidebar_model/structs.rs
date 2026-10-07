@@ -37,7 +37,7 @@ pub struct ProjectData {
 }
 
 /// What a project's badge shows; see [`crate::project_badge`].
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Badge {
     pub label: SharedString,
     pub color: usize,
