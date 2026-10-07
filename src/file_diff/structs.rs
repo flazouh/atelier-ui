@@ -20,7 +20,7 @@ use crate::{
 };
 use crate::preview_clamp::{self, EXPANDED_ROWS, Press};
 use super::types::{DiffLineKind, FileDiffStatus, MAX_HEIGHT, ROW_HEIGHT};
-use super::helpers::{diff_row, diff_stats, fill, follow_status, hunk_starts};
+use super::helpers::{bottom_row, diff_row, diff_stats, fill, follow_status, hunk_starts};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiffLine {
@@ -318,6 +318,10 @@ impl RenderOnce for FileDiff {
         let widest = lines.iter().enumerate().max_by_key(|(_, l)| l.text.len()).map(|(i, _)| i);
         let row_theme = theme.clone();
         let faint = theme.faint();
+        let viewport_of = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
+        let hinted = self.preview_rows.is_some_and(|limit| total > limit);
+        let scrolls = clip.is_none() && total as f32 * ROW_HEIGHT > viewport_of;
+        let bottom = bottom_row(total, hinted, self.copy_text.is_some(), scrolls);
         let make_row = move |i: usize| {
             let runs = row_sides[i].zip(side_runs.as_ref()).and_then(|((side, at), (old, new))| {
                 let lines = match side {
@@ -326,7 +330,7 @@ impl RenderOnce for FileDiff {
                 }?;
                 lines.get(at).cloned()
             });
-            diff_row(&lines[i], runs, &row_theme, faint)
+            diff_row(&lines[i], runs, &row_theme, faint, bottom == Some(i))
         };
         let viewport = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
         let rows = match clip {
