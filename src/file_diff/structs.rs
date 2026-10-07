@@ -116,7 +116,7 @@ impl FileDiff {
         self
     }
 
-    /// Runs when the reader presses a clipped diff open (see [`Self::preview_rows`]), to take them to the whole file.
+    /// Runs when the reader presses a diff that fits its rows, to take them to the whole file. A clipped diff only opens or folds in place (see [`Self::preview_rows`]).
     pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.on_open = Some(Rc::new(handler));
         self

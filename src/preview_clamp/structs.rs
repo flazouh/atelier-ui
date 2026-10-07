@@ -10,12 +10,12 @@ pub(crate) struct Press {
 impl Press {
     /// The press on a body that is `expanded` now, and `clipped` when it has more rows than it shows.
     ///
-    /// A body that fits has nothing to open, but the owner still hears of the press. A clipped one opens, and the owner
-    /// hears of it; the press that folds it back is silent.
+    /// A body that fits has nothing to open, but the owner still hears of the press. A clipped one only opens or folds
+    /// in place: the owner does not hear of it.
     pub(crate) fn on(expanded: bool, clipped: bool) -> Self {
         match (clipped, expanded) {
             (false, _) => Self { expanded: false, open: true },
-            (true, false) => Self { expanded: true, open: true },
+            (true, false) => Self { expanded: true, open: false },
             (true, true) => Self { expanded: false, open: false },
         }
     }

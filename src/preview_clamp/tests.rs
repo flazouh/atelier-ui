@@ -17,8 +17,8 @@ fn a_finished_body_shows_its_first_rows() {
 }
 
 #[test]
-fn the_first_press_on_a_clipped_body_opens_it_and_tells_the_owner() {
-    assert_eq!(Press::on(false, true), Press { expanded: true, open: true });
+fn the_first_press_on_a_clipped_body_opens_it_without_telling_the_owner() {
+    assert_eq!(Press::on(false, true), Press { expanded: true, open: false });
 }
 
 #[test]
