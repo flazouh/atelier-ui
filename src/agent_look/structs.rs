@@ -18,6 +18,10 @@ pub struct Mark {
 }
 
 impl Mark {
+    /// Whether this is an agent's own mark, not the grey stand-in of an agent that has none.
+    pub fn is_own(&self) -> bool {
+        self.working != NEUTRAL_STRIP
+    }
     /// A [`Sprite`] that plays `strip` in the mark's colour and rests on the mark's still frame.
     pub fn sprite(&self, id: impl Into<ElementId>, strip: Strip) -> Sprite {
         Sprite::new(id, strip, self.color).rest(self.working)
