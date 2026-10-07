@@ -124,8 +124,8 @@ mod cards {
         status_bar::{HEIGHT, StatusBar, SystemLoad},
         theme::{Appearance, set_appearance},
     };
-    /// The bar's items are cards as the panels are: each stands in its own card, the cards share the bar's whole width a panels' gap
-    /// apart, and a card leaves that gap above and below it.
+    /// The bar's items are cards as the panels are: each stands in its own card, the cards are a panels' gap apart from the left
+    /// edge, and a card takes the bar's whole height.
     #[gpui_kit::test]
     fn the_bars_items_are_cards_the_panels_gap_apart(cx: &mut TestAppContext) {
         cx.update(|cx| {
@@ -141,10 +141,8 @@ mod cards {
         let between = f32::from(memory.left() - cpu.right());
         assert!((between - GAP).abs() < 0.6, "the cards stand {between} apart, not the panels' gap");
         assert!((f32::from(cpu.left() - bar.left())).abs() < 0.6, "the first card starts at the bar's edge");
-        assert!((f32::from(bar.right() - memory.right())).abs() < 0.6, "the last card ends at the bar's edge: the cards take the whole width");
-        assert!((f32::from(cpu.size.width) - f32::from(memory.size.width)).abs() < 0.6, "the cards share the width");
-        assert!((f32::from(cpu.top() - bar.top()) - GAP).abs() < 0.6, "the card leaves the gap above it");
-        assert_eq!(f32::from(bar.size.height), HEIGHT);
+        assert!((f32::from(cpu.size.height) - HEIGHT).abs() < 0.6, "a card takes the bar's whole height");
+        assert!((f32::from(cpu.top() - bar.top())).abs() < 0.6, "and stands at its top");
     }
     struct Bar(SystemLoad);
     impl gpui_kit::Render for Bar {

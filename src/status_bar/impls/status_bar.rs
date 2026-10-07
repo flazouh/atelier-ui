@@ -48,17 +48,14 @@ impl StatusBar {
     }
 }
 
-/// What the bar shows as one card, as a panel is one, the cards sharing the bar's whole width: the card tone, the panels' corners, and a height that leaves the panels'
-/// gap above and below it.
+/// What the bar shows as one card, as a panel is one: the card tone and the panels' corners, and the whole height of the bar.
 fn card(content: AnyElement, debug: String, theme: &Theme) -> AnyElement {
     div()
         .debug_selector(move || debug.clone())
         .flex()
-        .flex_1()
-        .min_w_0()
-        .overflow_hidden()
+        .flex_none()
         .items_center()
-        .h(px(HEIGHT - 2. * GAP))
+        .h_full()
         .px(px(10.))
         .rounded(radius::lg())
         .bg(theme.card)
@@ -220,6 +217,7 @@ impl RenderOnce for StatusBar {
             .text_color(theme.muted_foreground)
             .children(load)
             .children(work_cluster(self.work, &theme))
+            .child(div().flex_1())
             .children(providers)
     }
 }
