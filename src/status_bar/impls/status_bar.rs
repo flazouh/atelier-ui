@@ -209,10 +209,9 @@ impl RenderOnce for StatusBar {
             .flex()
             .flex_none()
             .items_center()
-            // Cards on the panels' gap, with the panels' room at the sides.
+            // Cards on the panels' gap. Its owner sets where it starts and ends, as it does for the panes.
             .gap(px(GAP))
             .h(px(HEIGHT))
-            .px(px(8.))
             .text_size(TextSize::Xs.font_size())
             .text_color(theme.muted_foreground)
             .children(load)

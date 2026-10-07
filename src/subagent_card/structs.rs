@@ -129,9 +129,9 @@ impl RenderOnce for SubagentCard {
         let mark = &self.look.mark;
         let text = |text: SharedString| move |_: &mut Window, _: &mut App| div().truncate().child(text.clone()).into_any_element();
 
+        // Done, the mark says it; running, the time it has run.
         let right = if done {
-            StatusMark::new(Mark::filled(theme.status_tone(StatusTone::Done), theme.background).check(1.), px(14.))
-                .into_any_element()
+            div().into_any_element()
         } else {
             div().text_size(TextSize::Xs.font_size()).text_color(muted).children(self.elapsed.clone()).into_any_element()
         };
@@ -168,14 +168,22 @@ impl RenderOnce for SubagentCard {
                     .items_center()
                     .gap(px(10.))
                     .h(px(24.))
-                    .when(!done, |d| {
+                    .child({
+                        // The mark stays when the subagent is done: the agent's logo at rest, or for an agent with no logo a filled check
+                        // in the same colour. While it runs the logo plays, or an arc turns.
                         let color = self.tint.unwrap_or(mark.color);
-                        let drawn = if mark.is_own() {
-                            Sprite::new(child("mark"), mark.orbiting, color).rest(mark.working).size(px(16.)).playing(true).into_any_element()
-                        } else {
-                            crate::spinner::Spinner::new(child("mark")).size(px(16.)).color(color).into_any_element()
+                        let drawn = match (mark.is_own(), done) {
+                            (true, false) => Sprite::new(child("mark"), mark.orbiting, color).rest(mark.working).size(px(16.)).playing(true).into_any_element(),
+                            (true, true) => Sprite::new(child("mark"), mark.working, color)
+                                .rest(mark.working)
+                                .still_frame(mark.icon_frame)
+                                .size(px(16.))
+                                .playing(false)
+                                .into_any_element(),
+                            (false, false) => crate::spinner::Spinner::new(child("mark")).size(px(16.)).color(color).into_any_element(),
+                            (false, true) => StatusMark::new(Mark::filled(color, theme.background).check(1.), px(16.)).into_any_element(),
                         };
-                        d.child(div().debug_selector(|| "subagent-mark".into()).flex_none().child(drawn))
+                        div().debug_selector(|| "subagent-mark".into()).flex_none().child(drawn)
                     })
                     .child(
                         div()
