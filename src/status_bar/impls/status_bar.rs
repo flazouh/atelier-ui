@@ -145,7 +145,7 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> Vec<Any
 }
 
 fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
-    if work.is_idle() {
+    if work.needs_you == 0 {
         return None;
     }
     Some(card(
@@ -155,7 +155,6 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
             .flex_none()
             .items_center()
             .gap(px(8.))
-            .children((work.working > 0).then(|| div().text_color(theme.accent).child(work.working_words())))
             .children((work.needs_you > 0).then(|| div().text_color(theme.warning).child(work.needs_you_words())))
             .into_any_element(),
         "status-card-work".into(),
