@@ -116,3 +116,37 @@ fn the_bar_is_as_tall_as_it_says(cx: &mut TestAppContext) {
         crate::status_bar::HEIGHT * crate::scale::zoom()
     );
 }
+
+mod cards {
+    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
+    use crate::{
+        panel_layout::GAP,
+        status_bar::{HEIGHT, StatusBar, SystemLoad},
+        theme::{Appearance, set_appearance},
+    };
+    /// The bar's items are cards as the panels are: each stands in its own card, the cards are the panels' gap apart, and a card
+    /// leaves that gap above and below it.
+    #[gpui_kit::test]
+    fn the_bars_items_are_cards_the_panels_gap_apart(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Dark, cx);
+        });
+        let load = SystemLoad { cpu: 0.3, cpu_history: vec![0.3; 4], memory_used: 8 << 30, memory_total: 16 << 30, app_memory: None };
+        let (_host, cx) = cx.add_window_view(|_, _| Bar(load.clone()));
+        cx.simulate_resize(size(px(600.), px(200.)));
+        cx.run_until_parked();
+        let (cpu, memory) = (cx.debug_bounds("status-cpu").unwrap(), cx.debug_bounds("status-memory").unwrap());
+        let between = f32::from(memory.left() - cpu.right());
+        assert!((between - (20. + GAP)).abs() < 0.6, "the clusters stand {between} apart: two card paddings and the gap");
+        let bar = cx.debug_bounds("status-bar").unwrap();
+        assert!(f32::from(cpu.top() - bar.top()) > GAP, "the card leaves the gap above its content");
+        assert_eq!(f32::from(bar.size.height), HEIGHT);
+    }
+    struct Bar(SystemLoad);
+    impl gpui_kit::Render for Bar {
+        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+            div().size_full().child(StatusBar::new("bar").load(Some(self.0.clone())))
+        }
+    }
+}

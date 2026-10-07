@@ -5,8 +5,9 @@ use gpui_kit::{
 
 use crate::{
     menu::lead_icon,
+    panel_layout::GAP,
     scale::px,
-    theme::{ActiveTheme, Theme},
+    theme::{ActiveTheme, Theme, radius},
     tooltip::Tooltip,
     typography::TextSize,
 };
@@ -45,6 +46,21 @@ impl StatusBar {
     fn part(&self, name: &'static str) -> ElementId {
         ElementId::from((self.id.clone(), name))
     }
+}
+
+/// What the bar shows as one card, as a panel is one: the card tone, the panels' corners, and a height that leaves the panels'
+/// gap above and below it.
+fn card(content: AnyElement, theme: &Theme) -> AnyElement {
+    div()
+        .flex()
+        .flex_none()
+        .items_center()
+        .h(px(HEIGHT - 2. * GAP))
+        .px(px(10.))
+        .rounded(radius::lg())
+        .bg(theme.card)
+        .child(content)
+        .into_any_element()
 }
 
 /// A caption and what it measures, with a hover.
@@ -125,14 +141,14 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> Vec<Any
         .child("RAM")
         .child(gauge_bar(load.memory_fraction(), theme))
         .child(load.memory_words());
-    vec![cpu.into_any_element(), memory.into_any_element()]
+    vec![card(cpu.into_any_element(), theme), card(memory.into_any_element(), theme)]
 }
 
 fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
     if work.is_idle() {
         return None;
     }
-    Some(
+    Some(card(
         div()
             .debug_selector(|| "status-work".into())
             .flex()
@@ -142,7 +158,8 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
             .children((work.working > 0).then(|| div().text_color(theme.accent).child(work.working_words())))
             .children((work.needs_you > 0).then(|| div().text_color(theme.warning).child(work.needs_you_words())))
             .into_any_element(),
-    )
+        theme,
+    ))
 }
 
 fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> AnyElement {
@@ -152,7 +169,7 @@ fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> An
     let tightest = provider
         .tightest()
         .filter(|_| !matches!(provider.state, GaugeState::Unavailable(_)));
-    div()
+    let chip = div()
         .id(id)
         .debug_selector(move || debug.clone())
         .flex()
@@ -169,8 +186,8 @@ fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> An
                 .text_color(provider.pressure().ink(theme))
                 .child(format!("{} {}", gauge.label, gauge.percent()))
         }))
-        .children(tightest.is_none().then(|| div().child("–")))
-        .into_any_element()
+        .children(tightest.is_none().then(|| div().child("–")));
+    card(chip.into_any_element(), theme)
 }
 
 impl RenderOnce for StatusBar {
@@ -192,9 +209,10 @@ impl RenderOnce for StatusBar {
             .flex()
             .flex_none()
             .items_center()
-            .gap(px(14.))
+            // Cards on the panels' gap, with the panels' room at the sides.
+            .gap(px(GAP))
             .h(px(HEIGHT))
-            .px(px(14.))
+            .px(px(8.))
             .text_size(TextSize::Xs.font_size())
             .text_color(theme.muted_foreground)
             .children(load)
