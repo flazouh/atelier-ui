@@ -194,6 +194,8 @@ pub struct PromptInput {
 /// The live words sit where the field's own text would, so these must match it.
 const EDITOR_PAD_X: f32 = 10.;
 const EDITOR_PAD_Y: f32 = 8.;
+/// The side padding of the compact select that starts the controls' row: its mark stands this far in from its edge.
+const CONTROL_PAD_X: f32 = 8.;
 /// How much of the field's own top and bottom padding is cut off, so the text row is a line (24px) and 8px of air,
 /// the same height as the controls' row under it, not a line and 16px.
 const TRIM_Y: f32 = 4.;
@@ -1626,9 +1628,9 @@ impl Render for PromptInput {
                     div()
                         .relative()
                         .my(px(-TRIM_Y))
-                        // The field's own padding (its 4 and the editor's 10) puts the caret that far in; the box shifts left by it so the
-                        // caret starts where the first control starts.
-                        .ml(px(-(4. + EDITOR_PAD_X)))
+                        // The field's own padding (its 4 and the editor's 10) puts the caret that far in; the box shifts left by what is
+                        // more than the first control's own padding, so the caret starts where that control's content starts.
+                        .ml(px(-(4. + EDITOR_PAD_X - CONTROL_PAD_X)))
                         .child(
                             div().when(overlay.is_some(), |d| d.opacity(0.)).child(
                                 Textarea::new(&self.text)

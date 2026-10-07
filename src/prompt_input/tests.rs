@@ -1072,10 +1072,10 @@ fn a_chips_ink_reads_on_its_fill_in_the_light_and_the_dark_theme() {
     }
 }
 
-/// The caret of an empty box stands at the left edge of the first control, so the text and the controls share one line down the
-/// box's left side.
+/// The caret of an empty box stands where the content of the first control starts (its edge and its own padding), so the text
+/// and the controls' marks share one line down the box's left side.
 #[gpui_kit::test]
-fn the_caret_starts_where_the_first_control_starts(cx: &mut TestAppContext) {
+fn the_caret_starts_where_the_first_controls_content_starts(cx: &mut TestAppContext) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Dark, cx);
@@ -1097,5 +1097,5 @@ fn the_caret_starts_where_the_first_control_starts(cx: &mut TestAppContext) {
         text.read(cx).range_to_bounds(&(0..0)).map(|b| b.left())
     });
     let caret = caret.expect("the caret has a place");
-    assert!((f32::from(caret) - f32::from(model.left())).abs() < 0.6, "the caret is at {caret:?}, the model select at {:?}", model.left());
+    assert!((f32::from(caret) - f32::from(model.left()) - 8.).abs() < 0.6, "the caret is at {caret:?}, the model select at {:?} with 8 px of padding", model.left());
 }
