@@ -3,7 +3,7 @@
 mod helpers;
 mod structs;
 mod types;
-pub use helpers::moved;
+pub use helpers::{moved, star_colour};
 pub use structs::ModelList;
 pub use types::ModelRow;
 #[cfg(test)]

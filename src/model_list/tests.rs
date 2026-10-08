@@ -121,3 +121,14 @@ mod drawn {
         assert_eq!(heard.borrow().hide, None, "the default cannot be hidden");
     }
 }
+
+/// The star is a soft gold on a dark page and the full gold on a light one, never the dull brown of the warning text tone on white.
+#[test]
+fn the_star_is_gold_on_both_pages() {
+    use crate::themes::named;
+    for name in ["atelier Light", "atelier Dark"] {
+        let theme = named(name).unwrap();
+        let star = gpui_kit::Rgba::from(super::star_colour(&theme));
+        assert!(star.r > 0.85 && star.g > 0.55 && star.b < 0.55, "{name}: a gold, not a brown: {star:?}");
+    }
+}

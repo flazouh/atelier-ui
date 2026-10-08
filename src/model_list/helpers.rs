@@ -1,4 +1,12 @@
-use gpui_kit::SharedString;
+use gpui_kit::{Hsla, SharedString};
+
+use crate::theme::{Appearance, Theme};
+
+/// The colour of the filled star: on a dark page the theme's warning tone, which is a soft gold there; on a light page its full-strength fill,
+/// since the tone is darkened to read as text on white and a mark in it is a dull brown.
+pub fn star_colour(theme: &Theme) -> Hsla {
+    if theme.appearance == Appearance::Dark { theme.warning } else { theme.warning_fill }
+}
 
 /// `order` with `id` taken out and put before `before` (at the end for none). An id not in the order, or dropped on itself, changes nothing.
 pub fn moved(order: &[SharedString], id: &SharedString, before: Option<&SharedString>) -> Vec<SharedString> {

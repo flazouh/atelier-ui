@@ -639,7 +639,7 @@ impl RenderOnce for Select {
                                     (star.on_default)(i, window, cx);
                                 })
                                 .child(if is_default {
-                                    Icon::new(IconName::StarFilled).size(px(14.)).color(theme.warning_fill)
+                                    Icon::new(IconName::StarFilled).size(px(14.)).color(crate::model_list::star_colour(&theme))
                                 } else {
                                     Icon::new(IconName::Star).size(px(14.)).color(theme.muted_foreground)
                                 }),
