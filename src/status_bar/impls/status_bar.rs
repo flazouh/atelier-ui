@@ -66,7 +66,7 @@ fn card(items: Vec<AnyElement>, debug: &'static str, width: Option<f32>, theme: 
         .debug_selector(move || debug.into())
         .flex()
         .items_center()
-        .gap(px(14.))
+        .gap(px(10.))
         .h_full()
         .px(px(10.))
         .rounded(radius::lg())
@@ -148,13 +148,12 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> Vec<Any
         .child(spark(&load.cpu_history, theme))
         .child(
             div()
-                .min_w(px(28.))
                 .text_color(Pressure::of(load.cpu).ink(theme))
                 .child(load.cpu_words()),
         );
     let memory = cluster(parts.part("memory"), "status-memory", load.memory_tooltip(), theme)
         .child("RAM")
-        .child(gauge_bar(load.memory_fraction(), theme))
+        .child(mini_gauge(load.memory_fraction(), theme))
         .child(load.memory_words());
     vec![cpu.into_any_element(), memory.into_any_element()]
 }
