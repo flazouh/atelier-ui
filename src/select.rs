@@ -28,7 +28,7 @@ pub use helpers::{
 };
 pub(crate) use helpers::trigger_tone;
 pub(crate) use helpers::monogram;
-pub use structs::{Select, SelectOption};
+pub use structs::{Select, SelectManage, SelectOption};
 pub use types::{OPTION_INSET, ROW_GAP, SelectHandler};
 
 #[cfg(test)]

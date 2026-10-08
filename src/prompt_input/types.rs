@@ -103,6 +103,12 @@ pub enum PromptInputEvent {
     Action(SharedString),
     /// The user picked a different model, by its `value`.
     ModelChanged(SharedString),
+    /// The user pressed the star of a model in the picker: new sessions start on it, by its `value`.
+    ModelStarred(SharedString),
+    /// The user pressed the eye of a model in the picker: it leaves the list, by its `value`.
+    ModelHidden(SharedString),
+    /// The user dragged a model in the picker: the `value`s of every model listed, in the new order.
+    ModelsMoved(Vec<SharedString>),
     /// The user picked a different mode from [`PromptInput::modes`](crate::prompt_input::PromptInput::modes), by its words.
     ModeChanged(SharedString),
     /// The user pressed the microphone, and the box already shows it listening. The owner starts the capture at once.
