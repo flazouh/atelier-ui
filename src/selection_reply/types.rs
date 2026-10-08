@@ -1,6 +1,8 @@
 use gpui_kit::{Pixels, Point, SharedString};
 
-use crate::{badge::Tone, icon::IconName, voice_input::VoiceInputEvent};
+use gpui_kit::Hsla;
+
+use crate::{icon::IconName, voice_input::VoiceInputEvent};
 
 pub(super) const CONTEXT: &str = "SelectionReply";
 /// How long the bar takes to settle in: a short rise from half strength, so it is there at once and still has a landing.
@@ -29,25 +31,22 @@ pub(super) enum Phase {
     Idle,
     Writing { at: Point<Pixels>, quote: SharedString, key: Option<SharedString> },
 }
-/// A one-press reply in the box: its `label` is on the badge, with its `icon` and the colour of its `tone`, and its
-/// `note` goes as the reply's note.
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A one-press reply in the box: its `label` is on the badge, with its `icon` in `icon_color`, and its `note` goes as the
+/// reply's note. The badge itself is plain; only the icon has a colour, and the owner picks it.
+#[derive(Clone, Debug, PartialEq)]
 pub struct ReplyPreset {
     pub label: SharedString,
     pub note: SharedString,
     pub icon: Option<IconName>,
-    pub tone: Tone,
+    pub icon_color: Option<Hsla>,
 }
 impl ReplyPreset {
     pub fn new(label: impl Into<SharedString>, note: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), note: note.into(), icon: None, tone: Tone::Neutral }
+        Self { label: label.into(), note: note.into(), icon: None, icon_color: None }
     }
-    pub fn icon(mut self, icon: IconName) -> Self {
+    pub fn icon(mut self, icon: IconName, color: impl Into<Hsla>) -> Self {
         self.icon = Some(icon);
-        self
-    }
-    pub fn tone(mut self, tone: Tone) -> Self {
-        self.tone = tone;
+        self.icon_color = Some(color.into());
         self
     }
 }

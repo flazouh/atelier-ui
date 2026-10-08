@@ -24,7 +24,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::helpers::{chip_colors, shown};
+use super::helpers::shown;
 use super::types::{CONTEXT, OFFER_IN, Phase, QUOTE_SHOWN, ReplyPreset, SelectionReplyEvent};
 
 /// The reply to a selection: a button where the selection ended, then a small box for the note.
@@ -333,7 +333,7 @@ impl Render for SelectionReply {
                 // One-press replies, as coloured badges with an icon. They are for a new reply, not for changing one.
                 let badges = (key.is_none() && !self.presets.is_empty()).then(|| {
                     div().flex().flex_wrap().gap(px(4.)).children(self.presets.iter().enumerate().map(|(at, preset)| {
-                        let (fill, ink) = chip_colors(preset.tone, &theme);
+                        let (ink, fill) = (theme.foreground, theme.foreground.opacity(0.07));
                         let name = format!("selection-reply-preset-{at}");
                         let id = gpui_kit::ElementId::Name(name.clone().into());
                         div().debug_selector(move || name.clone()).child(
@@ -345,16 +345,16 @@ impl Render for SelectionReply {
                                 .h(px(24.))
                                 .pl(px(7.))
                                 .pr(px(9.))
-                                .rounded_full()
+                                .rounded(radius::md())
                                 .bg(fill)
                                 .text_color(ink)
                                 .text_size(px(11.5))
                                 .font_weight(FontWeight::MEDIUM)
                                 .cursor_pointer()
-                                .hover(move |s| s.bg(ink.opacity(0.24)))
-                                .active(move |s| s.bg(ink.opacity(0.32)))
+                                .hover(move |s| s.bg(ink.opacity(0.12)))
+                                .active(move |s| s.bg(ink.opacity(0.18)))
                                 .on_click(cx.listener(move |this, _, window, cx| this.preset(at, window, cx)))
-                                .children(preset.icon.map(|icon| Icon::new(icon).size(px(13.)).color(ink)))
+                                .children(preset.icon.map(|icon| Icon::new(icon).size(px(13.)).color(preset.icon_color.unwrap_or(theme.muted_foreground))))
                                 .child(preset.label.clone()),
                         )
                     }))
