@@ -17,19 +17,13 @@ fn an_empty_plan_has_no_progress() {
 
 #[test]
 fn inserting_a_step_in_the_middle_only_adds_the_new_row() {
-    let prev = vec![
-        ("a".into(), TodoStatus::Done, None),
-        ("b".into(), TodoStatus::Pending, None),
-    ];
+    let prev = vec![("a".into(), TodoStatus::Done, None), ("b".into(), TodoStatus::Pending, None)];
     let todos = vec![
         Todo::new("a", "A", TodoStatus::Done),
         Todo::new("c", "C", TodoStatus::Pending),
         Todo::new("b", "B", TodoStatus::Pending),
     ];
-    assert_eq!(
-        plan_rows(&prev, &todos),
-        vec![RowPlan::Reuse(0), RowPlan::New, RowPlan::Reuse(1)]
-    );
+    assert_eq!(plan_rows(&prev, &todos), vec![RowPlan::Reuse(0), RowPlan::New, RowPlan::Reuse(1)]);
 }
 
 #[test]
@@ -39,14 +33,8 @@ fn removing_a_step_drops_only_its_own_row() {
         ("b".into(), TodoStatus::Pending, None),
         ("c".into(), TodoStatus::Pending, None),
     ];
-    let todos = vec![
-        Todo::new("a", "A", TodoStatus::Done),
-        Todo::new("c", "C", TodoStatus::Pending),
-    ];
-    assert_eq!(
-        plan_rows(&prev, &todos),
-        vec![RowPlan::Reuse(0), RowPlan::Reuse(2)]
-    );
+    let todos = vec![Todo::new("a", "A", TodoStatus::Done), Todo::new("c", "C", TodoStatus::Pending)];
+    assert_eq!(plan_rows(&prev, &todos), vec![RowPlan::Reuse(0), RowPlan::Reuse(2)]);
 }
 
 #[test]
@@ -58,8 +46,5 @@ fn a_progress_change_retargets_instead_of_reusing() {
 
 #[test]
 fn an_unmatched_id_always_starts_a_new_row() {
-    assert_eq!(
-        plan_rows(&[], &[Todo::new("a", "A", TodoStatus::Pending)]),
-        vec![RowPlan::New]
-    );
+    assert_eq!(plan_rows(&[], &[Todo::new("a", "A", TodoStatus::Pending)]), vec![RowPlan::New]);
 }

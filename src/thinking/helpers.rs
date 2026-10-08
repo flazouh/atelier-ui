@@ -1,22 +1,17 @@
 use gpui_kit::{Hsla, SharedString};
 
-use super::types::{SEGMENT_GAP_TEXT, ThinkingPhase};
 use crate::{
     agent_look::{AgentLook, Mark, PhaseLabels},
     motion::{BREATH_LOW, duration, ease, keyframes},
     sprite::Strip,
-};
+    };
+use super::types::{SEGMENT_GAP_TEXT, ThinkingPhase};
 
 pub fn label(labels: &PhaseLabels, phase: ThinkingPhase, elapsed_s: f32) -> SharedString {
     match phase {
         ThinkingPhase::Thinking { .. } => {
             let thresholds = labels.thinking;
-            let text = thresholds
-                .iter()
-                .rev()
-                .find(|(at, _)| elapsed_s >= *at)
-                .or(thresholds.first())
-                .map_or("", |(_, text)| text);
+            let text = thresholds.iter().rev().find(|(at, _)| elapsed_s >= *at).or(thresholds.first()).map_or("", |(_, text)| text);
             SharedString::new_static(text)
         }
         // A thought with no time to tell (a session read back from history, or under a second) says only that it happened.
@@ -32,18 +27,11 @@ pub fn label(labels: &PhaseLabels, phase: ThinkingPhase, elapsed_s: f32) -> Shar
 }
 
 /// Seconds until [`label`] changes, or `None` if it never will.
-pub fn next_label_change_s(
-    labels: &PhaseLabels,
-    phase: ThinkingPhase,
-    elapsed_s: f32,
-) -> Option<f32> {
+pub fn next_label_change_s(labels: &PhaseLabels, phase: ThinkingPhase, elapsed_s: f32) -> Option<f32> {
     match phase {
-        ThinkingPhase::Thinking { .. } => labels
-            .thinking
-            .iter()
-            .map(|(at, _)| *at)
-            .find(|at| *at > elapsed_s)
-            .map(|at| at - elapsed_s),
+        ThinkingPhase::Thinking { .. } => {
+            labels.thinking.iter().map(|(at, _)| *at).find(|at| *at > elapsed_s).map(|at| at - elapsed_s)
+        }
         _ => None,
     }
 }
@@ -65,11 +53,7 @@ pub fn tokens_text(count: u64) -> SharedString {
 }
 
 pub fn tasks_text(count: u64) -> SharedString {
-    if count == 1 {
-        "1 task".into()
-    } else {
-        format!("{count} tasks").into()
-    }
+    if count == 1 { "1 task".into() } else { format!("{count} tasks").into() }
 }
 
 /// A segment as shown: its own text, with no separator glyph.
@@ -80,20 +64,12 @@ pub(crate) fn segment_text(segment: &str) -> SharedString {
 /// The mark's strip: orbiting while subagents run, else working. A finished turn keeps the working strip,
 /// standing still.
 pub fn mark_strip(mark: &Mark, done: bool, subagents: usize) -> Strip {
-    if !done && subagents > 0 {
-        mark.orbiting
-    } else {
-        mark.working
-    }
+    if !done && subagents > 0 { mark.orbiting } else { mark.working }
 }
 
 /// The strip the loading mark plays: one of `variants` chosen by `roll`, or `working` when there are none.
 pub(crate) fn loading_strip(variants: &[Strip], working: Strip, roll: u64) -> Strip {
-    if variants.is_empty() {
-        working
-    } else {
-        variants[(roll % variants.len() as u64) as usize]
-    }
+    if variants.is_empty() { working } else { variants[(roll % variants.len() as u64) as usize] }
 }
 
 /// A fresh random number, from the standard library's randomly seeded hasher. Nothing here needs more.
@@ -110,11 +86,5 @@ pub(super) fn breath_opacity(since_label_ms: u64) -> f32 {
     }
     let period = duration::BREATH.as_millis() as u64;
     let t = ((since_label_ms - delay) % period) as f32 / 1000.;
-    keyframes(
-        &[1., BREATH_LOW, 1.],
-        &[0., 0.5, 1.],
-        period as f32 / 1000.,
-        ease::BREATH,
-        t,
-    )
+    keyframes(&[1., BREATH_LOW, 1.], &[0., 0.5, 1.], period as f32 / 1000., ease::BREATH, t)
 }

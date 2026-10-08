@@ -1,12 +1,10 @@
+use gpui_kit::{
+    Context, InteractiveElement, IntoElement, ParentElement, Render, SharedString, Styled, TestAppContext, Window, div, px, rems,
+    component::text::{TextView, TextViewStyle},
+};
 use crate::{
     theme::{ActiveTheme, Appearance, set_appearance},
     typography::TextSize,
-};
-use gpui_kit::{
-    Context, InteractiveElement, IntoElement, ParentElement, Render, SharedString, Styled,
-    TestAppContext, Window,
-    component::text::{TextView, TextViewStyle},
-    div, px, rems,
 };
 
 struct Pair {
@@ -18,8 +16,7 @@ impl Render for Pair {
         let theme = cx.theme().clone();
         let style = TextViewStyle::default().paragraph_gap(rems(0.75));
         let shell = |d: gpui_kit::Div| {
-            d.flex_none()
-                .max_w(px(self.width))
+            d.flex_none().max_w(px(self.width))
                 .text_color(theme.foreground.opacity(0.9))
                 .text_size(TextSize::Sm.font_size())
                 .line_height(px(24.))
@@ -29,14 +26,8 @@ impl Render for Pair {
             .flex_col()
             .items_start()
             .gap(px(20.))
-            .child(
-                shell(div().debug_selector(|| "as-markdown".into()))
-                    .child(TextView::markdown("md", self.text.clone()).style(style)),
-            )
-            .child(
-                shell(div().debug_selector(|| "as-runs".into()))
-                    .child(SharedString::from(self.text.clone())),
-            )
+            .child(shell(div().debug_selector(|| "as-markdown".into())).child(TextView::markdown("md", self.text.clone()).style(style)))
+            .child(shell(div().debug_selector(|| "as-runs".into())).child(SharedString::from(self.text.clone())))
     }
 }
 
@@ -63,28 +54,18 @@ fn a_paragraph_breaks_the_same_lines_as_runs_and_as_markdown(cx: &mut TestAppCon
             let t = text.to_string();
             let (_view, cx) = cx.add_window_view(move |_, _| Pair { text: t, width });
             cx.run_until_parked();
-            let (md, runs) = (
-                cx.debug_bounds("as-markdown").unwrap(),
-                cx.debug_bounds("as-runs").unwrap(),
-            );
+            let (md, runs) = (cx.debug_bounds("as-markdown").unwrap(), cx.debug_bounds("as-runs").unwrap());
             if md.size != runs.size {
-                worst.push(format!(
-                    "{width}px: markdown {:?}, runs {:?}: {text}",
-                    md.size, runs.size
-                ));
+                worst.push(format!("{width}px: markdown {:?}, runs {:?}: {text}", md.size, runs.size));
             }
         }
     }
-    assert!(
-        worst.is_empty(),
-        "the two lay out differently:\n{}",
-        worst.join("\n")
-    );
+    assert!(worst.is_empty(), "the two lay out differently:\n{}", worst.join("\n"));
 }
 
 mod flow {
-    use super::super::*;
     use std::time::{Duration, Instant};
+    use super::super::*;
 
     #[test]
     fn the_tail_starts_after_the_last_blank_line() {
@@ -92,27 +73,15 @@ mod flow {
         let text = "First paragraph.\n\nSecond, still gro";
         assert_eq!(&text[split_tail(text)..], "Second, still gro");
         let text = "A.\n\nB.\n\n";
-        assert_eq!(
-            &text[split_tail(text)..],
-            "",
-            "a finished paragraph leaves an empty tail"
-        );
+        assert_eq!(&text[split_tail(text)..], "", "a finished paragraph leaves an empty tail");
         let text = "A.\n\n\n\nB";
-        assert_eq!(
-            &text[split_tail(text)..],
-            "B",
-            "more than one blank line is one gap"
-        );
+        assert_eq!(&text[split_tail(text)..], "B", "more than one blank line is one gap");
     }
 
     #[test]
     fn a_blank_line_inside_a_code_fence_does_not_end_the_paragraph() {
         let text = "Here:\n\n```rust\nfn a() {}\n\nfn b() {";
-        assert_eq!(
-            split_tail(text),
-            text.len(),
-            "inside an open fence there is no tail to fade"
-        );
+        assert_eq!(split_tail(text), text.len(), "inside an open fence there is no tail to fade");
         let closed = "Here:\n\n```rust\nfn a() {}\n```\n\nDone, and more";
         assert_eq!(&closed[split_tail(closed)..], "Done, and more");
     }
@@ -121,21 +90,7 @@ mod flow {
     fn only_a_plain_paragraph_fades() {
         assert!(is_plain("The build passed and the change is ready"));
         assert!(is_plain("It costs 1.2 ms (p95 3.4 ms) on the Mac"));
-        for not in [
-            "# A heading",
-            "- a list item",
-            "* another",
-            "1. numbered",
-            "> quoted",
-            "```code",
-            "| a | b |",
-            "    indented code",
-            "Use `Edit` once",
-            "a **bold** word",
-            "see [the docs](x)",
-            "a_b_c_d",
-            "line one\nline two",
-        ] {
+        for not in ["# A heading", "- a list item", "* another", "1. numbered", "> quoted", "```code", "| a | b |", "    indented code", "Use `Edit` once", "a **bold** word", "see [the docs](x)", "a_b_c_d", "line one\nline two"] {
             assert!(!is_plain(not), "{not:?} needs Markdown");
         }
     }
@@ -157,16 +112,10 @@ mod flow {
         assert_eq!(runs.len(), 2);
         assert_eq!(runs[0].0, 0..5);
         assert_eq!(runs[1].0, 5..11);
-        assert!(
-            runs[1].1 < runs[0].1,
-            "the newer piece is fainter: {runs:?}"
-        );
+        assert!(runs[1].1 < runs[0].1, "the newer piece is fainter: {runs:?}");
         assert!(runs[1].1 > 0. && runs[0].1 < 1.);
         let later = flow.alphas(text2, 0, at(base, 40 + 100));
-        assert!(
-            later.is_empty(),
-            "both are settled: nothing to draw differently"
-        );
+        assert!(later.is_empty(), "both are settled: nothing to draw differently");
     }
 
     #[test]
@@ -176,10 +125,7 @@ mod flow {
         flow.observe("Hi", base);
         assert!(flow.is_fading(at(base, 50)));
         assert!(!flow.is_fading(at(base, 100)));
-        assert!(
-            !Flow::default().is_fading(base),
-            "a stream that has not started asks for nothing"
-        );
+        assert!(!Flow::default().is_fading(base), "a stream that has not started asks for nothing");
     }
 
     /// Cursor's `fade-in-fast`: CSS `ease-in-out`, so a piece starts slow, is at half ink halfway, and lands slow.
@@ -226,11 +172,7 @@ mod flow {
             text.push_str("tok ");
             flow.observe(&text, at(base, i * 16));
         }
-        assert!(
-            flow.marks() <= 16,
-            "{} marks after 400 pieces in 6.4s",
-            flow.marks()
-        );
+        assert!(flow.marks() <= 16, "{} marks after 400 pieces in 6.4s", flow.marks());
     }
 }
 
@@ -245,11 +187,7 @@ impl Render for Composite {
         let theme = cx.theme().clone();
         let style = TextViewStyle::default().paragraph_gap(rems(0.75));
         let shell = |d: gpui_kit::Div| {
-            d.flex_none()
-                .max_w(px(self.width))
-                .text_color(theme.foreground.opacity(0.9))
-                .text_size(TextSize::Sm.font_size())
-                .line_height(px(24.))
+            d.flex_none().max_w(px(self.width)).text_color(theme.foreground.opacity(0.9)).text_size(TextSize::Sm.font_size()).line_height(px(24.))
         };
         let cut = super::split_tail(&self.text);
         let (head, tail) = self.text.split_at(cut);
@@ -259,18 +197,11 @@ impl Render for Composite {
             .flex_col()
             .items_start()
             .gap(px(20.))
-            .child(
-                shell(div().debug_selector(|| "whole".into()))
-                    .child(TextView::markdown("whole", self.text.clone()).style(style.clone())),
-            )
+            .child(shell(div().debug_selector(|| "whole".into())).child(TextView::markdown("whole", self.text.clone()).style(style.clone())))
             .child(
                 shell(div().debug_selector(|| "composite".into()))
                     .child(TextView::markdown("head", head.to_string()).style(style))
-                    .child(
-                        div()
-                            .mt(px(12.))
-                            .child(SharedString::from(tail.to_string())),
-                    ),
+                    .child(div().mt(px(12.)).child(SharedString::from(tail.to_string()))),
             )
     }
 }
@@ -288,32 +219,20 @@ fn the_tail_under_its_gap_lays_out_as_one_more_paragraph(cx: &mut TestAppContext
             let text = format!("{}\n\n{}\n\n{tail}", PARAGRAPHS[0], PARAGRAPHS[1]);
             let (_view, cx) = cx.add_window_view(move |_, _| Composite { text, width });
             cx.run_until_parked();
-            let (whole, composite) = (
-                cx.debug_bounds("whole").unwrap(),
-                cx.debug_bounds("composite").unwrap(),
-            );
+            let (whole, composite) = (cx.debug_bounds("whole").unwrap(), cx.debug_bounds("composite").unwrap());
             if whole.size != composite.size {
-                off.push(format!(
-                    "{width}px: whole {:?}, composite {:?}: {tail}",
-                    whole.size, composite.size
-                ));
+                off.push(format!("{width}px: whole {:?}, composite {:?}: {tail}", whole.size, composite.size));
             }
         }
     }
-    assert!(
-        off.is_empty(),
-        "the tail moves the text:\n{}",
-        off.join("\n")
-    );
+    assert!(off.is_empty(), "the tail moves the text:\n{}", off.join("\n"));
 }
 
 mod in_text {
+    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px};
     use crate::{
         agent_text::{AgentText, AgentTextStatus},
         theme::{Appearance, set_appearance},
-    };
-    use gpui_kit::{
-        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px,
     };
 
     struct Page {
@@ -323,20 +242,10 @@ mod in_text {
     }
     impl Render for Page {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().w(px(420.)).child(
-                AgentText::new("answer", self.text.clone())
-                    .status(self.status)
-                    .fade_tail(self.fade),
-            )
+            div().w(px(420.)).child(AgentText::new("answer", self.text.clone()).status(self.status).fade_tail(self.fade))
         }
     }
-    fn show(
-        text: &str,
-        status: AgentTextStatus,
-        fade: bool,
-        reduce: bool,
-        cx: &mut TestAppContext,
-    ) -> bool {
+    fn show(text: &str, status: AgentTextStatus, fade: bool, reduce: bool, cx: &mut TestAppContext) -> bool {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Dark, cx);
@@ -350,83 +259,39 @@ mod in_text {
 
     #[gpui_kit::test]
     fn a_streaming_plain_tail_is_drawn_as_runs(cx: &mut TestAppContext) {
-        assert!(show(
-            "Done with the first part.\n\nNow the second",
-            AgentTextStatus::Streaming,
-            true,
-            false,
-            cx
-        ));
+        assert!(show("Done with the first part.\n\nNow the second", AgentTextStatus::Streaming, true, false, cx));
     }
 
     #[gpui_kit::test]
     fn the_first_paragraph_streams_as_runs_too(cx: &mut TestAppContext) {
-        assert!(show(
-            "Just starting to answer",
-            AgentTextStatus::Streaming,
-            true,
-            false,
-            cx
-        ));
+        assert!(show("Just starting to answer", AgentTextStatus::Streaming, true, false, cx));
     }
 
     #[gpui_kit::test]
-    fn nothing_fades_unless_asked_or_after_the_stream_or_under_reduce_motion(
-        cx: &mut TestAppContext,
-    ) {
+    fn nothing_fades_unless_asked_or_after_the_stream_or_under_reduce_motion(cx: &mut TestAppContext) {
         let text = "Done with the first part.\n\nNow the second";
-        assert!(
-            !show(text, AgentTextStatus::Streaming, false, false, cx),
-            "not asked for"
-        );
-        assert!(
-            !show(text, AgentTextStatus::Complete, true, false, cx),
-            "the answer is complete"
-        );
-        assert!(
-            !show(text, AgentTextStatus::Streaming, true, true, cx),
-            "Reduce Motion"
-        );
+        assert!(!show(text, AgentTextStatus::Streaming, false, false, cx), "not asked for");
+        assert!(!show(text, AgentTextStatus::Complete, true, false, cx), "the answer is complete");
+        assert!(!show(text, AgentTextStatus::Streaming, true, true, cx), "Reduce Motion");
     }
 
     #[gpui_kit::test]
     fn a_tail_that_needs_markdown_is_left_to_the_view(cx: &mut TestAppContext) {
-        assert!(!show(
-            "Intro.\n\nUse `Edit` once",
-            AgentTextStatus::Streaming,
-            true,
-            false,
-            cx
-        ));
-        assert!(!show(
-            "Intro.\n\n- first item",
-            AgentTextStatus::Streaming,
-            true,
-            false,
-            cx
-        ));
-        assert!(!show(
-            "Intro.\n\n```rust\nlet a = 1;\n\nlet b",
-            AgentTextStatus::Streaming,
-            true,
-            false,
-            cx
-        ));
+        assert!(!show("Intro.\n\nUse `Edit` once", AgentTextStatus::Streaming, true, false, cx));
+        assert!(!show("Intro.\n\n- first item", AgentTextStatus::Streaming, true, false, cx));
+        assert!(!show("Intro.\n\n```rust\nlet a = 1;\n\nlet b", AgentTextStatus::Streaming, true, false, cx));
     }
 }
 
 mod cost {
+    use std::time::{Duration, Instant};
+    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px};
     use crate::{
         agent_text::{AgentText, AgentTextStatus},
         theme::{Appearance, set_appearance},
     };
-    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px};
-    use std::time::{Duration, Instant};
 
-    const WORDS: [&str; 12] = [
-        "the", "build", "passed", "and", "every", "test", "ran", "without", "a", "single",
-        "failure", "today",
-    ];
+    const WORDS: [&str; 12] = ["the", "build", "passed", "and", "every", "test", "ran", "without", "a", "single", "failure", "today"];
 
     /// The answer after `n` tokens: five words to a token, a blank line every 14 tokens.
     fn answer(n: usize) -> String {
@@ -452,16 +317,8 @@ mod cost {
         fade: bool,
     }
     impl gpui_kit::Render for Bench {
-        fn render(
-            &mut self,
-            _: &mut gpui_kit::Window,
-            _: &mut gpui_kit::Context<Self>,
-        ) -> impl IntoElement {
-            div().w(px(700.)).child(
-                AgentText::new("answer", self.text.clone())
-                    .status(AgentTextStatus::Streaming)
-                    .fade_tail(self.fade),
-            )
+        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+            div().w(px(700.)).child(AgentText::new("answer", self.text.clone()).status(AgentTextStatus::Streaming).fade_tail(self.fade))
         }
     }
 
@@ -476,10 +333,7 @@ mod cost {
             set_appearance(Appearance::Dark, cx);
             cx.set_reduce_motion(false);
         });
-        let (view, cx) = cx.add_window_view(|_, _| Bench {
-            text: String::new(),
-            fade: false,
-        });
+        let (view, cx) = cx.add_window_view(|_, _| Bench { text: String::new(), fade: false });
         let draw = |text: String, fade: bool, cx: &mut gpui_kit::VisualTestContext| {
             view.update(cx, |b, cx| {
                 b.text = text;
@@ -488,11 +342,7 @@ mod cost {
             });
             let start = Instant::now();
             let view = view.clone();
-            cx.draw(
-                gpui_kit::point(px(0.), px(0.)),
-                gpui_kit::size(px(700.), px(1800.)),
-                move |_, _| view.clone().into_any_element(),
-            );
+            cx.draw(gpui_kit::point(px(0.), px(0.)), gpui_kit::size(px(700.), px(1800.)), move |_, _| view.clone().into_any_element());
             start.elapsed()
         };
         // Warm up: fonts, caches.
@@ -507,10 +357,7 @@ mod cost {
                     times.push(draw(answer(n), fade, cx));
                 }
                 let tail_drawn = cx.debug_bounds("stream-tail").is_some();
-                assert_eq!(
-                    tail_drawn, fade,
-                    "the tail is drawn in runs exactly when the fade is on"
-                );
+                assert_eq!(tail_drawn, fade, "the tail is drawn in runs exactly when the fade is on");
                 times.sort();
                 println!(
                     "round {round} fade {fade:5}: p50 {:>6.2} ms  p95 {:>6.2} ms  max {:>6.2} ms  ({} tokens, {} chars at the end)",

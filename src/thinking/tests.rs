@@ -10,13 +10,7 @@ fn labels() -> PhaseLabels {
 }
 
 fn thinking(elapsed_s: f32) -> SharedString {
-    label(
-        &labels(),
-        ThinkingPhase::Thinking {
-            since: Instant::now(),
-        },
-        elapsed_s,
-    )
+    label(&labels(), ThinkingPhase::Thinking { since: Instant::now() }, elapsed_s)
 }
 
 #[test]
@@ -33,15 +27,8 @@ fn the_label_changes_at_each_threshold() {
 
 #[test]
 fn a_finished_thought_names_its_length() {
-    assert_eq!(
-        label(&labels(), ThinkingPhase::Thought { seconds: 4 }, 99.),
-        "Thought for 4s"
-    );
-    assert_eq!(
-        label(&labels(), ThinkingPhase::Thought { seconds: 0 }, 99.),
-        "Thought",
-        "no time to tell, so none is claimed"
-    );
+    assert_eq!(label(&labels(), ThinkingPhase::Thought { seconds: 4 }, 99.), "Thought for 4s");
+    assert_eq!(label(&labels(), ThinkingPhase::Thought { seconds: 0 }, 99.), "Thought", "no time to tell, so none is claimed");
 }
 
 #[test]
@@ -63,22 +50,10 @@ fn other_phases_have_fixed_labels() {
 fn the_label_wakes_at_the_next_threshold_only_while_thinking() {
     let since = Instant::now();
     let labels = labels();
-    assert_eq!(
-        next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 0.),
-        Some(15.)
-    );
-    assert_eq!(
-        next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 44.),
-        Some(1.)
-    );
-    assert_eq!(
-        next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 60.),
-        None
-    );
-    assert_eq!(
-        next_label_change_s(&labels, ThinkingPhase::Sending, 0.),
-        None
-    );
+    assert_eq!(next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 0.), Some(15.));
+    assert_eq!(next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 44.), Some(1.));
+    assert_eq!(next_label_change_s(&labels, ThinkingPhase::Thinking { since }, 60.), None);
+    assert_eq!(next_label_change_s(&labels, ThinkingPhase::Sending, 0.), None);
 }
 
 #[test]
@@ -100,27 +75,12 @@ fn segments_are_spaced_without_a_middle_dot() {
 
 /// A look from some other agent: its own strips, colours, and words.
 fn other_look() -> AgentLook {
-    let strip = |path| Strip {
-        path,
-        bytes: b"",
-        frames: 4,
-        frame_ms: 50,
-        loops: true,
-    };
+    let strip = |path| Strip { path, bytes: b"", frames: 4, frame_ms: 50, loops: true };
     AgentLook {
-        mark: Mark {
-            working: strip("other/work.svg"),
-            orbiting: strip("other/orbit.svg"),
-            color: rgb(0x2255AA).into(),
-            icon_frame: 0,
-        },
+        mark: Mark { working: strip("other/work.svg"), orbiting: strip("other/orbit.svg"), color: rgb(0x2255AA).into(), icon_frame: 0 },
         message: rgb(0x0044CC).into(),
         glimmer: rgb(0x66AAFF).into(),
-        labels: PhaseLabels {
-            waiting: "Waiting for Other…".into(),
-            thinking: &[(0., "Pondering…")],
-            ..PhaseLabels::default()
-        },
+        labels: PhaseLabels { waiting: "Waiting for Other…".into(), thinking: &[(0., "Pondering…")], ..PhaseLabels::default() },
     }
 }
 
@@ -136,74 +96,32 @@ fn the_main_row_orbits_while_subagents_run() {
 fn another_agents_look_reaches_the_thinking_label() {
     let look = other_look();
     let muted = rgb(0x888888).into();
-    assert_eq!(
-        label(&look.labels, ThinkingPhase::Waiting, 0.),
-        "Waiting for Other…"
-    );
-    assert_eq!(
-        label(
-            &look.labels,
-            ThinkingPhase::Thinking {
-                since: Instant::now()
-            },
-            90.
-        ),
-        "Pondering…"
-    );
+    assert_eq!(label(&look.labels, ThinkingPhase::Waiting, 0.), "Waiting for Other…");
+    assert_eq!(label(&look.labels, ThinkingPhase::Thinking { since: Instant::now() }, 90.), "Pondering…");
     assert_eq!(label_color(&look, true, muted), look.message);
     assert_eq!(label_color(&look, false, muted), muted);
     // The glimmer walks across the label in the look's own two colours.
-    let lit = glimmer::glimmer_highlights("Pondering…", look.message, look.glimmer, |g| {
-        if g == 0 { 1. } else { 0. }
-    });
-    assert!(
-        same_color(lit[0].1.color, look.glimmer),
-        "{:?}",
-        lit[0].1.color
-    );
-    assert!(
-        same_color(lit[1].1.color, look.message),
-        "{:?}",
-        lit[1].1.color
-    );
+    let lit = glimmer::glimmer_highlights("Pondering…", look.message, look.glimmer, |g| if g == 0 { 1. } else { 0. });
+    assert!(same_color(lit[0].1.color, look.glimmer), "{:?}", lit[0].1.color);
+    assert!(same_color(lit[1].1.color, look.message), "{:?}", lit[1].1.color);
 }
 
 /// `mix` goes through RGB and back, so compare with a little slack.
 fn same_color(got: Option<Hsla>, want: Hsla) -> bool {
-    let (Some(got), want) = (got.map(|c| c.to_rgb()), want.to_rgb()) else {
-        return false;
-    };
-    [
-        got.r - want.r,
-        got.g - want.g,
-        got.b - want.b,
-        got.a - want.a,
-    ]
-    .iter()
-    .all(|d| d.abs() < 1e-3)
+    let (Some(got), want) = (got.map(|c| c.to_rgb()), want.to_rgb()) else { return false };
+    [got.r - want.r, got.g - want.g, got.b - want.b, got.a - want.a].iter().all(|d| d.abs() < 1e-3)
 }
 
 #[test]
 fn the_loading_mark_picks_one_of_the_strips_it_was_given() {
-    let strip = |path| Strip {
-        path,
-        bytes: b"",
-        frames: 4,
-        frame_ms: 50,
-        loops: true,
-    };
+    let strip = |path| Strip { path, bytes: b"", frames: 4, frame_ms: 50, loops: true };
     let working = strip("other/work.svg");
     let variants = [strip("a.svg"), strip("b.svg"), strip("c.svg")];
     for roll in 0..9 {
-        assert_eq!(
-            loading_strip(&variants, working, roll),
-            variants[(roll % 3) as usize]
-        );
+        assert_eq!(loading_strip(&variants, working, roll), variants[(roll % 3) as usize]);
     }
     // Different rolls reach every strip.
-    let seen: std::collections::HashSet<_> = (0..3)
-        .map(|roll| loading_strip(&variants, working, roll).path)
-        .collect();
+    let seen: std::collections::HashSet<_> = (0..3).map(|roll| loading_strip(&variants, working, roll).path).collect();
     assert_eq!(seen.len(), 3);
 }
 

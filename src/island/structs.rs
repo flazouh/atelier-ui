@@ -6,8 +6,6 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::helpers::colors;
-use super::types::{HEIGHT, PILL, Press, RADIUS, SHELL};
 use crate::scale::px;
 use crate::{
     focus::ring_shadow,
@@ -19,6 +17,8 @@ use crate::{
     theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
+use super::types::{HEIGHT, PILL, Press, RADIUS, SHELL};
+use super::helpers::colors;
 
 struct State {
     pub(super) content: Option<(f32, f32)>,
@@ -41,13 +41,7 @@ pub struct Island {
 
 impl Island {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self {
-            id: id.into(),
-            min: PILL,
-            child: None,
-            on_press: None,
-            selector: None,
-        }
+        Self { id: id.into(), min: PILL, child: None, on_press: None, selector: None }
     }
 
     /// The least width and height of the pill, in px.
@@ -138,20 +132,15 @@ impl RenderOnce for Island {
             .text_color(colors(&theme).1)
             .font_family(FONT_FAMILY)
             .when(keyed, |d| d.shadow(ring_shadow(&theme, theme.background)))
-            .when_some(self.selector, |d, name| {
-                d.debug_selector(move || name.into())
-            })
+            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
             .when_some(press, |d, press| {
                 let key = press.clone();
-                d.cursor_pointer()
-                    .track_focus(&focus.tab_stop(true))
-                    .on_click(move |_, window, cx| press(window, cx))
-                    .on_key_down(move |event, window, cx| {
-                        if matches!(event.keystroke.key.as_str(), "enter" | "space") {
-                            cx.stop_propagation();
-                            key(window, cx);
-                        }
-                    })
+                d.cursor_pointer().track_focus(&focus.tab_stop(true)).on_click(move |_, window, cx| press(window, cx)).on_key_down(move |event, window, cx| {
+                    if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                        cx.stop_propagation();
+                        key(window, cx);
+                    }
+                })
             })
             .child(content)
     }
@@ -184,11 +173,7 @@ pub struct SessionsIsland {
 
 impl SessionsIsland {
     pub fn new(id: impl Into<ElementId>, counts: IslandCounts) -> Self {
-        Self {
-            id: id.into(),
-            counts,
-            on_press: None,
-        }
+        Self { id: id.into(), counts, on_press: None }
     }
 
     /// A press on the pill: open the session that needs the reader most.
@@ -215,14 +200,7 @@ impl RenderOnce for SessionsIsland {
                 .child(Digits::new((self.id.clone(), key), n.to_string(), px(12.)))
                 .child(div().child(words))
         };
-        let dot = |color: gpui_kit::Hsla| {
-            div()
-                .size(px(8.))
-                .flex_none()
-                .rounded_full()
-                .bg(color)
-                .into_any_element()
-        };
+        let dot = |color: gpui_kit::Hsla| div().size(px(8.)).flex_none().rounded_full().bg(color).into_any_element();
         let content = div()
             .flex()
             .flex_none()
@@ -235,35 +213,12 @@ impl RenderOnce for SessionsIsland {
             .line_height(px(16.))
             .font_weight(FontWeight::MEDIUM)
             .whitespace_nowrap()
-            .when(c.needs > 0, |d| {
-                d.child(part(
-                    "needs",
-                    Icon::new(IconName::PriorityHigh)
-                        .size(px(12.))
-                        .color(theme.warning_fill)
-                        .into_any_element(),
-                    c.needs,
-                    "needs you",
-                ))
-            })
+            .when(c.needs > 0, |d| d.child(part("needs", Icon::new(IconName::PriorityHigh).size(px(12.)).color(theme.warning_fill).into_any_element(), c.needs, "needs you")))
             .when(c.running > 0, |d| {
-                d.child(part(
-                    "running",
-                    Spinner::new((self.id.clone(), "spin"))
-                        .size(px(12.))
-                        .color(theme.foreground)
-                        .into_any_element(),
-                    c.running,
-                    "running",
-                ))
+                d.child(part("running", Spinner::new((self.id.clone(), "spin")).size(px(12.)).color(theme.foreground).into_any_element(), c.running, "running"))
             })
-            .when(c.done > 0, |d| {
-                d.child(part("done", dot(theme.accent), c.done, "done"))
-            });
-        let mut island = Island::new(self.id.clone())
-            .min_size(0., HEIGHT)
-            .debug_name("sessions-island")
-            .child(content);
+            .when(c.done > 0, |d| d.child(part("done", dot(theme.accent), c.done, "done")));
+        let mut island = Island::new(self.id.clone()).min_size(0., HEIGHT).debug_name("sessions-island").child(content);
         if let Some(press) = self.on_press {
             island = island.on_press(move |window, cx| press(window, cx));
         }

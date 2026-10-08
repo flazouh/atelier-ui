@@ -2,16 +2,29 @@ use std::path::PathBuf;
 
 use gpui_kit::StyledImage as _;
 use gpui_kit::{
-    AppContext, Context, Entity, EventEmitter, FocusHandle, Focusable, FontWeight,
-    InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Render, SharedString,
-    StatefulInteractiveElement, Styled, Subscription, Window,
+    AppContext,
+    Context,
+    Entity,
+    EventEmitter,
+    FocusHandle,
+    Focusable,
+    FontWeight,
+    InteractiveElement,
+    IntoElement,
+    KeyDownEvent,
+    ParentElement,
+    Render,
+    SharedString,
+    StatefulInteractiveElement,
+    Styled,
+    Subscription,
+    Window,
     base::input::{MoveDown, MoveUp},
     component::input::{Input, InputEvent, InputState},
     div,
     prelude::FluentBuilder,
 };
 
-use super::types::IconPickerEvent;
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonVariant},
@@ -20,10 +33,11 @@ use crate::{
     icon::{Icon, IconName},
     icon_candidates,
     project_badge::{fill, ink_on, palette},
-    theme::ActiveTheme,
     tooltip::Tooltip,
+    theme::ActiveTheme,
     typography::TextSize,
 };
+use super::types::IconPickerEvent;
 
 /// A swatch's size, and the gap between swatches: twelve in two rows of six would be 6 x 24 + 5 x 8.
 const SWATCH: f32 = 24.;
@@ -52,32 +66,16 @@ impl Focusable for IconPicker {
 impl IconPicker {
     /// A chooser over the image files among `paths`, most likely first. `root` is the project folder when the files
     /// are on this machine.
-    pub fn new(
-        paths: Vec<String>,
-        root: Option<PathBuf>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Self {
+    pub fn new(paths: Vec<String>, root: Option<PathBuf>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = cx.new(|cx| InputState::new(window, cx).placeholder("Filter the images"));
-        let subscription = cx.subscribe_in(
-            &input,
-            window,
-            |this: &mut Self, _, event: &InputEvent, _, cx| {
-                if matches!(event, InputEvent::Change) {
-                    this.active = 0;
-                    cx.notify();
-                }
-            },
-        );
+        let subscription = cx.subscribe_in(&input, window, |this: &mut Self, _, event: &InputEvent, _, cx| {
+            if matches!(event, InputEvent::Change) {
+                this.active = 0;
+                cx.notify();
+            }
+        });
         let refs: Vec<&str> = paths.iter().map(String::as_str).collect();
-        Self {
-            input,
-            all: icon_candidates::rank(&refs),
-            root,
-            active: 0,
-            color: None,
-            _subscription: subscription,
-        }
+        Self { input, all: icon_candidates::rank(&refs), root, active: 0, color: None, _subscription: subscription }
     }
     /// Marks the colour the badge has now, an index of the palette.
     pub fn with_color(mut self, color: usize) -> Self {
@@ -112,19 +110,11 @@ impl IconPicker {
                     .rounded_full()
                     .bg(fill)
                     .border_2()
-                    .border_color(if on {
-                        theme.foreground
-                    } else {
-                        gpui_kit::transparent_black()
-                    })
+                    .border_color(if on { theme.foreground } else { gpui_kit::transparent_black() })
                     .cursor_pointer()
                     .tooltip(Tooltip::text(swatch.name.clone()))
-                    .on_click(move |_, _, cx| {
-                        drop(pick.update(cx, |picker, cx| picker.pick_color(i, cx)))
-                    })
-                    .children(
-                        on.then(|| Icon::new(IconName::Check).size(px(12.)).color(ink_on(fill))),
-                    )
+                    .on_click(move |_, _, cx| drop(pick.update(cx, |picker, cx| picker.pick_color(i, cx))))
+                    .children(on.then(|| Icon::new(IconName::Check).size(px(12.)).color(ink_on(fill))))
             }))
     }
     fn found(&self, cx: &gpui_kit::App) -> Vec<String> {
@@ -132,11 +122,7 @@ impl IconPicker {
     }
     fn step(&mut self, down: bool, cx: &mut Context<Self>) {
         let count = self.found(cx).len();
-        self.active = if down {
-            (self.active + 1).min(count.saturating_sub(1))
-        } else {
-            self.active.saturating_sub(1)
-        };
+        self.active = if down { (self.active + 1).min(count.saturating_sub(1)) } else { self.active.saturating_sub(1) };
         cx.notify();
     }
     pub(super) fn choose(&mut self, cx: &mut Context<Self>) {
@@ -167,34 +153,16 @@ impl Render for IconPicker {
             .iter()
             .enumerate()
             .map(|(i, path)| {
-                let (dir, name) = path
-                    .rsplit_once('/')
-                    .map_or(("", path.as_str()), |(d, n)| (d, n));
+                let (dir, name) = path.rsplit_once('/').map_or(("", path.as_str()), |(d, n)| (d, n));
                 let thumb = match &self.root {
                     Some(root) => div()
                         .debug_selector(move || format!("icon-thumb-{i}"))
                         .size(px(20.))
-                        .child(
-                            gpui_kit::img(root.join(path))
-                                .size(px(20.))
-                                .object_fit(gpui_kit::ObjectFit::Contain),
-                        )
+                        .child(gpui_kit::img(root.join(path)).size(px(20.)).object_fit(gpui_kit::ObjectFit::Contain))
                         .into_any_element(),
-                    None => Icon::new(IconName::Image)
-                        .size(px(16.))
-                        .color(muted)
-                        .into_any_element(),
+                    None => Icon::new(IconName::Image).size(px(16.)).color(muted).into_any_element(),
                 };
-                let mut row = ComboRow::new(name.to_string())
-                    .leading(
-                        div()
-                            .flex()
-                            .size(px(20.))
-                            .items_center()
-                            .justify_center()
-                            .child(thumb),
-                    )
-                    .debug_name(format!("icon-row-{i}"));
+                let mut row = ComboRow::new(name.to_string()).leading(div().flex().size(px(20.)).items_center().justify_center().child(thumb)).debug_name(format!("icon-row-{i}"));
                 if !dir.is_empty() {
                     row = row.detail(dir.to_string());
                 }
@@ -212,30 +180,18 @@ impl Render for IconPicker {
             .flex_col()
             .gap(px(12.))
             .w_full()
-            .child(
-                div()
-                    .text_size(TextSize::Sm.font_size())
-                    .font_weight(FontWeight::MEDIUM)
-                    .child("Choose an icon"),
-            )
+            .child(div().text_size(TextSize::Sm.font_size()).font_weight(FontWeight::MEDIUM).child("Choose an icon"))
             .child(
                 div()
                     .flex()
                     .flex_col()
                     .gap(px(6.))
-                    .child(
-                        div()
-                            .text_size(TextSize::Xs.font_size())
-                            .text_color(muted)
-                            .child("Colour of the letter"),
-                    )
+                    .child(div().text_size(TextSize::Xs.font_size()).text_color(muted).child("Colour of the letter"))
                     .child(self.swatches(cx)),
             )
             .child(
                 div()
-                    .capture_key_down(
-                        cx.listener(|this, event: &KeyDownEvent, _, cx| this.key(event, cx)),
-                    )
+                    .capture_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| this.key(event, cx)))
                     // The field binds the arrows to its own actions, and an action runs before a key listener.
                     .capture_action(cx.listener(|this, _: &MoveDown, _, cx| {
                         this.step(true, cx);
@@ -245,13 +201,7 @@ impl Render for IconPicker {
                         this.step(false, cx);
                         cx.stop_propagation();
                     }))
-                    .child(Field::new(
-                        focus,
-                        Input::new(&self.input)
-                            .appearance(false)
-                            .px(px(10.))
-                            .text_size(TextSize::Sm.font_size()),
-                    )),
+                    .child(Field::new(focus, Input::new(&self.input).appearance(false).px(px(10.)).text_size(TextSize::Sm.font_size()))),
             )
             .child(
                 div().min_h(px(32. * 3.)).child(
@@ -262,8 +212,7 @@ impl Render for IconPicker {
                         .on_pick(move |i, _, cx| {
                             if let Some(path) = picked.get(i) {
                                 let path: SharedString = path.clone().into();
-                                pick.update(cx, |_, cx| cx.emit(IconPickerEvent::Choose(path)))
-                                    .ok();
+                                pick.update(cx, |_, cx| cx.emit(IconPickerEvent::Choose(path))).ok();
                             }
                         })
                         .footer(div().when(empty, |d| {
@@ -277,33 +226,15 @@ impl Render for IconPicker {
                 ),
             )
             .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .justify_end()
-                    .gap(px(8.))
-                    .child(
-                        Button::new("icon-clear")
-                            .debug_name("icon-clear")
-                            .label("Use the letter")
-                            .variant(ButtonVariant::Ghost)
-                            .on_click(move |_, _, cx| {
-                                clear
-                                    .update(cx, |_, cx| cx.emit(IconPickerEvent::Clear))
-                                    .ok();
-                            }),
-                    )
-                    .child(
-                        Button::new("icon-cancel")
-                            .label("Cancel")
-                            .variant(ButtonVariant::Ghost)
-                            .cap("Esc")
-                            .on_click(move |_, _, cx| {
-                                cancel
-                                    .update(cx, |_, cx| cx.emit(IconPickerEvent::Cancel))
-                                    .ok();
-                            }),
-                    ),
+                div().flex().items_center().justify_end().gap(px(8.)).child(
+                    Button::new("icon-clear").debug_name("icon-clear").label("Use the letter").variant(ButtonVariant::Ghost).on_click(move |_, _, cx| {
+                        clear.update(cx, |_, cx| cx.emit(IconPickerEvent::Clear)).ok();
+                    }),
+                ).child(
+                    Button::new("icon-cancel").label("Cancel").variant(ButtonVariant::Ghost).cap("Esc").on_click(move |_, _, cx| {
+                        cancel.update(cx, |_, cx| cx.emit(IconPickerEvent::Cancel)).ok();
+                    }),
+                ),
             )
     }
 }

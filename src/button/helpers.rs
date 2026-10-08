@@ -1,29 +1,21 @@
 use gpui_kit::{App, Entity, Hsla, IntoElement, ParentElement, Styled, div, transparent_black};
 
-use super::structs::{ButtonMotion, Metrics};
-use super::types::ButtonVariant;
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
     theme::{Theme, mix, radius},
 };
+use super::structs::{ButtonMotion, Metrics};
+use super::types::ButtonVariant;
 
 /// The padding at the side of a button: the size's when it has words, else just what centres the icon in a square as
 /// tall as the button, so an icon alone in a text size (the add button of a group) is not a wide button.
 pub(super) fn side_pad(m: &Metrics, words: bool) -> f32 {
-    if words {
-        m.pad_x
-    } else {
-        (m.height - m.icon) / 2.
-    }
+    if words { m.pad_x } else { (m.height - m.icon) / 2. }
 }
 
 /// Changes the pointer state of a button and restarts its motion toward the new look.
-pub(super) fn update_motion(
-    motion: &Entity<ButtonMotion>,
-    cx: &mut App,
-    change: impl FnOnce(&mut ButtonMotion),
-) {
+pub(super) fn update_motion(motion: &Entity<ButtonMotion>, cx: &mut App, change: impl FnOnce(&mut ButtonMotion)) {
     let reduce = cx.reduce_motion();
     motion.update(cx, |m, cx| {
         change(m);
@@ -34,19 +26,10 @@ pub(super) fn update_motion(
 
 /// Fill and text at hover progress `hover`. With a chip, the primary fill stays still, as on mem0: the
 /// chip moves instead.
-pub(crate) fn colors(
-    variant: ButtonVariant,
-    theme: &Theme,
-    hover: f32,
-    has_chip: bool,
-) -> (Hsla, Hsla) {
+pub(crate) fn colors(variant: ButtonVariant, theme: &Theme, hover: f32, has_chip: bool) -> (Hsla, Hsla) {
     match variant {
         ButtonVariant::Primary => (
-            if has_chip {
-                theme.primary
-            } else {
-                mix(theme.primary, theme.primary_hover(), hover)
-            },
+            if has_chip { theme.primary } else { mix(theme.primary, theme.primary_hover(), hover) },
             theme.primary_foreground,
         ),
         // Borderless: a wash of the ink, so it steps up from the page, a card or a box inside a card alike.
@@ -58,25 +41,13 @@ pub(crate) fn colors(
             mix(transparent_black(), theme.muted_hover(), hover),
             mix(theme.muted_foreground, theme.foreground, hover),
         ),
-        ButtonVariant::Tinted => (
-            theme.foreground.opacity(0.09 + 0.05 * hover),
-            theme.foreground,
-        ),
-        ButtonVariant::Invert => (
-            mix(theme.foreground, theme.background, 0.1 * hover),
-            theme.background,
-        ),
+        ButtonVariant::Tinted => (theme.foreground.opacity(0.09 + 0.05 * hover), theme.foreground),
+        ButtonVariant::Invert => (mix(theme.foreground, theme.background, 0.1 * hover), theme.background),
     }
 }
 
 /// The chip: two copies of the icon, one leaving through the top while the other comes in from below.
-pub(super) fn chip(
-    icon: IconName,
-    m: &Metrics,
-    tint: f32,
-    slide: f32,
-    theme: &Theme,
-) -> impl IntoElement {
+pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, theme: &Theme) -> impl IntoElement {
     let size = m.height - m.chip_inset * 2.;
     let rest_top = (size - m.icon) / 2.;
     // mem0 moves its arrows 32px on a 22px chip.
@@ -102,12 +73,7 @@ pub(super) fn chip(
 
 /// A small round color mark.
 pub fn dot(color: Hsla) -> impl IntoElement {
-    div()
-        .relative()
-        .flex_none()
-        .size(px(6.))
-        .rounded_full()
-        .bg(color)
+    div().relative().flex_none().size(px(6.)).rounded_full().bg(color)
 }
 
 /// The hover level a button eases toward: 1 on the pointer, and 1 while its picker is open.

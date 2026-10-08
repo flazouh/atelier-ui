@@ -1,12 +1,13 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use gpui_kit::{
-    AnyElement, App, Div, ElementId, IntoElement, ParentElement, RenderOnce, Styled, Window, div,
+    AnyElement, App, Div, ElementId, IntoElement, ParentElement, RenderOnce, Styled, Window,
+    div,
 };
 
-use super::helpers::{curve, frame, stagger_delay};
-use crate::motion::Channel;
 use crate::scale::px;
+use crate::motion::Channel;
+use super::helpers::{curve, frame, stagger_delay};
 
 /// Where an entering item is at eased progress `p` (0 when it arrives, 1 when settled).
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -26,10 +27,7 @@ impl Arrivals {
     /// The entrance delay for each of `ids`, or `None` for an item that must not animate.
     pub fn arrive(&mut self, ids: &[ElementId]) -> Vec<Option<Duration>> {
         let first = !std::mem::replace(&mut self.painted, true);
-        let fresh: Vec<bool> = ids
-            .iter()
-            .map(|id| self.seen.insert(id.clone()) && !first)
-            .collect();
+        let fresh: Vec<bool> = ids.iter().map(|id| self.seen.insert(id.clone()) && !first).collect();
         let count = fresh.iter().filter(|&&f| f).count();
         let mut index = 0;
         fresh
@@ -55,12 +53,7 @@ pub struct Entrance {
 
 impl Entrance {
     pub fn new(id: impl Into<ElementId>, child: impl IntoElement) -> Self {
-        Self {
-            id: id.into(),
-            skip_initial: true,
-            delay: Duration::ZERO,
-            child: child.into_any_element(),
-        }
+        Self { id: id.into(), skip_initial: true, delay: Duration::ZERO, child: child.into_any_element() }
     }
 
     /// On by default: the child shows at once the first time it renders. A list turns it off for items
@@ -99,11 +92,7 @@ impl RenderOnce for Entrance {
             window.request_animation_frame();
         }
         let f = frame(m.progress.value(), m.reduce);
-        div()
-            .relative()
-            .top(px(f.y))
-            .opacity(f.opacity)
-            .child(self.child)
+        div().relative().top(px(f.y)).opacity(f.opacity).child(self.child)
     }
 }
 
@@ -119,11 +108,7 @@ pub struct EntranceList {
 impl EntranceList {
     /// `container` lays the items out, for example `div().flex().flex_col().gap(px(16.))`.
     pub fn new(id: impl Into<ElementId>, container: Div) -> Self {
-        Self {
-            id: id.into(),
-            container,
-            items: Vec::new(),
-        }
+        Self { id: id.into(), container, items: Vec::new() }
     }
 
     pub fn item(mut self, id: impl Into<ElementId>, child: impl IntoElement) -> Self {
@@ -138,16 +123,9 @@ impl RenderOnce for EntranceList {
         let arrivals = window.use_keyed_state(self.id, cx, |_, _| Arrivals::default());
         let ids: Vec<ElementId> = self.items.iter().map(|(id, _)| id.clone()).collect();
         let delays = arrivals.update(cx, |a, _| a.arrive(&ids));
-        self.container.children(
-            self.items
-                .into_iter()
-                .zip(delays)
-                .map(|((id, child), delay)| {
-                    let key = ElementId::NamedChild(list.clone(), id.to_string().into());
-                    Entrance::new(key, child)
-                        .skip_initial(delay.is_none())
-                        .delay(delay.unwrap_or_default())
-                }),
-        )
+        self.container.children(self.items.into_iter().zip(delays).map(|((id, child), delay)| {
+            let key = ElementId::NamedChild(list.clone(), id.to_string().into());
+            Entrance::new(key, child).skip_initial(delay.is_none()).delay(delay.unwrap_or_default())
+        }))
     }
 }

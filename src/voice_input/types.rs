@@ -38,9 +38,6 @@ pub struct VoiceDevice {
 
 impl VoiceDevice {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self {
-            id: id.into(),
-            label: label.into(),
-        }
+        Self { id: id.into(), label: label.into() }
     }
 }

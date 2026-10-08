@@ -1,7 +1,7 @@
 use gpui_kit::App;
 
-use super::structs::Choice;
 use crate::tabs::TabsVariant;
+use super::structs::Choice;
 
 thread_local! {
     /// The elevation in force. A thread local, not a global: the panels that read it have no `App` to hand.
@@ -50,11 +50,7 @@ pub fn panel_fill(theme: &crate::Theme, design: usize, base: gpui_kit::Hsla) -> 
     }
     let white = gpui_kit::hsla(0., 0., 1., 1.);
     // At 100: half way to white in light, 6% in dark. The default, 50, is 25% and 3%.
-    let amount = if theme.appearance == crate::theme::Appearance::Dark {
-        0.06
-    } else {
-        0.5
-    } * strength_factor();
+    let amount = if theme.appearance == crate::theme::Appearance::Dark { 0.06 } else { 0.5 } * strength_factor();
     crate::theme::mix(base, white, amount)
 }
 
@@ -75,22 +71,14 @@ pub fn row_tone(theme: &crate::Theme, panel: gpui_kit::Hsla) -> gpui_kit::Hsla {
 
 /// A panel's 1px edge in elevation `design`: A's subtle edge, or none (the pixel stays, clear, so no size moves).
 pub fn panel_edge(theme: &crate::Theme, design: usize) -> gpui_kit::Hsla {
-    if clamp(design) == 0 {
-        crate::theme::dropdown_edge(theme)
-    } else {
-        gpui_kit::transparent_black()
-    }
+    if clamp(design) == 0 { crate::theme::dropdown_edge(theme) } else { gpui_kit::transparent_black() }
 }
 
 /// A panel's shadows in elevation `design`. A keeps `base`; B has none; C is a tight contact shadow and a wide
 /// soft one; D adds a faint inner highlight on the top edge. A panel given no shadow stays without.
-pub fn panel_shadows(
-    theme: &crate::Theme,
-    design: usize,
-    base: Vec<gpui_kit::BoxShadow>,
-) -> Vec<gpui_kit::BoxShadow> {
-    use crate::scale::px;
-    use gpui_kit::{BoxShadow, hsla, point};
+pub fn panel_shadows(theme: &crate::Theme, design: usize, base: Vec<gpui_kit::BoxShadow>) -> Vec<gpui_kit::BoxShadow> {
+    use gpui_kit::{BoxShadow, hsla, point, };
+use crate::scale::px;
     let design = clamp(design);
     if design == 0 || base.is_empty() {
         return base;
@@ -107,10 +95,7 @@ pub fn panel_shadows(
         spread_radius: px(0.),
         inset: false,
     };
-    let mut shadows = vec![
-        layer(1., 2., if dark { 0.40 } else { 0.12 }),
-        layer(8., 24., if dark { 0.35 } else { 0.10 }),
-    ];
+    let mut shadows = vec![layer(1., 2., if dark { 0.40 } else { 0.12 }), layer(8., 24., if dark { 0.35 } else { 0.10 })];
     if design == 3 {
         shadows.push(BoxShadow {
             color: theme.foreground.opacity(0.06 * scale),
@@ -125,9 +110,7 @@ pub fn panel_shadows(
 
 /// Puts the saved choice in force. `None` keeps the default: A for the tabs.
 pub fn init(tabs: Option<u8>, cx: &mut App) {
-    cx.set_global(Choice {
-        tabs: clamp(tabs.map(usize::from).unwrap_or(0)),
-    });
+    cx.set_global(Choice { tabs: clamp(tabs.map(usize::from).unwrap_or(0)) });
 }
 
 fn clamp(n: usize) -> usize {
@@ -135,9 +118,7 @@ fn clamp(n: usize) -> usize {
 }
 
 pub(super) fn now(cx: &App) -> Choice {
-    cx.try_global::<Choice>()
-        .copied()
-        .unwrap_or(Choice { tabs: 0 })
+    cx.try_global::<Choice>().copied().unwrap_or(Choice { tabs: 0 })
 }
 
 /// The design of the editor tabs in force, 0 to 3.
@@ -146,17 +127,10 @@ pub fn tabs(cx: &App) -> usize {
 }
 
 pub fn set_tabs(design: usize, cx: &mut App) {
-    cx.set_global(Choice {
-        tabs: clamp(design),
-    });
+    cx.set_global(Choice { tabs: clamp(design) });
 }
 
 /// The tabs variant of editor design `design`.
 pub fn tab_variant(design: usize) -> TabsVariant {
-    [
-        TabsVariant::Chip,
-        TabsVariant::ChipLine,
-        TabsVariant::Dot,
-        TabsVariant::Tick,
-    ][clamp(design)]
+    [TabsVariant::Chip, TabsVariant::ChipLine, TabsVariant::Dot, TabsVariant::Tick][clamp(design)]
 }

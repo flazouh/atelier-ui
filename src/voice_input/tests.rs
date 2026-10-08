@@ -30,13 +30,6 @@ fn the_ring_breathes_again_and_again() {
 
 #[test]
 fn every_mode_has_its_own_key_so_the_bar_morphs_between_them() {
-    let keys = [
-        key(VoiceMode::Idle),
-        key(VoiceMode::Setup),
-        key(VoiceMode::Listening),
-    ];
-    assert_eq!(
-        keys.iter().collect::<std::collections::HashSet<_>>().len(),
-        3
-    );
+    let keys = [key(VoiceMode::Idle), key(VoiceMode::Setup), key(VoiceMode::Listening)];
+    assert_eq!(keys.iter().collect::<std::collections::HashSet<_>>().len(), 3);
 }

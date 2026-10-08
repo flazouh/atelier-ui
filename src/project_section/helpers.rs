@@ -1,8 +1,8 @@
 use gpui_kit::{IntoElement, ParentElement, SharedString, Styled, div};
 
-use super::types::MenuChoice;
 use crate::scale::px;
 use crate::{sidebar_model::Connection, typography::MONO_FONT_FAMILY};
+use super::types::MenuChoice;
 
 /// The words for how a project is connected: `None` when nothing needs saying.
 pub fn connection_words(connection: Connection) -> Option<&'static str> {
@@ -16,9 +16,7 @@ pub fn connection_words(connection: Connection) -> Option<&'static str> {
 
 /// Why `choice` cannot be chosen now, or `None` when it can: pull requests need a forge remote.
 pub fn unavailable(choice: MenuChoice, pulls: Option<&str>) -> Option<&str> {
-    (choice == MenuChoice::PullRequests)
-        .then_some(pulls)
-        .flatten()
+    (choice == MenuChoice::PullRequests).then_some(pulls).flatten()
 }
 
 pub(super) fn chip(text: SharedString, theme: &crate::theme::Theme) -> impl IntoElement {

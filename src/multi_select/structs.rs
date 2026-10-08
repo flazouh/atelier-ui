@@ -1,21 +1,36 @@
 use std::{collections::HashMap, sync::Arc};
 
 use gpui_kit::{
-    App, AppContext, Bounds, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
-    FontWeight, Hsla, InteractiveElement, IntoElement, KeyDownEvent, MouseButton, ParentElement,
-    Pixels, Point, Render, ScrollHandle, SharedString, StatefulInteractiveElement, Styled,
-    Subscription, Window,
+    App,
+    AppContext,
+    Bounds,
+    Context,
+    ElementId,
+    Entity,
+    EventEmitter,
+    FocusHandle,
+    Focusable,
+    FontWeight,
+    Hsla,
+    InteractiveElement,
+    IntoElement,
+    KeyDownEvent,
+    MouseButton,
+    ParentElement,
+    Pixels,
+    Point,
+    Render,
+    ScrollHandle,
+    SharedString,
+    StatefulInteractiveElement,
+    Styled,
+    Subscription,
+    Window,
     component::input::{Input, InputEvent, InputState},
     div,
     prelude::FluentBuilder,
 };
 
-use super::helpers::{active, content_height, move_active, tracked, visible};
-use super::types::{
-    BORDER, BORDER_STRONG, CHIP_GAP, CHIP_HEIGHT, CHIP_RADIUS, CHIP_RISE, ENTER_FADE, FIELD_GAP,
-    FIELD_HEIGHT, FIELD_INPUT_BOX_MIN, FIELD_INPUT_MIN, FIELD_PAD_X, FIELD_PAD_Y, FIELD_RADIUS,
-    GROUP_PAD, LIST_MAX, LIST_PAD, MultiSelectEvent, REMOVE, RING, ROW, SIDE_OFFSET, WIPE,
-};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -26,6 +41,12 @@ use crate::{
     theme::{ActiveTheme, mix},
     typography::TextSize,
 };
+use super::types::{
+    BORDER, BORDER_STRONG, CHIP_GAP, CHIP_HEIGHT, CHIP_RADIUS, CHIP_RISE, ENTER_FADE, FIELD_GAP,
+    FIELD_HEIGHT, FIELD_INPUT_BOX_MIN, FIELD_INPUT_MIN, FIELD_PAD_X, FIELD_PAD_Y, FIELD_RADIUS,
+    GROUP_PAD, LIST_MAX, LIST_PAD, MultiSelectEvent, REMOVE, RING, ROW, SIDE_OFFSET, WIPE,
+};
+use super::helpers::{active, content_height, move_active, tracked, visible};
 
 /// One option: what it is, what it says, the group it is listed under, and words that also find it.
 #[derive(Clone, Debug)]
@@ -41,14 +62,7 @@ pub struct MultiOption {
 
 impl MultiOption {
     pub fn new(value: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self {
-            value: value.into(),
-            label: label.into(),
-            group: None,
-            keywords: Vec::new(),
-            disabled: false,
-            dot: None,
-        }
+        Self { value: value.into(), label: label.into(), group: None, keywords: Vec::new(), disabled: false, dot: None }
     }
 
     pub fn group(mut self, group: impl Into<SharedString>) -> Self {
@@ -118,26 +132,17 @@ impl Focusable for MultiSelect {
 }
 
 impl MultiSelect {
-    pub fn new(
-        id: impl Into<ElementId>,
-        options: Vec<MultiOption>,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Self {
+    pub fn new(id: impl Into<ElementId>, options: Vec<MultiOption>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = cx.new(|cx| InputState::new(window, cx).placeholder(""));
-        let subscriptions = vec![cx.subscribe_in(
-            &input,
-            window,
-            |this: &mut Self, input, event: &InputEvent, window, cx| match event {
-                InputEvent::Change => {
-                    this.query = input.read(cx).value();
-                    this.set_open(true, window, cx);
-                    cx.notify();
-                }
-                InputEvent::Focus => this.set_open(true, window, cx),
-                _ => {}
-            },
-        )];
+        let subscriptions = vec![cx.subscribe_in(&input, window, |this: &mut Self, input, event: &InputEvent, window, cx| match event {
+            InputEvent::Change => {
+                this.query = input.read(cx).value();
+                this.set_open(true, window, cx);
+                cx.notify();
+            }
+            InputEvent::Focus => this.set_open(true, window, cx),
+            _ => {}
+        })];
         Self {
             id: id.into(),
             options,
@@ -182,10 +187,7 @@ impl MultiSelect {
         self
     }
 
-    pub fn with_values(
-        mut self,
-        values: impl IntoIterator<Item = impl Into<SharedString>>,
-    ) -> Self {
+    pub fn with_values(mut self, values: impl IntoIterator<Item = impl Into<SharedString>>) -> Self {
         self.values = values.into_iter().map(Into::into).collect();
         self
     }
@@ -203,10 +205,7 @@ impl MultiSelect {
     }
 
     fn label_of(&self, value: &SharedString) -> SharedString {
-        self.options
-            .iter()
-            .find(|o| &o.value == value)
-            .map_or_else(|| value.clone(), |o| o.label.clone())
+        self.options.iter().find(|o| &o.value == value).map_or_else(|| value.clone(), |o| o.label.clone())
     }
 
     /// Opens or closes the list. Closing clears the field, and hands it back focus when asked.
@@ -220,14 +219,11 @@ impl MultiSelect {
             let spring = Curve::Spring(Spring::select_morph());
             self.gap.animate(SIDE_OFFSET, spring, 0., reduce);
         } else {
-            self.gap
-                .animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
-            self.height
-                .animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
+            self.gap.animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
+            self.height.animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
             self.query = SharedString::default();
             self.cursor = None;
-            self.input
-                .update(cx, |input, cx| input.set_value("", window, cx));
+            self.input.update(cx, |input, cx| input.set_value("", window, cx));
         }
         cx.notify();
     }
@@ -239,12 +235,7 @@ impl MultiSelect {
             if let (Some(bounds), false) = (self.chips.get(gone).copied(), reduce) {
                 let mut wipe = Channel::new(0.);
                 wipe.animate(1., Curve::Ease(WIPE, ease::OUT), 0., false);
-                self.leaving.push(Leaving {
-                    value: gone.clone(),
-                    label: self.label_of(gone),
-                    bounds,
-                    wipe,
-                });
+                self.leaving.push(Leaving { value: gone.clone(), label: self.label_of(gone), bounds, wipe });
             }
         }
         for new in values.iter().filter(|v| !self.values.contains(v)) {
@@ -270,24 +261,13 @@ impl MultiSelect {
             values.push(value.clone());
         }
         self.query = SharedString::default();
-        self.input
-            .update(cx, |input, cx| input.set_value("", window, cx));
+        self.input.update(cx, |input, cx| input.set_value("", window, cx));
         self.commit(values, window, cx);
         self.input.focus_handle(cx).focus(window, cx);
     }
 
-    pub(super) fn remove(
-        &mut self,
-        value: &SharedString,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let values: Vec<SharedString> = self
-            .values
-            .iter()
-            .filter(|v| *v != value)
-            .cloned()
-            .collect();
+    pub(super) fn remove(&mut self, value: &SharedString, window: &mut Window, cx: &mut Context<Self>) {
+        let values: Vec<SharedString> = self.values.iter().filter(|v| *v != value).cloned().collect();
         self.commit(values, window, cx);
         self.input.focus_handle(cx).focus(window, cx);
     }
@@ -313,11 +293,7 @@ impl MultiSelect {
     fn jump(&mut self, last: bool, cx: &mut Context<Self>) {
         let shown = visible(&self.options, &self.query);
         let enabled: Vec<&&MultiOption> = shown.iter().filter(|o| !o.disabled).collect();
-        let pick = if last {
-            enabled.last()
-        } else {
-            enabled.first()
-        };
+        let pick = if last { enabled.last() } else { enabled.first() };
         if let Some(option) = pick {
             self.cursor = Some((option.value.clone(), self.query.clone()));
             cx.notify();
@@ -358,14 +334,8 @@ impl Render for MultiSelect {
         let input_focus = self.input.focus_handle(cx);
         let focused = input_focus.contains_focused(window, cx) || self.open;
         let dark = theme.appearance == crate::theme::Appearance::Dark;
-        let border = theme
-            .foreground
-            .opacity(if dark { BORDER - 0.01 } else { BORDER });
-        let strong = theme.foreground.opacity(if dark {
-            BORDER_STRONG - 0.02
-        } else {
-            BORDER_STRONG
-        });
+        let border = theme.foreground.opacity(if dark { BORDER - 0.01 } else { BORDER });
+        let strong = theme.foreground.opacity(if dark { BORDER_STRONG - 0.02 } else { BORDER_STRONG });
 
         // Motion that has run out is dropped.
         self.leaving.retain(|l| l.wipe.is_running());
@@ -373,34 +343,22 @@ impl Render for MultiSelect {
         let shown = visible(&self.options, &self.query);
         let want = content_height(&shown).min(LIST_MAX);
         if self.open && (self.height.target() - want).abs() > 0.5 {
-            self.height
-                .animate(want, Curve::Spring(Spring::select_morph()), 0., reduce);
+            self.height.animate(want, Curve::Spring(Spring::select_morph()), 0., reduce);
         }
         let active_value = self.active_value();
-        if self.open
-            && self.highlighted != active_value
-            && let (Some(now), Some(origin)) = (
-                active_value.as_ref().and_then(|v| self.rows.get(v)),
-                self.list_origin,
-            )
-        {
+        if self.open && self.highlighted != active_value && let (Some(now), Some(origin)) = (active_value.as_ref().and_then(|v| self.rows.get(v)), self.list_origin) {
             let y = f32::from(now.top() - origin.y);
             if self.highlighted.is_none() || reduce {
                 self.highlight = Channel::new(y);
             } else {
-                self.highlight
-                    .animate(y, Curve::Spring(Spring::LAYOUT), 0., false);
+                self.highlight.animate(y, Curve::Spring(Spring::LAYOUT), 0., false);
             }
             self.highlighted = active_value.clone();
         }
         if !self.open {
             self.highlighted = None;
         }
-        let animating = self.height.is_running()
-            || self.gap.is_running()
-            || self.highlight.is_running()
-            || !self.leaving.is_empty()
-            || !self.entering.is_empty();
+        let animating = self.height.is_running() || self.gap.is_running() || self.highlight.is_running() || !self.leaving.is_empty() || !self.entering.is_empty();
         if animating {
             window.request_animation_frame();
         }
@@ -409,10 +367,7 @@ impl Render for MultiSelect {
         // ---- the field ----
         let chips = self.values.iter().map(|value| {
             let label = self.label_of(value);
-            let enter = self
-                .entering
-                .get(value)
-                .map_or(1., |c| c.value().clamp(0., 1.));
+            let enter = self.entering.get(value).map_or(1., |c| c.value().clamp(0., 1.));
             let measured = {
                 let (this, value) = (this.clone(), value.clone());
                 measure(move |b, cx| {
@@ -449,10 +404,7 @@ impl Render for MultiSelect {
                     .child(div().flex_none().whitespace_nowrap().child(label.clone()))
                     .child(
                         div()
-                            .id(ElementId::NamedChild(
-                                Arc::new(self.id.clone()),
-                                format!("remove-{value}").into(),
-                            ))
+                            .id(ElementId::NamedChild(Arc::new(self.id.clone()), format!("remove-{value}").into()))
                             .debug_selector({
                                 let value = value.clone();
                                 move || format!("multi-remove-{value}")
@@ -465,16 +417,11 @@ impl Render for MultiSelect {
                             .justify_center()
                             .text_color(theme.muted_foreground)
                             .cursor_pointer()
-                            .hover(|s| {
-                                s.bg(theme.foreground.opacity(0.1))
-                                    .text_color(theme.foreground)
-                            })
+                            .hover(|s| s.bg(theme.foreground.opacity(0.1)).text_color(theme.foreground))
                             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
                             .on_click(move |_, window, cx| {
                                 cx.stop_propagation();
-                                remove_this
-                                    .update(cx, |s, cx| s.remove(&remove_value, window, cx))
-                                    .ok();
+                                remove_this.update(cx, |s, cx| s.remove(&remove_value, window, cx)).ok();
                             })
                             .child(Icon::new(IconName::Close).size(px(12.))),
                     ),
@@ -507,16 +454,9 @@ impl Render for MultiSelect {
                         .text_color(theme.foreground)
                         .child(l.label.clone()),
                 )
-                .id(ElementId::NamedChild(
-                    Arc::new(self.id.clone()),
-                    format!("ghost-{}", l.value).into(),
-                ))
+                .id(ElementId::NamedChild(Arc::new(self.id.clone()), format!("ghost-{}", l.value).into()))
         });
-        let placeholder = (self.values.is_empty() && !self.open).then(|| {
-            div()
-                .text_color(theme.muted_foreground)
-                .child(self.placeholder.clone())
-        });
+        let placeholder = (self.values.is_empty() && !self.open).then(|| div().text_color(theme.muted_foreground).child(self.placeholder.clone()));
 
         let (focus_click, hover_this) = (input_focus.clone(), this.clone());
         let field = div()
@@ -534,35 +474,20 @@ impl Render for MultiSelect {
             .rounded(px(FIELD_RADIUS))
             .bg(theme.background)
             .border_1()
-            .border_color(mix(
-                border,
-                strong,
-                if self.hovered || focused { 1. } else { 0. },
-            ))
-            .when(focused, |d| {
-                d.shadow(vec![gpui_kit::BoxShadow {
-                    color: theme.foreground.opacity(RING),
-                    offset: gpui_kit::point(px(0.), px(0.)),
-                    blur_radius: px(0.),
-                    spread_radius: px(2.),
-                    inset: false,
-                }])
-            })
+            .border_color(mix(border, strong, if self.hovered || focused { 1. } else { 0. }))
+            .when(focused, |d| d.shadow(vec![gpui_kit::BoxShadow { color: theme.foreground.opacity(RING), offset: gpui_kit::point(px(0.), px(0.)), blur_radius: px(0.), spread_radius: px(2.), inset: false }]))
             .text_size(TextSize::Sm.font_size())
             .text_color(theme.foreground)
             .cursor_text()
             .when(self.disabled, |d| d.opacity(0.5))
             .on_hover(move |on, _, cx| {
-                hover_this
-                    .update(cx, |s, cx| {
-                        s.hovered = *on;
-                        cx.notify();
-                    })
-                    .ok();
+                hover_this.update(cx, |s, cx| {
+                    s.hovered = *on;
+                    cx.notify();
+                })
+                .ok();
             })
-            .capture_key_down(
-                cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)),
-            )
+            .capture_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))
             .on_mouse_down(MouseButton::Left, {
                 let this = this.clone();
                 move |_, window, cx| {
@@ -579,6 +504,7 @@ impl Render for MultiSelect {
             .children(ghosts)
             .child(
                 div()
+                    
                     .flex()
                     .flex_1()
                     .min_w_0()
@@ -593,26 +519,10 @@ impl Render for MultiSelect {
                             .flex_1()
                             .items_center()
                             .min_w(px(FIELD_INPUT_BOX_MIN))
-                            .child(
-                                div()
-                                    .h(px(CHIP_HEIGHT))
-                                    .flex_1()
-                                    .min_w(px(FIELD_INPUT_MIN))
-                                    .child(
-                                        Input::new(&self.input)
-                                            .appearance(false)
-                                            .bordered(false)
-                                            .disabled(self.disabled),
-                                    ),
-                            ),
+                            .child(div().h(px(CHIP_HEIGHT)).flex_1().min_w(px(FIELD_INPUT_MIN)).child(Input::new(&self.input).appearance(false).bordered(false).disabled(self.disabled))),
                     ),
             )
-            .child(
-                div()
-                    .flex_none()
-                    .text_color(theme.muted_foreground)
-                    .child(Icon::new(IconName::UnfoldMore).size(px(16.))),
-            );
+            .child(div().flex_none().text_color(theme.muted_foreground).child(Icon::new(IconName::UnfoldMore).size(px(16.))));
 
         // ---- the list ----
         let list_measure = {
@@ -633,33 +543,17 @@ impl Render for MultiSelect {
             }
         }
         let glide = self.highlight.value();
-        let wash = self
-            .highlighted
-            .as_ref()
-            .and_then(|v| self.rows.get(v))
-            .map(|b| {
-                (
-                    glide,
-                    f32::from(b.size.height),
-                    f32::from(b.size.width),
-                    f32::from(b.left() - self.list_origin.map_or(b.left(), |o| o.x)),
-                )
-            });
+        let wash = self.highlighted.as_ref().and_then(|v| self.rows.get(v)).map(|b| (glide, f32::from(b.size.height), f32::from(b.size.width), f32::from(b.left() - self.list_origin.map_or(b.left(), |o| o.x))));
         let sections = groups.into_iter().enumerate().map(|(gi, (group, rows))| {
             let rows = rows.into_iter().map(|option| {
                 let selected = self.values.contains(&option.value);
                 let is_active = active_value.as_ref() == Some(&option.value);
                 let tick = if selected { 1. } else { 0. };
                 let value = option.value.clone();
-                let (pick_this, hover_this, measure_this) =
-                    (this.clone(), this.clone(), this.clone());
-                let (pick_value, hover_value, measure_value) =
-                    (value.clone(), value.clone(), value.clone());
+                let (pick_this, hover_this, measure_this) = (this.clone(), this.clone(), this.clone());
+                let (pick_value, hover_value, measure_value) = (value.clone(), value.clone(), value.clone());
                 div()
-                    .id(ElementId::NamedChild(
-                        Arc::new(self.id.clone()),
-                        format!("option-{value}").into(),
-                    ))
+                    .id(ElementId::NamedChild(Arc::new(self.id.clone()), format!("option-{value}").into()))
                     .debug_selector({
                         let value = value.clone();
                         move || format!("multi-option-{value}")
@@ -673,11 +567,7 @@ impl Render for MultiSelect {
                     .px(px(8.))
                     .rounded(px(CHIP_RADIUS))
                     .text_size(TextSize::Sm.font_size())
-                    .text_color(if is_active || selected {
-                        theme.foreground
-                    } else {
-                        theme.muted_foreground
-                    })
+                    .text_color(if is_active || selected { theme.foreground } else { theme.muted_foreground })
                     .when(option.disabled, |d| d.opacity(0.45))
                     .when(!option.disabled, |d| d.cursor_pointer())
                     .child(measure(move |b, cx| {
@@ -699,86 +589,33 @@ impl Render for MultiSelect {
                             .ok();
                     })
                     .on_click(move |_, window, cx| {
-                        pick_this
-                            .update(cx, |s, cx| s.toggle(&pick_value, window, cx))
-                            .ok();
+                        pick_this.update(cx, |s, cx| s.toggle(&pick_value, window, cx)).ok();
                     })
                     .child(
-                        div()
-                            .flex()
-                            .flex_1()
-                            .min_w_0()
-                            .items_center()
-                            .gap(px(10.))
-                            .children(
-                                option
-                                    .dot
-                                    .map(|c| div().flex_none().size(px(10.)).rounded_full().bg(c)),
-                            )
-                            .child(div().truncate().child(option.label.clone())),
+                        div().flex().flex_1().min_w_0().items_center().gap(px(10.)).children(option.dot.map(|c| div().flex_none().size(px(10.)).rounded_full().bg(c))).child(div().truncate().child(option.label.clone())),
                     )
-                    .child(
-                        div()
-                            .flex_none()
-                            .size(px(20.))
-                            .flex()
-                            .items_center()
-                            .justify_center()
-                            .text_color(theme.foreground)
-                            .opacity(tick)
-                            .child(Icon::new(IconName::Check).size(px(16.))),
-                    )
+                    .child(div().flex_none().size(px(20.)).flex().items_center().justify_center().text_color(theme.foreground).opacity(tick).child(Icon::new(IconName::Check).size(px(16.))))
             });
             div()
                 .flex()
                 .flex_col()
                 .py(px(GROUP_PAD))
-                .id(ElementId::NamedChild(
-                    Arc::new(self.id.clone()),
-                    format!("group-{gi}").into(),
-                ))
-                .children(group.map(|g| {
-                    div()
-                        .w_full()
-                        .px(px(8.))
-                        .py(px(6.))
-                        .child(tracked(&g, 10.88, theme.muted_foreground).into_any_element())
-                }))
+                .id(ElementId::NamedChild(Arc::new(self.id.clone()), format!("group-{gi}").into()))
+                .children(group.map(|g| div().w_full().px(px(8.)).py(px(6.)).child(tracked(&g, 10.88, theme.muted_foreground).into_any_element())))
                 .children(rows)
         });
         let list = div()
-            .id(ElementId::NamedChild(
-                Arc::new(self.id.clone()),
-                "list".into(),
-            ))
+            .id(ElementId::NamedChild(Arc::new(self.id.clone()), "list".into()))
             .relative()
             .max_h(px(LIST_MAX))
             .overflow_y_scroll()
             .track_scroll(&self.scroll)
             .p(px(LIST_PAD))
             .child(list_measure)
-            .children(wash.map(|(y, h, w, x)| {
-                div()
-                    .absolute()
-                    .top(gpui_kit::px(y))
-                    .left(gpui_kit::px(x))
-                    .w(gpui_kit::px(w))
-                    .h(gpui_kit::px(h))
-                    .rounded(px(CHIP_RADIUS))
-                    .bg(theme.card)
-            }))
+            .children(wash.map(|(y, h, w, x)| div().absolute().top(gpui_kit::px(y)).left(gpui_kit::px(x)).w(gpui_kit::px(w)).h(gpui_kit::px(h)).rounded(px(CHIP_RADIUS)).bg(theme.card)))
             .children(sections)
             .when(shown.is_empty(), |d| {
-                d.child(
-                    div()
-                        .px(px(12.))
-                        .py(px(32.))
-                        .flex()
-                        .justify_center()
-                        .text_size(TextSize::Sm.font_size())
-                        .text_color(theme.muted_foreground)
-                        .child(self.empty.clone()),
-                )
+                d.child(div().px(px(12.)).py(px(32.)).flex().justify_center().text_size(TextSize::Sm.font_size()).text_color(theme.muted_foreground).child(self.empty.clone()))
             });
         let surface = div()
             .w_full()
@@ -792,25 +629,20 @@ impl Render for MultiSelect {
             .child(list);
 
         let close_this = this.clone();
-        let popover = Popover::new(ElementId::NamedChild(
-            Arc::new(self.id.clone()),
-            "panel".into(),
-        ))
-        .open(self.open)
-        .shown(panel_open)
-        .anchor(self.trigger)
-        .switchable()
-        .gap(self.gap.value())
-        .width(self.trigger.map_or(px(0.), |t| t.size.width))
-        .height(want + 2.)
-        .hole()
-        .keep_focus()
-        .on_close(move |window, cx| {
-            close_this
-                .update(cx, |s, cx| s.set_open(false, window, cx))
-                .ok();
-        })
-        .child(surface);
+        let popover = Popover::new(ElementId::NamedChild(Arc::new(self.id.clone()), "panel".into()))
+            .open(self.open)
+            .shown(panel_open)
+            .anchor(self.trigger)
+            .switchable()
+            .gap(self.gap.value())
+            .width(self.trigger.map_or(px(0.), |t| t.size.width))
+            .height(want + 2.)
+            .hole()
+            .keep_focus()
+            .on_close(move |window, cx| {
+                close_this.update(cx, |s, cx| s.set_open(false, window, cx)).ok();
+            })
+            .child(surface);
         div().w_full().flex().flex_col().child(field).child(popover)
     }
 }

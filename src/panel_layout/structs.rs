@@ -71,12 +71,8 @@ impl Geometry {
             return 0..0;
         }
         let (from, to) = (offset - margin, offset + viewport + margin);
-        let first = (0..self.len())
-            .find(|&i| self.right(i) > from)
-            .unwrap_or(self.len());
-        let last = (first..self.len())
-            .find(|&i| self.left(i) >= to)
-            .unwrap_or(self.len());
+        let first = (0..self.len()).find(|&i| self.right(i) > from).unwrap_or(self.len());
+        let last = (first..self.len()).find(|&i| self.left(i) >= to).unwrap_or(self.len());
         first..last
     }
 

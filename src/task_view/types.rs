@@ -9,18 +9,9 @@ pub(super) const RAIL: f32 = 264.;
 #[derive(Clone, Debug, PartialEq)]
 pub enum TaskViewEvent {
     /// A field changed. The view has applied it to its own copy; the app saves it.
-    Changed {
-        id: SharedString,
-        change: Change,
-    },
-    DescriptionSaved {
-        id: SharedString,
-        text: SharedString,
-    },
-    Commented {
-        id: SharedString,
-        text: SharedString,
-    },
+    Changed { id: SharedString, change: Change },
+    DescriptionSaved { id: SharedString, text: SharedString },
+    Commented { id: SharedString, text: SharedString },
     OpenSession(SharedString),
     OpenPr(u64),
     OpenTask(SharedString),

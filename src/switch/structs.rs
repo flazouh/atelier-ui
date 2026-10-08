@@ -6,11 +6,6 @@ use gpui_kit::{
     point, prelude::FluentBuilder,
 };
 
-use super::helpers::{shake_offset, span, track_fill};
-use super::types::{
-    Change, EASE_IN_OUT, FILL_SECONDS, HEIGHT, PAD, SHAKE_DELAY, SHAKE_SECONDS, SQUEEZE, THUMB,
-    THUMB_SPRING, WIDTH,
-};
 use crate::scale::px;
 use crate::{
     focus::ring_color,
@@ -19,6 +14,11 @@ use crate::{
     theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
+use super::types::{
+    Change, EASE_IN_OUT, FILL_SECONDS, HEIGHT, PAD, SHAKE_DELAY, SHAKE_SECONDS, SQUEEZE, THUMB,
+    THUMB_SPRING, WIDTH,
+};
+use super::helpers::{shake_offset, span, track_fill};
 
 /// The size of the track and the thumb in it.
 #[derive(Clone, Copy)]
@@ -30,19 +30,9 @@ pub(super) struct Dims {
 }
 
 impl Dims {
-    pub(super) const STANDARD: Dims = Dims {
-        width: WIDTH,
-        height: HEIGHT,
-        pad: PAD,
-        thumb: THUMB,
-    };
+    pub(super) const STANDARD: Dims = Dims { width: WIDTH, height: HEIGHT, pad: PAD, thumb: THUMB };
     /// A 26 x 16 track with a 12px thumb: the same motion in a smaller body.
-    pub(super) const COMPACT: Dims = Dims {
-        width: 26.,
-        height: 16.,
-        pad: 2.,
-        thumb: 12.,
-    };
+    pub(super) const COMPACT: Dims = Dims { width: 26., height: 16., pad: 2., thumb: 12. };
     pub(super) fn travel(self) -> f32 {
         self.width - 2. * self.pad - self.thumb
     }
@@ -73,16 +63,7 @@ pub struct Switch {
 
 impl Switch {
     pub fn new(id: impl Into<ElementId>, on: bool) -> Self {
-        Self {
-            id: id.into(),
-            on,
-            compact: false,
-            disabled: false,
-            label: None,
-            cap: None,
-            on_change: None,
-            selector: None,
-        }
+        Self { id: id.into(), on, compact: false, disabled: false, label: None, cap: None, on_change: None, selector: None }
     }
 
     /// A 26 x 16 track with a 12px thumb, for a dense row. The motion is the same.
@@ -142,48 +123,26 @@ impl RenderOnce for Switch {
             m.press.set_target(f32::from(u8::from(squeeze)));
             let to = f32::from(u8::from(on));
             if m.fill.target() != to {
-                m.fill
-                    .animate(to, Curve::Ease(FILL_SECONDS, EASE_IN_OUT), 0., reduce);
+                m.fill.animate(to, Curve::Ease(FILL_SECONDS, EASE_IN_OUT), 0., reduce);
             }
             let dt = m.clock.tick();
-            let moving = m.thumb.step(dt, reduce)
-                | m.press.step(dt, reduce)
-                | m.fill.is_running()
-                | m.shake.is_running();
+            let moving = m.thumb.step(dt, reduce) | m.press.step(dt, reduce) | m.fill.is_running() | m.shake.is_running();
             if !moving {
                 m.clock.rest();
             }
-            (
-                m.thumb.value(),
-                m.press.value(),
-                m.fill.value(),
-                m.shake.value(),
-                moving,
-                focus,
-            )
+            (m.thumb.value(), m.press.value(), m.fill.value(), m.shake.value(), moving, focus)
         });
         if moving {
             window.request_animation_frame();
         }
         let keyed = focus.is_focused(window) && window.last_input_was_keyboard() && !disabled;
         let page = theme.background;
-        let dims = if self.compact {
-            Dims::COMPACT
-        } else {
-            Dims::STANDARD
-        };
+        let dims = if self.compact { Dims::COMPACT } else { Dims::STANDARD };
         let (left, width) = span(dims, t, press, on);
         let scale = 1. - (1. - SQUEEZE) * press;
         let (w, h) = (width * scale, dims.thumb * scale);
-        let shake_x = if reduce || !disabled {
-            0.
-        } else {
-            shake_offset(shake * (SHAKE_DELAY + SHAKE_SECONDS))
-        };
-        let shadow_color = Hsla {
-            a: 0.1,
-            ..theme.shadow
-        };
+        let shake_x = if reduce || !disabled { 0. } else { shake_offset(shake * (SHAKE_DELAY + SHAKE_SECONDS)) };
+        let shadow_color = Hsla { a: 0.1, ..theme.shadow };
         let thumb = div()
             .absolute()
             .left(px(left + (width - w) / 2. + shake_x))
@@ -193,46 +152,23 @@ impl RenderOnce for Switch {
             .rounded_full()
             .bg(page)
             .shadow(vec![
-                BoxShadow {
-                    color: shadow_color,
-                    offset: point(px(0.), px(4.)),
-                    blur_radius: px(6.),
-                    spread_radius: px(-1.),
-                    inset: false,
-                },
-                BoxShadow {
-                    color: shadow_color,
-                    offset: point(px(0.), px(2.)),
-                    blur_radius: px(4.),
-                    spread_radius: px(-2.),
-                    inset: false,
-                },
+                BoxShadow { color: shadow_color, offset: point(px(0.), px(4.)), blur_radius: px(6.), spread_radius: px(-1.), inset: false },
+                BoxShadow { color: shadow_color, offset: point(px(0.), px(2.)), blur_radius: px(4.), spread_radius: px(-2.), inset: false },
             ])
-            .when_some(self.selector, |d, name| {
-                d.debug_selector(move || format!("{name}-thumb"))
-            });
+            .when_some(self.selector, |d, name| d.debug_selector(move || format!("{name}-thumb")));
         let change = self.on_change.clone().filter(|_| !disabled);
-        let toggle = change
-            .clone()
-            .map(|f| move |window: &mut Window, cx: &mut App| f(!on, window, cx));
+        let toggle = change.clone().map(|f| move |window: &mut Window, cx: &mut App| f(!on, window, cx));
         let hold = {
             let (down, up, away) = (motion.clone(), motion.clone(), motion.clone());
             (
-                move |pointer: bool, cx: &mut App| {
-                    down.update(cx, |m, _| {
-                        m.pressed = true;
-                        m.pointer = pointer;
-                        if disabled {
-                            m.shake = Channel::new(0.);
-                            m.shake.animate(
-                                1.,
-                                Curve::Ease(SHAKE_DELAY + SHAKE_SECONDS, [0., 0., 1., 1.]),
-                                0.,
-                                false,
-                            );
-                        }
-                    })
-                },
+                move |pointer: bool, cx: &mut App| down.update(cx, |m, _| {
+                    m.pressed = true;
+                    m.pointer = pointer;
+                    if disabled {
+                        m.shake = Channel::new(0.);
+                        m.shake.animate(1., Curve::Ease(SHAKE_DELAY + SHAKE_SECONDS, [0., 0., 1., 1.]), 0., false);
+                    }
+                }),
                 move |cx: &mut App| up.update(cx, |m, _| m.pressed = false),
                 move |cx: &mut App| away.update(cx, |m, _| m.pressed = false),
             )
@@ -240,20 +176,8 @@ impl RenderOnce for Switch {
         let (down, up, away) = hold;
         let ring = keyed.then(|| {
             vec![
-                BoxShadow {
-                    color: page,
-                    offset: point(px(0.), px(0.)),
-                    blur_radius: px(0.),
-                    spread_radius: px(2.),
-                    inset: false,
-                },
-                BoxShadow {
-                    color: ring_color(&theme, page),
-                    offset: point(px(0.), px(0.)),
-                    blur_radius: px(0.),
-                    spread_radius: px(4.),
-                    inset: false,
-                },
+                BoxShadow { color: page, offset: point(px(0.), px(0.)), blur_radius: px(0.), spread_radius: px(2.), inset: false },
+                BoxShadow { color: ring_color(&theme, page), offset: point(px(0.), px(0.)), blur_radius: px(0.), spread_radius: px(4.), inset: false },
             ]
         });
         let track = div()
@@ -266,33 +190,25 @@ impl RenderOnce for Switch {
             .bg(track_fill(&theme, page, fill))
             .when_some(ring, |d, ring| d.shadow(ring))
             .when(disabled, |d| d.opacity(0.6))
-            .when(!disabled, |d| {
-                d.cursor_pointer().track_focus(&focus.tab_stop(true))
-            })
-            .when_some(self.selector, |d, name| {
-                d.debug_selector(move || name.into())
-            })
+            .when(!disabled, |d| d.cursor_pointer().track_focus(&focus.tab_stop(true)))
+            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
             .child(thumb)
             .on_mouse_down(MouseButton::Left, move |_, _, cx| down(true, cx))
             .on_mouse_up(MouseButton::Left, move |_, _, cx| up(cx))
             .on_mouse_up_out(MouseButton::Left, move |_, _, cx| away(cx))
             .when_some(toggle.clone(), |d, toggle| {
                 let key = toggle.clone();
-                d.on_click(move |_, window, cx| toggle(window, cx))
-                    .on_key_down(move |event, window, cx| {
-                        if matches!(event.keystroke.key.as_str(), "enter" | "space") {
-                            cx.stop_propagation();
-                            key(window, cx);
-                        }
-                    })
+                d.on_click(move |_, window, cx| toggle(window, cx)).on_key_down(move |event, window, cx| {
+                    if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                        cx.stop_propagation();
+                        key(window, cx);
+                    }
+                })
             });
         let label = self.label.map(|words| {
             let click = toggle.clone();
             div()
-                .id(ElementId::NamedChild(
-                    std::sync::Arc::new(self.id.clone()),
-                    "label".into(),
-                ))
+                .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "label".into()))
                 .text_size(px(14.))
                 .line_height(px(20.))
                 .text_color(theme.foreground)

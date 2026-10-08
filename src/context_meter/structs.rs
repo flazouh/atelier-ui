@@ -3,17 +3,17 @@ use std::f32::consts::TAU;
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ClickEvent, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    StatefulInteractiveElement, Styled, Window, canvas, div, prelude::FluentBuilder, px,
+    App, ClickEvent, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, StatefulInteractiveElement,
+    Styled, Window, canvas, div, prelude::FluentBuilder, px,
 };
 
-use super::helpers::{fraction, ink, level, summary};
-use super::types::{SIZE, SLOT, STEPS, STROKE};
 use crate::{
     spinner::{RING_ALPHA, arc, dot, stroke},
     theme::ActiveTheme,
     tooltip::Tooltip,
 };
+use super::helpers::{fraction, ink, level, summary};
+use super::types::{SIZE, SLOT, STEPS, STROKE};
 
 #[derive(IntoElement)]
 pub struct ContextMeter {
@@ -27,13 +27,7 @@ pub struct ContextMeter {
 impl ContextMeter {
     /// `used` tokens of a window of `window`.
     pub fn new(id: impl Into<ElementId>, used: u64, window: u64) -> Self {
-        Self {
-            id: id.into(),
-            used,
-            window,
-            tip: true,
-            on_click: None,
-        }
+        Self { id: id.into(), used, window, tip: true, on_click: None }
     }
 
     /// Whether a hover tells the numbers. An owner that shows them in a panel turns it off while the panel is open.
@@ -43,10 +37,7 @@ impl ContextMeter {
     }
 
     /// Makes the ring a button: a press runs `handler`.
-    pub fn on_click(
-        mut self,
-        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
     }
@@ -61,13 +52,7 @@ impl RenderOnce for ContextMeter {
             move |bounds, _, window, _| {
                 let radius = (SIZE - STROKE) / 2.;
                 let centre = (SIZE / 2., SIZE / 2.);
-                stroke(
-                    &arc(centre, radius, 0., TAU, STEPS),
-                    STROKE,
-                    bounds,
-                    color.opacity(RING_ALPHA),
-                    window,
-                );
+                stroke(&arc(centre, radius, 0., TAU, STEPS), STROKE, bounds, color.opacity(RING_ALPHA), window);
                 if filled <= 0. {
                     return;
                 }
@@ -88,13 +73,8 @@ impl RenderOnce for ContextMeter {
             .flex()
             .items_center()
             .justify_center()
-            .when(self.tip, |d| {
-                d.tooltip(Tooltip::text(summary(self.used, self.window)))
-            })
-            .when_some(self.on_click, |d, click| {
-                d.cursor_pointer()
-                    .on_click(move |event, window, cx| click(event, window, cx))
-            })
+            .when(self.tip, |d| d.tooltip(Tooltip::text(summary(self.used, self.window))))
+            .when_some(self.on_click, |d, click| d.cursor_pointer().on_click(move |event, window, cx| click(event, window, cx)))
             .child(ring)
     }
 }

@@ -2,9 +2,7 @@ use super::*;
 use std::time::Duration;
 
 fn delays(count: usize) -> Vec<u64> {
-    (0..count)
-        .map(|i| stagger_delay(i, count).as_millis() as u64)
-        .collect()
+    (0..count).map(|i| stagger_delay(i, count).as_millis() as u64).collect()
 }
 
 #[test]
@@ -39,24 +37,12 @@ fn an_index_past_the_count_is_treated_as_the_last_item() {
 
 #[test]
 fn an_arriving_item_starts_hidden_and_six_pixels_low() {
-    assert_eq!(
-        frame(0., false),
-        EntranceFrame {
-            opacity: 0.,
-            y: ENTER_RISE
-        }
-    );
+    assert_eq!(frame(0., false), EntranceFrame { opacity: 0., y: ENTER_RISE });
 }
 
 #[test]
 fn halfway_it_is_half_faded_and_half_risen() {
-    assert_eq!(
-        frame(0.5, false),
-        EntranceFrame {
-            opacity: 0.5,
-            y: ENTER_RISE / 2.
-        }
-    );
+    assert_eq!(frame(0.5, false), EntranceFrame { opacity: 0.5, y: ENTER_RISE / 2. });
 }
 
 #[test]
@@ -67,13 +53,7 @@ fn at_the_end_it_has_settled() {
 #[test]
 fn under_reduce_motion_it_only_fades() {
     assert_eq!(frame(0., true), EntranceFrame { opacity: 0., y: 0. });
-    assert_eq!(
-        frame(0.5, true),
-        EntranceFrame {
-            opacity: 0.5,
-            y: 0.
-        }
-    );
+    assert_eq!(frame(0.5, true), EntranceFrame { opacity: 0.5, y: 0. });
 }
 
 #[test]
@@ -82,10 +62,7 @@ fn the_curve_is_the_morph_ease_over_200ms_or_120ms_under_reduce_motion() {
     assert_eq!(curve(true), Curve::Ease(0.12, ease::MORPH));
     assert_eq!(duration::ENTER, Duration::from_millis(200));
     assert_eq!(duration::ENTER_REDUCED, Duration::from_millis(120));
-    assert_eq!(
-        (STAGGER_STEP, STAGGER_CAP),
-        (Duration::from_millis(35), Duration::from_millis(300))
-    );
+    assert_eq!((STAGGER_STEP, STAGGER_CAP), (Duration::from_millis(35), Duration::from_millis(300)));
 }
 
 fn ids(names: &[&'static str]) -> Vec<ElementId> {
@@ -103,11 +80,7 @@ fn items_added_later_enter_with_a_stagger() {
     let mut list = Arrivals::default();
     list.arrive(&ids(&["a"]));
     let ms = |d: Option<Duration>| d.map(|d| d.as_millis());
-    let got: Vec<_> = list
-        .arrive(&ids(&["a", "b", "c"]))
-        .into_iter()
-        .map(ms)
-        .collect();
+    let got: Vec<_> = list.arrive(&ids(&["a", "b", "c"])).into_iter().map(ms).collect();
     assert_eq!(got, [None, Some(0), Some(35)]);
 }
 

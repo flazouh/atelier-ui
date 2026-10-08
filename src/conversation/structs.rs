@@ -5,8 +5,6 @@ use gpui_kit::{
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::{faces_el, open_first, said_by_count, said_so_far};
-use super::types::{MoreHandler, ThreadHandler};
 use crate::scale::px;
 use crate::{
     focus::PressStop,
@@ -16,6 +14,8 @@ use crate::{
     theme::ActiveTheme,
     typography::TextSize,
 };
+use super::types::{MoreHandler, ThreadHandler};
+use super::helpers::{faces_el, open_first, said_by_count, said_so_far};
 
 /// One review thread, as the list shows it.
 #[derive(Clone, Debug, PartialEq)]
@@ -52,22 +52,8 @@ pub struct ConversationList {
 }
 
 impl ConversationList {
-    pub fn new(
-        id: impl Into<ElementId>,
-        threads: Vec<ThreadSummary>,
-        remarks: Vec<RemarkSummary>,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            threads,
-            remarks,
-            on_open: None,
-            on_reply: None,
-            on_resolve: None,
-            totals: None,
-            more_threads: None,
-            more_remarks: None,
-        }
+    pub fn new(id: impl Into<ElementId>, threads: Vec<ThreadSummary>, remarks: Vec<RemarkSummary>) -> Self {
+        Self { id: id.into(), threads, remarks, on_open: None, on_reply: None, on_resolve: None, totals: None, more_threads: None, more_remarks: None }
     }
 
     /// A press on a thread's line, to take the reader to where it hangs in the code.
@@ -95,20 +81,12 @@ impl ConversationList {
     }
 
     /// `hidden` threads are not in the list; a press on the last row asks for more.
-    pub fn more_threads(
-        mut self,
-        hidden: usize,
-        f: impl Fn(&mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn more_threads(mut self, hidden: usize, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.more_threads = (hidden > 0).then(|| (hidden, Rc::new(f) as MoreHandler));
         self
     }
 
-    pub fn more_remarks(
-        mut self,
-        hidden: usize,
-        f: impl Fn(&mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn more_remarks(mut self, hidden: usize, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.more_remarks = (hidden > 0).then(|| (hidden, Rc::new(f) as MoreHandler));
         self
     }
@@ -130,25 +108,12 @@ impl RenderOnce for ConversationList {
 
         // One line: the fold mark (a tick once resolved), faces, first words, and a count.
         let open_thread = self.on_open.clone();
-        let line = |key: usize,
-                    mark: IconName,
-                    mark_color,
-                    people: &[SharedString],
-                    first: SharedString,
-                    count: Option<usize>,
-                    receded: bool,
-                    window: &mut Window,
-                    cx: &mut App| {
+        let line = |key: usize, mark: IconName, mark_color, people: &[SharedString], first: SharedString, count: Option<usize>, receded: bool, window: &mut Window, cx: &mut App| {
             let toggle = opened.clone();
             let open_thread = open_thread.clone().filter(|_| key < 10_000);
             div()
                 .id(child(format!("row-{key}")))
-                .press_stop(
-                    child(format!("row-focus-{key}")),
-                    crate::theme::radius::md(),
-                    window,
-                    cx,
-                )
+                .press_stop(child(format!("row-focus-{key}")), crate::theme::radius::md(), window, cx)
                 .flex()
                 .items_center()
                 .gap(px(8.))
@@ -177,54 +142,18 @@ impl RenderOnce for ConversationList {
                         .gap(px(8.))
                         .when(receded, |d| d.opacity(0.6))
                         .child(faces_el(people, &theme))
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .truncate()
-                                .text_size(TextSize::Xs.font_size())
-                                .text_color(muted)
-                                .child(first),
-                        )
-                        .when_some(count, |d, n| {
-                            d.child(
-                                div()
-                                    .flex_none()
-                                    .text_size(TextSize::Xs.font_size())
-                                    .text_color(muted)
-                                    .child(n.to_string()),
-                            )
-                        }),
+                        .child(div().flex_1().min_w_0().truncate().text_size(TextSize::Xs.font_size()).text_color(muted).child(first))
+                        .when_some(count, |d, n| d.child(div().flex_none().text_size(TextSize::Xs.font_size()).text_color(muted).child(n.to_string()))),
                 )
         };
         let mut rows: Vec<gpui_kit::AnyElement> = Vec::new();
         for (i, t) in threads.into_iter().enumerate() {
             let open = open_set.contains(&i);
-            let mark = if t.resolved {
-                IconName::Check
-            } else if open {
-                IconName::ChevronDown
-            } else {
-                IconName::ChevronRight
-            };
+            let mark = if t.resolved { IconName::Check } else if open { IconName::ChevronDown } else { IconName::ChevronRight };
             let color = if t.resolved { theme.success } else { muted };
-            rows.push(
-                line(
-                    i,
-                    mark,
-                    color,
-                    &t.people,
-                    t.first.clone(),
-                    Some(t.comments.len()),
-                    t.resolved,
-                    window,
-                    cx,
-                )
-                .into_any_element(),
-            );
+            rows.push(line(i, mark, color, &t.people, t.first.clone(), Some(t.comments.len()), t.resolved, window, cx).into_any_element());
             if open {
-                let mut comment =
-                    LineComment::new(child(format!("thread-{i}")), t.comments).resolved(t.resolved);
+                let mut comment = LineComment::new(child(format!("thread-{i}")), t.comments).resolved(t.resolved);
                 if let Some(reply) = self.on_reply.clone() {
                     comment = comment.on_reply(move |_, window, cx| reply(i, window, cx));
                 }
@@ -234,76 +163,26 @@ impl RenderOnce for ConversationList {
                 rows.push(comment.into_any_element());
             }
         }
-        let more_row = |name: &str,
-                        hidden: usize,
-                        what: &str,
-                        press: MoreHandler,
-                        window: &mut Window,
-                        cx: &mut App| {
-            div()
-                .id(child(name.to_string()))
-                .flex()
-                .px(px(12.))
-                .py(px(6.))
-                .cursor_pointer()
-                .hover(|s| s.bg(theme.muted_hover()))
-                .press_stop(
-                    child(format!("{name}-focus")),
-                    crate::theme::radius::md(),
-                    window,
-                    cx,
-                )
-                .on_click(move |_, window, cx| press(window, cx))
-                .child(
-                    div()
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(muted)
-                        .child(format!("Show more {what} ({hidden} not shown)")),
-                )
+        let more_row = |name: &str, hidden: usize, what: &str, press: MoreHandler, window: &mut Window, cx: &mut App| {
+            div().id(child(name.to_string())).flex().px(px(12.)).py(px(6.)).cursor_pointer().hover(|s| s.bg(theme.muted_hover())).press_stop(child(format!("{name}-focus")), crate::theme::radius::md(), window, cx).on_click(move |_, window, cx| press(window, cx)).child(
+                div().text_size(TextSize::Xs.font_size()).text_color(muted).child(format!("Show more {what} ({hidden} not shown)")),
+            )
         };
         if let Some((hidden, press)) = self.more_threads.clone() {
-            rows.push(
-                more_row("more-threads", hidden, "threads", press, window, cx).into_any_element(),
-            );
+            rows.push(more_row("more-threads", hidden, "threads", press, window, cx).into_any_element());
         }
         for (j, r) in remarks.into_iter().enumerate() {
             let key = 10_000 + j;
             let open = open_set.contains(&key);
-            let mark = if open {
-                IconName::ChevronDown
-            } else {
-                IconName::ChevronRight
-            };
-            rows.push(
-                line(
-                    key,
-                    mark,
-                    muted,
-                    std::slice::from_ref(&r.author),
-                    r.first.clone(),
-                    None,
-                    false,
-                    window,
-                    cx,
-                )
-                .into_any_element(),
-            );
+            let mark = if open { IconName::ChevronDown } else { IconName::ChevronRight };
+            rows.push(line(key, mark, muted, std::slice::from_ref(&r.author), r.first.clone(), None, false, window, cx).into_any_element());
             if open {
-                rows.push(
-                    LineComment::new(child(format!("remark-{j}")), vec![r.comment])
-                        .into_any_element(),
-                );
+                rows.push(LineComment::new(child(format!("remark-{j}")), vec![r.comment]).into_any_element());
             }
         }
         if let Some((hidden, press)) = self.more_remarks.clone() {
-            rows.push(
-                more_row("more-remarks", hidden, "remarks", press, window, cx).into_any_element(),
-            );
+            rows.push(more_row("more-remarks", hidden, "remarks", press, window, cx).into_any_element());
         }
-        RailSection::new("Conversation")
-            .icon(IconName::Forum)
-            .summary(header)
-            .children(rows)
-            .child(div().h(px(4.)))
+        RailSection::new("Conversation").icon(IconName::Forum).summary(header).children(rows).child(div().h(px(4.)))
     }
 }

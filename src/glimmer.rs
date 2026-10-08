@@ -12,13 +12,13 @@
 mod helpers;
 mod types;
 
-#[cfg(test)]
-pub use helpers::clusters;
-pub(crate) use helpers::step_ms;
 pub use helpers::{
     band_wait_ms, cluster_count, cursor_weight, glimmer_center, glimmer_highlights, glimmer_index,
     glimmer_weight, stepped_lit,
 };
+#[cfg(test)]
+pub use helpers::clusters;
+pub(crate) use helpers::step_ms;
 
 #[cfg(test)]
 mod tests;

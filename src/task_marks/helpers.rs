@@ -90,12 +90,7 @@ pub(super) fn ring(bounds: Bounds<Pixels>, color: Hsla, dashed: bool, window: &m
     }
 }
 
-pub(super) fn paint_status(
-    bounds: Bounds<Pixels>,
-    status: TaskStatus,
-    theme: &Theme,
-    window: &mut Window,
-) {
+pub(super) fn paint_status(bounds: Bounds<Pixels>, status: TaskStatus, theme: &Theme, window: &mut Window) {
     let color = status_color(status, theme);
     match status {
         TaskStatus::Backlog => ring(bounds, color, true, window),
@@ -106,13 +101,7 @@ pub(super) fn paint_status(
         }
         TaskStatus::Done => {
             fill_polygon(bounds, &disc(), color, window);
-            stroke(
-                bounds,
-                &partial(&[(7.5, 12.25), (10.5, 15.25), (16.75, 8.75)], 1.),
-                2.,
-                theme.background,
-                window,
-            );
+            stroke(bounds, &partial(&[(7.5, 12.25), (10.5, 15.25), (16.75, 8.75)], 1.), 2., theme.background, window);
         }
         TaskStatus::Canceled => {
             ring(bounds, color, false, window);

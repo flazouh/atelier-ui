@@ -1,10 +1,7 @@
 use gpui_kit::Hsla;
 
+use crate::{context_meter::fraction, theme::{Theme, mix}};
 use super::types::{BAR, ContextPart};
-use crate::{
-    context_meter::fraction,
-    theme::{Theme, mix},
-};
 
 /// A token count with one decimal when it has one: 950, 4.1K, 106.3K, 300K, 1.2M.
 pub fn precise(count: u64) -> String {
@@ -20,10 +17,7 @@ pub fn precise(count: u64) -> String {
 /// The two ends of the header: "35% Full" and "~106.3K / 300K Tokens".
 pub fn header(used: u64, window: u64) -> (String, String) {
     let percent = (fraction(used, window) * 100.).round() as u32;
-    (
-        format!("{percent}% Full"),
-        format!("~{} / {} Tokens", precise(used), precise(window)),
-    )
+    (format!("{percent}% Full"), format!("~{} / {} Tokens", precise(used), precise(window)))
 }
 
 /// What the parts add up to, and what is left of the window.
@@ -35,16 +29,8 @@ pub fn totals(parts: &[ContextPart], window: u64) -> (u64, u64) {
 /// The share of the bar each part takes, in order. A part is its share of the window; parts that add up past the window
 /// are shrunk to fit it, so the bar never runs over.
 pub fn shares(parts: &[ContextPart], window: u64) -> Vec<f32> {
-    let scale = parts
-        .iter()
-        .map(|part| part.tokens)
-        .sum::<u64>()
-        .max(window)
-        .max(1) as f64;
-    parts
-        .iter()
-        .map(|part| (part.tokens as f64 / scale) as f32)
-        .collect()
+    let scale = parts.iter().map(|part| part.tokens).sum::<u64>().max(window).max(1) as f64;
+    parts.iter().map(|part| (part.tokens as f64 / scale) as f32).collect()
 }
 
 /// The colour of the `index`th part's swatch and segment, from the theme. Seven kinds of part have their own; more cycle.

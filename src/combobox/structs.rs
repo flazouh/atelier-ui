@@ -1,15 +1,11 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    AnyElement, App, Bounds, ElementId, FontWeight, InteractiveElement, IntoElement, MouseButton,
-    ParentElement, Pixels, RenderOnce, ScrollHandle, SharedString, StatefulInteractiveElement,
-    Styled, Window, div, point, prelude::FluentBuilder,
+    AnyElement, App, Bounds, ElementId, FontWeight, InteractiveElement, IntoElement,
+    MouseButton, ParentElement, Pixels, RenderOnce, ScrollHandle, SharedString,
+    StatefulInteractiveElement, Styled, Window, div, point, prelude::FluentBuilder,
 };
 
-use super::helpers::{check_at, scroll_to_show};
-use super::types::{
-    CHECK_SECONDS, ComboEntry, ComboStyle, LINE, MAX_HEIGHT, Pick, ROW_GAP_BETWEEN, TEXT,
-};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -18,6 +14,10 @@ use crate::{
     theme::ActiveTheme,
     typography::FONT_FAMILY,
 };
+use super::types::{
+    CHECK_SECONDS, ComboEntry, ComboStyle, LINE, MAX_HEIGHT, Pick, ROW_GAP_BETWEEN, TEXT,
+};
+use super::helpers::{check_at, scroll_to_show};
 
 pub struct ComboRow {
     label: SharedString,
@@ -30,14 +30,7 @@ pub struct ComboRow {
 
 impl ComboRow {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            detail: None,
-            leading: None,
-            selected: false,
-            disabled: false,
-            selector: None,
-        }
+        Self { label: label.into(), detail: None, leading: None, selected: false, disabled: false, selector: None }
     }
 
     /// Muted mono words after the label, which take the room the label leaves.
@@ -205,18 +198,9 @@ impl RenderOnce for ComboList {
             s.scroll.clone()
         });
         let (glide, moving, checks) = state.update(cx, |s, _| {
-            let target = self
-                .active
-                .and_then(|i| s.rects.get(i).copied().flatten())
-                .zip(s.content)
-                .map(|(r, c)| {
-                    (
-                        crate::scale::design(r.origin.y - c.origin.y),
-                        crate::scale::design(r.size.height),
-                        crate::scale::design(r.origin.x - c.origin.x),
-                        crate::scale::design(r.size.width),
-                    )
-                });
+            let target = self.active.and_then(|i| s.rects.get(i).copied().flatten()).zip(s.content).map(|(r, c)| {
+                (crate::scale::design(r.origin.y - c.origin.y), crate::scale::design(r.size.height), crate::scale::design(r.origin.x - c.origin.x), crate::scale::design(r.size.width))
+            });
             let mut moving = false;
             if s.last_key != self.scroll_key {
                 s.last_key = self.scroll_key;
@@ -235,12 +219,7 @@ impl RenderOnce for ComboList {
                     // Keep the active row in sight.
                     if s.last_active != self.active
                         && let Some(view) = s.view
-                        && let Some(to) = scroll_to_show(
-                            -f32::from(s.scroll.offset().y),
-                            f32::from(view.size.height),
-                            y,
-                            y + h,
-                        )
+                        && let Some(to) = scroll_to_show(-f32::from(s.scroll.offset().y), f32::from(view.size.height), y, y + h)
                     {
                         s.scroll.set_offset(point(px(0.), px(-to)));
                     }
@@ -271,11 +250,7 @@ impl RenderOnce for ComboList {
             if !moving {
                 s.clock.rest();
             }
-            (
-                target.map(|(_, _, x, w)| (s.top.value(), s.height.value(), x, w)),
-                moving,
-                shown,
-            )
+            (target.map(|(_, _, x, w)| (s.top.value(), s.height.value(), x, w)), moving, shown)
         });
         if moving {
             window.request_animation_frame();
@@ -301,24 +276,13 @@ impl RenderOnce for ComboList {
                     .text_color(theme.muted_foreground)
                     .child(words.to_uppercase())
                     .into_any_element(),
-                ComboEntry::Separator => div()
-                    .mx(px(-4.))
-                    .my(px(4.))
-                    .h(px(1.))
-                    .bg(crate::text_input::edge(&theme, theme.background))
-                    .into_any_element(),
+                ComboEntry::Separator => div().mx(px(-4.)).my(px(4.)).h(px(1.)).bg(crate::text_input::edge(&theme, theme.background)).into_any_element(),
                 ComboEntry::Row(row) => {
                     let active = self.active == Some(i);
-                    let ink = if active {
-                        theme.foreground
-                    } else {
-                        theme.muted_foreground
-                    };
+                    let ink = if active { theme.foreground } else { theme.muted_foreground };
                     let report = {
                         let state = state.clone();
-                        move |b: Bounds<Pixels>, cx: &mut App| {
-                            state.update(cx, |s, _| s.rects[i] = Some(b))
-                        }
+                        move |b: Bounds<Pixels>, cx: &mut App| state.update(cx, |s, _| s.rects[i] = Some(b))
                     };
                     let (scale, opacity) = check_at(checks[i]);
                     let (pick, hover) = (pick.clone(), hover.clone());
@@ -340,21 +304,10 @@ impl RenderOnce for ComboList {
                             d
                                 // A press on a row must not take focus from the field.
                                 .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                                .when_some(hover, |d, hover| {
-                                    d.on_hover(move |on, window, cx| {
-                                        if *on {
-                                            hover(i, window, cx)
-                                        }
-                                    })
-                                })
-                                .when_some(pick, |d, pick| {
-                                    d.cursor_pointer()
-                                        .on_click(move |_, window, cx| pick(i, window, cx))
-                                })
+                                .when_some(hover, |d, hover| d.on_hover(move |on, window, cx| if *on { hover(i, window, cx) }))
+                                .when_some(pick, |d, pick| d.cursor_pointer().on_click(move |_, window, cx| pick(i, window, cx)))
                         })
-                        .when_some(row.selector, |d, name| {
-                            d.debug_selector(move || name.clone())
-                        })
+                        .when_some(row.selector, |d, name| d.debug_selector(move || name.clone()))
                         .child(measure(report))
                         .children(row.leading)
                         .child(match row.detail {
@@ -364,13 +317,7 @@ impl RenderOnce for ComboList {
                                 .min_w_0()
                                 .flex_1()
                                 .gap(px(8.))
-                                .child(
-                                    div()
-                                        .flex_none()
-                                        .max_w(px(300.))
-                                        .truncate()
-                                        .child(row.label),
-                                )
+                                .child(div().flex_none().max_w(px(300.)).truncate().child(row.label))
                                 .child(
                                     div()
                                         .flex_1()
@@ -382,12 +329,7 @@ impl RenderOnce for ComboList {
                                         .text_color(theme.muted_foreground)
                                         .child(detail),
                                 ),
-                            None => div()
-                                .relative()
-                                .min_w_0()
-                                .flex_1()
-                                .truncate()
-                                .child(row.label),
+                            None => div().relative().min_w_0().flex_1().truncate().child(row.label),
                         })
                         .when(self.checks, |d| {
                             d.child(
@@ -399,11 +341,7 @@ impl RenderOnce for ComboList {
                                     .items_center()
                                     .justify_center()
                                     .opacity(opacity)
-                                    .child(
-                                        Icon::new(IconName::Check)
-                                            .size(px(16. * scale))
-                                            .color(theme.foreground),
-                                    ),
+                                    .child(Icon::new(IconName::Check).size(px(16. * scale)).color(theme.foreground)),
                             )
                         })
                         .into_any_element()
@@ -412,27 +350,12 @@ impl RenderOnce for ComboList {
             .collect();
         let empty = (count == 0 || rows.is_empty()).then(|| {
             self.empty.map(|words| {
-                div()
-                    .px(px(12.))
-                    .py(px(32.))
-                    .text_center()
-                    .text_size(px(TEXT))
-                    .line_height(px(LINE))
-                    .text_color(theme.muted_foreground)
-                    .child(words)
+                div().px(px(12.)).py(px(32.)).text_center().text_size(px(TEXT)).line_height(px(LINE)).text_color(theme.muted_foreground).child(words)
             })
         });
 
         let pill = glide.map(|(top, height, x, width)| {
-            div()
-                .absolute()
-                .left(px(x))
-                .top(px(top))
-                .w(px(width))
-                .h(px(height))
-                .rounded(pill_radius)
-                .bg(pill_fill)
-                .debug_selector(|| "combo-pill".into())
+            div().absolute().left(px(x)).top(px(top)).w(px(width)).h(px(height)).rounded(pill_radius).bg(pill_fill).debug_selector(|| "combo-pill".into())
         });
         let content = {
             let state = state.clone();
@@ -442,9 +365,7 @@ impl RenderOnce for ComboList {
                 .flex_col()
                 .gap(px(ROW_GAP_BETWEEN))
                 .when(self.padded, |d| d.p(px(self.style.pad())))
-                .child(measure(move |b, cx| {
-                    state.update(cx, |s, _| s.content = Some(b))
-                }))
+                .child(measure(move |b, cx| state.update(cx, |s, _| s.content = Some(b))))
                 .children(pill)
                 .children(rows)
                 .children(empty.flatten())
@@ -452,21 +373,14 @@ impl RenderOnce for ComboList {
         };
         let view_state = state.clone();
         div()
-            .id(ElementId::NamedChild(
-                std::sync::Arc::new(self.id.clone()),
-                "scroll".into(),
-            ))
+            .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "scroll".into()))
             .relative()
             .max_h(px(self.max_height))
             .overflow_y_scroll()
             .track_scroll(&scroll)
             .font_family(FONT_FAMILY)
-            .when_some(self.selector, |d, name| {
-                d.debug_selector(move || name.into())
-            })
-            .child(measure(move |b, cx| {
-                view_state.update(cx, |s, _| s.view = Some(b))
-            }))
+            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
+            .child(measure(move |b, cx| view_state.update(cx, |s, _| s.view = Some(b))))
             .child(content)
     }
 }

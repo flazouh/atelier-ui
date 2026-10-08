@@ -1,15 +1,24 @@
 use gpui_kit::{
-    App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, SharedString, Styled,
-    Window, div,
+    App,
+    ElementId,
+    Hsla,
+    IntoElement,
+    ParentElement,
+    Pixels,
+    RenderOnce,
+    SharedString,
+    Styled,
+    Window,
+    div,
 };
 
-use super::helpers::{line_for, runs};
-use super::types::SLOT_WIDTH;
 use crate::scale::px;
 use crate::{
     roll::{Kind, Roll},
     theme::ActiveTheme,
 };
+use super::types::SLOT_WIDTH;
+use super::helpers::{line_for, runs};
 
 #[derive(IntoElement)]
 pub struct Digits {
@@ -22,12 +31,7 @@ pub struct Digits {
 impl Digits {
     /// `size` is the text size the slots are measured in.
     pub fn new(id: impl Into<ElementId>, text: impl Into<SharedString>, size: Pixels) -> Self {
-        Self {
-            id: id.into(),
-            text: text.into(),
-            size,
-            color: None,
-        }
+        Self { id: id.into(), text: text.into(), size, color: None }
     }
 
     /// The colour of the digits; the surrounding text colour by default.
@@ -57,26 +61,9 @@ impl RenderOnce for Digits {
                         .map(|c| {
                             at += 1;
                             let key = at;
-                            Roll::new(
-                                ElementId::NamedChild(
-                                    std::sync::Arc::new(self.id.clone()),
-                                    format!("digit-{key}").into(),
-                                ),
-                                c,
-                                Kind::Digit,
-                                px(tall),
-                                move |c: &char| {
-                                    div()
-                                        .w(px(slot))
-                                        .h(px(tall))
-                                        .flex()
-                                        .items_center()
-                                        .justify_center()
-                                        .line_height(px(tall))
-                                        .child(c.to_string())
-                                        .into_any_element()
-                                },
-                            )
+                            Roll::new(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), format!("digit-{key}").into()), c, Kind::Digit, px(tall), move |c: &char| {
+                                div().w(px(slot)).h(px(tall)).flex().items_center().justify_center().line_height(px(tall)).child(c.to_string()).into_any_element()
+                            })
                             .into_any_element()
                         })
                         .collect::<Vec<_>>()

@@ -2,14 +2,14 @@ use std::{collections::HashSet, time::Instant};
 
 use gpui_kit::{App, ElementId, IntoElement, ParentElement, RenderOnce, Styled, Window, div};
 
-use super::helpers::open;
-use super::types::STACK_GAP;
 use crate::scale::px;
 use crate::{
     motion::{Channel, Curve, Spring, duration},
     subagent_row::{ROW_HEIGHT, SubagentRow},
     wake::Wake,
 };
+use super::types::STACK_GAP;
+use super::helpers::open;
 
 pub(super) struct Slot {
     pub(super) row: SubagentRow,
@@ -37,8 +37,7 @@ impl StripState {
         for slot in &mut self.slots {
             if !slot.leaving && !rows.iter().any(|r| r.id() == slot.row.id()) {
                 slot.leaving = true;
-                slot.presence
-                    .animate_at(0., Curve::Spring(Spring::LAYOUT), 0., reduce, now);
+                slot.presence.animate_at(0., Curve::Spring(Spring::LAYOUT), 0., reduce, now);
             }
         }
         for row in rows {
@@ -54,30 +53,15 @@ impl StripState {
                         slot.finished_at = None;
                         if slot.leaving {
                             slot.leaving = false;
-                            slot.presence.animate_at(
-                                1.,
-                                Curve::Spring(Spring::LAYOUT),
-                                0.,
-                                reduce,
-                                now,
-                            );
+                            slot.presence.animate_at(1., Curve::Spring(Spring::LAYOUT), 0., reduce, now);
                         }
                     }
                     slot.row = row;
                 }
                 None => {
                     let finished_at = row.is_finished().then_some(now);
-                    let presence = if first {
-                        Channel::new(1.)
-                    } else {
-                        open(1., reduce, now, 0.)
-                    };
-                    self.slots.push(Slot {
-                        row,
-                        presence,
-                        finished_at,
-                        leaving: false,
-                    });
+                    let presence = if first { Channel::new(1.) } else { open(1., reduce, now, 0.) };
+                    self.slots.push(Slot { row, presence, finished_at, leaving: false });
                 }
             }
         }
@@ -88,20 +72,13 @@ impl StripState {
                 && now >= at + duration::FINISH_HOLD
             {
                 slot.leaving = true;
-                slot.presence
-                    .animate_at(0., Curve::Spring(Spring::LAYOUT), 0., reduce, now);
+                slot.presence.animate_at(0., Curve::Spring(Spring::LAYOUT), 0., reduce, now);
                 self.dismissed.insert(slot.row.id().clone());
             }
         }
         // A slot that has closed all the way is gone.
-        self.slots
-            .retain(|s| !(s.leaving && !s.presence.is_running_at(now)));
-        self.slots
-            .iter()
-            .filter(|s| !s.leaving)
-            .filter_map(|s| s.finished_at)
-            .map(|at| at + duration::FINISH_HOLD)
-            .min()
+        self.slots.retain(|s| !(s.leaving && !s.presence.is_running_at(now)));
+        self.slots.iter().filter(|s| !s.leaving).filter_map(|s| s.finished_at).map(|at| at + duration::FINISH_HOLD).min()
     }
 
     pub fn is_moving(&self, now: Instant) -> bool {
@@ -110,9 +87,7 @@ impl StripState {
 
     /// Each slot's row and how far it is open, from 0 to 1.
     pub fn slots(&self, now: Instant) -> impl Iterator<Item = (&SubagentRow, f32)> {
-        self.slots
-            .iter()
-            .map(move |s| (&s.row, s.presence.value_at(now).clamp(0., 1.)))
+        self.slots.iter().map(move |s| (&s.row, s.presence.value_at(now).clamp(0., 1.)))
     }
 }
 
@@ -124,10 +99,7 @@ pub struct SubagentStrip {
 
 impl SubagentStrip {
     pub fn new(id: impl Into<ElementId>, rows: Vec<SubagentRow>) -> Self {
-        Self {
-            id: id.into(),
-            rows,
-        }
+        Self { id: id.into(), rows }
     }
 }
 
@@ -140,10 +112,7 @@ impl RenderOnce for SubagentStrip {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let reduce = cx.reduce_motion();
         let now = Instant::now();
-        let motion = window.use_keyed_state(self.id, cx, |_, _| StripMotion {
-            state: StripState::default(),
-            wake: Wake::default(),
-        });
+        let motion = window.use_keyed_state(self.id, cx, |_, _| StripMotion { state: StripState::default(), wake: Wake::default() });
         let rows = self.rows;
         motion.update(cx, |m, cx| match m.state.sync(rows, now, reduce) {
             Some(due) => m.wake.at(due, cx),
@@ -156,18 +125,8 @@ impl RenderOnce for SubagentStrip {
         // Each slot carries the gap above its row, so a closing slot takes its gap with it; the strip's
         // own negative top margin hides the first one.
         let slot = ROW_HEIGHT + STACK_GAP;
-        div()
-            .flex()
-            .flex_col()
-            .mt(px(-STACK_GAP))
-            .children(m.state.slots(now).map(|(row, open)| {
-                div()
-                    .flex_none()
-                    .h(px(slot * open))
-                    .overflow_hidden()
-                    .opacity(open)
-                    .pt(px(STACK_GAP))
-                    .child(row.clone())
-            }))
+        div().flex().flex_col().mt(px(-STACK_GAP)).children(m.state.slots(now).map(|(row, open)| {
+            div().flex_none().h(px(slot * open)).overflow_hidden().opacity(open).pt(px(STACK_GAP)).child(row.clone())
+        }))
     }
 }

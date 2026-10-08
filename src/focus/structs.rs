@@ -3,8 +3,8 @@ use gpui_kit::{
     RenderOnce, Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::ring_shadow;
 use crate::theme::{ActiveTheme, radius};
+use super::helpers::ring_shadow;
 
 /// A text field's box: a fill and a corner, and the ring while focus is inside it.
 #[derive(IntoElement)]
@@ -19,13 +19,7 @@ pub struct Field {
 impl Field {
     /// A box round `child`, which shows the ring while `focus` (the input's handle) or a part inside it has focus.
     pub fn new(focus: FocusHandle, child: impl IntoElement) -> Self {
-        Self {
-            focus,
-            child: child.into_any_element(),
-            radius: radius::md(),
-            surface: None,
-            padding: None,
-        }
+        Self { focus, child: child.into_any_element(), radius: radius::md(), surface: None, padding: None }
     }
 
     pub fn radius(mut self, radius: Pixels) -> Self {
@@ -54,10 +48,7 @@ impl RenderOnce for Field {
             .rounded(self.radius)
             .bg(surface)
             .when_some(self.padding, |d, p| d.p(p))
-            .when(focused, |d| {
-                d.shadow(ring_shadow(&theme, surface))
-                    .debug_selector(|| "field-ring".into())
-            })
+            .when(focused, |d| d.shadow(ring_shadow(&theme, surface)).debug_selector(|| "field-ring".into()))
             .child(self.child)
     }
 }

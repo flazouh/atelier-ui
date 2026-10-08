@@ -16,9 +16,7 @@ pub fn opens_upward(anchor: Bounds<Pixels>, panel: f32, gap: f32, window: f32) -
 
 /// A canvas over its parent that reports the parent's bounds after layout.
 pub(crate) fn measure(report: impl Fn(Bounds<Pixels>, &mut App) + 'static) -> impl IntoElement {
-    canvas(move |bounds, _, cx| report(bounds, cx), |_, _, _, _| {})
-        .absolute()
-        .inset_0()
+    canvas(move |bounds, _, cx| report(bounds, cx), |_, _, _, _| {}).absolute().inset_0()
 }
 
 #[cfg(test)]

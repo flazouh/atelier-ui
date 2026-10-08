@@ -1,9 +1,6 @@
 //! Pane headers. The app draws its own title bar, so every header also moves the window.
 
-use gpui_kit::{
-    App, Div, FontWeight, InteractiveElement, MouseButton, ParentElement, Pixels, SharedString,
-    Styled, div, px,
-};
+use gpui_kit::{App, Div, FontWeight, InteractiveElement, MouseButton, ParentElement, Pixels, SharedString, Styled, div, px};
 
 use crate::{theme::ActiveTheme, typography::TextSize};
 
@@ -25,18 +22,10 @@ pub fn pane_header(title: impl Into<SharedString>, cx: &App) -> Div {
         .pl(px(16.))
         .pr(px(8.))
         .text_color(cx.theme().foreground)
-        .child(
-            div()
-                .text_size(TextSize::Sm.font_size())
-                .font_weight(FontWeight::MEDIUM)
-                .child(title.into()),
-        )
+        .child(div().text_size(TextSize::Sm.font_size()).font_weight(FontWeight::MEDIUM).child(title.into()))
 }
 
 /// Empty space that moves the window when dragged. Keep buttons outside it, so clicks still reach them.
 pub fn drag_space() -> Div {
-    div()
-        .flex_1()
-        .h_full()
-        .on_mouse_down(MouseButton::Left, |_, window, _| window.start_window_move())
+    div().flex_1().h_full().on_mouse_down(MouseButton::Left, |_, window, _| window.start_window_move())
 }

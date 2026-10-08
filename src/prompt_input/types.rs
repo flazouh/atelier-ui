@@ -35,26 +35,14 @@ pub struct Chip {
 
 impl Chip {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self {
-            id: id.into(),
-            label: label.into(),
-            look: ChipLook::None,
-            detail: None,
-            mention: None,
-        }
+        Self { id: id.into(), label: label.into(), look: ChipLook::None, detail: None, mention: None }
     }
 
     /// A file: its name for the label, its path on hover, and `@path` in the message.
     pub fn file(path: impl Into<SharedString>) -> Self {
         let path = path.into();
         let name = path.rsplit(['/', '\\']).next().unwrap_or(&path).to_string();
-        Self {
-            id: path.clone(),
-            label: name.into(),
-            look: ChipLook::File(path.clone()),
-            detail: Some(path.clone()),
-            mention: Some(format!("@{path}").into()),
-        }
+        Self { id: path.clone(), label: name.into(), look: ChipLook::File(path.clone()), detail: Some(path.clone()), mention: Some(format!("@{path}").into()) }
     }
 
     pub fn look(mut self, look: ChipLook) -> Self {
@@ -94,10 +82,7 @@ pub struct Message {
 impl Message {
     /// A message of words alone.
     pub fn text(text: impl Into<SharedString>) -> Self {
-        Self {
-            text: text.into(),
-            chips: Vec::new(),
-        }
+        Self { text: text.into(), chips: Vec::new() }
     }
 }
 
@@ -149,10 +134,7 @@ pub enum PromptInputEvent {
     /// A chip was pressed (not its ✕), by its `id`. A quote chip, for one, opens its box again.
     ChipPressed(SharedString),
     /// A `/` command: its name, from the list after `/` or typed out, and the words after it. The box is empty.
-    Command {
-        name: SharedString,
-        args: SharedString,
-    },
+    Command { name: SharedString, args: SharedString },
 }
 
 /// The rows of the list: the Task pickers' (28 tall, 2px between), as a Select's.

@@ -1,25 +1,35 @@
 use super::{
-    CopyLine, CutLine, DeleteLine, DuplicateLine, MoveLineDown, MoveLineUp, PasteLine, SmartHome,
-    ToggleComment,
+    CopyLine, CutLine, DeleteLine, DuplicateLine, MoveLineDown, MoveLineUp, PasteLine,
+    SmartHome, ToggleComment,
 };
 
 use gpui_kit::{
-    App, AppContext, ClipboardItem, Entity, InteractiveElement, IntoElement, ParentElement, Pixels,
-    RenderOnce, SharedString, Styled, Window,
+    App,
+    AppContext,
+    ClipboardItem,
+    Entity,
+    InteractiveElement,
+    IntoElement,
+    ParentElement,
+    Pixels,
+    RenderOnce,
+    SharedString,
+    Styled,
+    Window,
     base::input::{self as input, TabSize},
     component::input::{Editor, EditorState},
     div,
     prelude::FluentBuilder,
 };
 
-use super::helpers::{all_bare, apply, editor_style, on, snapshot, surface};
-use super::types::{ROW_HEIGHT, WHOLE_LINE};
 use crate::scale::px;
-pub use crate::syntax::language_for;
 use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+pub use crate::syntax::language_for;
+use super::types::{ROW_HEIGHT, WHOLE_LINE};
+use super::helpers::{all_bare, apply, editor_style, on, snapshot, surface};
 
 /// A file open for reading and writing.
 #[derive(IntoElement)]
@@ -35,13 +45,7 @@ impl CodeEditor {
     /// The caller owns the state, so the buffer outlives one frame. Build it with
     /// [`CodeEditor::state`] so the language and the row height are set the same way every time.
     pub fn new(state: &Entity<EditorState>) -> Self {
-        Self {
-            state: state.clone(),
-            height: None,
-            fill: false,
-            read_only: false,
-            on_card: false,
-        }
+        Self { state: state.clone(), height: None, fill: false, read_only: false, on_card: false }
     }
 
     /// A state for `path`, with its language picked by extension and `text` as the buffer.
@@ -57,10 +61,7 @@ impl CodeEditor {
             // Four spaces, as rustfmt, prettier and Zed indent. gpui-base defaults to two.
             let mut state = EditorState::new(window, cx)
                 .line_number(true)
-                .tab_size(TabSize {
-                    tab_size: 4,
-                    hard_tabs: false,
-                });
+                .tab_size(TabSize { tab_size: 4, hard_tabs: false });
             if let Some(language) = language {
                 state = state.language(language);
             }
@@ -100,9 +101,7 @@ impl RenderOnce for CodeEditor {
         // Pinned, not set: gpui-component's Input sets its theme's style on every render, after this
         // one, and would otherwise replace ours (vendor/gpui-base/PATCHES.md, patch 3).
         let on_card = self.on_card;
-        self.state.update(cx, |state, _| {
-            state.pin_editor_style(Some(editor_style(&theme, appearance, on_card)))
-        });
+        self.state.update(cx, |state, _| state.pin_editor_style(Some(editor_style(&theme, appearance, on_card))));
 
         let state = self.state.clone();
         let editable = !self.read_only;
@@ -117,10 +116,7 @@ impl RenderOnce for CodeEditor {
                 let (text, selections) = snapshot(state, cx);
                 if all_bare(&selections) {
                     let (_, lines) = super::commands::whole_lines(&text, &selections);
-                    cx.write_to_clipboard(ClipboardItem::new_string_with_metadata(
-                        lines,
-                        WHOLE_LINE.into(),
-                    ));
+                    cx.write_to_clipboard(ClipboardItem::new_string_with_metadata(lines, WHOLE_LINE.into()));
                 } else {
                     window.dispatch_action(Box::new(input::Copy), cx);
                 }
@@ -130,64 +126,31 @@ impl RenderOnce for CodeEditor {
                     let (text, selections) = snapshot(state, cx);
                     let language = state.read(cx).language_name();
                     if let Some(prefix) = super::commands::comment_prefix(&language) {
-                        apply(
-                            state,
-                            super::commands::toggle_comment(&text, &selections, prefix),
-                            window,
-                            cx,
-                        );
+                        apply(state, super::commands::toggle_comment(&text, &selections, prefix), window, cx);
                     }
                 }))
                 .on_action(on::<MoveLineUp>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
-                    apply(
-                        state,
-                        super::commands::move_lines(&text, &selections, true),
-                        window,
-                        cx,
-                    );
+                    apply(state, super::commands::move_lines(&text, &selections, true), window, cx);
                 }))
                 .on_action(on::<MoveLineDown>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
-                    apply(
-                        state,
-                        super::commands::move_lines(&text, &selections, false),
-                        window,
-                        cx,
-                    );
+                    apply(state, super::commands::move_lines(&text, &selections, false), window, cx);
                 }))
                 .on_action(on::<DuplicateLine>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
-                    apply(
-                        state,
-                        super::commands::duplicate_lines(&text, &selections),
-                        window,
-                        cx,
-                    );
+                    apply(state, super::commands::duplicate_lines(&text, &selections), window, cx);
                 }))
                 .on_action(on::<DeleteLine>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
-                    apply(
-                        state,
-                        super::commands::delete_lines(&text, &selections),
-                        window,
-                        cx,
-                    );
+                    apply(state, super::commands::delete_lines(&text, &selections), window, cx);
                 }))
                 .on_action(on::<CutLine>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
                     if all_bare(&selections) {
                         let (_, lines) = super::commands::whole_lines(&text, &selections);
-                        cx.write_to_clipboard(ClipboardItem::new_string_with_metadata(
-                            lines,
-                            WHOLE_LINE.into(),
-                        ));
-                        apply(
-                            state,
-                            super::commands::delete_lines(&text, &selections),
-                            window,
-                            cx,
-                        );
+                        cx.write_to_clipboard(ClipboardItem::new_string_with_metadata(lines, WHOLE_LINE.into()));
+                        apply(state, super::commands::delete_lines(&text, &selections), window, cx);
                     } else {
                         window.dispatch_action(Box::new(input::Cut), cx);
                     }
@@ -195,19 +158,13 @@ impl RenderOnce for CodeEditor {
                 .on_action(on::<PasteLine>(&state, |state, window, cx| {
                     let (text, selections) = snapshot(state, cx);
                     let clipboard = cx.read_from_clipboard();
-                    let whole = clipboard
-                        .as_ref()
-                        .and_then(|c| c.metadata())
-                        .is_some_and(|m| m == WHOLE_LINE);
+                    let whole = clipboard.as_ref().and_then(|c| c.metadata()).is_some_and(|m| m == WHOLE_LINE);
                     // A copied whole line goes above each bare caret's line; anything else pastes as
                     // usual, including gpui-base's one-line-per-cursor paste.
                     match clipboard.and_then(|c| c.text()) {
-                        Some(line) if whole && all_bare(&selections) => apply(
-                            state,
-                            super::commands::whole_line_paste(&text, &selections, &line),
-                            window,
-                            cx,
-                        ),
+                        Some(line) if whole && all_bare(&selections) => {
+                            apply(state, super::commands::whole_line_paste(&text, &selections, &line), window, cx)
+                        }
                         _ => window.dispatch_action(Box::new(input::Paste), cx),
                     }
                 }))

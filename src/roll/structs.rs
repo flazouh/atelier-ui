@@ -5,10 +5,10 @@ use gpui_kit::{
     div, prelude::FluentBuilder,
 };
 
-use super::helpers::{entering, leaving};
-use super::types::{Build, Kind};
-use crate::motion::{Animated, Channel, Curve, FrameClock, ease};
 use crate::scale::px;
+use crate::motion::{Animated, Channel, Curve, FrameClock, ease};
+use super::types::{Build, Kind};
+use super::helpers::{entering, leaving};
 
 struct State<K> {
     shown: K,
@@ -30,20 +30,8 @@ pub struct Roll<K: Clone + PartialEq + 'static> {
 
 impl<K: Clone + PartialEq + 'static> Roll<K> {
     /// `height` is the content's height, which the travel is measured in.
-    pub fn new(
-        id: impl Into<ElementId>,
-        key: K,
-        kind: Kind,
-        height: Pixels,
-        build: impl Fn(&K) -> AnyElement + 'static,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            key,
-            kind,
-            height,
-            build: Rc::new(build),
-        }
+    pub fn new(id: impl Into<ElementId>, key: K, kind: Kind, height: Pixels, build: impl Fn(&K) -> AnyElement + 'static) -> Self {
+        Self { id: id.into(), key, kind, height, build: Rc::new(build) }
     }
 }
 
@@ -70,15 +58,9 @@ impl<K: Clone + PartialEq + 'static> RenderOnce for Roll<K> {
                     s.rise = Animated::new(kind.spring(), 1.);
                     s.rise.set_target(0.);
                     s.fade = Channel::new(0.);
-                    s.fade.animate(
-                        1.,
-                        Curve::Ease(kind.enter_opacity().1, ease::OUT),
-                        0.,
-                        false,
-                    );
+                    s.fade.animate(1., Curve::Ease(kind.enter_opacity().1, ease::OUT), 0., false);
                     s.exit = Channel::new(0.);
-                    s.exit
-                        .animate(1., Curve::Ease(kind.exit_seconds(), ease::OUT), 0., false);
+                    s.exit.animate(1., Curve::Ease(kind.exit_seconds(), ease::OUT), 0., false);
                 }
             }
             let dt = s.clock.tick();
@@ -87,44 +69,22 @@ impl<K: Clone + PartialEq + 'static> RenderOnce for Roll<K> {
                 s.leaving = None;
                 s.clock.rest();
             }
-            (
-                s.shown.clone(),
-                s.leaving.clone(),
-                moving,
-                (s.rise.value(), s.fade.value(), s.exit.value()),
-            )
+            (s.shown.clone(), s.leaving.clone(), moving, (s.rise.value(), s.fade.value(), s.exit.value()))
         });
         if moving {
             window.request_animation_frame();
         }
         let h = f32::from(self.height);
-        let (dy, opacity) = if gone.is_some() {
-            entering(kind, rise, fade)
-        } else {
-            (0., 1.)
-        };
+        let (dy, opacity) = if gone.is_some() { entering(kind, rise, fade) } else { (0., 1.) };
         let (gone_dy, gone_opacity) = leaving(kind, exit);
         div()
             .relative()
             .flex_none()
             .h(self.height)
             .overflow_hidden()
-            .child(
-                div()
-                    .relative()
-                    .top(px(dy * h))
-                    .opacity(opacity)
-                    .child((self.build)(&now)),
-            )
+            .child(div().relative().top(px(dy * h)).opacity(opacity).child((self.build)(&now)))
             .when_some(gone.filter(|_| exit < 1.), |d, old| {
-                d.child(
-                    div()
-                        .absolute()
-                        .left_0()
-                        .top(px(gone_dy * h))
-                        .opacity(gone_opacity)
-                        .child((self.build)(&old)),
-                )
+                d.child(div().absolute().left_0().top(px(gone_dy * h)).opacity(gone_opacity).child((self.build)(&old)))
             })
     }
 }

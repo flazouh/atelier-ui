@@ -1,7 +1,4 @@
-use gpui_kit::{
-    Context, Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled,
-    TestAppContext, VisualTestContext, Window, div, point, px, size,
-};
+use gpui_kit::{Context, Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, point, px, size};
 
 use super::*;
 use crate::theme::{Appearance, set_appearance};
@@ -9,23 +6,9 @@ use crate::theme::{Appearance, set_appearance};
 #[test]
 fn a_child_is_drawn_where_it_stood_until_the_spring_has_run() {
     // It stood at x = 100 and wore no offset; the layout now puts it at 60: it is drawn 40 to the right of that.
-    assert_eq!(
-        start_offset(
-            point(px(100.), px(0.)),
-            point(px(0.), px(0.)),
-            point(px(60.), px(0.))
-        ),
-        point(px(40.), px(0.))
-    );
+    assert_eq!(start_offset(point(px(100.), px(0.)), point(px(0.), px(0.)), point(px(60.), px(0.))), point(px(40.), px(0.)));
     // It was still gliding (wearing 10) when the layout moved it again from 100 to 60: it stays where it was seen, at 110.
-    assert_eq!(
-        start_offset(
-            point(px(100.), px(20.)),
-            point(px(10.), px(-5.)),
-            point(px(60.), px(20.))
-        ),
-        point(px(50.), px(-5.))
-    );
+    assert_eq!(start_offset(point(px(100.), px(20.)), point(px(10.), px(-5.)), point(px(60.), px(20.))), point(px(50.), px(-5.)));
 }
 
 #[test]
@@ -45,20 +28,8 @@ impl Render for Row {
         div()
             .flex()
             .p(px(10.))
-            .child(
-                div()
-                    .debug_selector(|| "first".into())
-                    .w(px(self.first))
-                    .h(px(20.)),
-            )
-            .child(shifted(
-                "second",
-                div()
-                    .id("second")
-                    .debug_selector(|| "second".into())
-                    .w(px(30.))
-                    .h(px(20.)),
-            ))
+            .child(div().debug_selector(|| "first".into()).w(px(self.first)).h(px(20.)))
+            .child(shifted("second", div().id("second").debug_selector(|| "second".into()).w(px(30.)).h(px(20.))))
     }
 }
 
@@ -97,24 +68,14 @@ fn with_motion_a_sibling_that_the_layout_moves_glides_to_its_new_place(cx: &mut 
     });
     cx.run_until_parked();
     let first_frame = second_x(cx);
-    assert!(
-        first_frame > 100. && first_frame <= 110.,
-        "drawn where it stood in the frame the layout moved it: {first_frame}"
-    );
+    assert!(first_frame > 100. && first_frame <= 110., "drawn where it stood in the frame the layout moved it: {first_frame}");
     crate::motion::clock::advance(std::time::Duration::from_millis(80));
     frames(&row, cx, 1);
     let between = second_x(cx);
-    assert!(
-        between < first_frame && between > 50.,
-        "on its way: {between}"
-    );
+    assert!(between < first_frame && between > 50., "on its way: {between}");
     crate::motion::clock::advance(std::time::Duration::from_millis(1200));
     frames(&row, cx, 3);
-    assert!(
-        (second_x(cx) - 50.).abs() < 0.3,
-        "it settles on the layout place, 10 + 40: {}",
-        second_x(cx)
-    );
+    assert!((second_x(cx) - 50.).abs() < 0.3, "it settles on the layout place, 10 + 40: {}", second_x(cx));
 }
 
 #[gpui_kit::test]
@@ -129,9 +90,7 @@ fn under_reduce_motion_the_sibling_is_at_its_new_place_at_once(cx: &mut TestAppC
 }
 
 #[gpui_kit::test]
-fn a_child_that_does_not_move_wears_no_offset_and_a_glide_carries_its_hit_box(
-    cx: &mut TestAppContext,
-) {
+fn a_child_that_does_not_move_wears_no_offset_and_a_glide_carries_its_hit_box(cx: &mut TestAppContext) {
     let (row, cx) = open(false, cx);
     frames(&row, cx, 3);
     assert_eq!(second_x(cx), 110.);

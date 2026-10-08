@@ -18,16 +18,9 @@ pub fn shown(count: usize, max_items: usize) -> Vec<Option<usize>> {
 /// The parts the ellipsis holds: every one between the first and the tail.
 pub fn hidden(count: usize, max_items: usize) -> std::ops::Range<usize> {
     let limit = max_items.max(MIN_SHOWN);
-    if count <= limit {
-        0..0
-    } else {
-        1..count - (limit - 2)
-    }
+    if count <= limit { 0..0 } else { 1..count - (limit - 2) }
 }
 
 pub(super) fn key_id(id: &ElementId, at: usize) -> ElementId {
-    ElementId::NamedChild(
-        std::sync::Arc::new(id.clone()),
-        format!("press-{at}").into(),
-    )
+    ElementId::NamedChild(std::sync::Arc::new(id.clone()), format!("press-{at}").into())
 }

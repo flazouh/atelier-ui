@@ -5,8 +5,6 @@ use gpui_kit::{
     Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::{button, counts};
-use super::types::{GAP, ICON, LOOKUPS, PADDING};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonVariant},
@@ -19,6 +17,8 @@ use crate::{
     theme::ActiveTheme,
     typography::TextSize,
 };
+use super::types::{GAP, ICON, LOOKUPS, PADDING};
+use super::helpers::{button, counts};
 
 #[derive(IntoElement)]
 pub struct ReviewFileHeader {
@@ -35,24 +35,8 @@ pub struct ReviewFileHeader {
 
 impl ReviewFileHeader {
     /// Accept file and Reject file run the handlers' `on_accept_file` and `on_reject_file`.
-    pub fn new(
-        id: impl Into<ElementId>,
-        path: impl Into<SharedString>,
-        added: usize,
-        removed: usize,
-        handlers: ReviewHandlers,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            path: path.into(),
-            added,
-            removed,
-            handlers,
-            brought_in: false,
-            path_shown: true,
-            committed: None,
-            decided: None,
-        }
+    pub fn new(id: impl Into<ElementId>, path: impl Into<SharedString>, added: usize, removed: usize, handlers: ReviewHandlers) -> Self {
+        Self { id: id.into(), path: path.into(), added, removed, handlers, brought_in: false, path_shown: true, committed: None, decided: None }
     }
     /// A file whose decisions are committed: these words, such as "Committed in b89cbbe", stand
     /// where Accept file and Reject file go.
@@ -110,8 +94,7 @@ impl RenderOnce for ReviewFileHeader {
             }
         });
         let with_file = state.read(cx).step == 0;
-        let child =
-            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
         let (folder, name) = split_path(&self.path);
         let (folder, name) = (folder.to_string(), name.to_string());
 
@@ -134,13 +117,7 @@ impl RenderOnce for ReviewFileHeader {
             let state = state.clone();
             measure(move |b, cx| {
                 state.update(cx, |s, cx| {
-                    let need = 2. * PADDING
-                        + if shown { ICON } else { 0. }
-                        + s.name
-                        + GAP
-                        + s.counts
-                        + GAP
-                        + f32::from(b.size.width);
+                    let need = 2. * PADDING + if shown { ICON } else { 0. } + s.name + GAP + s.counts + GAP + f32::from(b.size.width);
                     s.needed[s.step] = Some(need);
                     let next = choose(s.width, &s.needed);
                     if next != s.step {
@@ -152,11 +129,7 @@ impl RenderOnce for ReviewFileHeader {
         };
 
         let h = &self.handlers;
-        let (accept, reject) = if with_file {
-            ("Accept file", "Reject file")
-        } else {
-            ("Accept", "Reject")
-        };
+        let (accept, reject) = if with_file { ("Accept file", "Reject file") } else { ("Accept", "Reject") };
         div()
             .relative()
             .flex()
@@ -170,52 +143,25 @@ impl RenderOnce for ReviewFileHeader {
             .whitespace_nowrap()
             .child(measure_header)
             .when(shown, |d| {
-                d.child(FileIcon::file(&self.path)).child(
-                    div()
-                        .debug_selector(|| "file-header-path".into())
-                        .flex()
-                        .flex_1()
-                        .min_w_0()
-                        .overflow_hidden()
-                        .child(
-                            div()
-                                .min_w_0()
-                                .truncate()
-                                .text_color(theme.muted_foreground)
-                                .child(folder),
-                        )
-                        .child(
-                            div()
-                                .relative()
-                                .flex_none()
-                                .text_color(theme.foreground.opacity(0.9))
-                                .child(measure_name)
-                                .child(name),
-                        ),
-                )
-            })
-            .when(!shown, |d| d.child(div().flex_1().min_w_0()))
+                d
+                .child(FileIcon::file(&self.path))
             .child(
                 div()
-                    .relative()
-                    .flex_none()
-                    .child(measure_counts)
-                    .child(if self.brought_in {
-                        div()
-                            .text_size(TextSize::Xs.font_size())
-                            .text_color(theme.muted_foreground)
-                            .child("Brought in")
-                            .into_any_element()
-                    } else {
-                        counts(
-                            (self.id.clone(), "counts"),
-                            self.added,
-                            self.removed,
-                            &theme,
-                        )
-                        .into_any_element()
-                    }),
+                    .debug_selector(|| "file-header-path".into())
+                    .flex()
+                    .flex_1()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .child(div().min_w_0().truncate().text_color(theme.muted_foreground).child(folder))
+                    .child(div().relative().flex_none().text_color(theme.foreground.opacity(0.9)).child(measure_name).child(name)),
             )
+            })
+            .when(!shown, |d| d.child(div().flex_1().min_w_0()))
+            .child(div().relative().flex_none().child(measure_counts).child(if self.brought_in {
+                div().text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child("Brought in").into_any_element()
+            } else {
+                counts((self.id.clone(), "counts"), self.added, self.removed, &theme).into_any_element()
+            }))
             .child(
                 div()
                     .relative()
@@ -226,67 +172,23 @@ impl RenderOnce for ReviewFileHeader {
                     .children(LOOKUPS.iter().filter_map(|&(command, icon)| {
                         let handler = h.for_command(command).cloned();
                         handler.map(|f| {
-                            let button = Button::new(child(keys::word(command)))
-                                .debug_name(keys::word(command))
-                                .variant(ButtonVariant::Ghost)
-                                .command(command);
+                            let button = Button::new(child(keys::word(command))).debug_name(keys::word(command)).variant(ButtonVariant::Ghost).command(command);
                             let handler = Some(f);
-                            worded(button, keys::word(command), icon, false, &handler)
-                                .into_any_element()
+                            worded(button, keys::word(command), icon, false, &handler).into_any_element()
                         })
                     }))
                     // A file that is read rather than decided, as in a pull request, has no buttons.
                     .when_some(self.committed.clone(), |d, words| {
-                        d.child(
-                            div()
-                                .flex()
-                                .items_center()
-                                .text_size(TextSize::Xs.font_size())
-                                .text_color(theme.muted_foreground)
-                                .child(words),
-                        )
+                        d.child(div().flex().items_center().text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(words))
                     })
-                    .when_some(
-                        self.decided.clone().filter(|_| self.committed.is_none()),
-                        |d, words| {
-                            d.child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .text_size(TextSize::Xs.font_size())
-                                    .text_color(theme.muted_foreground)
-                                    .child(words),
-                            )
-                            .child(button(
-                                Button::new(child("undo"))
-                                    .label("Undo decision")
-                                    .variant(ButtonVariant::Ghost)
-                                    .command(Command::UndoDecision),
-                                &h.on_undo_decision,
-                            ))
-                        },
-                    )
-                    .when(
-                        self.committed.is_none()
-                            && self.decided.is_none()
-                            && (h.on_accept_file.is_some() || h.on_reject_file.is_some()),
-                        |d| {
-                            d.child(button(
-                                Button::new(child("accept"))
-                                    .label(accept)
-                                    .variant(ButtonVariant::Primary)
-                                    .cap(caps::ACCEPT_FILE),
-                                &h.on_accept_file,
-                            ))
-                            .child(button(
-                                Button::new(child("reject"))
-                                    .label(reject)
-                                    .variant(ButtonVariant::Secondary)
-                                    .cap(caps::REJECT_FILE),
-                                &h.on_reject_file,
-                            ))
-                        },
-                    ),
+                    .when_some(self.decided.clone().filter(|_| self.committed.is_none()), |d, words| {
+                        d.child(div().flex().items_center().text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(words))
+                            .child(button(Button::new(child("undo")).label("Undo decision").variant(ButtonVariant::Ghost).command(Command::UndoDecision), &h.on_undo_decision))
+                    })
+                    .when(self.committed.is_none() && self.decided.is_none() && (h.on_accept_file.is_some() || h.on_reject_file.is_some()), |d| {
+                        d.child(button(Button::new(child("accept")).label(accept).variant(ButtonVariant::Primary).cap(caps::ACCEPT_FILE), &h.on_accept_file))
+                            .child(button(Button::new(child("reject")).label(reject).variant(ButtonVariant::Secondary).cap(caps::REJECT_FILE), &h.on_reject_file))
+                    }),
             )
     }
 }

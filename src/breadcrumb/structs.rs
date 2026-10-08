@@ -1,13 +1,22 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ElementId, FocusHandle, FontWeight, InteractiveElement, IntoElement, ParentElement,
-    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div,
+    App,
+    ElementId,
+    FocusHandle,
+    FontWeight,
+    InteractiveElement,
+    IntoElement,
+    ParentElement,
+    RenderOnce,
+    SharedString,
+    StatefulInteractiveElement,
+    Styled,
+    Window,
+    div,
     prelude::FluentBuilder,
 };
 
-use super::helpers::{hidden, key_id, shown};
-use super::types::{DEFAULT_SHOWN, ENTER_SECONDS, ENTER_Y, HEIGHT, ICON, LINK_PAD, Press};
 use crate::scale::px;
 use crate::{
     focus::row_ring,
@@ -19,6 +28,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::FONT_FAMILY,
 };
+use super::types::{DEFAULT_SHOWN, ENTER_SECONDS, ENTER_Y, HEIGHT, ICON, LINK_PAD, Press};
+use super::helpers::{hidden, key_id, shown};
 
 /// One part of the path.
 #[derive(Clone)]
@@ -29,10 +40,7 @@ pub struct Crumb {
 
 impl Crumb {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            icon: None,
-        }
+        Self { label: label.into(), icon: None }
     }
 
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -63,13 +71,7 @@ pub struct Breadcrumb {
 
 impl Breadcrumb {
     pub fn new(id: impl Into<ElementId>, crumbs: impl IntoIterator<Item = Crumb>) -> Self {
-        Self {
-            id: id.into(),
-            crumbs: crumbs.into_iter().collect(),
-            max_items: DEFAULT_SHOWN,
-            on_press: None,
-            selector: None,
-        }
+        Self { id: id.into(), crumbs: crumbs.into_iter().collect(), max_items: DEFAULT_SHOWN, on_press: None, selector: None }
     }
 
     pub fn max_items(mut self, max_items: usize) -> Self {
@@ -95,12 +97,7 @@ impl RenderOnce for Breadcrumb {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
         let count = self.crumbs.len();
-        let state = window.use_keyed_state(self.id.clone(), cx, |_, _| State {
-            seen: false,
-            open: false,
-            anchor: None,
-            focus: Vec::new(),
-        });
+        let state = window.use_keyed_state(self.id.clone(), cx, |_, _| State { seen: false, open: false, anchor: None, focus: Vec::new() });
         let (seen, open, anchor) = state.update(cx, |s, cx| {
             while s.focus.len() < count + 1 {
                 s.focus.push(cx.focus_handle());
@@ -130,21 +127,11 @@ impl RenderOnce for Breadcrumb {
                     let index = *index;
                     let crumb = &crumbs[index];
                     let last = index == count - 1;
-                    let key = ElementId::NamedChild(
-                        std::sync::Arc::new(self.id.clone()),
-                        format!("crumb-{index}-{}", crumb.label).into(),
-                    );
-                    let enter = window.use_keyed_state(key.clone(), cx, move |_, _| Entering {
-                        channel: Channel::new(if seen && !reduce { 0. } else { 1. }),
-                    });
+                    let key = ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), format!("crumb-{index}-{}", crumb.label).into());
+                    let enter = window.use_keyed_state(key.clone(), cx, move |_, _| Entering { channel: Channel::new(if seen && !reduce { 0. } else { 1. }) });
                     let v = enter.update(cx, |e, _| {
                         if e.channel.target() < 1. {
-                            e.channel.animate(
-                                1.,
-                                Curve::Ease(ENTER_SECONDS, ease::OUT),
-                                0.,
-                                reduce,
-                            );
+                            e.channel.animate(1., Curve::Ease(ENTER_SECONDS, ease::OUT), 0., reduce);
                         }
                         e.channel.value()
                     });
@@ -163,18 +150,9 @@ impl RenderOnce for Breadcrumb {
                         .px(px(LINK_PAD))
                         .rounded(radius::md())
                         .font_weight(FontWeight::MEDIUM)
-                        .text_color(if last {
-                            theme.foreground
-                        } else {
-                            theme.muted_foreground
-                        })
+                        .text_color(if last { theme.foreground } else { theme.muted_foreground })
                         .when_some(pressed.clone(), |d, _| {
-                            d.cursor_pointer()
-                                .hover(|s| {
-                                    s.bg(theme.card_strong.opacity(0.6))
-                                        .text_color(theme.foreground)
-                                })
-                                .track_focus(&handle.tab_stop(true))
+                            d.cursor_pointer().hover(|s| s.bg(theme.card_strong.opacity(0.6)).text_color(theme.foreground)).track_focus(&handle.tab_stop(true))
                         })
                         .when(selector.is_some(), |d| {
                             let name = format!("{}-{index}", selector.unwrap_or_default());
@@ -182,30 +160,17 @@ impl RenderOnce for Breadcrumb {
                         })
                         .children(crumb.icon.map(|icon| Icon::new(icon).size(px(ICON))))
                         .child(crumb.label.clone())
-                        .when(focused, |d| {
-                            d.child(row_ring(&theme, theme.background, radius::md()))
-                        })
+                        .when(focused, |d| d.child(row_ring(&theme, theme.background, radius::md())))
                         .when_some(pressed, |d, f| {
                             let key = f.clone();
-                            d.on_click(move |_, window, cx| f(index, window, cx))
-                                .on_key_down(move |event, window, cx| {
-                                    if matches!(event.keystroke.key.as_str(), "enter" | "space") {
-                                        cx.stop_propagation();
-                                        key(index, window, cx);
-                                    }
-                                })
+                            d.on_click(move |_, window, cx| f(index, window, cx)).on_key_down(move |event, window, cx| {
+                                if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                                    cx.stop_propagation();
+                                    key(index, window, cx);
+                                }
+                            })
                         });
-                    div()
-                        .flex()
-                        .items_center()
-                        .gap(px(4.))
-                        .min_w_0()
-                        .relative()
-                        .top(px(ENTER_Y * (1. - v)))
-                        .opacity(v)
-                        .children(separator)
-                        .child(words)
-                        .into_any_element()
+                    div().flex().items_center().gap(px(4.)).min_w_0().relative().top(px(ENTER_Y * (1. - v))).opacity(v).children(separator).child(words).into_any_element()
                 }
                 None => {
                     let toggle = state.clone();
@@ -215,13 +180,11 @@ impl RenderOnce for Breadcrumb {
                         .clone()
                         .map(|i| {
                             let picks = picks.clone();
-                            Entry::from(MenuItem::new(crumbs[i].label.clone()).on_select(
-                                move |window, cx| {
-                                    if let Some(f) = &picks {
-                                        f(i, window, cx)
-                                    }
-                                },
-                            ))
+                            Entry::from(MenuItem::new(crumbs[i].label.clone()).on_select(move |window, cx| {
+                                if let Some(f) = &picks {
+                                    f(i, window, cx)
+                                }
+                            }))
                         })
                         .collect();
                     let rows = entries.len();
@@ -237,13 +200,8 @@ impl RenderOnce for Breadcrumb {
                         .rounded(radius::md())
                         .cursor_pointer()
                         .text_color(theme.muted_foreground)
-                        .hover(|s| {
-                            s.bg(theme.card_strong.opacity(0.6))
-                                .text_color(theme.foreground)
-                        })
-                        .when(selector.is_some(), |d| {
-                            d.debug_selector(move || more_name.clone())
-                        })
+                        .hover(|s| s.bg(theme.card_strong.opacity(0.6)).text_color(theme.foreground))
+                        .when(selector.is_some(), |d| d.debug_selector(move || more_name.clone()))
                         .child(measure({
                             let state = state.clone();
                             move |b, cx| state.update(cx, |s, _| s.anchor = Some(b))
@@ -255,17 +213,15 @@ impl RenderOnce for Breadcrumb {
                                 cx.notify();
                             })
                         });
-                    let menu = Menu::new((self.id.clone(), "hidden"), entries)
-                        .origin(Origin::TopLeft)
-                        .on_dismiss({
-                            let close = close.clone();
-                            move |_, cx| {
-                                close.update(cx, |s, cx| {
-                                    s.open = false;
-                                    cx.notify();
-                                })
-                            }
-                        });
+                    let menu = Menu::new((self.id.clone(), "hidden"), entries).origin(Origin::TopLeft).on_dismiss({
+                        let close = close.clone();
+                        move |_, cx| {
+                            close.update(cx, |s, cx| {
+                                s.open = false;
+                                cx.notify();
+                            })
+                        }
+                    });
                     div()
                         .flex()
                         .items_center()
@@ -296,17 +252,6 @@ impl RenderOnce for Breadcrumb {
         if moving {
             window.request_animation_frame();
         }
-        div()
-            .id(self.id.clone())
-            .flex()
-            .flex_wrap()
-            .items_center()
-            .gap_x(px(4.))
-            .gap_y(px(4.))
-            .min_w_0()
-            .text_size(px(14.))
-            .line_height(px(20.))
-            .font_family(FONT_FAMILY)
-            .children(items)
+        div().id(self.id.clone()).flex().flex_wrap().items_center().gap_x(px(4.)).gap_y(px(4.)).min_w_0().text_size(px(14.)).line_height(px(20.)).font_family(FONT_FAMILY).children(items)
     }
 }

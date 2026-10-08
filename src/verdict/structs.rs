@@ -1,13 +1,23 @@
 use gpui_kit::{
-    AppContext, Context, Entity, EventEmitter, Focusable, InteractiveElement, IntoElement,
-    ParentElement, Render, SharedString, StatefulInteractiveElement, Styled, Subscription, Window,
+    AppContext,
+    Context,
+    Entity,
+    EventEmitter,
+    Focusable,
+    InteractiveElement,
+    IntoElement,
+    ParentElement,
+    Render,
+    SharedString,
+    StatefulInteractiveElement,
+    Styled,
+    Subscription,
+    Window,
     component::input::{InputEvent, Textarea, TextareaState},
     div,
     prelude::FluentBuilder,
 };
 
-use super::helpers::{about, enabled, needs_words, offered, placeholder, summary};
-use super::types::{Decision, Verb, VerdictEvent};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
@@ -18,6 +28,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::types::{Decision, Verb, VerdictEvent};
+use super::helpers::{about, enabled, needs_words, offered, placeholder, summary};
 
 /// The Verdict box, as a rail section.
 pub struct VerdictBox {
@@ -37,33 +49,14 @@ impl EventEmitter<VerdictEvent> for VerdictBox {}
 
 impl VerdictBox {
     /// A verdict about `head_sha`. `mine` when the reader wrote the pull request.
-    pub fn new(
-        head_sha: impl Into<SharedString>,
-        mine: bool,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Self {
-        let text = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .auto_grow(2, 10)
-                .placeholder(placeholder(mine))
-        });
+    pub fn new(head_sha: impl Into<SharedString>, mine: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let text = cx.new(|cx| TextareaState::new(window, cx).auto_grow(2, 10).placeholder(placeholder(mine)));
         let subscription = cx.subscribe_in(&text, window, |_, _, event: &InputEvent, _, cx| {
             if let InputEvent::Change = event {
                 cx.notify()
             }
         });
-        Self {
-            head_sha: head_sha.into(),
-            mine,
-            stated: None,
-            text,
-            writing: false,
-            sending: None,
-            refused: None,
-            wants_words: None,
-            _subscription: subscription,
-        }
+        Self { head_sha: head_sha.into(), mine, stated: None, text, writing: false, sending: None, refused: None, wants_words: None, _subscription: subscription }
     }
 
     /// The branch moved: the verdict now is about this commit.
@@ -123,11 +116,7 @@ impl VerdictBox {
         self.wants_words = None;
         self.sending = Some(verb);
         self.refused = None;
-        cx.emit(VerdictEvent::Send {
-            verb,
-            note,
-            head_sha: self.head_sha.clone(),
-        });
+        cx.emit(VerdictEvent::Send { verb, note, head_sha: self.head_sha.clone() });
         cx.notify();
     }
 
@@ -137,18 +126,9 @@ impl VerdictBox {
         let words = if busy { verb.working() } else { verb.word() };
         // No colour on a button: the verbs carry the merge tones in their words and marks instead.
         let button = match verb {
-            Verb::Approve => Button::new("verdict-approve")
-                .debug_name("verdict-approve")
-                .variant(ButtonVariant::Primary)
-                .icon(IconName::Check)
-                .icon_ink(theme.success),
-            Verb::RequestChanges => Button::new("verdict-changes")
-                .debug_name("verdict-changes")
-                .variant(ButtonVariant::Secondary)
-                .ink(theme.danger),
-            Verb::Comment => Button::new("verdict-comment")
-                .debug_name("verdict-comment")
-                .variant(ButtonVariant::Secondary),
+            Verb::Approve => Button::new("verdict-approve").debug_name("verdict-approve").variant(ButtonVariant::Primary).icon(IconName::Check).icon_ink(theme.success),
+            Verb::RequestChanges => Button::new("verdict-changes").debug_name("verdict-changes").variant(ButtonVariant::Secondary).ink(theme.danger),
+            Verb::Comment => Button::new("verdict-comment").debug_name("verdict-comment").variant(ButtonVariant::Secondary),
         };
         button
             .label(words)
@@ -179,20 +159,12 @@ impl Render for VerdictBox {
             .child(
                 div()
                     .flex()
-                    .child(
-                        div()
-                            .font_family(MONO_FONT_FAMILY)
-                            .text_color(theme.foreground.opacity(0.9))
-                            .child(about(&self.head_sha)),
-                    )
+                    .child(div().font_family(MONO_FONT_FAMILY).text_color(theme.foreground.opacity(0.9)).child(about(&self.head_sha)))
                     .child(", the last commit on this branch."),
             );
 
         let body = if self.writing {
-            let verbs: Vec<Button> = offered(self.mine)
-                .into_iter()
-                .map(|v| self.verb_button(v, &text, cx))
-                .collect();
+            let verbs: Vec<Button> = offered(self.mine).into_iter().map(|v| self.verb_button(v, &text, cx)).collect();
             div()
                 .flex()
                 .flex_col()
@@ -208,56 +180,31 @@ impl Render for VerdictBox {
                         cx.notify();
                     }
                 }))
+                .child(Field::new(self.text.focus_handle(cx), 
+                    Textarea::new(&self.text).appearance(false).px(px(10.)).py(px(6.)).text_size(TextSize::Sm.font_size()).line_height(px(20.)),
+                ).radius(radius::md()).surface(theme.background))
                 .child(
-                    Field::new(
-                        self.text.focus_handle(cx),
-                        Textarea::new(&self.text)
-                            .appearance(false)
-                            .px(px(10.))
-                            .py(px(6.))
-                            .text_size(TextSize::Sm.font_size())
-                            .line_height(px(20.)),
-                    )
-                    .radius(radius::md())
-                    .surface(theme.background),
-                )
-                .child(
-                    div()
-                        .flex()
-                        .flex_wrap()
-                        .items_center()
-                        .gap(px(6.))
-                        .children(verbs)
-                        .child(div().flex_1())
-                        .child(
-                            Button::new("verdict-cancel")
-                                .label("Cancel")
-                                .variant(ButtonVariant::Ghost)
-                                .size(ButtonSize::Sm)
-                                .disabled(self.sending.is_some())
-                                .on_click(cx.listener(|this, _, _, cx| {
-                                    this.writing = false;
-                                    this.wants_words = None;
-                                    cx.notify();
-                                })),
-                        ),
+                    div().flex().flex_wrap().items_center().gap(px(6.)).children(verbs).child(div().flex_1()).child(
+                        Button::new("verdict-cancel")
+                            .label("Cancel")
+                            .variant(ButtonVariant::Ghost)
+                            .size(ButtonSize::Sm)
+                            .disabled(self.sending.is_some())
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.writing = false;
+                                this.wants_words = None;
+                                cx.notify();
+                            })),
+                    ),
                 )
                 .when(text.trim().is_empty(), |d| {
                     d.children(self.wants_words.and_then(needs_words).map(|words| {
-                        div()
-                            .debug_selector(|| "verdict-words-error".into())
-                            .text_size(TextSize::Xs.font_size())
-                            .text_color(theme.danger)
-                            .child(words)
+                        div().debug_selector(|| "verdict-words-error".into()).text_size(TextSize::Xs.font_size()).text_color(theme.danger).child(words)
                     }))
                 })
                 .into_any_element()
         } else {
-            let label = if !text.trim().is_empty() {
-                "Carry on with what you were writing"
-            } else {
-                placeholder(self.mine)
-            };
+            let label = if !text.trim().is_empty() { "Carry on with what you were writing" } else { placeholder(self.mine) };
             let text_state = self.text.clone();
             div()
                 .flex()
@@ -265,9 +212,7 @@ impl Render for VerdictBox {
                 .gap(px(8.))
                 .px(px(12.))
                 .pb(px(12.))
-                .when(!self.mine, |d| {
-                    d.child(self.verb_button(Verb::Approve, &text, cx))
-                })
+                .when(!self.mine, |d| d.child(self.verb_button(Verb::Approve, &text, cx)))
                 .child(
                     div()
                         .id("verdict-open")
@@ -299,14 +244,7 @@ impl Render for VerdictBox {
             .child(about_line)
             .child(body)
             .when_some(self.refused.clone(), |d, reason| {
-                d.child(
-                    div()
-                        .px(px(12.))
-                        .pb(px(10.))
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(theme.danger)
-                        .child(format!("That was not taken: {reason}")),
-                )
+                d.child(div().px(px(12.)).pb(px(10.)).text_size(TextSize::Xs.font_size()).text_color(theme.danger).child(format!("That was not taken: {reason}")))
             })
     }
 }

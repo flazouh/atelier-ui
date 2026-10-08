@@ -41,9 +41,7 @@ pub fn is_plain(tail: &str) -> bool {
         || first.starts_with("```")
         || first.starts_with("~~~")
         || first.starts_with("---")
-        || first.split_once(['.', ')']).is_some_and(|(n, rest)| {
-            !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()) && rest.starts_with(' ')
-        });
+        || first.split_once(['.', ')']).is_some_and(|(n, rest)| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()) && rest.starts_with(' '));
     !starts_block && !tail.contains(['`', '*', '_', '[', '<', '\\', '!', '~'])
 }
 

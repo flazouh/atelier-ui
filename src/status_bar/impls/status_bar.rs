@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    AnyElement, App, ElementId, FocusHandle, InteractiveElement, IntoElement, ParentElement,
-    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div,
-    prelude::FluentBuilder,
+    AnyElement, App, ElementId, FocusHandle, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -16,10 +15,7 @@ use crate::{
 };
 
 use super::super::{
-    consts::{
-        GAUGE_HEIGHT, GAUGE_WIDTH, HEIGHT, MARK, MINI_WIDTH, SPARK_BARS, SPARK_GAP, SPARK_HEIGHT,
-        SPARK_WIDTH,
-    },
+    consts::{GAUGE_HEIGHT, GAUGE_WIDTH, HEIGHT, MARK, MINI_WIDTH, SPARK_BARS, SPARK_GAP, SPARK_HEIGHT, SPARK_WIDTH},
     enums::{GaugeState, Pressure},
     helpers::press_target,
     structs::{ProviderGauge, StatusBar, SystemLoad, Work},
@@ -93,12 +89,7 @@ impl StatusBar {
 
 /// One card of the bar, as a panel is one: the card tone, the panels' corners and the bar's whole height. `width` is the width of
 /// the column above it; none takes what the others leave.
-fn card(
-    items: Vec<AnyElement>,
-    debug: &'static str,
-    width: Option<f32>,
-    theme: &Theme,
-) -> AnyElement {
+fn card(items: Vec<AnyElement>, debug: &'static str, width: Option<f32>, theme: &Theme) -> AnyElement {
     div()
         .debug_selector(move || debug.into())
         .flex()
@@ -116,12 +107,7 @@ fn card(
 }
 
 /// A caption and what it measures, with a hover.
-fn cluster(
-    id: ElementId,
-    debug: &'static str,
-    tooltip: String,
-    theme: &Theme,
-) -> gpui_kit::Stateful<gpui_kit::Div> {
+fn cluster(id: ElementId, debug: &'static str, tooltip: String, theme: &Theme) -> gpui_kit::Stateful<gpui_kit::Div> {
     div()
         .id(id)
         .debug_selector(move || debug.into())
@@ -161,11 +147,7 @@ fn spark(history: &[f32], theme: &Theme) -> AnyElement {
                 ),
                 None => (1., theme.muted_foreground.opacity(0.15)),
             };
-            div()
-                .w(px(SPARK_WIDTH))
-                .h(px(height))
-                .rounded(px(1.))
-                .bg(ink)
+            div().w(px(SPARK_WIDTH)).h(px(height)).rounded(px(1.)).bg(ink)
         }))
         .into_any_element()
 }
@@ -199,15 +181,10 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> (AnyEle
                 .text_color(Pressure::of(load.cpu).ink(theme))
                 .child(load.cpu_words()),
         );
-    let memory = cluster(
-        parts.part("memory"),
-        "status-memory",
-        load.memory_tooltip(),
-        theme,
-    )
-    .child("RAM")
-    .child(gauge_bar(load.memory_fraction(), theme))
-    .child(load.memory_words());
+    let memory = cluster(parts.part("memory"), "status-memory", load.memory_tooltip(), theme)
+        .child("RAM")
+        .child(gauge_bar(load.memory_fraction(), theme))
+        .child(load.memory_words());
     (cpu.into_any_element(), memory.into_any_element())
 }
 
@@ -223,11 +200,7 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
             .flex_none()
             .items_center()
             .gap(px(8.))
-            .child(
-                div()
-                    .text_color(theme.warning)
-                    .child(work.needs_you_words()),
-            )
+            .child(div().text_color(theme.warning).child(work.needs_you_words()))
             .into_any_element(),
     )
 }
@@ -235,31 +208,17 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
 /// The windows a chip shows, at most two: the short one and the long one (`5h` and `7d`) when the provider has them, else its
 /// first two.
 fn shown_windows(provider: &ProviderGauge) -> Vec<&crate::status_bar::Gauge> {
-    let named: Vec<&crate::status_bar::Gauge> = ["5h", "7d"]
-        .iter()
-        .filter_map(|label| provider.gauges.iter().find(|g| g.label.as_ref() == *label))
-        .collect();
-    if named.is_empty() {
-        provider.gauges.iter().take(2).collect()
-    } else {
-        named
-    }
+    let named: Vec<&crate::status_bar::Gauge> =
+        ["5h", "7d"].iter().filter_map(|label| provider.gauges.iter().find(|g| g.label.as_ref() == *label)).collect();
+    if named.is_empty() { provider.gauges.iter().take(2).collect() } else { named }
 }
 
 /// A provider as a compact chip: its mark, then each window as a label, a short track and its percent.
 fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> AnyElement {
     let debug = format!("status-provider-{}", provider.name);
     let id = ElementId::from((bar.id.clone(), format!("provider-{}", provider.name)));
-    let dim = if provider.state == GaugeState::Live {
-        1.
-    } else {
-        0.55
-    };
-    let windows = if matches!(provider.state, GaugeState::Unavailable(_)) {
-        Vec::new()
-    } else {
-        shown_windows(provider)
-    };
+    let dim = if provider.state == GaugeState::Live { 1. } else { 0.55 };
+    let windows = if matches!(provider.state, GaugeState::Unavailable(_)) { Vec::new() } else { shown_windows(provider) };
     div()
         .id(id)
         .debug_selector(move || debug.clone())
@@ -270,12 +229,7 @@ fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> An
         .opacity(dim)
         .text_color(theme.muted_foreground)
         .tooltip(Tooltip::text(provider.tooltip()))
-        .child(lead_icon(
-            &provider.name,
-            provider.lead.clone(),
-            MARK,
-            theme,
-        ))
+        .child(lead_icon(&provider.name, provider.lead.clone(), MARK, theme))
         .children(windows.iter().map(|gauge| {
             let selector = format!("status-window-{}-{}", provider.name, gauge.label);
             div()
@@ -286,11 +240,7 @@ fn provider_chip(bar: &StatusBar, provider: &ProviderGauge, theme: &Theme) -> An
                 .gap(px(5.))
                 .child(div().child(gauge.label.clone()))
                 .child(mini_gauge(gauge.fraction(), theme))
-                .child(
-                    div()
-                        .text_color(gauge.pressure().ink(theme))
-                        .child(gauge.percent()),
-                )
+                .child(div().text_color(gauge.pressure().ink(theme)).child(gauge.percent()))
         }))
         .children(windows.is_empty().then(|| div().child("–")))
         .into_any_element()
@@ -304,24 +254,12 @@ fn mini_gauge(used: f32, theme: &Theme) -> AnyElement {
         .h(px(GAUGE_HEIGHT))
         .rounded_full()
         .bg(theme.muted_foreground.opacity(0.18))
-        .child(
-            div()
-                .h_full()
-                .w(gpui_kit::relative(used.clamp(0., 1.)))
-                .rounded_full()
-                .bg(Pressure::of(used).ink(theme)),
-        )
+        .child(div().h_full().w(gpui_kit::relative(used.clamp(0., 1.))).rounded_full().bg(Pressure::of(used).ink(theme)))
         .into_any_element()
 }
 
 /// The app's version: a small mono label that is cut, not spilled, when the card is narrow.
-fn version_label(
-    bar: &StatusBar,
-    version: SharedString,
-    window: &mut Window,
-    cx: &mut App,
-    theme: &Theme,
-) -> AnyElement {
+fn version_label(bar: &StatusBar, version: SharedString, window: &mut Window, cx: &mut App, theme: &Theme) -> AnyElement {
     let label = div()
         .id(bar.part("version"))
         .debug_selector(|| "status-version".into())
@@ -337,31 +275,16 @@ fn version_label(
         .text_color(theme.muted_foreground)
         .tooltip(Tooltip::text("What is new in this version"))
         .child(version);
-    press_target(
-        label,
-        &focus_of(bar.part("version-focus"), window, cx),
-        bar.on_version.clone(),
-        window,
-        theme,
-    )
+    press_target(label, &focus_of(bar.part("version-focus"), window, cx), bar.on_version.clone(), window, theme)
 }
 
 /// The focus handle of a part, kept across frames.
 fn focus_of(id: ElementId, window: &mut Window, cx: &mut App) -> FocusHandle {
-    window
-        .use_keyed_state(id, cx, |_, cx| cx.focus_handle())
-        .read(cx)
-        .clone()
+    window.use_keyed_state(id, cx, |_, cx| cx.focus_handle()).read(cx).clone()
 }
 
 /// The provider chips as one target: a press on any of them opens the usage.
-fn usage_target(
-    bar: &StatusBar,
-    chips: Vec<AnyElement>,
-    window: &mut Window,
-    cx: &mut App,
-    theme: &Theme,
-) -> AnyElement {
+fn usage_target(bar: &StatusBar, chips: Vec<AnyElement>, window: &mut Window, cx: &mut App, theme: &Theme) -> AnyElement {
     let group = div()
         .id(bar.part("usage"))
         .debug_selector(|| "status-usage".into())
@@ -373,48 +296,26 @@ fn usage_target(
         .py(px(2.))
         .rounded(radius::md())
         .children(chips);
-    press_target(
-        group,
-        &focus_of(bar.part("usage-focus"), window, cx),
-        bar.on_usage.clone(),
-        window,
-        theme,
-    )
+    press_target(group, &focus_of(bar.part("usage-focus"), window, cx), bar.on_usage.clone(), window, theme)
 }
 
 impl RenderOnce for StatusBar {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
-        let (cpu, memory) = match self
-            .load
-            .as_ref()
-            .map(|load| load_clusters(&self, load, &theme))
-        {
+        let (cpu, memory) = match self.load.as_ref().map(|load| load_clusters(&self, load, &theme)) {
             Some((cpu, memory)) => (Some(cpu), Some(memory)),
             None => (None, None),
         };
         let work = work_cluster(self.work, &theme);
-        let chips: Vec<AnyElement> = self
-            .providers
-            .iter()
-            .map(|provider| provider_chip(&self, provider, &theme))
-            .collect();
+        let chips: Vec<AnyElement> = self.providers.iter().map(|provider| provider_chip(&self, provider, &theme)).collect();
         let usage = (!chips.is_empty()).then(|| usage_target(&self, chips, window, cx, &theme));
-        let version = self
-            .version
-            .clone()
-            .map(|version| version_label(&self, version, window, cx, &theme));
+        let version = self.version.clone().map(|version| version_label(&self, version, window, cx, &theme));
         let (lead, tail) = (self.lead, self.tail.filter(|_| self.load.is_some()));
         let mut cards: Vec<AnyElement> = Vec::new();
         let mut middle: Vec<AnyElement> = Vec::new();
         // The version has the sidebar's card to itself; with no column to stand under, it leads the middle card.
         match lead {
-            Some(width) => cards.push(card(
-                version.into_iter().collect(),
-                "status-card-version",
-                Some(width),
-                &theme,
-            )),
+            Some(width) => cards.push(card(version.into_iter().collect(), "status-card-version", Some(width), &theme)),
             None => middle.extend(version),
         }
         middle.extend(work);

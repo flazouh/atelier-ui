@@ -10,11 +10,7 @@ fn press_spring_settles_near_its_target_without_big_overshoot() {
         scale.step(0.001, false);
         lowest = lowest.min(scale.value());
     }
-    assert!(
-        (scale.value() - 0.93).abs() < 0.002,
-        "value {}",
-        scale.value()
-    );
+    assert!((scale.value() - 0.93).abs() < 0.002, "value {}", scale.value());
     assert!(lowest > 0.925, "overshoot to {lowest}");
 }
 
@@ -88,11 +84,7 @@ fn a_spring_channel_matches_the_stepped_spring() {
         stepped.step(0.001, false);
     }
     let closed = c.value_at(now + Duration::from_millis(150));
-    assert!(
-        (closed - stepped.value()).abs() < 0.01,
-        "{closed} vs {}",
-        stepped.value()
-    );
+    assert!((closed - stepped.value()).abs() < 0.01, "{closed} vs {}", stepped.value());
 }
 
 #[test]
@@ -139,11 +131,7 @@ fn a_spring_to_a_pixel_sized_target_settles_in_a_few_seconds() {
             let mut a = Animated::new(spring, 0.);
             a.set_target(target);
             let frames = (0..600).take_while(|_| a.step(1. / 60., false)).count();
-            assert!(
-                frames < 600,
-                "{spring:?} to {target} still moves after 10 s at {}",
-                a.value()
-            );
+            assert!(frames < 600, "{spring:?} to {target} still moves after 10 s at {}", a.value());
             assert_eq!(a.value(), target, "a settled spring lands on its target");
         }
     }

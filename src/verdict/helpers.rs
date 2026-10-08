@@ -4,10 +4,7 @@ use super::types::{Decision, Verb};
 
 /// The verbs offered: no Approve on one's own pull request.
 pub fn offered(mine: bool) -> Vec<Verb> {
-    Verb::ALL
-        .into_iter()
-        .filter(|v| !(mine && *v == Verb::Approve))
-        .collect()
+    Verb::ALL.into_iter().filter(|v| !(mine && *v == Verb::Approve)).collect()
 }
 
 /// Whether a verb can be pressed now: nothing while one is on its way, and words for the two that need
@@ -27,11 +24,7 @@ pub fn summary(stated: Option<(Decision, bool)>) -> SharedString {
                 Decision::Commented => "You commented on this",
                 Decision::Dismissed => "Your review was dismissed",
             };
-            if current {
-                said.into()
-            } else {
-                format!("{said}, at an older commit").into()
-            }
+            if current { said.into() } else { format!("{said}, at an older commit").into() }
         }
     }
 }
@@ -52,17 +45,9 @@ pub fn needs_words(verb: Verb) -> Option<&'static str> {
 
 /// Said once under the verbs while the box is empty.
 pub fn hint(mine: bool) -> &'static str {
-    if mine {
-        "A comment needs words."
-    } else {
-        "An approval needs no words. The other two do."
-    }
+    if mine { "A comment needs words." } else { "An approval needs no words. The other two do." }
 }
 
 pub fn placeholder(mine: bool) -> &'static str {
-    if mine {
-        "Answer the review"
-    } else {
-        "Say what you found"
-    }
+    if mine { "Answer the review" } else { "Say what you found" }
 }

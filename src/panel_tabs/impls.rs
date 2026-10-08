@@ -4,8 +4,6 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::structs::TabGhost;
-use super::types::TAB_HEIGHT;
 use crate::scale::px;
 use crate::{
     agent_panels::AgentPanels,
@@ -18,56 +16,32 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
+use super::structs::TabGhost;
+use super::types::TAB_HEIGHT;
 
 impl AgentPanels {
     fn project_of(&self, tab: &SharedString) -> SharedString {
-        self.panels
-            .iter()
-            .find(|p| p.id == *tab)
-            .map(|p| p.project.id.clone())
-            .unwrap_or_default()
+        self.panels.iter().find(|p| p.id == *tab).map(|p| p.project.id.clone()).unwrap_or_default()
     }
 
     /// The tabs in the order they are shown, which is the order ⌃Tab follows.
     pub(crate) fn visual_tabs(&self) -> Vec<SharedString> {
         if self.grouped {
-            visual_order(&grouped(
-                self.tabs.order(),
-                |t| self.project_of(t),
-                &self.project_order,
-            ))
+            visual_order(&grouped(self.tabs.order(), |t| self.project_of(t), &self.project_order))
         } else {
             self.tabs.order().to_vec()
         }
     }
 
-    pub(super) fn tab(
-        &self,
-        panel: &PanelData,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> AnyElement {
+    pub(super) fn tab(&self, panel: &PanelData, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
         let theme = cx.theme().clone();
         let active = self.tabs.active() == Some(&panel.id);
         let id = panel.id.clone();
         let (select, close, drop_on) = (cx.entity(), cx.entity(), cx.entity());
         let (select_id, close_id, drop_id) = (id.clone(), id.clone(), id.clone());
-        let mark = agent_icon(
-            element_id("tab-mark", &id.clone()),
-            &panel.look,
-            &panel.status,
-            &theme,
-            true,
-        );
-        let project = panel
-            .project
-            .badge
-            .clone()
-            .map(|b| ProjectBadge::new(b.label, b.color).icon(b.icon));
-        let ghost = DraggedTab {
-            id: id.clone(),
-            title: panel.title.clone(),
-        };
+        let mark = agent_icon(element_id("tab-mark", &id.clone()), &panel.look, &panel.status, &theme, true);
+        let project = panel.project.badge.clone().map(|b| ProjectBadge::new(b.label, b.color).icon(b.icon));
+        let ghost = DraggedTab { id: id.clone(), title: panel.title.clone() };
         div()
             .id(element_id("tab", &id.clone()))
             .group("tab")
@@ -82,22 +56,13 @@ impl AgentPanels {
             .cursor_pointer()
             .text_size(TextSize::Sm.font_size())
             .when(active, |d| d.bg(theme.card_strong))
-            .when(!active, |d| {
-                d.hover(|s| s.bg(theme.card_strong.opacity(0.5)))
-            })
-            .press_stop(
-                element_id("tab-focus", &id.clone()),
-                radius::md(),
-                window,
-                cx,
-            )
+            .when(!active, |d| d.hover(|s| s.bg(theme.card_strong.opacity(0.5))))
+            .press_stop(element_id("tab-focus", &id.clone()), radius::md(), window, cx)
             .on_click(move |_, _, cx| {
                 let id = select_id.clone();
                 select.update(cx, |s, cx| s.activate(&id, cx))
             })
-            .on_drag(ghost, |tab, _, _, cx| {
-                cx.new(|_| TabGhost(tab.title.clone()))
-            })
+            .on_drag(ghost, |tab, _, _, cx| cx.new(|_| TabGhost(tab.title.clone())))
             .drag_over::<DraggedTab>(|s, _, _, cx| s.bg(cx.theme().card_strong.opacity(0.8)))
             .on_drop::<DraggedTab>(move |dragged, _, cx| {
                 let (moved, target) = (dragged.id.clone(), drop_id.clone());
@@ -112,11 +77,7 @@ impl AgentPanels {
                 div()
                     .max_w(px(200.))
                     .truncate()
-                    .text_color(if panel.status.title_is_ink() || active {
-                        theme.foreground
-                    } else {
-                        theme.muted_foreground
-                    })
+                    .text_color(if panel.status.title_is_ink() || active { theme.foreground } else { theme.muted_foreground })
                     .child(panel.title.clone()),
             )
             .child(
@@ -147,16 +108,11 @@ impl AgentPanels {
     /// out yet, so the caller asks again next frame.
     fn reveal_in_tab_bar(&self, at: usize) -> bool {
         let (bar, offset) = (self.tab_scroll.bounds(), self.tab_scroll.offset());
-        let Some(tab) = self.tab_scroll.bounds_for_item(at) else {
-            return false;
-        };
+        let Some(tab) = self.tab_scroll.bounds_for_item(at) else { return false };
         if f32::from(bar.size.width) < 1. {
             return false;
         }
-        let (left, right) = (
-            f32::from(tab.left() - bar.left()),
-            f32::from(tab.right() - bar.left()),
-        );
+        let (left, right) = (f32::from(tab.left() - bar.left()), f32::from(tab.right() - bar.left()));
         let width = f32::from(bar.size.width);
         let pad = 8.;
         let shift = if left < pad {
@@ -167,8 +123,7 @@ impl AgentPanels {
             0.
         };
         if shift != 0. {
-            self.tab_scroll
-                .set_offset(gpui_kit::point(offset.x + px(shift), offset.y));
+            self.tab_scroll.set_offset(gpui_kit::point(offset.x + px(shift), offset.y));
         }
         true
     }
@@ -176,33 +131,17 @@ impl AgentPanels {
     /// The tabs and the project names between them, scrolled to the active tab once the bar is laid out.
     fn bar_items(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Vec<AnyElement> {
         let theme = cx.theme().clone();
-        let groups = if self.grouped {
-            grouped(
-                self.tabs.order(),
-                |t| self.project_of(t),
-                &self.project_order,
-            )
-        } else {
-            Vec::new()
-        };
+        let groups = if self.grouped { grouped(self.tabs.order(), |t| self.project_of(t), &self.project_order) } else { Vec::new() };
         let mut bar: Vec<AnyElement> = Vec::new();
         let mut active_at: Option<usize> = None;
         let sequence: Vec<(Option<SharedString>, Vec<SharedString>)> = if self.grouped {
-            groups
-                .iter()
-                .map(|g| (Some(g.project.clone()), g.tabs.clone()))
-                .collect()
+            groups.iter().map(|g| (Some(g.project.clone()), g.tabs.clone())).collect()
         } else {
             vec![(None, self.tabs.order().to_vec())]
         };
         for (n, (project, tabs)) in sequence.iter().enumerate() {
             if let Some(project) = project {
-                let name = self
-                    .panels
-                    .iter()
-                    .find(|p| p.project.id == *project)
-                    .map(|p| p.project.name.clone())
-                    .unwrap_or_default();
+                let name = self.panels.iter().find(|p| p.project.id == *project).map(|p| p.project.name.clone()).unwrap_or_default();
                 bar.push(
                     div()
                         .flex()
@@ -274,15 +213,7 @@ impl AgentPanels {
             .pr(px(8.))
             .pb(px(self.inset_bottom))
             .children(bar.map(|bar| div().flex().flex_none().h(px(TAB_HEIGHT + 4.)).child(bar)))
-            .child(
-                div()
-                    .flex_1()
-                    .min_h_0()
-                    .rounded(radius::xl())
-                    .overflow_hidden()
-                    .bg(theme.card)
-                    .children(content),
-            )
+            .child(div().flex_1().min_h_0().rounded(radius::xl()).overflow_hidden().bg(theme.card).children(content))
             .into_any_element()
     }
 }

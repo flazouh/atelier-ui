@@ -1,10 +1,8 @@
+use gpui_kit::AppContext;
+use std::{cell::RefCell, rc::Rc};
+use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px};
 use super::*;
 use crate::theme::{Appearance, set_appearance};
-use gpui_kit::AppContext;
-use gpui_kit::{
-    Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px,
-};
-use std::{cell::RefCell, rc::Rc};
 
 struct Host {
     picker: gpui_kit::Entity<IconPicker>,
@@ -18,11 +16,7 @@ impl Render for Host {
 fn open<'a>(
     paths: &[&str],
     cx: &'a mut TestAppContext,
-) -> (
-    gpui_kit::Entity<IconPicker>,
-    Rc<RefCell<Vec<String>>>,
-    &'a mut gpui_kit::VisualTestContext,
-) {
+) -> (gpui_kit::Entity<IconPicker>, Rc<RefCell<Vec<String>>>, &'a mut gpui_kit::VisualTestContext) {
     open_at(paths, None, cx)
 }
 
@@ -30,11 +24,7 @@ fn open_at<'a>(
     paths: &[&str],
     root: Option<std::path::PathBuf>,
     cx: &'a mut TestAppContext,
-) -> (
-    gpui_kit::Entity<IconPicker>,
-    Rc<RefCell<Vec<String>>>,
-    &'a mut gpui_kit::VisualTestContext,
-) {
+) -> (gpui_kit::Entity<IconPicker>, Rc<RefCell<Vec<String>>>, &'a mut gpui_kit::VisualTestContext) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Light, cx);
@@ -64,27 +54,13 @@ fn open_at<'a>(
 }
 
 fn rows(cx: &mut gpui_kit::VisualTestContext) -> usize {
-    const ROWS: [&str; 8] = [
-        "icon-row-0",
-        "icon-row-1",
-        "icon-row-2",
-        "icon-row-3",
-        "icon-row-4",
-        "icon-row-5",
-        "icon-row-6",
-        "icon-row-7",
-    ];
-    ROWS.iter()
-        .take_while(|name| cx.debug_bounds(name).is_some())
-        .count()
+    const ROWS: [&str; 8] = ["icon-row-0", "icon-row-1", "icon-row-2", "icon-row-3", "icon-row-4", "icon-row-5", "icon-row-6", "icon-row-7"];
+    ROWS.iter().take_while(|name| cx.debug_bounds(name).is_some()).count()
 }
 
 #[gpui_kit::test]
 fn it_lists_the_images_most_likely_first_and_enter_chooses_the_first(cx: &mut TestAppContext) {
-    let (_, events, cx) = open(
-        &["docs/shots/home.png", "assets/logo.svg", "favicon.ico"],
-        cx,
-    );
+    let (_, events, cx) = open(&["docs/shots/home.png", "assets/logo.svg", "favicon.ico"], cx);
     assert_eq!(rows(cx), 3);
     cx.simulate_keystrokes("enter");
     assert_eq!(events.borrow().as_slice(), ["choose favicon.ico"]);
@@ -92,10 +68,7 @@ fn it_lists_the_images_most_likely_first_and_enter_chooses_the_first(cx: &mut Te
 
 #[gpui_kit::test]
 fn typing_narrows_the_list_and_the_arrows_move_the_choice(cx: &mut TestAppContext) {
-    let (_, events, cx) = open(
-        &["assets/logo.svg", "public/logo.png", "public/hero.png"],
-        cx,
-    );
+    let (_, events, cx) = open(&["assets/logo.svg", "public/logo.png", "public/hero.png"], cx);
     cx.simulate_input("logo");
     cx.run_until_parked();
     assert_eq!(rows(cx), 2, "two paths hold logo");
@@ -122,10 +95,7 @@ fn a_project_with_no_images_says_so(cx: &mut TestAppContext) {
 #[gpui_kit::test]
 fn a_press_on_use_the_letter_clears_the_image(cx: &mut TestAppContext) {
     let (_, events, cx) = open(&["logo.svg"], cx);
-    let at = cx
-        .debug_bounds("icon-clear")
-        .expect("the button is drawn")
-        .center();
+    let at = cx.debug_bounds("icon-clear").expect("the button is drawn").center();
     cx.simulate_click(at, gpui_kit::Modifiers::default());
     assert_eq!(events.borrow().as_slice(), ["clear"]);
 }
@@ -136,13 +106,8 @@ fn a_local_project_shows_a_thumbnail_of_each_image(cx: &mut TestAppContext) {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("logo.svg"), r##"<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><circle cx="32" cy="32" r="30" fill="#d53f8c"/></svg>"##).unwrap();
     let (_, _, cx) = open_at(&["logo.svg"], Some(dir.path().to_path_buf()), cx);
-    let thumb = cx
-        .debug_bounds("icon-thumb-0")
-        .expect("the image is drawn in its row");
-    assert_eq!(
-        (f32::from(thumb.size.width), f32::from(thumb.size.height)),
-        (20., 20.)
-    );
+    let thumb = cx.debug_bounds("icon-thumb-0").expect("the image is drawn in its row");
+    assert_eq!((f32::from(thumb.size.width), f32::from(thumb.size.height)), (20., 20.));
 }
 
 #[gpui_kit::test]
@@ -157,11 +122,7 @@ fn a_remote_project_shows_the_file_mark_instead(cx: &mut TestAppContext) {
 fn a_press_on_a_swatch_chooses_that_colour_of_the_palette(cx: &mut TestAppContext) {
     let (picker, events, cx) = open(&["logo.png"], cx);
     for i in 0..crate::project_badge::COUNT {
-        assert!(
-            cx.debug_bounds(Box::leak(format!("icon-color-{i}").into_boxed_str()))
-                .is_some(),
-            "swatch {i} is drawn"
-        );
+        assert!(cx.debug_bounds(Box::leak(format!("icon-color-{i}").into_boxed_str())).is_some(), "swatch {i} is drawn");
     }
     let at = cx.debug_bounds("icon-color-4").unwrap().center();
     cx.simulate_click(at, gpui_kit::Modifiers::default());
@@ -178,9 +139,7 @@ fn the_colour_in_force_is_marked(cx: &mut TestAppContext) {
         set_appearance(Appearance::Light, cx);
         cx.set_reduce_motion(true);
     });
-    let (host, cx) = cx.add_window_view(|window, cx| Host {
-        picker: cx.new(|cx| IconPicker::new(Vec::new(), None, window, cx).with_color(7)),
-    });
+    let (host, cx) = cx.add_window_view(|window, cx| Host { picker: cx.new(|cx| IconPicker::new(Vec::new(), None, window, cx).with_color(7)) });
     cx.run_until_parked();
     assert_eq!(host.read_with(cx, |h, cx| h.picker.read(cx).color), Some(7));
 }

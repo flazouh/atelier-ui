@@ -6,10 +6,6 @@ use gpui_kit::{
     prelude::FluentBuilder, relative,
 };
 
-use super::helpers::{pill_inset, segment_fill, segment_text};
-use super::types::{
-    CAP_GAP, CHANGE, ChangeHandler, EASE, GAP, LINE, SEGMENT_HEIGHT, SEGMENT_PAD, TEXT,
-};
 use crate::scale::px;
 use crate::{
     kbd::Kbd,
@@ -17,6 +13,10 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::FONT_FAMILY,
 };
+use super::types::{
+    CAP_GAP, CHANGE, ChangeHandler, EASE, GAP, LINE, SEGMENT_HEIGHT, SEGMENT_PAD, TEXT,
+};
+use super::helpers::{pill_inset, segment_fill, segment_text};
 
 /// One choice: its words, and a key cap if it has one.
 #[derive(Clone)]
@@ -28,11 +28,7 @@ pub struct Segment {
 
 impl Segment {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            cap: None,
-            selector: None,
-        }
+        Self { label: label.into(), cap: None, selector: None }
     }
 
     /// The name a test finds this segment by, instead of the track's name and its index.
@@ -58,19 +54,8 @@ pub struct Segmented {
 }
 
 impl Segmented {
-    pub fn new(
-        id: impl Into<SharedString>,
-        segments: impl IntoIterator<Item = Segment>,
-        selected: usize,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            segments: segments.into_iter().collect(),
-            selected,
-            on_change: None,
-            selector: None,
-            cap: None,
-        }
+    pub fn new(id: impl Into<SharedString>, segments: impl IntoIterator<Item = Segment>, selected: usize) -> Self {
+        Self { id: id.into(), segments: segments.into_iter().collect(), selected, on_change: None, selector: None, cap: None }
     }
 
     /// Hears the index of the segment chosen. It does not fire for the segment already chosen.
@@ -157,28 +142,13 @@ impl RenderOnce for Segmented {
                     let focus = m.focus.get_or_insert_with(|| cx.focus_handle()).clone();
                     m.retarget(chosen, reduce);
                     let running = m.moving();
-                    (
-                        m.chosen.value(),
-                        m.hover.value(),
-                        m.press.value(),
-                        focus,
-                        running,
-                    )
+                    (m.chosen.value(), m.hover.value(), m.press.value(), focus, running)
                 });
-                let (fill, ink) = (
-                    segment_fill(&theme, chosen_p, hover_p),
-                    segment_text(&theme, chosen_p, hover_p),
-                );
+                let (fill, ink) = (segment_fill(&theme, chosen_p, hover_p), segment_text(&theme, chosen_p, hover_p));
                 moving |= running;
                 let keyed = focus.is_focused(window) && window.last_input_was_keyboard();
                 let (across, down) = pill_inset(press);
-                let choose = handler.clone().map(|f| {
-                    move |window: &mut Window, cx: &mut App| {
-                        if !chosen {
-                            f(i, window, cx)
-                        }
-                    }
-                });
+                let choose = handler.clone().map(|f| move |window: &mut Window, cx: &mut App| if !chosen { f(i, window, cx) });
                 let named = segment.selector;
                 let selector = self.selector;
                 div()
@@ -191,9 +161,7 @@ impl RenderOnce for Segmented {
                     .px(px(SEGMENT_PAD))
                     .gap(px(6.))
                     .rounded(radius::lg())
-                    .when(keyed, |d| {
-                        d.shadow(crate::focus::ring_shadow(&theme, theme.card))
-                    })
+                    .when(keyed, |d| d.shadow(crate::focus::ring_shadow(&theme, theme.card)))
                     .font_family(FONT_FAMILY)
                     .font_weight(FontWeight::MEDIUM)
                     .text_size(px(TEXT))
@@ -212,15 +180,9 @@ impl RenderOnce for Segmented {
                             .bg(fill),
                     )
                     .child(div().relative().child(segment.label))
-                    .when_some(segment.cap, |d, cap| {
-                        d.child(div().relative().child(Kbd::new(cap).ink(ink)))
-                    })
+                    .when_some(segment.cap, |d, cap| d.child(div().relative().child(Kbd::new(cap).ink(ink))))
                     .when_some(named, |d, name| d.debug_selector(move || name.into()))
-                    .when(named.is_none(), |d| {
-                        d.when_some(selector, |d, name| {
-                            d.debug_selector(move || format!("{name}-{i}"))
-                        })
-                    })
+                    .when(named.is_none(), |d| d.when_some(selector, |d, name| d.debug_selector(move || format!("{name}-{i}"))))
                     .track_focus(&focus.tab_stop(true))
                     .when_some(choose.clone(), |d, choose| {
                         d.on_key_down(move |event, window, cx| {
@@ -271,9 +233,7 @@ impl RenderOnce for Segmented {
                             cx.notify();
                         });
                     })
-                    .when_some(choose, |d, choose| {
-                        d.on_click(move |_, window, cx| choose(window, cx))
-                    })
+                    .when_some(choose, |d, choose| d.on_click(move |_, window, cx| choose(window, cx)))
             })
             .collect();
         if moving {
@@ -284,9 +244,7 @@ impl RenderOnce for Segmented {
             .flex_none()
             .items_center()
             .gap(px(GAP))
-            .when_some(self.selector, |d, name| {
-                d.debug_selector(move || name.into())
-            })
+            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
             .children(segments);
         match self.cap {
             None => track.into_any_element(),
@@ -300,9 +258,7 @@ impl RenderOnce for Segmented {
                     .child(track)
                     .child(
                         div()
-                            .when_some(selector, |d, name| {
-                                d.debug_selector(move || format!("{name}-cap"))
-                            })
+                            .when_some(selector, |d, name| d.debug_selector(move || format!("{name}-cap")))
                             .child(Kbd::new(cap).ink(theme.muted_foreground)),
                     )
                     .into_any_element()

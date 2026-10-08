@@ -1,9 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use gpui_kit::{
-    Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext,
-    VisualTestContext, Window, div, px,
-};
+use gpui_kit::{Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
 
 use super::*;
 use crate::theme::{Appearance, set_appearance};
@@ -11,25 +8,9 @@ use crate::theme::{Appearance, set_appearance};
 #[test]
 fn the_clip_starts_a_16px_square_at_the_origin_and_ends_as_the_whole_panel() {
     let start = collapsed((100., 50.), (224., 120.));
-    assert_eq!(
-        start,
-        Inset {
-            top: 42.,
-            right: 116.,
-            bottom: 62.,
-            left: 92.
-        }
-    );
+    assert_eq!(start, Inset { top: 42., right: 116., bottom: 62., left: 92. });
     let (all, corner) = unfolded(start, 1.);
-    assert_eq!(
-        all,
-        Inset {
-            top: 0.,
-            right: 0.,
-            bottom: 0.,
-            left: 0.
-        }
-    );
+    assert_eq!(all, Inset { top: 0., right: 0., bottom: 0., left: 0. });
     assert_eq!(corner, 12.);
     let (first, corner) = unfolded(start, 0.);
     assert_eq!((first, corner), (start, 10.));
@@ -42,11 +23,7 @@ fn an_origin_keeps_12px_from_the_edges() {
     assert_eq!(Origin::At(0., 0.).point((224., 120.)), (12., 12.));
     assert_eq!(Origin::TopRight.point((224., 120.)), (212., 12.));
     assert_eq!(Origin::BottomLeft.point((224., 120.)), (12., 108.));
-    assert_eq!(
-        Origin::At(50., 60.).point((20., 20.)),
-        (12., 12.),
-        "a panel too small to keep clear takes 12"
-    );
+    assert_eq!(Origin::At(50., 60.).point((20., 20.)), (12., 12.), "a panel too small to keep clear takes 12");
 }
 
 #[test]
@@ -54,33 +31,17 @@ fn up_and_down_wrap_and_skip_the_rows_that_cannot_be_reached() {
     let rows = [1, 3, 4];
     assert_eq!(walk(&rows, None, 1), Some(1));
     assert_eq!(walk(&rows, Some(1), 1), Some(3));
-    assert_eq!(
-        walk(&rows, Some(4), 1),
-        Some(1),
-        "down from the last wraps to the first"
-    );
-    assert_eq!(
-        walk(&rows, Some(1), -1),
-        Some(4),
-        "up from the first wraps to the last"
-    );
+    assert_eq!(walk(&rows, Some(4), 1), Some(1), "down from the last wraps to the first");
+    assert_eq!(walk(&rows, Some(1), -1), Some(4), "up from the first wraps to the last");
     assert_eq!(walk(&[], Some(1), 1), None);
 }
 
 #[test]
 fn typing_jumps_to_the_first_row_whose_words_start_with_the_letters() {
-    let rows = vec![
-        (0, "Copy".to_string()),
-        (2, "Cut".to_string()),
-        (3, " Paste".to_string()),
-    ];
+    let rows = vec![(0, "Copy".to_string()), (2, "Cut".to_string()), (3, " Paste".to_string())];
     assert_eq!(jump(&rows, "c"), Some(0));
     assert_eq!(jump(&rows, "cu"), Some(2));
-    assert_eq!(
-        jump(&rows, "P"),
-        Some(3),
-        "case and leading space do not matter"
-    );
+    assert_eq!(jump(&rows, "P"), Some(3), "case and leading space do not matter");
     assert_eq!(jump(&rows, "z"), None);
 }
 
@@ -100,32 +61,12 @@ impl Render for Host {
             "menu",
             [
                 Entry::Label("Edit".into()),
-                MenuItem::new("Copy")
-                    .shortcut("⌘C")
-                    .debug_name("row-copy")
-                    .on_select(log("copy"))
-                    .into(),
-                MenuItem::new("Cut")
-                    .debug_name("row-cut")
-                    .disabled(true)
-                    .on_select(log("cut"))
-                    .into(),
+                MenuItem::new("Copy").shortcut("⌘C").debug_name("row-copy").on_select(log("copy")).into(),
+                MenuItem::new("Cut").debug_name("row-cut").disabled(true).on_select(log("cut")).into(),
                 Entry::Separator,
-                MenuItem::new("Paste")
-                    .debug_name("row-paste")
-                    .on_select(log("paste"))
-                    .into(),
-                MenuItem::new("Delete")
-                    .tone(Tone::Destructive)
-                    .debug_name("row-delete")
-                    .on_select(log("delete"))
-                    .into(),
-                MenuItem::new("Wrap lines")
-                    .choice(Choice::Check(true))
-                    .close_on_select(false)
-                    .debug_name("row-wrap")
-                    .on_select(log("wrap"))
-                    .into(),
+                MenuItem::new("Paste").debug_name("row-paste").on_select(log("paste")).into(),
+                MenuItem::new("Delete").tone(Tone::Destructive).debug_name("row-delete").on_select(log("delete")).into(),
+                MenuItem::new("Wrap lines").choice(Choice::Check(true)).close_on_select(false).debug_name("row-wrap").on_select(log("wrap")).into(),
             ],
         )
         .debug_name("panel")
@@ -137,15 +78,7 @@ impl Render for Host {
     }
 }
 
-fn open(
-    origin: Option<Origin>,
-    reduce: bool,
-    cx: &mut TestAppContext,
-) -> (
-    Entity<Host>,
-    &mut VisualTestContext,
-    Rc<RefCell<Vec<String>>>,
-) {
+fn open(origin: Option<Origin>, reduce: bool, cx: &mut TestAppContext) -> (Entity<Host>, &mut VisualTestContext, Rc<RefCell<Vec<String>>>) {
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
     cx.update(|cx| {
@@ -162,9 +95,7 @@ fn open(
 }
 
 fn at(cx: &mut VisualTestContext, name: &'static str) -> gpui_kit::Point<Pixels> {
-    cx.debug_bounds(name)
-        .unwrap_or_else(|| panic!("no {name}"))
-        .center()
+    cx.debug_bounds(name).unwrap_or_else(|| panic!("no {name}")).center()
 }
 
 #[gpui_kit::test]
@@ -173,11 +104,7 @@ fn the_panel_is_at_least_224_wide_and_the_first_reachable_row_has_focus(cx: &mut
     let panel = cx.debug_bounds("panel").unwrap();
     assert!(f32::from(panel.size.width) >= MenuLook::BAR.min_width);
     cx.simulate_keystrokes("enter");
-    assert_eq!(
-        *log.borrow(),
-        vec!["dismiss", "copy"],
-        "Enter chose the first row, which held focus"
-    );
+    assert_eq!(*log.borrow(), vec!["dismiss", "copy"], "Enter chose the first row, which held focus");
 }
 
 #[gpui_kit::test]
@@ -187,11 +114,7 @@ fn down_skips_a_disabled_row_and_wraps_and_the_keys_choose(cx: &mut TestAppConte
     assert_eq!(*log.borrow(), vec!["dismiss", "paste"], "Cut is disabled");
     log.borrow_mut().clear();
     cx.simulate_keystrokes("up up enter");
-    assert_eq!(
-        *log.borrow(),
-        vec!["wrap"],
-        "up from Paste to Copy, up again wraps to the last row, which keeps the menu open"
-    );
+    assert_eq!(*log.borrow(), vec!["wrap"], "up from Paste to Copy, up again wraps to the last row, which keeps the menu open");
 }
 
 #[gpui_kit::test]
@@ -201,11 +124,7 @@ fn end_and_home_go_to_the_ends_and_typing_jumps(cx: &mut TestAppContext) {
     assert_eq!(*log.borrow(), vec!["wrap"]);
     log.borrow_mut().clear();
     cx.simulate_keystrokes("home d enter");
-    assert_eq!(
-        *log.borrow(),
-        vec!["dismiss", "delete"],
-        "d jumped to Delete"
-    );
+    assert_eq!(*log.borrow(), vec!["dismiss", "delete"], "d jumped to Delete");
 }
 
 #[gpui_kit::test]
@@ -233,9 +152,7 @@ fn the_pointer_over_a_row_makes_it_the_active_one(cx: &mut TestAppContext) {
 #[gpui_kit::test]
 fn with_an_origin_the_panel_is_invisible_at_first_and_whole_once_unfolded(cx: &mut TestAppContext) {
     let (host, cx, _) = open(Some(Origin::TopRight), false, cx);
-    let full = cx
-        .debug_bounds("panel")
-        .expect("measured after the first frames");
+    let full = cx.debug_bounds("panel").expect("measured after the first frames");
     crate::motion::clock::freeze();
     crate::motion::clock::advance(std::time::Duration::from_millis(400));
     for _ in 0..3 {
@@ -243,10 +160,7 @@ fn with_an_origin_the_panel_is_invisible_at_first_and_whole_once_unfolded(cx: &m
         cx.run_until_parked();
     }
     let done = cx.debug_bounds("panel").unwrap();
-    assert_eq!(
-        (done.size.width, done.size.height),
-        (full.size.width, full.size.height)
-    );
+    assert_eq!((done.size.width, done.size.height), (full.size.width, full.size.height));
 }
 
 /// The panel keeps one size from its first frame to its last: it does not shrink a border at a time while it
@@ -254,43 +168,28 @@ fn with_an_origin_the_panel_is_invisible_at_first_and_whole_once_unfolded(cx: &m
 #[gpui_kit::test]
 fn the_panel_keeps_its_size_through_the_unfold(cx: &mut TestAppContext) {
     let (host, cx, _) = open(Some(Origin::TopRight), false, cx);
-    let first = cx
-        .debug_bounds("panel")
-        .expect("measured after the first frames");
+    let first = cx.debug_bounds("panel").expect("measured after the first frames");
     crate::motion::clock::freeze();
     for step in 0..40 {
         crate::motion::clock::advance(std::time::Duration::from_millis(16));
         host.update(cx, |_, cx| cx.notify());
         cx.run_until_parked();
         let now = cx.debug_bounds("panel").unwrap();
-        assert_eq!(
-            (now.size.width, now.size.height),
-            (first.size.width, first.size.height),
-            "size at step {step}"
-        );
+        assert_eq!((now.size.width, now.size.height), (first.size.width, first.size.height), "size at step {step}");
     }
 }
 
 #[test]
 fn the_panel_size_is_the_probe_plus_its_border() {
-    assert_eq!(
-        panel_size(gpui_kit::px(273.), gpui_kit::px(194.)),
-        (275., 196.)
-    );
+    assert_eq!(panel_size(gpui_kit::px(273.), gpui_kit::px(194.)), (275., 196.));
 }
 #[test]
 fn the_panel_size_is_in_design_pixels_and_its_border_stays_one_real_pixel() {
     crate::scale::set_zoom(1.5);
     let (w, h) = panel_size(gpui_kit::px(298.), gpui_kit::px(148.));
     crate::scale::set_zoom(1.);
-    assert!(
-        (w - 200.).abs() < 0.01,
-        "300 window pixels at 1.5 are 200 design pixels: {w}"
-    );
-    assert!(
-        (h - 100.).abs() < 0.01,
-        "150 window pixels at 1.5 are 100 design pixels: {h}"
-    );
+    assert!((w - 200.).abs() < 0.01, "300 window pixels at 1.5 are 200 design pixels: {w}");
+    assert!((h - 100.).abs() < 0.01, "150 window pixels at 1.5 are 100 design pixels: {h}");
 }
 
 /// Each site keeps the menu it had before the Menu part: the numbers of the old review bar, merge, prompt and
@@ -298,43 +197,13 @@ fn the_panel_size_is_in_design_pixels_and_its_border_stays_one_real_pixel() {
 #[test]
 fn each_site_keeps_the_menu_it_had() {
     let row = |look: MenuLook| LINE + 2. * look.row_y;
-    assert_eq!(
-        (
-            row(MenuLook::BAR),
-            row(MenuLook::MERGE),
-            row(MenuLook::PROMPT),
-            row(MenuLook::PROJECT)
-        ),
-        (32., 30., 36., 28.)
-    );
-    assert_eq!(
-        (
-            MenuLook::BAR.min_width,
-            MenuLook::MERGE.min_width,
-            MenuLook::PROMPT.min_width,
-            MenuLook::PROJECT.min_width
-        ),
-        (180., 240., 224., 180.)
-    );
-    assert_eq!(
-        height_in(MenuLook::MERGE, 3),
-        2. * 4. + 3. * 30. + 2.,
-        "padding, rows and the edge"
-    );
+    assert_eq!((row(MenuLook::BAR), row(MenuLook::MERGE), row(MenuLook::PROMPT), row(MenuLook::PROJECT)), (32., 30., 36., 28.));
+    assert_eq!((MenuLook::BAR.min_width, MenuLook::MERGE.min_width, MenuLook::PROMPT.min_width, MenuLook::PROJECT.min_width), (180., 240., 224., 180.));
+    assert_eq!(height_in(MenuLook::MERGE, 3), 2. * 4. + 3. * 30. + 2., "padding, rows and the edge");
     assert_eq!(height_in(MenuLook::PROMPT, 2), 2. * 6. + 2. * 36. + 2.);
-    assert_eq!(
-        (MenuLook::PROJECT.panel_radius, MenuLook::PROJECT.row_radius),
-        (8., 6.)
-    );
-    assert_eq!(
-        (MenuLook::BAR.panel_radius, MenuLook::BAR.row_radius),
-        (12., 8.)
-    );
-    assert_eq!(
-        MenuLook::PROMPT.shadow,
-        1.4,
-        "the prompt menu had a stronger shadow"
-    );
+    assert_eq!((MenuLook::PROJECT.panel_radius, MenuLook::PROJECT.row_radius), (8., 6.));
+    assert_eq!((MenuLook::BAR.panel_radius, MenuLook::BAR.row_radius), (12., 8.));
+    assert_eq!(MenuLook::PROMPT.shadow, 1.4, "the prompt menu had a stronger shadow");
 }
 
 /// The fill is whole early in the unfold, so the text under the panel never shows through its rows.
@@ -360,21 +229,12 @@ impl Render for SubHost {
         let menu = Menu::new(
             "menu",
             [
-                MenuItem::new("Plain")
-                    .debug_name("row-plain")
-                    .on_select(log("plain"))
-                    .into(),
+                MenuItem::new("Plain").debug_name("row-plain").on_select(log("plain")).into(),
                 MenuItem::new("Hand off")
                     .debug_name("row-handoff")
                     .submenu([
-                        MenuItem::new("Claude")
-                            .debug_name("row-claude")
-                            .on_select(log("claude"))
-                            .into(),
-                        MenuItem::new("Codex")
-                            .debug_name("row-codex")
-                            .on_select(log("codex"))
-                            .into(),
+                        MenuItem::new("Claude").debug_name("row-claude").on_select(log("claude")).into(),
+                        MenuItem::new("Codex").debug_name("row-codex").on_select(log("codex")).into(),
                     ])
                     .into(),
             ],
@@ -384,9 +244,7 @@ impl Render for SubHost {
     }
 }
 
-fn open_with_submenu(
-    cx: &mut TestAppContext,
-) -> (&mut VisualTestContext, Rc<RefCell<Vec<String>>>) {
+fn open_with_submenu(cx: &mut TestAppContext) -> (&mut VisualTestContext, Rc<RefCell<Vec<String>>>) {
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
     cx.update(|cx| {
@@ -418,16 +276,11 @@ fn a_row_with_a_submenu_opens_it_beside_itself_on_hover(cx: &mut TestAppContext)
     settle(cx);
     let row = cx.debug_bounds("row-handoff").unwrap();
     let claude = cx.debug_bounds("row-claude").expect("the submenu is open");
-    assert!(
-        claude.left() >= row.right(),
-        "it sits beside the row, not over it"
-    );
+    assert!(claude.left() >= row.right(), "it sits beside the row, not over it");
 }
 
 #[gpui_kit::test]
-fn a_row_of_the_submenu_chooses_and_the_row_that_opened_it_chooses_nothing(
-    cx: &mut TestAppContext,
-) {
+fn a_row_of_the_submenu_chooses_and_the_row_that_opened_it_chooses_nothing(cx: &mut TestAppContext) {
     let (cx, log) = open_with_submenu(cx);
     let handoff = at(cx, "row-handoff");
     cx.simulate_click(handoff, Modifiers::default());
@@ -462,50 +315,28 @@ fn right_opens_the_submenu_and_left_and_escape_close_only_it(cx: &mut TestAppCon
     assert!(cx.debug_bounds("row-claude").is_none(), "Left closed it");
     cx.simulate_keystrokes("right escape");
     settle(cx);
-    assert!(
-        cx.debug_bounds("row-claude").is_none(),
-        "Escape closed it too"
-    );
+    assert!(cx.debug_bounds("row-claude").is_none(), "Escape closed it too");
     cx.simulate_keystrokes("right down enter");
     settle(cx);
-    assert_eq!(
-        *log.borrow(),
-        vec!["dismiss", "codex"],
-        "the keys walk the submenu and choose in it"
-    );
+    assert_eq!(*log.borrow(), vec!["dismiss", "codex"], "the keys walk the submenu and choose in it");
 }
 
 #[test]
 fn a_tree_of_branches_becomes_rows_that_open_menus_and_leaves_that_pick() {
     let tree = vec![
         Branch::leaf("plain", "Plain"),
-        Branch::with(
-            "agent",
-            "Agent",
-            vec![Branch::leaf("agent/a", "A"), Branch::leaf("agent/b", "B")],
-        ),
+        Branch::with("agent", "Agent", vec![Branch::leaf("agent/a", "A"), Branch::leaf("agent/b", "B")]),
     ];
     let heard = Rc::new(RefCell::new(Vec::new()));
     let sink = heard.clone();
     let pick: Pick = Rc::new(move |id, _, _| sink.borrow_mut().push(id.to_string()));
     let rows = entries_of(&tree, &pick);
     assert_eq!(rows.len(), 2);
-    let Entry::Item(agent) = &rows[1] else {
-        panic!("a row")
-    };
-    assert_eq!(
-        agent.submenu.as_ref().map(Vec::len),
-        Some(2),
-        "a branch holds its branches"
-    );
+    let Entry::Item(agent) = &rows[1] else { panic!("a row") };
+    assert_eq!(agent.submenu.as_ref().map(Vec::len), Some(2), "a branch holds its branches");
     assert!(agent.on_select.is_none(), "and chooses nothing itself");
-    let Entry::Item(plain) = &rows[0] else {
-        panic!("a row")
-    };
-    assert!(
-        plain.submenu.is_none() && plain.on_select.is_some(),
-        "a leaf picks"
-    );
+    let Entry::Item(plain) = &rows[0] else { panic!("a row") };
+    assert!(plain.submenu.is_none() && plain.on_select.is_some(), "a leaf picks");
 }
 
 struct LeadHost;
@@ -514,16 +345,11 @@ impl Render for LeadHost {
     fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
         use crate::model_badge::BrandMark;
         let entries: Vec<Entry> = vec![
-            MenuItem::new("Claude Code")
-                .lead(Lead::Mark(BrandMark::new("a-light.svg", "a-dark.svg")))
-                .into(),
+            MenuItem::new("Claude Code").lead(Lead::Mark(BrandMark::new("a-light.svg", "a-dark.svg"))).into(),
             MenuItem::new("Codex").lead(Lead::of(None)).into(),
             MenuItem::new("Plain").into(),
         ];
-        div()
-            .p(px(40.))
-            .flex()
-            .child(Menu::new("lead-menu", entries))
+        div().p(px(40.)).flex().child(Menu::new("lead-menu", entries))
     }
 }
 
@@ -539,18 +365,9 @@ fn a_row_with_a_lead_shows_it_before_its_words_a_mark_or_the_first_letter(cx: &m
         cx.run_until_parked();
         host.update(cx, |_, cx| cx.notify());
     }
-    assert!(
-        cx.debug_bounds("menu-lead-Claude Code").is_some(),
-        "the mark's slot"
-    );
-    assert!(
-        cx.debug_bounds("select-monogram-C").is_some(),
-        "a row without a mark gets its first letter"
-    );
-    assert!(
-        cx.debug_bounds("menu-lead-Plain").is_none(),
-        "a row with no lead gets nothing"
-    );
+    assert!(cx.debug_bounds("menu-lead-Claude Code").is_some(), "the mark's slot");
+    assert!(cx.debug_bounds("select-monogram-C").is_some(), "a row without a mark gets its first letter");
+    assert!(cx.debug_bounds("menu-lead-Plain").is_none(), "a row with no lead gets nothing");
 }
 
 /// At a zoom the panel is as wide as the zoom makes it, and keeps that size through the unfold: its border is one real
@@ -559,25 +376,15 @@ fn a_row_with_a_lead_shows_it_before_its_words_a_mark_or_the_first_letter(cx: &m
 fn at_a_zoom_the_panel_keeps_its_size_through_the_unfold(cx: &mut TestAppContext) {
     crate::scale::set_zoom(1.5);
     let (host, cx, _) = open(Some(Origin::TopRight), false, cx);
-    let first = cx
-        .debug_bounds("panel")
-        .expect("measured after the first frames");
+    let first = cx.debug_bounds("panel").expect("measured after the first frames");
     crate::motion::clock::freeze();
     for step in 0..40 {
         crate::motion::clock::advance(std::time::Duration::from_millis(16));
         host.update(cx, |_, cx| cx.notify());
         cx.run_until_parked();
         let now = cx.debug_bounds("panel").unwrap();
-        assert!(
-            (f32::from(now.size.width) - f32::from(first.size.width)).abs() < 0.6,
-            "width at step {step}: {:?} then {:?}",
-            first.size,
-            now.size
-        );
-        assert!(
-            (f32::from(now.size.height) - f32::from(first.size.height)).abs() < 0.6,
-            "height at step {step}"
-        );
+        assert!((f32::from(now.size.width) - f32::from(first.size.width)).abs() < 0.6, "width at step {step}: {:?} then {:?}", first.size, now.size);
+        assert!((f32::from(now.size.height) - f32::from(first.size.height)).abs() < 0.6, "height at step {step}");
     }
     crate::scale::set_zoom(1.);
 }

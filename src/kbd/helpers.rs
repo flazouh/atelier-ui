@@ -1,5 +1,5 @@
-use super::types::KeyPart;
 use crate::icon::IconName;
+use super::types::KeyPart;
 
 /// The icon that stands for a key symbol, if the character is one.
 pub(super) fn symbol(c: char) -> Option<IconName> {

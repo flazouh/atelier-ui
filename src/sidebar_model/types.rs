@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
-use super::structs::SessionData;
 use crate::session_status::SessionStatus;
+use super::structs::SessionData;
 
 /// Where a project lives.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -22,29 +22,14 @@ pub enum Connection {
 /// One row of the flat list. Every row is the same height, so the list is virtual.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Row {
-    Project {
-        project: usize,
-    },
-    Session {
-        project: usize,
-        session: usize,
-    },
+    Project { project: usize },
+    Session { project: usize, session: usize },
     /// "Show 7 older" when closed, "Show fewer" when open.
-    Older {
-        project: usize,
-        hidden: usize,
-        open: bool,
-    },
+    Older { project: usize, hidden: usize, open: bool },
     /// A heading of the priority list, with how many sessions are under it.
-    Section {
-        section: Section,
-        count: usize,
-    },
+    Section { section: Section, count: usize },
     /// "Show 12 more" at the end of the priority list's earlier sessions, "Show fewer" when open.
-    MoreEarlier {
-        hidden: usize,
-        open: bool,
-    },
+    MoreEarlier { hidden: usize, open: bool },
 }
 
 impl Row {
@@ -86,11 +71,7 @@ impl ListMode {
     }
 
     pub fn from_key(key: Option<&str>) -> Self {
-        if key == Some("priority") {
-            Self::Priority
-        } else {
-            Self::Projects
-        }
+        if key == Some("priority") { Self::Priority } else { Self::Projects }
     }
 }
 
@@ -155,10 +136,7 @@ pub enum Nav {
 /// What Enter does on a row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Activation {
-    OpenSession {
-        project: usize,
-        session: usize,
-    },
+    OpenSession { project: usize, session: usize },
     ToggleProject(usize),
     ToggleOlder(usize),
     /// "Show more" or "Show fewer" on the priority list's earlier sessions.

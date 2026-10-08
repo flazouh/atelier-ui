@@ -4,12 +4,11 @@
 
 use std::sync::Arc;
 
-use crate::scale::px;
 use gpui_kit::{
-    Animation, AnimationExt, AnyElement, App, ElementId, InteractiveElement, IntoElement,
-    ParentElement, RenderOnce, StatefulInteractiveElement, Styled, Window, div,
-    prelude::FluentBuilder,
+    Animation, AnimationExt, AnyElement, App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, 
 };
+use crate::scale::px;
 
 use crate::{
     focus::PressStop,
@@ -28,12 +27,7 @@ pub struct Disclosure {
 
 impl Disclosure {
     pub fn new(id: impl Into<ElementId>, header: impl IntoElement) -> Self {
-        Self {
-            id: id.into(),
-            header: header.into_any_element(),
-            body: None,
-            default_open: false,
-        }
+        Self { id: id.into(), header: header.into_any_element(), body: None, default_open: false }
     }
 
     /// What the header reveals. Without a body the row shows no chevron and does not open.
@@ -57,8 +51,7 @@ impl RenderOnce for Disclosure {
         let theme = cx.theme();
         let (faint, fg) = (theme.faint(), theme.foreground);
         let has_body = self.body.is_some();
-        let child_id =
-            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child_id = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
         let header = div()
             .id(child_id("header"))
@@ -84,36 +77,23 @@ impl RenderOnce for Disclosure {
                             .flex_none()
                             .text_color(faint)
                             .group_hover("disclosure-header", |s| s.text_color(fg))
-                            .child(
-                                Icon::new(if open {
-                                    IconName::ChevronDown
-                                } else {
-                                    IconName::ChevronRight
-                                })
-                                .size(px(14.)),
-                            ),
+                            .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(14.))),
                     )
             });
 
         let reduce_motion = cx.reduce_motion();
         let body_id = child_id("body");
-        div().flex().flex_col().w_full().child(header).when_some(
-            self.body.filter(|_| open),
-            |d, body| {
-                let body = div().pl(px(24.)).pt(px(6.)).child(body);
-                if reduce_motion {
-                    d.child(body)
-                } else {
-                    d.child(
-                        body.with_animation(
-                            body_id,
-                            Animation::new(duration::REVEAL)
-                                .with_easing(|t| cubic_bezier(ease::OUT, t)),
-                            |body, t| body.opacity(t),
-                        ),
-                    )
-                }
-            },
-        )
+        div().flex().flex_col().w_full().child(header).when_some(self.body.filter(|_| open), |d, body| {
+            let body = div().pl(px(24.)).pt(px(6.)).child(body);
+            if reduce_motion {
+                d.child(body)
+            } else {
+                d.child(body.with_animation(
+                    body_id,
+                    Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
+                    |body, t| body.opacity(t),
+                ))
+            }
+        })
     }
 }

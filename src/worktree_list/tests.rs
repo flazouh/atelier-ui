@@ -29,20 +29,10 @@ pub(crate) fn rows() -> Vec<WorktreeRow> {
             folder: "~/code/atelier-fix".into(),
             branch: Some("fix".into()),
             main: false,
-            notes: vec![
-                WorktreeNote::new("3 uncommitted", NoteTone::Warning),
-                WorktreeNote::new("2 only here", NoteTone::Warning),
-            ],
+            notes: vec![WorktreeNote::new("3 uncommitted", NoteTone::Warning), WorktreeNote::new("2 only here", NoteTone::Warning)],
             sessions: 0,
         },
-        WorktreeRow {
-            path: "/r/loose".into(),
-            folder: "~/code/loose".into(),
-            branch: None,
-            main: false,
-            notes: vec![WorktreeNote::new("merged", NoteTone::Good)],
-            sessions: 0,
-        },
+        WorktreeRow { path: "/r/loose".into(), folder: "~/code/loose".into(), branch: None, main: false, notes: vec![WorktreeNote::new("merged", NoteTone::Good)], sessions: 0 },
     ]
 }
 
@@ -60,24 +50,11 @@ fn each_worktree_has_a_row_and_only_the_main_checkout_is_marked(cx: &mut TestApp
     let (_, cx) = cx.add_window_view(|_, _| View);
     cx.simulate_resize(size(px(300.), px(500.)));
     cx.run_until_parked();
-    let tops: Vec<f32> = [
-        "worktree-/r/atelier",
-        "worktree-/r/atelier-fix",
-        "worktree-/r/loose",
-    ]
-    .iter()
-    .map(|s| {
-        f32::from(
-            cx.debug_bounds(s)
-                .unwrap_or_else(|| panic!("{s} is drawn"))
-                .top(),
-        )
-    })
-    .collect();
-    assert!(
-        tops.windows(2).all(|w| w[0] < w[1]),
-        "in the order given: {tops:?}"
-    );
+    let tops: Vec<f32> = ["worktree-/r/atelier", "worktree-/r/atelier-fix", "worktree-/r/loose"]
+        .iter()
+        .map(|s| f32::from(cx.debug_bounds(s).unwrap_or_else(|| panic!("{s} is drawn")).top()))
+        .collect();
+    assert!(tops.windows(2).all(|w| w[0] < w[1]), "in the order given: {tops:?}");
     assert!(cx.debug_bounds("worktree-main-/r/atelier").is_some());
     assert!(cx.debug_bounds("worktree-main-/r/atelier-fix").is_none());
 }

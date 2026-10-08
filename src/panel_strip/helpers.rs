@@ -1,18 +1,15 @@
 use gpui_kit::{FontWeight, IntoElement, ParentElement, Styled, div, prelude::FluentBuilder};
 
-use super::types::GROUP_HEADER;
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
     sidebar_model::Location,
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::types::GROUP_HEADER;
 
 /// A project's header over its group: the project's name and where it lives.
-pub fn group_header(
-    project: &crate::panel_types::ProjectLabel,
-    theme: &crate::theme::Theme,
-) -> impl IntoElement {
+pub fn group_header(project: &crate::panel_types::ProjectLabel, theme: &crate::theme::Theme) -> impl IntoElement {
     let (icon, host) = match &project.location {
         Location::Local => (IconName::Folder, None),
         Location::Ssh { host } => (IconName::Dns, Some(host.clone())),
@@ -26,12 +23,7 @@ pub fn group_header(
         .text_size(TextSize::Xs.font_size())
         .text_color(theme.muted_foreground)
         .child(Icon::new(icon).size(px(13.)))
-        .child(
-            div()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(theme.foreground)
-                .child(project.name.clone()),
-        )
+        .child(div().font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(project.name.clone()))
         .when_some(host, |d, host| {
             d.child(
                 div()

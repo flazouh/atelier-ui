@@ -1,12 +1,12 @@
 use gpui_kit::SharedString;
 
-use super::types::{BoardMove, CARD_GAP, CARD_HEIGHT, COLUMN_GAP, COLUMN_WIDTH, Spot};
 use crate::{
     panel_layout::{Column, Geometry},
     task_edit::Change,
     task_list_model::{Filters, Group, Sort, group},
     task_model::{TaskData, TaskStatus},
 };
+use super::types::{BoardMove, CARD_GAP, CARD_HEIGHT, COLUMN_GAP, COLUMN_WIDTH, Spot};
 
 /// The columns of a board: one per status, empty ones kept, tasks sorted inside each.
 pub fn columns(tasks: &[TaskData], filters: &Filters, me: &str, sort: Sort) -> Vec<Group> {
@@ -15,14 +15,7 @@ pub fn columns(tasks: &[TaskData], filters: &Filters, me: &str, sort: Sort) -> V
 
 /// Where the columns sit sideways.
 pub fn geometry(count: usize) -> Geometry {
-    Geometry::new(
-        (0..count)
-            .map(|i| Column {
-                width: COLUMN_WIDTH,
-                gap_before: if i == 0 { 0. } else { COLUMN_GAP },
-            })
-            .collect(),
-    )
+    Geometry::new((0..count).map(|i| Column { width: COLUMN_WIDTH, gap_before: if i == 0 { 0. } else { COLUMN_GAP } }).collect())
 }
 
 /// The change a drop makes: the dragged task takes the status of the column it was dropped on. `None` when
@@ -54,17 +47,8 @@ pub fn visible_cards(count: usize, top: f32, height: f32) -> std::ops::Range<usi
 /// allows; up and down stop at the ends. With no cursor yet, any move lands on the first card of the first
 /// column that has one. `None` when there is no card at all.
 pub fn move_cursor(columns: &[Group], at: Option<Spot>, step: BoardMove) -> Option<Spot> {
-    let first_filled = || {
-        columns
-            .iter()
-            .position(|c| !c.tasks.is_empty())
-            .map(|c| (c, 0))
-    };
-    let Some((column, row)) =
-        at.filter(|(c, r)| columns.get(*c).is_some_and(|g| *r < g.tasks.len()))
-    else {
-        return first_filled();
-    };
+    let first_filled = || columns.iter().position(|c| !c.tasks.is_empty()).map(|c| (c, 0));
+    let Some((column, row)) = at.filter(|(c, r)| columns.get(*c).is_some_and(|g| *r < g.tasks.len())) else { return first_filled() };
     let len = columns[column].tasks.len();
     Some(match step {
         BoardMove::Up => (column, row.saturating_sub(1)),
@@ -92,10 +76,5 @@ pub fn task_at(columns: &[Group], spot: Spot) -> Option<usize> {
 
 /// Where the task `id` sits now, to keep the cursor on it after the columns change.
 pub fn spot_of(columns: &[Group], tasks: &[TaskData], id: &SharedString) -> Option<Spot> {
-    columns.iter().enumerate().find_map(|(c, g)| {
-        g.tasks
-            .iter()
-            .position(|&i| tasks[i].id == *id)
-            .map(|r| (c, r))
-    })
+    columns.iter().enumerate().find_map(|(c, g)| g.tasks.iter().position(|&i| tasks[i].id == *id).map(|r| (c, r)))
 }

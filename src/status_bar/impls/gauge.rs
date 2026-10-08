@@ -1,11 +1,7 @@
 use super::super::{enums::Pressure, structs::Gauge};
 
 impl Gauge {
-    pub fn new(
-        label: impl Into<gpui_kit::SharedString>,
-        used: f32,
-        resets_in: Option<u64>,
-    ) -> Self {
+    pub fn new(label: impl Into<gpui_kit::SharedString>, used: f32, resets_in: Option<u64>) -> Self {
         Self {
             label: label.into(),
             used,
@@ -34,12 +30,7 @@ impl Gauge {
     /// `5h: 77% used, resets in 12 min`.
     pub fn words(&self) -> String {
         match self.resets_in {
-            Some(secs) => format!(
-                "{}: {} used, resets {}",
-                self.label,
-                self.percent(),
-                when(secs)
-            ),
+            Some(secs) => format!("{}: {} used, resets {}", self.label, self.percent(), when(secs)),
             None => format!("{}: {} used", self.label, self.percent()),
         }
     }

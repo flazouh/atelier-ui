@@ -24,9 +24,9 @@ pub use structs::{Tab, Tabs};
 pub use types::{EDITOR_HEIGHT, GLIDE, TabsVariant, UNDERLINE_HEIGHT};
 
 #[cfg(test)]
-use crate::motion::Animated;
-#[cfg(test)]
 use gpui_kit::Pixels;
+#[cfg(test)]
+use crate::motion::Animated;
 
 #[cfg(test)]
 mod tests;

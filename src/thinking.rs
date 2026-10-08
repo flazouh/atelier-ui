@@ -22,20 +22,20 @@ pub use helpers::{label, mark_strip, next_label_change_s, tasks_text, tokens_tex
 #[cfg(test)]
 pub(crate) use helpers::{label_color, loading_strip, segment_text};
 pub use structs::Thinking;
+pub use types::{Shimmer, ThinkingPhase, ThinkingStyle};
 #[cfg(test)]
 pub(crate) use types::SEGMENT_GAP_TEXT;
-pub use types::{Shimmer, ThinkingPhase, ThinkingStyle};
 
 #[cfg(test)]
 use helpers::roll;
 
 #[cfg(test)]
+use gpui_kit::{Hsla, SharedString};
+#[cfg(test)]
 use crate::{
     agent_look::{AgentLook, Mark, PhaseLabels},
     glimmer,
 };
-#[cfg(test)]
-use gpui_kit::{Hsla, SharedString};
 
 #[cfg(test)]
 mod tests;

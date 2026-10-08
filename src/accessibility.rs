@@ -16,9 +16,7 @@ fn system_reduce_motion() -> bool {
         boolean::CFBoolean,
         string::CFString,
     };
-    use core_foundation_sys::preferences::{
-        CFPreferencesAppSynchronize, CFPreferencesCopyAppValue,
-    };
+    use core_foundation_sys::preferences::{CFPreferencesAppSynchronize, CFPreferencesCopyAppValue};
 
     let domain = CFString::new("com.apple.universalaccess");
     let key = CFString::new("reduceMotion");
@@ -26,14 +24,11 @@ fn system_reduce_motion() -> bool {
     // follows the Create rule, so it is wrapped once and released on drop.
     unsafe {
         CFPreferencesAppSynchronize(domain.as_concrete_TypeRef());
-        let value =
-            CFPreferencesCopyAppValue(key.as_concrete_TypeRef(), domain.as_concrete_TypeRef());
+        let value = CFPreferencesCopyAppValue(key.as_concrete_TypeRef(), domain.as_concrete_TypeRef());
         if value.is_null() {
             return false;
         }
-        CFType::wrap_under_create_rule(value)
-            .downcast::<CFBoolean>()
-            .is_some_and(bool::from)
+        CFType::wrap_under_create_rule(value).downcast::<CFBoolean>().is_some_and(bool::from)
     }
 }
 

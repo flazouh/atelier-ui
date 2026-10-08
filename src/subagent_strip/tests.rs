@@ -4,19 +4,11 @@ use super::*;
 use crate::agent_look::AgentLook;
 
 fn row(id: &'static str) -> SubagentRow {
-    SubagentRow::new(
-        id,
-        AgentLook::neutral(&crate::theme::Theme::dark()),
-        id,
-        "task",
-    )
+    SubagentRow::new(id, AgentLook::neutral(&crate::theme::Theme::dark()), id, "task")
 }
 
 fn ids(state: &StripState, now: Instant) -> Vec<(String, f32)> {
-    state
-        .slots(now)
-        .map(|(r, open)| (r.id().to_string(), (open * 100.).round() / 100.))
-        .collect()
+    state.slots(now).map(|(r, open)| (r.id().to_string(), (open * 100.).round() / 100.)).collect()
 }
 
 const SETTLE: Duration = Duration::from_secs(2);
@@ -54,17 +46,10 @@ fn a_finished_row_holds_then_leaves() {
     assert_eq!(ids(&s, early)[0], ("a".into(), 1.));
     // Then it closes, keeping its place until it is gone.
     let late = t + duration::FINISH_HOLD;
-    assert_eq!(
-        s.sync(vec![row("a").finished(Some(3)), row("b")], late, false),
-        None
-    );
+    assert_eq!(s.sync(vec![row("a").finished(Some(3)), row("b")], late, false), None);
     assert!(s.is_moving(late));
     assert_eq!(ids(&s, late)[0].0, "a");
-    s.sync(
-        vec![row("a").finished(Some(3)), row("b")],
-        late + SETTLE,
-        false,
-    );
+    s.sync(vec![row("a").finished(Some(3)), row("b")], late + SETTLE, false);
     assert_eq!(ids(&s, late + SETTLE), [("b".into(), 1.)]);
 }
 
@@ -86,11 +71,7 @@ fn a_row_that_comes_back_while_leaving_opens_again() {
     let t = Instant::now();
     s.sync(vec![row("a"), row("b")], t, false);
     s.sync(vec![row("b")], t, false);
-    s.sync(
-        vec![row("a"), row("b")],
-        t + Duration::from_millis(50),
-        false,
-    );
+    s.sync(vec![row("a"), row("b")], t + Duration::from_millis(50), false);
     let later = t + SETTLE;
     s.sync(vec![row("a"), row("b")], later, false);
     assert_eq!(ids(&s, later), [("a".into(), 1.), ("b".into(), 1.)]);
@@ -106,11 +87,7 @@ fn reduce_motion_opens_and_closes_at_once_but_still_holds() {
     assert!(!s.is_moving(t));
     s.sync(vec![row("a").finished(None), row("b")], t, true);
     assert_eq!(ids(&s, t).len(), 2);
-    s.sync(
-        vec![row("a").finished(None), row("b")],
-        t + duration::FINISH_HOLD,
-        true,
-    );
+    s.sync(vec![row("a").finished(None), row("b")], t + duration::FINISH_HOLD, true);
     assert_eq!(ids(&s, t + duration::FINISH_HOLD), [("b".into(), 1.)]);
 }
 

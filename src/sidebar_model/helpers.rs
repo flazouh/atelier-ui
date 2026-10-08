@@ -7,12 +7,7 @@ use super::types::{Activation, Nav, Row, RowKey, Section};
 /// activity first. Equal ones keep the order the app gave them. Gives indices into `sessions`.
 pub fn sorted(sessions: &[SessionData]) -> Vec<usize> {
     let mut order: Vec<usize> = (0..sessions.len()).collect();
-    order.sort_by_key(|&i| {
-        (
-            !sessions[i].status.needs_you(),
-            std::cmp::Reverse(sessions[i].active_at),
-        )
-    });
+    order.sort_by_key(|&i| (!sessions[i].status.needs_you(), std::cmp::Reverse(sessions[i].active_at)));
     order
 }
 
@@ -20,10 +15,7 @@ pub fn sorted(sessions: &[SessionData]) -> Vec<usize> {
 /// A session that left gives its place to one that arrived (a past session that opened becomes an open
 /// one with a new id), in the order [`sorted`] gives the arrivals; the rest of them go last.
 pub fn held_order(before: &[SharedString], now: &[SessionData]) -> Vec<usize> {
-    let mut slots: Vec<Option<usize>> = before
-        .iter()
-        .map(|id| now.iter().position(|s| s.id == *id))
-        .collect();
+    let mut slots: Vec<Option<usize>> = before.iter().map(|id| now.iter().position(|s| s.id == *id)).collect();
     let known: std::collections::HashSet<usize> = slots.iter().flatten().copied().collect();
     let mut arrived = sorted(now).into_iter().filter(|i| !known.contains(i));
     for slot in slots.iter_mut().filter(|s| s.is_none()) {
@@ -39,58 +31,25 @@ pub fn held_order(before: &[SharedString], now: &[SessionData]) -> Vec<usize> {
 /// A row moves only when its status changes, never because the agent writes: "Needs you" lists the one that has waited
 /// longest first (that wait is what it costs the reader), "Finished" the newest first, "Working" in the order the
 /// sessions began (their ids grow), "Earlier" the newest first, the first `earlier_shown` unless `earlier_open`.
-pub fn priority_rows(
-    projects: &[ProjectData],
-    earlier_open: bool,
-    earlier_shown: usize,
-) -> Vec<Row> {
-    let all: Vec<(usize, usize)> = projects
-        .iter()
-        .enumerate()
-        .flat_map(|(p, d)| (0..d.sessions.len()).map(move |s| (p, s)))
-        .collect();
+pub fn priority_rows(projects: &[ProjectData], earlier_open: bool, earlier_shown: usize) -> Vec<Row> {
+    let all: Vec<(usize, usize)> = projects.iter().enumerate().flat_map(|(p, d)| (0..d.sessions.len()).map(move |s| (p, s))).collect();
     let session = |&(p, s): &(usize, usize)| &projects[p].sessions[s];
     let mut out = Vec::new();
     for section in Section::ALL {
-        let mut mine: Vec<(usize, usize)> = all
-            .iter()
-            .copied()
-            .filter(|at| Section::of(session(at)) == section)
-            .collect();
+        let mut mine: Vec<(usize, usize)> = all.iter().copied().filter(|at| Section::of(session(at)) == section).collect();
         if mine.is_empty() {
             continue;
         }
         match section {
-            Section::NeedsYou => {
-                mine.sort_by_key(|at| (session(at).active_at, session(at).id.clone()))
-            }
-            Section::Finished | Section::Earlier => mine.sort_by_key(|at| {
-                (
-                    std::cmp::Reverse(session(at).active_at),
-                    session(at).id.clone(),
-                )
-            }),
+            Section::NeedsYou => mine.sort_by_key(|at| (session(at).active_at, session(at).id.clone())),
+            Section::Finished | Section::Earlier => mine.sort_by_key(|at| (std::cmp::Reverse(session(at).active_at), session(at).id.clone())),
             Section::Working => mine.sort_by_key(|at| session(at).id.clone()),
         }
-        out.push(Row::Section {
-            section,
-            count: mine.len(),
-        });
-        let shown = if section == Section::Earlier && !earlier_open {
-            mine.len().min(earlier_shown)
-        } else {
-            mine.len()
-        };
-        out.extend(
-            mine[..shown]
-                .iter()
-                .map(|&(project, session)| Row::Session { project, session }),
-        );
+        out.push(Row::Section { section, count: mine.len() });
+        let shown = if section == Section::Earlier && !earlier_open { mine.len().min(earlier_shown) } else { mine.len() };
+        out.extend(mine[..shown].iter().map(|&(project, session)| Row::Session { project, session }));
         if section == Section::Earlier && mine.len() > earlier_shown {
-            out.push(Row::MoreEarlier {
-                hidden: mine.len() - earlier_shown,
-                open: earlier_open,
-            });
+            out.push(Row::MoreEarlier { hidden: mine.len() - earlier_shown, open: earlier_open });
         }
     }
     out
@@ -99,10 +58,7 @@ pub fn priority_rows(
 /// How many sessions a project shows before the fold: the first [`FOLD_AFTER`](crate::sidebar_layout::FOLD_AFTER), and more if a session
 /// that needs the reader or has news would fall beyond them. Those are never folded away.
 fn shown_before_fold(sessions: &[SessionData], order: &[usize], fold_after: usize) -> usize {
-    let last_news = order
-        .iter()
-        .rposition(|&i| sessions[i].status.wants_attention())
-        .map_or(0, |p| p + 1);
+    let last_news = order.iter().rposition(|&i| sessions[i].status.wants_attention()).map_or(0, |p| p + 1);
     fold_after.max(last_news).min(order.len())
 }
 
@@ -113,12 +69,7 @@ pub fn rows(projects: &[ProjectData], folds: &Folds) -> Vec<Row> {
 
 /// The rows, with each project's sessions in the order `held` keeps for it, while the pointer holds the
 /// list.
-pub fn rows_held(
-    projects: &[ProjectData],
-    folds: &Folds,
-    held: Option<&std::collections::HashMap<SharedString, Vec<SharedString>>>,
-    fold_after: usize,
-) -> Vec<Row> {
+pub fn rows_held(projects: &[ProjectData], folds: &Folds, held: Option<&std::collections::HashMap<SharedString, Vec<SharedString>>>, fold_after: usize) -> Vec<Row> {
     let mut out = Vec::with_capacity(projects.iter().map(|p| p.sessions.len() + 2).sum());
     for (project, data) in projects.iter().enumerate() {
         out.push(Row::Project { project });
@@ -135,17 +86,9 @@ pub fn rows_held(
         let base = shown_before_fold(&data.sessions, &order, fold_after);
         let open = folds.older_open(&data.id);
         let shown = if open { order.len() } else { base };
-        out.extend(
-            order[..shown]
-                .iter()
-                .map(|&session| Row::Session { project, session }),
-        );
+        out.extend(order[..shown].iter().map(|&session| Row::Session { project, session }));
         if base < order.len() {
-            out.push(Row::Older {
-                project,
-                hidden: order.len() - base,
-                open,
-            });
+            out.push(Row::Older { project, hidden: order.len() - base, open });
         }
     }
     out
@@ -155,9 +98,7 @@ pub fn key_of(projects: &[ProjectData], row: Row) -> RowKey {
     let id = |project: usize| projects[project].id.clone();
     match row {
         Row::Project { project } => RowKey::Project(id(project)),
-        Row::Session { project, session } => {
-            RowKey::Session(id(project), projects[project].sessions[session].id.clone())
-        }
+        Row::Session { project, session } => RowKey::Session(id(project), projects[project].sessions[session].id.clone()),
         Row::Older { project, .. } => RowKey::Older(id(project)),
         Row::Section { section, .. } => RowKey::Section(section),
         Row::MoreEarlier { .. } => RowKey::MoreEarlier,
@@ -170,20 +111,12 @@ pub fn position_of(projects: &[ProjectData], rows: &[Row], key: &RowKey) -> Opti
 }
 
 /// Where a key takes the selection, from `at` (the selected row, if any) in `rows`.
-pub fn step(
-    rows: &[Row],
-    folds_collapsed: impl Fn(usize) -> bool,
-    at: Option<usize>,
-    nav: Nav,
-) -> Step {
+pub fn step(rows: &[Row], folds_collapsed: impl Fn(usize) -> bool, at: Option<usize>, nav: Nav) -> Step {
     if rows.is_empty() {
         return Step::default();
     }
     let last = rows.len() - 1;
-    let select = |i: usize| Step {
-        select: Some(i),
-        fold: None,
-    };
+    let select = |i: usize| Step { select: Some(i), fold: None };
     let Some(at) = at.filter(|&i| i <= last) else {
         return match nav {
             Nav::Up | Nav::Last => select(last),
@@ -196,26 +129,12 @@ pub fn step(
         Nav::First => select(0),
         Nav::Last => select(last),
         Nav::Left => match rows[at] {
-            Row::Project { project } if !folds_collapsed(project) => Step {
-                select: Some(at),
-                fold: Some((project, true)),
-            },
+            Row::Project { project } if !folds_collapsed(project) => Step { select: Some(at), fold: Some((project, true)) },
             Row::Project { .. } => select(at),
-            other => select(
-                rows.iter()
-                    .position(|r| {
-                        *r == Row::Project {
-                            project: other.project(),
-                        }
-                    })
-                    .unwrap_or(at),
-            ),
+            other => select(rows.iter().position(|r| *r == Row::Project { project: other.project() }).unwrap_or(at)),
         },
         Nav::Right => match rows[at] {
-            Row::Project { project } if folds_collapsed(project) => Step {
-                select: Some(at),
-                fold: Some((project, false)),
-            },
+            Row::Project { project } if folds_collapsed(project) => Step { select: Some(at), fold: Some((project, false)) },
             Row::Project { .. } => select((at + 1).min(last)),
             _ => select(at),
         },

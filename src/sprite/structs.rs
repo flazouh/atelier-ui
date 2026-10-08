@@ -1,12 +1,13 @@
 use std::time::{Duration, Instant};
 
 use gpui_kit::{
-    App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div, svg,
+    App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div,
+    svg,
 };
 
-use super::helpers::{frame_box, native_size, restarts, shared_clock};
 use crate::scale::px;
 use crate::wake::Wake;
+use super::helpers::{frame_box, native_size, restarts, shared_clock};
 
 /// One animation as a vertical strip of square frames.
 #[derive(Clone, Copy)]
@@ -25,10 +26,7 @@ impl PartialEq for Strip {
     /// Two strips are the same animation when they load the same asset. Comparing the bytes too would
     /// read tens of kilobytes on every render.
     fn eq(&self, other: &Self) -> bool {
-        self.path == other.path
-            && self.frames == other.frames
-            && self.frame_ms == other.frame_ms
-            && self.loops == other.loops
+        self.path == other.path && self.frames == other.frames && self.frame_ms == other.frame_ms && self.loops == other.loops
     }
 }
 
@@ -51,11 +49,7 @@ impl Strip {
     /// last frame.
     pub fn frame_at(&self, elapsed_ms: u64) -> usize {
         let step = (elapsed_ms / self.frame_ms) as usize;
-        if self.loops {
-            step % self.frames
-        } else {
-            step.min(self.frames - 1)
-        }
+        if self.loops { step % self.frames } else { step.min(self.frames - 1) }
     }
 
     /// Milliseconds until the frame after the one at `elapsed_ms`, or `None` once a one-shot shows its
@@ -89,15 +83,7 @@ impl Sprite {
     /// Plays `strip` in `color`. It rests on the first frame of `strip` until [`Sprite::rest`] names
     /// another.
     pub fn new(id: impl Into<ElementId>, strip: Strip, color: impl Into<Hsla>) -> Self {
-        Self {
-            id: id.into(),
-            strip,
-            rest: strip,
-            size: px(18.),
-            color: color.into(),
-            playing: true,
-            still_frame: 0,
-        }
+        Self { id: id.into(), strip, rest: strip, size: px(18.), color: color.into(), playing: true, still_frame: 0 }
     }
 
     /// The strip whose first frame shows while it stands still.
@@ -137,12 +123,7 @@ struct SpriteMotion {
 
 impl SpriteMotion {
     pub(super) fn new(strip: Strip) -> Self {
-        Self {
-            strip,
-            start: Instant::now(),
-            wake: Wake::default(),
-            still: false,
-        }
+        Self { strip, start: Instant::now(), wake: Wake::default(), still: false }
     }
 }
 
@@ -177,20 +158,15 @@ impl RenderOnce for Sprite {
         // A whole number of pixels: at a fractional size (a zoom) the frames would not meet the clip and a sliver of the
         // next one would show.
         let (size, frame_h) = frame_box(self.size, shown.native_size(), shown.frames);
-        div()
-            .flex_none()
-            .w(size)
-            .h(frame_h)
-            .overflow_hidden()
-            .child(
-                svg()
-                    .path(shown.path)
-                    .flex_none()
-                    .relative()
-                    .top(-frame_h * frame as f32)
-                    .w(size)
-                    .h(frame_h * shown.frames as f32)
-                    .text_color(self.color),
-            )
+        div().flex_none().w(size).h(frame_h).overflow_hidden().child(
+            svg()
+                .path(shown.path)
+                .flex_none()
+                .relative()
+                .top(-frame_h * frame as f32)
+                .w(size)
+                .h(frame_h * shown.frames as f32)
+                .text_color(self.color),
+        )
     }
 }

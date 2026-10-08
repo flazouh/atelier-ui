@@ -35,9 +35,7 @@ impl ProviderGauge {
 
     /// The window nearest its end: the one that stops the reader first.
     pub fn tightest(&self) -> Option<&Gauge> {
-        self.gauges
-            .iter()
-            .max_by(|a, b| a.fraction().total_cmp(&b.fraction()))
+        self.gauges.iter().max_by(|a, b| a.fraction().total_cmp(&b.fraction()))
     }
 
     pub fn pressure(&self) -> Pressure {

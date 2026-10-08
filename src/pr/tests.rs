@@ -1,13 +1,8 @@
-use super::*;
 use crate::theme::Theme;
+use super::*;
 
 fn checks(passed: u32, failed: u32, running: u32) -> ChecksSummary {
-    Checks {
-        passed,
-        failed,
-        running,
-    }
-    .summary()
+    Checks { passed, failed, running }.summary()
 }
 
 #[test]
@@ -21,11 +16,7 @@ fn the_checks_summary_names_the_worst_news_first() {
         ((0, 0, 0), ""),
     ];
     for ((passed, failed, running), text) in cases {
-        assert_eq!(
-            checks(passed, failed, running).text(),
-            text,
-            "{passed} {failed} {running}"
-        );
+        assert_eq!(checks(passed, failed, running).text(), text, "{passed} {failed} {running}");
     }
 }
 
@@ -39,16 +30,8 @@ fn review_states_read_as_short_words() {
 
 #[test]
 fn each_state_has_its_word_and_its_own_mark() {
-    let states = [
-        PrState::Open,
-        PrState::Draft,
-        PrState::Merged,
-        PrState::Closed,
-    ];
-    assert_eq!(
-        states.map(PrState::label),
-        ["Open", "Draft", "Merged", "Closed"]
-    );
+    let states = [PrState::Open, PrState::Draft, PrState::Merged, PrState::Closed];
+    assert_eq!(states.map(PrState::label), ["Open", "Draft", "Merged", "Closed"]);
     let mut icons: Vec<_> = states.iter().map(|s| s.icon().name()).collect();
     icons.sort();
     icons.dedup();
@@ -57,59 +40,23 @@ fn each_state_has_its_word_and_its_own_mark() {
 
 #[test]
 fn a_chip_reads_as_its_number() {
-    let pr = PrChipData {
-        number: 3344,
-        repo: "o/r".into(),
-        title: "t".into(),
-        state: PrState::Open,
-        url: "u".into(),
-        facts: None,
-    };
+    let pr = PrChipData { number: 3344, repo: "o/r".into(), title: "t".into(), state: PrState::Open, url: "u".into(), facts: None };
     assert_eq!(pr.label(), "#3344");
 }
 
 #[test]
 fn each_state_wears_githubs_colour_for_it() {
-    let states = [
-        PrState::Open,
-        PrState::Draft,
-        PrState::Merged,
-        PrState::Closed,
-    ];
-    let hex = |theme: &Theme| {
-        states.map(|s| {
-            let c = s.color(theme).to_rgb();
-            [c.r, c.g, c.b]
-                .map(|v| (v * 255.).round() as u32)
-                .iter()
-                .fold(0, |n, v| n << 8 | v)
-        })
-    };
-    assert_eq!(
-        hex(&Theme::light()),
-        [0x1A7F37, 0x59636E, 0x8250DF, 0xCF222E]
-    );
-    assert_eq!(
-        hex(&Theme::dark()),
-        [0x3FB950, 0x9198A1, 0xA371F7, 0xF85149]
-    );
+    let states = [PrState::Open, PrState::Draft, PrState::Merged, PrState::Closed];
+    let hex = |theme: &Theme| states.map(|s| { let c = s.color(theme).to_rgb(); [c.r, c.g, c.b].map(|v| (v * 255.).round() as u32).iter().fold(0, |n, v| n << 8 | v) });
+    assert_eq!(hex(&Theme::light()), [0x1A7F37, 0x59636E, 0x8250DF, 0xCF222E]);
+    assert_eq!(hex(&Theme::dark()), [0x3FB950, 0x9198A1, 0xA371F7, 0xF85149]);
 }
 
 #[test]
 fn a_short_title_drops_a_conventional_commit_head_only() {
-    let title = |t: &str| PrChipData {
-        number: 1,
-        repo: "o/r".into(),
-        title: t.to_string().into(),
-        state: PrState::Open,
-        url: "u".into(),
-        facts: None,
-    };
+    let title = |t: &str| PrChipData { number: 1, repo: "o/r".into(), title: t.to_string().into(), state: PrState::Open, url: "u".into(), facts: None };
     let cases = [
-        (
-            "chore(primevideo): Effect helpers in the TTML parser",
-            "Effect helpers in the TTML parser",
-        ),
+        ("chore(primevideo): Effect helpers in the TTML parser", "Effect helpers in the TTML parser"),
         ("feat!: Faster chips", "Faster chips"),
         ("fix: x", "x"),
         ("Fix: the Mac build", "Fix: the Mac build"),

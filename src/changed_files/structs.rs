@@ -6,20 +6,20 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::helpers::{counts, first_path, fold, fold_label, header_text, split_path, totals};
-use super::types::{FileChange, PathHandler};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonVariant},
     entrance::EntranceList,
     file_icon::FileIcon,
-    focus::PressStop,
     icon::{Icon, IconName},
+    focus::PressStop,
     morph::Morph,
     reveal::Reveal,
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
+use super::types::{FileChange, PathHandler};
+use super::helpers::{counts, first_path, fold, fold_label, header_text, split_path, totals};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ChangedFile {
@@ -31,12 +31,7 @@ pub struct ChangedFile {
 
 impl ChangedFile {
     pub fn new(path: impl Into<SharedString>, added: usize, removed: usize) -> Self {
-        Self {
-            path: path.into(),
-            added,
-            removed,
-            change: FileChange::Modified,
-        }
+        Self { path: path.into(), added, removed, change: FileChange::Modified }
     }
 
     pub fn change(mut self, change: FileChange) -> Self {
@@ -65,15 +60,7 @@ pub struct ChangedFiles {
 
 impl ChangedFiles {
     pub fn new(id: impl Into<ElementId>, files: Vec<ChangedFile>) -> Self {
-        Self {
-            id: id.into(),
-            files,
-            running: false,
-            default_open: false,
-            collapsible: false,
-            on_open_file: None,
-            on_review: None,
-        }
+        Self { id: id.into(), files, running: false, default_open: false, collapsible: false, on_open_file: None, on_review: None }
     }
 
     /// While the turn runs, new files enter as they arrive and Review waits.
@@ -94,19 +81,13 @@ impl ChangedFiles {
         self
     }
 
-    pub fn on_open_file(
-        mut self,
-        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_open_file(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
         self.on_open_file = Some(Rc::new(handler));
         self
     }
 
     /// Receives the first file's path.
-    pub fn on_review(
-        mut self,
-        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_review(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
         self.on_review = Some(Rc::new(handler));
         self
     }
@@ -127,9 +108,7 @@ impl RenderOnce for ChangedFiles {
             (d.open, d.reveal.value(), d.height.clone())
         };
         let collapsible = self.collapsible;
-        let body = window.use_keyed_state((self.id.clone(), "body"), cx, move |_, _| {
-            Reveal::new(!collapsible)
-        });
+        let body = window.use_keyed_state((self.id.clone(), "body"), cx, move |_, _| Reveal::new(!collapsible));
         if body.read(cx).is_moving() {
             window.request_animation_frame();
         }
@@ -137,12 +116,10 @@ impl RenderOnce for ChangedFiles {
             let b = body.read(cx);
             (b.reveal.value(), b.height.clone())
         };
-        let child =
-            |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
+        let child = |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
 
         let (added, removed) = totals(&self.files);
-        let summary: SharedString =
-            format!("{} +{added} \u{2212}{removed}", header_text(total)).into();
+        let summary: SharedString = format!("{} +{added} \u{2212}{removed}", header_text(total)).into();
         let heading = {
             let theme = theme.clone();
             let title = header_text(total);
@@ -166,10 +143,7 @@ impl RenderOnce for ChangedFiles {
         };
         let review = first_path(&self.files).cloned().zip(self.on_review.clone());
         let chevron = collapsible.then(|| {
-            Icon::new(IconName::ChevronRight)
-                .size(px(16.))
-                .color(muted)
-                .turn(0.25 * unfolded)
+            Icon::new(IconName::ChevronRight).size(px(16.)).color(muted).turn(0.25 * unfolded)
         });
         let toggle = body.clone();
         let header = div()
@@ -191,12 +165,7 @@ impl RenderOnce for ChangedFiles {
                 })
             })
             .children(chevron)
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .child(Morph::new(child("heading"), summary, heading)),
-            )
+            .child(div().flex_1().min_w_0().child(Morph::new(child("heading"), summary, heading)))
             .child(
                 Button::new(child("review"))
                     .debug_name("changed-files-review")
@@ -216,10 +185,7 @@ impl RenderOnce for ChangedFiles {
             let folder = split_path(&file.path).0.len();
             let path = StyledText::new(file.path.clone()).with_highlights([(
                 folder..file.path.len(),
-                HighlightStyle {
-                    color: Some(theme.foreground.opacity(0.9)),
-                    ..Default::default()
-                },
+                HighlightStyle { color: Some(theme.foreground.opacity(0.9)), ..Default::default() },
             )]);
             let word = file.change.word().map(|w| {
                 let color = match file.change {
@@ -227,12 +193,7 @@ impl RenderOnce for ChangedFiles {
                     FileChange::Deleted => theme.danger,
                     _ => muted,
                 };
-                div()
-                    .flex_none()
-                    .text_size(px(11.))
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(color)
-                    .child(w)
+                div().flex_none().text_size(px(11.)).font_weight(FontWeight::MEDIUM).text_color(color).child(w)
             });
             let open = self.on_open_file.clone();
             let pressed = file.path.clone();
@@ -248,15 +209,7 @@ impl RenderOnce for ChangedFiles {
                 .rounded(radius::lg())
                 .cursor_pointer()
                 .hover(|s| s.bg(theme.muted_hover()))
-                .when_some(open, |d, open| {
-                    d.press_stop(
-                        child(&format!("file-focus-{}", file.path)),
-                        radius::lg(),
-                        window,
-                        cx,
-                    )
-                    .on_click(move |_, window, cx| open(&pressed, window, cx))
-                })
+                .when_some(open, |d, open| d.press_stop(child(&format!("file-focus-{}", file.path)), radius::lg(), window, cx).on_click(move |_, window, cx| open(&pressed, window, cx)))
                 .child(FileIcon::file(&file.path))
                 .child(
                     div()
@@ -269,25 +222,14 @@ impl RenderOnce for ChangedFiles {
                         .child(path),
                 )
                 .when_some(word, |d, w| d.child(w))
-                .child(counts(
-                    gpui_kit::SharedString::from(format!("counts-{}", file.path)),
-                    file.added,
-                    file.removed,
-                    &theme,
-                ))
+                .child(counts(gpui_kit::SharedString::from(format!("counts-{}", file.path)), file.added, file.removed, &theme))
         };
 
         let Fold { shown, .. } = fold(total, false);
         let entering = |name: &str, files: Vec<ChangedFile>, window: &mut Window, cx: &mut App| {
-            files.into_iter().fold(
-                EntranceList::new(child(name), div().flex().flex_col()),
-                |list, file| {
-                    list.item(
-                        SharedString::from(file.path.to_string()),
-                        row(file, window, cx),
-                    )
-                },
-            )
+            files.into_iter().fold(EntranceList::new(child(name), div().flex().flex_col()), |list, file| {
+                list.item(SharedString::from(file.path.to_string()), row(file, window, cx))
+            })
         };
         let mut files = self.files;
         let rest = files.split_off(shown.min(files.len()));
@@ -336,20 +278,12 @@ impl RenderOnce for ChangedFiles {
                     .child(visible)
                     .when(has_rest && reveal > 0.001, |d| {
                         // Its own list: its first paint is the reveal, so only later files enter.
-                        d.child(crate::reveal::body(
-                            entering("rest", rest, window, cx),
-                            reveal,
-                            &height,
-                        ))
+                        d.child(crate::reveal::body(entering("rest", rest, window, cx), reveal, &height))
                     })
                     .when_some(fold_button, |d, b| d.child(b));
                 // A collapsible card folds like every section: the rows fade and the card takes `unfolded` of their height,
                 // so what stands below it moves with it, not all at once when the fade ends.
-                if collapsible {
-                    d.child(crate::reveal::body(rows, unfolded, &body_height))
-                } else {
-                    d.child(rows)
-                }
+                if collapsible { d.child(crate::reveal::body(rows, unfolded, &body_height)) } else { d.child(rows) }
             })
     }
 }

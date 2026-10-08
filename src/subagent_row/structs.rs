@@ -1,12 +1,20 @@
 use std::sync::Arc;
 
 use gpui_kit::{
-    App, ElementId, FontWeight, IntoElement, ParentElement, RenderOnce, SharedString, Styled,
-    StyledText, Window, div, prelude::FluentBuilder,
+    App,
+    ElementId,
+    FontWeight,
+    IntoElement,
+    ParentElement,
+    RenderOnce,
+    SharedString,
+    Styled,
+    StyledText,
+    Window,
+    div,
+    prelude::FluentBuilder,
 };
 
-use super::helpers::{done_text, tool_calls_text};
-use super::types::ROW_HEIGHT;
 use crate::scale::px;
 use crate::{
     agent_look::AgentLook,
@@ -15,6 +23,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
+use super::types::ROW_HEIGHT;
+use super::helpers::{done_text, tool_calls_text};
 
 #[derive(Clone, IntoElement)]
 pub struct SubagentRow {
@@ -108,8 +118,7 @@ impl RenderOnce for SubagentRow {
         let done = self.finished.is_some();
         let status = self.status_label();
         let detail = self.detail().clone();
-        let child =
-            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
         let title = StyledText::new(self.title.clone());
         let mark = &self.look.mark;
 
@@ -134,9 +143,7 @@ impl RenderOnce for SubagentRow {
                     .child(Icon::new(IconName::Check).size(px(14.)))
                     .into_any_element()
             } else {
-                mark.sprite(child("spark"), mark.orbiting)
-                    .size(px(16.))
-                    .into_any_element()
+                mark.sprite(child("spark"), mark.orbiting).size(px(16.)).into_any_element()
             })
             .child(
                 div()
@@ -145,26 +152,14 @@ impl RenderOnce for SubagentRow {
                     .text_color(if done { muted } else { self.look.message })
                     .child(title),
             )
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .overflow_hidden()
-                    .text_color(muted)
-                    .child(Morph::new(child("detail"), detail.clone(), move |_, _| {
-                        div().truncate().child(detail.clone()).into_any_element()
-                    })),
-            )
+            .child(div().flex_1().min_w_0().overflow_hidden().text_color(muted).child(Morph::new(
+                child("detail"),
+                detail.clone(),
+                move |_, _| div().truncate().child(detail.clone()).into_any_element(),
+            )))
             .when_some(self.tool_calls.filter(|_| !done), |d, count| {
-                d.child(
-                    div()
-                        .flex_none()
-                        .text_color(muted)
-                        .child(tool_calls_text(count)),
-                )
+                d.child(div().flex_none().text_color(muted).child(tool_calls_text(count)))
             })
-            .when(!status.is_empty(), |d| {
-                d.child(div().flex_none().text_color(muted).child(status))
-            })
+            .when(!status.is_empty(), |d| d.child(div().flex_none().text_color(muted).child(status)))
     }
 }

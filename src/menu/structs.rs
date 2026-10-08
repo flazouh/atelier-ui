@@ -6,12 +6,6 @@ use gpui_kit::{
     anchored, deferred, div, point, prelude::FluentBuilder,
 };
 
-use super::helpers::{
-    collapsed, fill_opacity, jump, lead_slot, panel_shadow, panel_size, pill_fill, unfolded, walk,
-};
-use super::types::{
-    Choice, Choose, Ends, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
-};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -21,6 +15,12 @@ use crate::{
     switch::Switch,
     theme::ActiveTheme,
     typography::FONT_FAMILY,
+};
+use super::types::{
+    Choice, Choose, Ends, Entry, LINE, Lead, Origin, SLOT, Select, TEXT, TYPED_FOR, Tone, UNFOLD,
+};
+use super::helpers::{
+    collapsed, fill_opacity, jump, lead_slot, panel_shadow, panel_size, pill_fill, unfolded, walk,
 };
 
 /// How a site's menu looks: the numbers its own menu had before the Menu part. Motion is the same for all.
@@ -41,65 +41,15 @@ pub struct MenuLook {
 
 impl MenuLook {
     /// The review bar's ⋯ menu, and the default.
-    pub const BAR: MenuLook = MenuLook {
-        min_width: 180.,
-        pad: 4.,
-        row_x: 10.,
-        row_y: 6.,
-        gap: 12.,
-        row_radius: 8.,
-        panel_radius: 12.,
-        group: 8.,
-        shadow: 1.,
-    };
+    pub const BAR: MenuLook = MenuLook { min_width: 180., pad: 4., row_x: 10., row_y: 6., gap: 12., row_radius: 8., panel_radius: 12., group: 8., shadow: 1. };
     /// The merge button's menu.
-    pub const MERGE: MenuLook = MenuLook {
-        min_width: 240.,
-        pad: 4.,
-        row_x: 10.,
-        row_y: 5.,
-        gap: 8.,
-        row_radius: 8.,
-        panel_radius: 12.,
-        group: 6.,
-        shadow: 1.,
-    };
+    pub const MERGE: MenuLook = MenuLook { min_width: 240., pad: 4., row_x: 10., row_y: 5., gap: 8., row_radius: 8., panel_radius: 12., group: 6., shadow: 1. };
     /// The prompt's add menu.
-    pub const PROMPT: MenuLook = MenuLook {
-        min_width: 224.,
-        pad: 6.,
-        row_x: 10.,
-        row_y: 8.,
-        gap: 10.,
-        row_radius: 8.,
-        panel_radius: 12.,
-        group: 8.,
-        shadow: 1.4,
-    };
+    pub const PROMPT: MenuLook = MenuLook { min_width: 224., pad: 6., row_x: 10., row_y: 8., gap: 10., row_radius: 8., panel_radius: 12., group: 8., shadow: 1.4 };
     /// The prompt's pickers, as the model select's list looks: 28px rows on a 208px panel.
-    pub const SELECT: MenuLook = MenuLook {
-        min_width: 208.,
-        pad: 4.,
-        row_x: 10.,
-        row_y: 4.,
-        gap: 8.,
-        row_radius: 6.,
-        panel_radius: 12.,
-        group: 8.,
-        shadow: 1.,
-    };
+    pub const SELECT: MenuLook = MenuLook { min_width: 208., pad: 4., row_x: 10., row_y: 4., gap: 8., row_radius: 6., panel_radius: 12., group: 8., shadow: 1. };
     /// A project's ⋯ menu.
-    pub const PROJECT: MenuLook = MenuLook {
-        min_width: 180.,
-        pad: 4.,
-        row_x: 8.,
-        row_y: 4.,
-        gap: 8.,
-        row_radius: 6.,
-        panel_radius: 8.,
-        group: 8.,
-        shadow: 1.,
-    };
+    pub const PROJECT: MenuLook = MenuLook { min_width: 180., pad: 4., row_x: 8., row_y: 4., gap: 8., row_radius: 6., panel_radius: 8., group: 8., shadow: 1. };
 }
 
 pub struct MenuItem {
@@ -285,16 +235,7 @@ pub struct Menu {
 
 impl Menu {
     pub fn new(id: impl Into<ElementId>, entries: impl IntoIterator<Item = Entry>) -> Self {
-        Self {
-            id: id.into(),
-            entries: entries.into_iter().collect(),
-            width: None,
-            look: MenuLook::BAR,
-            origin: None,
-            on_dismiss: None,
-            on_back: None,
-            selector: None,
-        }
+        Self { id: id.into(), entries: entries.into_iter().collect(), width: None, look: MenuLook::BAR, origin: None, on_dismiss: None, on_back: None, selector: None }
     }
 
     /// The least width of the panel.
@@ -363,11 +304,7 @@ impl RenderOnce for Menu {
             }
         }
         // A row whose submenu is open keeps its pill while focus is in the submenu.
-        let active = reachable
-            .iter()
-            .copied()
-            .find(|i| handles[*i].is_focused(window))
-            .or(state.read(cx).sub);
+        let active = reachable.iter().copied().find(|i| handles[*i].is_focused(window)).or(state.read(cx).sub);
         let active_tone = active.and_then(|i| match &self.entries[i] {
             Entry::Item(item) => Some(item.tone),
             _ => None,
@@ -415,8 +352,7 @@ impl RenderOnce for Menu {
                 Some(_) => {
                     if !s.started {
                         if s.size.is_some() {
-                            s.reveal
-                                .animate(1., Curve::Ease(UNFOLD, ease::OUT), 0., false);
+                            s.reveal.animate(1., Curve::Ease(UNFOLD, ease::OUT), 0., false);
                             s.started = true;
                         }
                         moving = true;
@@ -425,11 +361,7 @@ impl RenderOnce for Menu {
                     if s.started { s.reveal.value() } else { 0. }
                 }
             };
-            (
-                target.map(|(_, _, x, w)| (s.top.value(), s.height.value(), x, w)),
-                moving,
-                reveal,
-            )
+            (target.map(|(_, _, x, w)| (s.top.value(), s.height.value(), x, w)), moving, reveal)
         });
         if moving {
             window.request_animation_frame();
@@ -446,12 +378,7 @@ impl RenderOnce for Menu {
                 _ => None,
             })
             .collect();
-        let opens: Rc<Vec<bool>> = Rc::new(
-            self.entries
-                .iter()
-                .map(|e| matches!(e, Entry::Item(item) if item.submenu.is_some()))
-                .collect(),
-        );
+        let opens: Rc<Vec<bool>> = Rc::new(self.entries.iter().map(|e| matches!(e, Entry::Item(item) if item.submenu.is_some())).collect());
         let open_sub = {
             let state = state.clone();
             move |at: Option<usize>, cx: &mut App| {
@@ -469,9 +396,7 @@ impl RenderOnce for Menu {
                 if opens.get(i) == Some(&true) {
                     return open_sub(Some(i), cx);
                 }
-                let Some(Some((close, f))) = picks.get(i) else {
-                    return;
-                };
+                let Some(Some((close, f))) = picks.get(i) else { return };
                 if *close && let Some(d) = &dismiss {
                     d(window, cx);
                 }
@@ -519,18 +444,9 @@ impl RenderOnce for Menu {
                     };
                     let (pick, hover) = (choose.clone(), handle.clone());
                     let hover_sub = open_sub.clone();
-                    let nested = sub_entries
-                        .filter(|_| state.read(cx).sub == Some(i))
-                        .zip(state.read(cx).rects[i])
-                        .map(|(entries, row)| {
-                            let (back_state, back_to) = (state.clone(), handle.clone());
-                            let mut menu = Menu::new(
-                                ElementId::NamedChild(
-                                    std::sync::Arc::new(menu_id.clone()),
-                                    format!("sub-{i}").into(),
-                                ),
-                                entries,
-                            )
+                    let nested = sub_entries.filter(|_| state.read(cx).sub == Some(i)).zip(state.read(cx).rects[i]).map(|(entries, row)| {
+                        let (back_state, back_to) = (state.clone(), handle.clone());
+                        let mut menu = Menu::new(ElementId::NamedChild(std::sync::Arc::new(menu_id.clone()), format!("sub-{i}").into()), entries)
                             .look(look)
                             .on_back(move |window, cx| {
                                 back_state.update(cx, |s, cx| {
@@ -539,24 +455,16 @@ impl RenderOnce for Menu {
                                 });
                                 window.focus(&back_to, cx);
                             });
-                            if let Some(d) = sub_dismiss.clone() {
-                                menu = menu.on_dismiss(move |window, cx| d(window, cx));
-                            }
-                            let at = point(row.right() + px(2.), row.top() - px(look.pad));
-                            deferred(
-                                anchored()
-                                    .position(at)
-                                    .anchor(Anchor::TopLeft)
-                                    .snap_to_window_with_margin(px(8.))
-                                    .child(div().occlude().child(menu)),
-                            )
+                        if let Some(d) = sub_dismiss.clone() {
+                            menu = menu.on_dismiss(move |window, cx| d(window, cx));
+                        }
+                        let at = point(row.right() + px(2.), row.top() - px(look.pad));
+                        deferred(anchored().position(at).anchor(Anchor::TopLeft).snap_to_window_with_margin(px(8.)).child(div().occlude().child(menu)))
                             .with_priority(crate::popover::PRIORITY + 2)
-                        });
+                    });
                     let report = {
                         let state = state.clone();
-                        move |b: Bounds<Pixels>, cx: &mut App| {
-                            state.update(cx, |s, _| s.rects[i] = Some(b))
-                        }
+                        move |b: Bounds<Pixels>, cx: &mut App| state.update(cx, |s, _| s.rects[i] = Some(b))
                     };
                     let focused = handle.is_focused(window) && keyboard;
                     let chevron = has_sub.then(|| {
@@ -566,47 +474,33 @@ impl RenderOnce for Menu {
                             .h(px(LINE))
                             .flex()
                             .items_center()
-                            .child(
-                                Icon::new(IconName::ChevronRight)
-                                    .size(px(16.))
-                                    .color(theme.muted_foreground),
-                            )
+                            .child(Icon::new(IconName::ChevronRight).size(px(16.)).color(theme.muted_foreground))
                             .into_any_element()
                     });
-                    let tail = chevron.or_else(|| {
-                        item.choice.and_then(|c| match c {
-                            Choice::Selected(on) => Some(
-                                div()
-                                    .size(px(20.))
-                                    .flex_none()
-                                    .ml_auto()
-                                    .flex()
-                                    .items_center()
-                                    .justify_center()
-                                    .when(on, |d| {
-                                        d.child(Icon::new(IconName::Check).size(px(16.)).color(ink))
-                                    })
-                                    .into_any_element(),
-                            ),
-                            Choice::Switch(on) => Some(
-                                div()
-                                    .flex_none()
-                                    .ml_auto()
-                                    .flex()
-                                    .items_center()
-                                    .h(px(LINE))
-                                    .child(
-                                        Switch::new(
-                                            ElementId::NamedInteger("menu-switch".into(), i as u64),
-                                            on,
-                                        )
-                                        .compact(true),
-                                    )
-                                    .into_any_element(),
-                            ),
-                            _ => None,
-                        })
-                    });
+                    let tail = chevron.or_else(|| item.choice.and_then(|c| match c {
+                        Choice::Selected(on) => Some(
+                            div()
+                                .size(px(20.))
+                                .flex_none()
+                                .ml_auto()
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .when(on, |d| d.child(Icon::new(IconName::Check).size(px(16.)).color(ink)))
+                                .into_any_element(),
+                        ),
+                        Choice::Switch(on) => Some(
+                            div()
+                                .flex_none()
+                                .ml_auto()
+                                .flex()
+                                .items_center()
+                                .h(px(LINE))
+                                .child(Switch::new(ElementId::NamedInteger("menu-switch".into(), i as u64), on).compact(true))
+                                .into_any_element(),
+                        ),
+                        _ => None,
+                    }));
                     let mark = item.choice.and_then(|c| match c {
                         Choice::Selected(_) | Choice::Switch(_) => None,
                         Choice::Check(on) | Choice::Radio(on) => Some(
@@ -616,9 +510,7 @@ impl RenderOnce for Menu {
                                 .flex()
                                 .items_center()
                                 .justify_center()
-                                .when(on, |d| {
-                                    d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))
-                                }),
+                                .when(on, |d| d.child(Icon::new(IconName::Check).size(px(14.)).color(ink))),
                         ),
                     });
                     div()
@@ -646,31 +538,13 @@ impl RenderOnce for Menu {
                                 })
                                 .on_click(move |_, window, cx| pick(i, window, cx))
                         })
-                        .when_some(item.selector, |d, name| {
-                            d.debug_selector(move || name.clone())
-                        })
+                        .when_some(item.selector, |d, name| d.debug_selector(move || name.clone()))
                         .child(measure(report))
                         .children(mark)
-                        .when_some(item.lead, |d, lead| {
-                            d.child(lead_slot(&item.label, lead, &theme))
+                        .when_some(item.lead, |d, lead| d.child(lead_slot(&item.label, lead, &theme)))
+                        .when_some(item.ends.as_ref().and_then(|e| e.lead.as_ref()).map(|lead| lead(cx)), |d, lead| {
+                            d.child(div().flex_none().mt(px(1.)).flex().items_center().justify_center().child(lead))
                         })
-                        .when_some(
-                            item.ends
-                                .as_ref()
-                                .and_then(|e| e.lead.as_ref())
-                                .map(|lead| lead(cx)),
-                            |d, lead| {
-                                d.child(
-                                    div()
-                                        .flex_none()
-                                        .mt(px(1.))
-                                        .flex()
-                                        .items_center()
-                                        .justify_center()
-                                        .child(lead),
-                                )
-                            },
-                        )
                         .when_some(item.icon, |d, icon| {
                             let name = format!("menu-icon-{}", item.label);
                             d.child(
@@ -685,30 +559,15 @@ impl RenderOnce for Menu {
                                     .child(Icon::new(icon).size(px(SLOT)).color(ink)),
                             )
                         })
-                        .child(div().flex_1().min_w_0().child(item.label).when_some(
-                            item.description,
-                            |d, words| {
+                        .child(
+                            div().flex_1().min_w_0().child(item.label).when_some(item.description, |d, words| {
                                 d.child(
-                                    div()
-                                        .mt(px(2.))
-                                        .text_size(px(12.))
-                                        .line_height(px(16.))
-                                        .text_color(theme.muted_foreground)
-                                        .child(words),
+                                    div().mt(px(2.)).text_size(px(12.)).line_height(px(16.)).text_color(theme.muted_foreground).child(words),
                                 )
-                            },
-                        ))
+                            }),
+                        )
                         .children(tail)
-                        .children(item.ends.and_then(|e| e.trailing).map(|trailing| {
-                            div()
-                                .flex_none()
-                                .ml_auto()
-                                .pl(px(16.))
-                                .flex()
-                                .items_center()
-                                .h(px(LINE))
-                                .child(trailing(cx))
-                        }))
+                        .children(item.ends.and_then(|e| e.trailing).map(|trailing| div().flex_none().ml_auto().pl(px(16.)).flex().items_center().h(px(LINE)).child(trailing(cx))))
                         .children(item.shortcut.map(|keys| {
                             div()
                                 .flex_none()
@@ -720,64 +579,33 @@ impl RenderOnce for Menu {
                                 .text_color(theme.muted_foreground)
                                 .child(keys)
                         }))
-                        .children(item.cap.map(|keys| {
-                            div()
-                                .flex_none()
-                                .ml_auto()
-                                .pl(px(16.))
-                                .child(Kbd::new(keys))
-                        }))
-                        .when(focused, |d| {
-                            d.child(crate::focus::row_ring(
-                                &theme,
-                                theme.popover,
-                                px(look.row_radius),
-                            ))
-                        })
+                        .children(item.cap.map(|keys| div().flex_none().ml_auto().pl(px(16.)).child(Kbd::new(keys))))
+                        .when(focused, |d| d.child(crate::focus::row_ring(&theme, theme.popover, px(look.row_radius))))
                         .children(nested)
                         .into_any_element()
                 }
             })
             .collect();
 
-        let pill = list_at
-            .zip(active_tone)
-            .map(|((top, height, x, width), tone)| {
-                div()
-                    .absolute()
-                    .left(px(x))
-                    .top(px(top))
-                    .w(px(width))
-                    .h(px(height))
-                    .rounded(px(look.row_radius))
-                    .bg(pill_fill(&theme, tone))
-            });
+        let pill = list_at.zip(active_tone).map(|((top, height, x, width), tone)| {
+            div().absolute().left(px(x)).top(px(top)).w(px(width)).h(px(height)).rounded(px(look.row_radius)).bg(pill_fill(&theme, tone))
+        });
         let list = {
             let state = state.clone();
             div()
                 .relative()
                 .flex()
                 .flex_col()
-                .child(measure(move |b, cx| {
-                    state.update(cx, |s, _| s.list = Some(b))
-                }))
+                .child(measure(move |b, cx| state.update(cx, |s, _| s.list = Some(b))))
                 .children(pill)
                 .children(rows)
         };
 
-        let (key_state, key_handles, key_choose, key_reach) = (
-            state.clone(),
-            handles.clone(),
-            choose.clone(),
-            reachable.clone(),
-        );
+        let (key_state, key_handles, key_choose, key_reach) = (state.clone(), handles.clone(), choose.clone(), reachable.clone());
         let (key_opens, back) = (opens.clone(), self.on_back.clone());
         let on_keys = move |event: &gpui_kit::KeyDownEvent, window: &mut Window, cx: &mut App| {
             let key = event.keystroke.key.as_str();
-            let now_focused = key_reach
-                .iter()
-                .copied()
-                .find(|i| key_handles[*i].is_focused(window));
+            let now_focused = key_reach.iter().copied().find(|i| key_handles[*i].is_focused(window));
             let go = |to: Option<usize>, window: &mut Window, cx: &mut App| {
                 if let Some(to) = to {
                     window.focus(&key_handles[to], cx);
@@ -808,9 +636,7 @@ impl RenderOnce for Menu {
                     }
                     let at = now();
                     let typed = key_state.update(cx, |s, _| {
-                        if s.typed_at
-                            .is_none_or(|t| at.saturating_duration_since(t) > TYPED_FOR)
-                        {
+                        if s.typed_at.is_none_or(|t| at.saturating_duration_since(t) > TYPED_FOR) {
                             s.typed.clear();
                         }
                         s.typed.push_str(key);
@@ -826,9 +652,7 @@ impl RenderOnce for Menu {
         let width = self.width.unwrap_or(look.min_width);
         let selector = self.selector;
         let elevation = crate::design_preview::elevation(); // design preview: remove after Alex picks
-        let full = move |shadow: Vec<gpui_kit::BoxShadow>,
-                         size: Option<gpui_kit::Size<Pixels>>,
-                         size_state: gpui_kit::Entity<State>| {
+        let full = move |shadow: Vec<gpui_kit::BoxShadow>, size: Option<gpui_kit::Size<Pixels>>, size_state: gpui_kit::Entity<State>| {
             div()
                 .relative()
                 .flex()
@@ -838,14 +662,8 @@ impl RenderOnce for Menu {
                 .rounded(px(look.panel_radius))
                 .border_1()
                 .border_color(crate::design_preview::panel_edge(&theme, elevation)) // design preview: remove after Alex picks
-                .bg(crate::design_preview::panel_fill(
-                    &theme,
-                    elevation,
-                    theme.popover,
-                ))
-                .shadow(crate::design_preview::panel_shadows(
-                    &theme, elevation, shadow,
-                ))
+                .bg(crate::design_preview::panel_fill(&theme, elevation, theme.popover))
+                .shadow(crate::design_preview::panel_shadows(&theme, elevation, shadow))
                 .text_color(theme.foreground)
                 .font_family(FONT_FAMILY)
                 .when_some(size, |d, size| d.w(size.width))
@@ -854,9 +672,7 @@ impl RenderOnce for Menu {
                 .child(measure(move |b, cx| {
                     // The probe sits inside the panel's border, so it reads the panel less its border; the size kept is the
                     // whole panel, or each frame the panel would be forced a border narrower than the last.
-                    size_state.update(cx, |s, _| {
-                        s.size = Some(panel_size(b.size.width, b.size.height))
-                    })
+                    size_state.update(cx, |s, _| s.size = Some(panel_size(b.size.width, b.size.height)))
                 }))
                 .child(list)
         };
@@ -866,14 +682,7 @@ impl RenderOnce for Menu {
                 let start = collapsed(origin.point(size), size);
                 let (inset, corner) = unfolded(start, reveal);
                 let (w, h) = size;
-                let panel = full(
-                    Vec::new(),
-                    Some(gpui_kit::Size {
-                        width: px(w),
-                        height: px(h),
-                    }),
-                    state.clone(),
-                );
+                let panel = full(Vec::new(), Some(gpui_kit::Size { width: px(w), height: px(h) }), state.clone());
                 div()
                     .relative()
                     .w(px(w))
@@ -888,29 +697,14 @@ impl RenderOnce for Menu {
                             .h(px(h - inset.top - inset.bottom))
                             .overflow_hidden()
                             .rounded(px(corner))
-                            .shadow(crate::design_preview::panel_shadows(
-                                &cx.theme().clone(),
-                                elevation,
-                                panel_shadow(&cx.theme().clone(), look.shadow),
-                            ))
-                            .child(
-                                div()
-                                    .absolute()
-                                    .left(px(-inset.left))
-                                    .top(px(-inset.top))
-                                    .w(px(w))
-                                    .h(px(h))
-                                    .child(panel),
-                            ),
+                            .shadow(crate::design_preview::panel_shadows(&cx.theme().clone(), elevation, panel_shadow(&cx.theme().clone(), look.shadow)))
+                            .child(div().absolute().left(px(-inset.left)).top(px(-inset.top)).w(px(w)).h(px(h)).child(panel)),
                     )
                     .into_any_element()
             }
             _ => {
                 let theme = cx.theme().clone();
-                div()
-                    .opacity(reveal)
-                    .child(full(panel_shadow(&theme, look.shadow), None, state.clone()))
-                    .into_any_element()
+                div().opacity(reveal).child(full(panel_shadow(&theme, look.shadow), None, state.clone())).into_any_element()
             }
         }
     }

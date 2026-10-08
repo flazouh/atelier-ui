@@ -9,14 +9,7 @@ pub enum Format {
 }
 
 impl Format {
-    pub const ALL: [Format; 6] = [
-        Self::Bold,
-        Self::Italic,
-        Self::Code,
-        Self::Link,
-        Self::Quote,
-        Self::List,
-    ];
+    pub const ALL: [Format; 6] = [Self::Bold, Self::Italic, Self::Code, Self::Link, Self::Quote, Self::List];
 
     /// The tooltip, which names the key where one exists (GitQuiet's ⌘B, ⌘I, ⌘E, ⌘K).
     pub fn word(self) -> &'static str {

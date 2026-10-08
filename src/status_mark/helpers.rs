@@ -8,10 +8,7 @@ use super::types::SLASH;
 /// Maps a point on beui's 24-unit grid into `bounds`.
 pub(crate) fn at(bounds: Bounds<Pixels>, x: f32, y: f32) -> Point<Pixels> {
     let unit = f32::from(bounds.size.width) / 24.;
-    point(
-        bounds.origin.x + px(x * unit),
-        bounds.origin.y + px(y * unit),
-    )
+    point(bounds.origin.x + px(x * unit), bounds.origin.y + px(y * unit))
 }
 
 /// The first `fraction` of the polyline `points`, by length.
@@ -27,23 +24,14 @@ pub(crate) fn partial(points: &[(f32, f32)], fraction: f32) -> Vec<(f32, f32)> {
             left -= len;
         } else {
             let t = left / len;
-            out.push((
-                w[0].0 + (w[1].0 - w[0].0) * t,
-                w[0].1 + (w[1].1 - w[0].1) * t,
-            ));
+            out.push((w[0].0 + (w[1].0 - w[0].0) * t, w[0].1 + (w[1].1 - w[0].1) * t));
             break;
         }
     }
     out
 }
 
-pub(crate) fn stroke(
-    bounds: Bounds<Pixels>,
-    points: &[(f32, f32)],
-    width: f32,
-    color: Hsla,
-    window: &mut Window,
-) {
+pub(crate) fn stroke(bounds: Bounds<Pixels>, points: &[(f32, f32)], width: f32, color: Hsla, window: &mut Window) {
     if points.len() < 2 {
         return;
     }
@@ -98,41 +86,17 @@ pub(super) fn paint(bounds: Bounds<Pixels>, m: Mark, window: &mut Window) {
         }
     }
     if m.arc > 0.001 {
-        stroke(
-            bounds,
-            &arc_points(m.arc_start - FRAC_PI_2 / TAU, m.arc),
-            2.,
-            m.color,
-            window,
-        );
+        stroke(bounds, &arc_points(m.arc_start - FRAC_PI_2 / TAU, m.arc), 2., m.color, window);
     }
     let glyph = m.glyph.unwrap_or(m.color);
     if m.check > 0.001 {
-        stroke(
-            bounds,
-            &partial(&[(7.5, 12.25), (10.5, 15.25), (16.75, 8.75)], m.check),
-            2.,
-            glyph,
-            window,
-        );
+        stroke(bounds, &partial(&[(7.5, 12.25), (10.5, 15.25), (16.75, 8.75)], m.check), 2., glyph, window);
     }
     if m.cross > 0.001 {
         let half = (m.cross * 2.).min(1.);
-        stroke(
-            bounds,
-            &partial(&[(8.5, 8.5), (15.5, 15.5)], half),
-            2.,
-            glyph,
-            window,
-        );
+        stroke(bounds, &partial(&[(8.5, 8.5), (15.5, 15.5)], half), 2., glyph, window);
         if m.cross > 0.5 {
-            stroke(
-                bounds,
-                &partial(&[(15.5, 8.5), (8.5, 15.5)], m.cross * 2. - 1.),
-                2.,
-                glyph,
-                window,
-            );
+            stroke(bounds, &partial(&[(15.5, 8.5), (8.5, 15.5)], m.cross * 2. - 1.), 2., glyph, window);
         }
     }
     if m.slash > 0.001 {

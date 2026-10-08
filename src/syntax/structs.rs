@@ -1,17 +1,14 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     hash::{DefaultHasher, Hash, Hasher},
-    sync::{
-        Arc,
-        atomic::{AtomicU64, AtomicUsize},
-    },
+    sync::{Arc, atomic::{AtomicU64, AtomicUsize}},
     time::Duration,
 };
 
 use gpui_kit::{ElementId, Global, SharedString};
 
-use super::types::{LineRuns, MAX_ENTRIES};
 use crate::theme::Appearance;
+use super::types::{LineRuns, MAX_ENTRIES};
 
 /// One side of a diff as a whole text.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -31,11 +28,7 @@ impl Key {
     pub fn new(language: &str, text: &str, appearance: Appearance) -> Self {
         let mut hasher = DefaultHasher::new();
         text.hash(&mut hasher);
-        Self {
-            language: SharedString::from(language.to_string()),
-            hash: hasher.finish(),
-            appearance,
-        }
+        Self { language: SharedString::from(language.to_string()), hash: hasher.finish(), appearance }
     }
 }
 
@@ -71,11 +64,7 @@ impl Global for SyntaxCache {}
 
 impl SyntaxCache {
     /// The entry for `key`, computing it with `compute` only the first time.
-    pub fn get_or_compute(
-        &mut self,
-        key: Key,
-        compute: impl FnOnce() -> Vec<LineRuns>,
-    ) -> Arc<Vec<LineRuns>> {
+    pub fn get_or_compute(&mut self, key: Key, compute: impl FnOnce() -> Vec<LineRuns>) -> Arc<Vec<LineRuns>> {
         if let Some(hit) = self.entries.get(&key) {
             return hit.clone();
         }

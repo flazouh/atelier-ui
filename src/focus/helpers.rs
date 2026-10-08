@@ -1,8 +1,8 @@
 use gpui_kit::{BoxShadow, Hsla, InteractiveElement, IntoElement, Pixels, Styled, div, point};
 
-use super::types::RING_WIDTH;
 use crate::scale::px;
 use crate::theme::{MARK_CONTRAST, Theme, contrast, mix};
+use super::types::RING_WIDTH;
 
 /// The ring's colour on `surface`: the ink, mixed toward `surface` no further than it must be for 3:1.
 pub fn ring_color(theme: &Theme, surface: Hsla) -> Hsla {

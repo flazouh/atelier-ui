@@ -7,22 +7,12 @@ use super::types::{DISC, DOT, RING_OUT};
 /// at the ends like a radio group. `None` when nothing else can be.
 pub fn step(swatches: &[Swatch], from: usize, forward: bool) -> Option<usize> {
     let n = swatches.len();
-    (1..n)
-        .map(|k| {
-            if forward {
-                (from + k) % n
-            } else {
-                (from + n - k) % n
-            }
-        })
-        .find(|&i| !swatches[i].disabled)
+    (1..n).map(|k| if forward { (from + k) % n } else { (from + n - k) % n }).find(|&i| !swatches[i].disabled)
 }
 
 /// The swatch that Tab reaches: the chosen one, or the first that can be chosen.
 pub fn tab_stop(swatches: &[Swatch], value: Option<&SharedString>) -> Option<usize> {
-    value
-        .and_then(|v| swatches.iter().position(|s| &s.value == v && !s.disabled))
-        .or_else(|| swatches.iter().position(|s| !s.disabled))
+    value.and_then(|v| swatches.iter().position(|s| &s.value == v && !s.disabled)).or_else(|| swatches.iter().position(|s| !s.disabled))
 }
 
 /// The disc's, the dot's and the ring's sizes at a press scale.

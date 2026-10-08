@@ -5,8 +5,6 @@ use gpui_kit::{
     SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::{assignee_mark, label_chip, shown_labels};
-use super::types::{Handler, ROW_HEIGHT};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -18,6 +16,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::types::{Handler, ROW_HEIGHT};
+use super::helpers::{assignee_mark, label_chip, shown_labels};
 
 #[derive(IntoElement)]
 pub struct TaskRow {
@@ -32,14 +32,7 @@ pub struct TaskRow {
 impl TaskRow {
     /// `now` is the time to count "2m" from, in seconds since the Unix epoch.
     pub fn new(id: impl Into<ElementId>, task: TaskData, now: u64) -> Self {
-        Self {
-            id: id.into(),
-            task,
-            now,
-            cursor: false,
-            selected: false,
-            on_click: None,
-        }
+        Self { id: id.into(), task, now, cursor: false, selected: false, on_click: None }
     }
 
     /// The keyboard cursor is on this row.
@@ -55,10 +48,7 @@ impl TaskRow {
     }
 
     /// A press; the handler reads the modifiers to tell a plain open from a select.
-    pub fn on_click(
-        mut self,
-        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_click(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
         self.on_click = Some(Rc::new(handler));
         self
     }
@@ -71,15 +61,9 @@ impl RenderOnce for TaskRow {
         let muted = theme.muted_foreground;
         let (labels, more) = shown_labels(&task.labels);
         let closed = !task.status.is_open();
-        let session = task
-            .sessions
-            .first()
-            .map(|s| status_mark((self.id.clone(), "session"), &s.look, &s.status, window, cx));
+        let session = task.sessions.first().map(|s| status_mark((self.id.clone(), "session"), &s.look, &s.status, window, cx));
         let pr = task.prs.first().cloned();
-        let assignee = task
-            .assignee
-            .as_ref()
-            .map(|a| assignee_mark((self.id.clone(), "assignee"), a, 18., &theme));
+        let assignee = task.assignee.as_ref().map(|a| assignee_mark((self.id.clone(), "assignee"), a, 18., &theme));
         let base: SharedString = task.key.clone();
         div()
             .id(self.id.clone())
@@ -96,53 +80,18 @@ impl RenderOnce for TaskRow {
             .text_size(TextSize::Sm.font_size())
             .when(self.selected, |d| d.bg(theme.accent.opacity(0.12)))
             .when(self.cursor && !self.selected, |d| d.bg(theme.card_strong))
-            .when(self.cursor && self.selected, |d| {
-                d.bg(theme.accent.opacity(0.2))
-            })
-            .when(self.cursor, |d| {
-                d.child(crate::focus::row_ring(
-                    &theme,
-                    theme.background,
-                    radius::md(),
-                ))
-            })
+            .when(self.cursor && self.selected, |d| d.bg(theme.accent.opacity(0.2)))
+            .when(self.cursor, |d| d.child(crate::focus::row_ring(&theme, theme.background, radius::md())))
             .hover(|s| s.bg(theme.card_strong.opacity(0.7)))
-            .when_some(self.on_click, |d, click| {
-                d.on_click(move |event, window, cx| click(event, window, cx))
-            })
+            .when_some(self.on_click, |d, click| d.on_click(move |event, window, cx| click(event, window, cx)))
             .child(PriorityMark::new(task.priority))
-            .child(
-                div()
-                    .flex_none()
-                    .w(px(58.))
-                    .font_family(MONO_FONT_FAMILY)
-                    .text_size(TextSize::Xs.font_size())
-                    .text_color(muted)
-                    .child(base),
-            )
+            .child(div().flex_none().w(px(58.)).font_family(MONO_FONT_FAMILY).text_size(TextSize::Xs.font_size()).text_color(muted).child(base))
             .child(TaskStatusMark::new(task.status))
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .truncate()
-                    .text_color(if closed { muted } else { theme.foreground })
-                    .child(task.title),
-            )
+            .child(div().flex_1().min_w_0().truncate().text_color(if closed { muted } else { theme.foreground }).child(task.title))
             .children(labels.iter().map(|l| label_chip(l, &theme)))
-            .when(more > 0, |d| {
-                d.child(
-                    div()
-                        .flex_none()
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(muted)
-                        .child(format!("+{more}")),
-                )
-            })
+            .when(more > 0, |d| d.child(div().flex_none().text_size(TextSize::Xs.font_size()).text_color(muted).child(format!("+{more}"))))
             .children(session)
-            .when_some(pr, |d, pr| {
-                d.child(PrChip::new((self.id.clone(), "pr"), pr))
-            })
+            .when_some(pr, |d, pr| d.child(PrChip::new((self.id.clone(), "pr"), pr)))
             .children(assignee)
             .when(task.assignee.is_none(), |d| {
                 d.child(

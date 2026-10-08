@@ -30,20 +30,20 @@ mod helpers;
 mod structs;
 mod types;
 
+pub use helpers::unfolds;
 pub(crate) use helpers::bind_keys;
 #[cfg(test)]
 pub(crate) use helpers::key;
-pub use helpers::unfolds;
 pub use structs::ChangedFileTree;
 #[cfg(test)]
 pub(crate) use types::TreeKey;
 
 #[cfg(test)]
-use crate::{changed_files::ChangedFile, file_tree::FileTree};
+use std::collections::HashSet;
 #[cfg(test)]
 use gpui_kit::SharedString;
 #[cfg(test)]
-use std::collections::HashSet;
+use crate::{changed_files::ChangedFile, file_tree::FileTree};
 
 #[cfg(test)]
 mod tests;

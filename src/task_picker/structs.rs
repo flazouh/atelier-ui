@@ -2,11 +2,11 @@ use std::time::Instant;
 
 use gpui_kit::{Bounds, Pixels};
 
-use super::helpers::list_height;
 use crate::{
     motion::{Channel, Curve, Spring},
     task_edit::{Field, Picker},
-};
+    };
+use super::helpers::list_height;
 
 /// A picker that opens from the chip of its field: the chip grows into the picker as one surface, as a select does
 /// (`crate::select`), and the header row turns into the filter. The owner keeps one, measures each chip into it, calls
@@ -29,16 +29,7 @@ pub struct PickerMorph {
 
 impl Default for PickerMorph {
     fn default() -> Self {
-        Self {
-            morph: Channel::new(0.),
-            list: Channel::new(0.),
-            field: None,
-            last: None,
-            open: false,
-            opened: None,
-            reduce: false,
-            anchors: [None; 4],
-        }
+        Self { morph: Channel::new(0.), list: Channel::new(0.), field: None, last: None, open: false, opened: None, reduce: false, anchors: [None; 4] }
     }
 }
 
@@ -62,14 +53,12 @@ impl PickerMorph {
                     self.field = Some(field);
                     self.opened = Some(Instant::now());
                     self.morph = Channel::new(0.);
-                    self.morph
-                        .animate(1., Curve::Spring(Spring::select_morph()), 0., reduce);
+                    self.morph.animate(1., Curve::Spring(Spring::select_morph()), 0., reduce);
                     self.list = Channel::new(list_height(picker));
                 } else {
                     let want = list_height(picker);
                     if self.list.target() != want {
-                        self.list
-                            .animate(want, Curve::Spring(Spring::critical(30.)), 0., reduce);
+                        self.list.animate(want, Curve::Spring(Spring::critical(30.)), 0., reduce);
                     }
                 }
                 self.last = Some(picker.clone());
@@ -77,8 +66,7 @@ impl PickerMorph {
             None => {
                 if self.open {
                     self.open = false;
-                    self.morph
-                        .animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
+                    self.morph.animate(0., Curve::Spring(Spring::select_morph()), 0., reduce);
                 } else if !self.morph.is_running() && self.morph.value().abs() < 0.002 {
                     self.field = None;
                     self.last = None;
@@ -96,9 +84,7 @@ impl PickerMorph {
     }
     /// The surface is drawn: the picker is open, or on its way back to the chip.
     pub fn shown(&self) -> bool {
-        self.field.is_some()
-            && self.last.is_some()
-            && (self.open || self.morph.is_running() || self.morph.value().abs() > 0.002)
+        self.field.is_some() && self.last.is_some() && (self.open || self.morph.is_running() || self.morph.value().abs() > 0.002)
     }
     /// The surface stands in for the chip of `field`, which is drawn clear.
     pub fn hides(&self, field: Field) -> bool {
@@ -111,9 +97,7 @@ impl PickerMorph {
     pub fn is_moving(&self) -> bool {
         self.morph.is_running()
             || self.list.is_running()
-            || self.opened.is_some_and(|at| {
-                self.shown() && at.elapsed().as_secs_f32() < crate::select::opens_in(1) + 0.6
-            })
+            || self.opened.is_some_and(|at| self.shown() && at.elapsed().as_secs_f32() < crate::select::opens_in(1) + 0.6)
     }
 }
 

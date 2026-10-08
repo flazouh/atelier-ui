@@ -1,16 +1,15 @@
 use std::{collections::HashMap, time::Instant};
 
 use gpui_kit::{
-    App, AppContext, Context, ElementId, Entity, Global, IntoElement, Render, SharedString,
-    Subscription, Task, Window,
+    App, AppContext, Context, ElementId, Entity, Global, IntoElement, Render, SharedString, Subscription, Task, Window,
 };
 
-use super::types::{CardActionHandler, CardOpenHandler, PrDoing, PrPart};
 use crate::{
     pr::{PrChipData, PrFacts},
     pr_card::LinkActions,
     pr_chip::PrOpenHandler,
 };
+use super::types::{CardActionHandler, CardOpenHandler, PrDoing, PrPart};
 
 /// Which parts a card shows. Every part shows until the reader hides it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -46,11 +45,7 @@ impl PrParts {
 
     /// The keys of the hidden parts, for settings.
     pub fn hidden(self) -> Vec<String> {
-        PrPart::ALL
-            .into_iter()
-            .filter(|p| !self.shows(*p))
-            .map(|p| p.key().to_string())
-            .collect()
+        PrPart::ALL.into_iter().filter(|p| !self.shows(*p)).map(|p| p.key().to_string()).collect()
     }
 }
 
@@ -123,12 +118,7 @@ impl PrCardStore {
     }
 
     /// Changes the glance of `key`, made empty if there was none, and redraws its card if it changed.
-    pub fn update_glance(
-        &mut self,
-        key: PrKey,
-        change: impl FnOnce(&mut PrGlance),
-        cx: &mut Context<Self>,
-    ) {
+    pub fn update_glance(&mut self, key: PrKey, change: impl FnOnce(&mut PrGlance), cx: &mut Context<Self>) {
         let glance = self.glances.entry(key).or_default();
         let before = glance.clone();
         change(glance);
@@ -142,10 +132,7 @@ impl PrCardStore {
         self.on_open = Some(std::rc::Rc::new(f));
     }
 
-    pub fn on_action(
-        &mut self,
-        f: impl Fn(super::types::PrAction, &PrChipData, &mut Window, &mut App) + 'static,
-    ) {
+    pub fn on_action(&mut self, f: impl Fn(super::types::PrAction, &PrChipData, &mut Window, &mut App) + 'static) {
         self.on_action = Some(std::rc::Rc::new(f));
     }
 }
@@ -168,25 +155,11 @@ pub struct PrGlanceCard {
 }
 
 impl PrGlanceCard {
-    pub fn new(
-        id: impl Into<ElementId>,
-        pr: PrChipData,
-        on_open: Option<PrOpenHandler>,
-        cx: &mut Context<Self>,
-    ) -> Self {
+    pub fn new(id: impl Into<ElementId>, pr: PrChipData, on_open: Option<PrOpenHandler>, cx: &mut Context<Self>) -> Self {
         let store = super::helpers::pr_cards(cx);
         let _store = cx.observe(&store, |_, _, cx| cx.notify());
         let actions = cx.new(|_| LinkActions::default());
-        Self {
-            id: id.into(),
-            pr,
-            on_open,
-            store,
-            confirming: None,
-            actions,
-            unconfirm: Task::ready(()),
-            _store,
-        }
+        Self { id: id.into(), pr, on_open, store, confirming: None, actions, unconfirm: Task::ready(()), _store }
     }
 
     /// The chip's newest data, as the text that holds it draws again.

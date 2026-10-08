@@ -17,24 +17,12 @@ fn the_pulse_swells_from_8_to_16_percent_and_back_over_1600_ms() {
 fn every_status_has_words_and_a_tinted_fill_with_no_border_and_the_words_read_on_the_fill() {
     use crate::theme::{TEXT_CONTRAST, contrast, mix};
     for theme in crate::themes::all() {
-        for status in [
-            BadgeStatus::Neutral,
-            BadgeStatus::Info,
-            BadgeStatus::Success,
-            BadgeStatus::Warning,
-            BadgeStatus::Danger,
-            BadgeStatus::Loading,
-        ] {
+        for status in [BadgeStatus::Neutral, BadgeStatus::Info, BadgeStatus::Success, BadgeStatus::Warning, BadgeStatus::Danger, BadgeStatus::Loading] {
             let (ink, fill) = colors(status, theme);
             assert_ne!(ink, fill);
             // The fill is a wash over the page or card; the words on it keep the contrast the themes promise for them.
             let under = mix(theme.card, fill, fill.a);
-            assert!(
-                contrast(ink, under) >= TEXT_CONTRAST - 1.5,
-                "{} {status:?}: {:.2}",
-                theme.name,
-                contrast(ink, under)
-            );
+            assert!(contrast(ink, under) >= TEXT_CONTRAST - 1.5, "{} {status:?}: {:.2}", theme.name, contrast(ink, under));
         }
     }
 }

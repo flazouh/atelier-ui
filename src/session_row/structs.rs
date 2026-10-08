@@ -6,8 +6,6 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::helpers::{agent_icon, trailing};
-use super::types::{Handler, ROW_HEIGHT};
 use crate::scale::px;
 use crate::{
     icon::IconName,
@@ -17,6 +15,8 @@ use crate::{
     tooltip::Tooltip,
     typography::TextSize,
 };
+use super::types::{Handler, ROW_HEIGHT};
+use super::helpers::{agent_icon, trailing};
 
 #[derive(IntoElement)]
 pub struct SessionRow {
@@ -43,22 +43,7 @@ pub struct SessionRow {
 impl SessionRow {
     /// `now` is the time to count "2m" from, in seconds since the Unix epoch.
     pub fn new(id: impl Into<ElementId>, data: SessionData, now: u64) -> Self {
-        Self {
-            id: id.into(),
-            data,
-            now,
-            selected: false,
-            open: false,
-            on_open: None,
-            on_more: None,
-            more_open: false,
-            more_menu: None,
-            on_archive: None,
-            project: None,
-            flush: false,
-            show_time: true,
-            show_icon: true,
-        }
+        Self { id: id.into(), data, now, selected: false, open: false, on_open: None, on_more: None, more_open: false, more_menu: None, on_archive: None, project: None, flush: false, show_time: true, show_icon: true }
     }
 
     pub fn selected(mut self, selected: bool) -> Self {
@@ -79,11 +64,7 @@ impl SessionRow {
     }
 
     /// Shows the project's badge on the row (its name in the tooltip).
-    pub fn project(
-        mut self,
-        badge: crate::sidebar_model::Badge,
-        name: impl Into<SharedString>,
-    ) -> Self {
+    pub fn project(mut self, badge: crate::sidebar_model::Badge, name: impl Into<SharedString>) -> Self {
         self.project = Some((badge, name.into()));
         self
     }
@@ -97,23 +78,14 @@ impl SessionRow {
     }
 
     /// An archive button before the ⋯, shown while the pointer is on the row; an archived session gets unarchive.
-    pub fn archive(
-        mut self,
-        archived: bool,
-        press: impl Fn(&mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn archive(mut self, archived: bool, press: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.on_archive = Some((archived, Rc::new(press)));
         self
     }
 
     /// A ⋯ button at the row's end, shown while the pointer is on the row (and while its menu is open). `menu` is the
     /// menu hung under it.
-    pub fn more(
-        mut self,
-        open: bool,
-        press: impl Fn(&mut Window, &mut App) + 'static,
-        menu: Option<AnyElement>,
-    ) -> Self {
+    pub fn more(mut self, open: bool, press: impl Fn(&mut Window, &mut App) + 'static, menu: Option<AnyElement>) -> Self {
         self.on_more = Some(Rc::new(press));
         self.more_open = open;
         self.more_menu = menu;
@@ -125,35 +97,20 @@ impl RenderOnce for SessionRow {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
         let data = self.data;
-        let mark = agent_icon(
-            (self.id.clone(), "mark"),
-            &data.look,
-            &data.status,
-            &theme,
-            self.show_icon,
-        );
+        let mark = agent_icon((self.id.clone(), "mark"), &data.look, &data.status, &theme, self.show_icon);
         let (words, tone) = trailing(&data.status, self.now, data.active_at, &theme);
-        let ink = if data.status.title_is_ink() || self.open {
-            theme.foreground
-        } else {
-            theme.muted_foreground
-        };
+        let ink = if data.status.title_is_ink() || self.open { theme.foreground } else { theme.muted_foreground };
         let words_of_status = data.status.words();
         let mark_id = self.id.clone();
         // Hidden until the pointer is on the row, then it stands left of the time and the title gives it room; a press
         // does not open the session.
         let more_open = self.more_open;
         let hovered = window.use_keyed_state((self.id.clone(), "hovered"), cx, |_, _| false);
-        let has_more = (self.on_more.is_some() || self.on_archive.is_some())
-            && (more_open || *hovered.read(cx));
+        let has_more = (self.on_more.is_some() || self.on_archive.is_some()) && (more_open || *hovered.read(cx));
         let archive = self.on_archive.map(|(archived, press)| {
             crate::button::Button::new((self.id.clone(), "archive-button"))
                 .debug_name("session-archive")
-                .icon(if archived {
-                    IconName::Unarchive
-                } else {
-                    IconName::Archive
-                })
+                .icon(if archived { IconName::Unarchive } else { IconName::Archive })
                 .variant(crate::button::ButtonVariant::Ghost)
                 .size(crate::button::ButtonSize::IconSm)
                 .tooltip(if archived { "Unarchive" } else { "Archive" })
@@ -205,13 +162,7 @@ impl RenderOnce for SessionRow {
             .cursor_pointer()
             .text_size(TextSize::Sm.font_size())
             // The keyboard's row is marked only while the keyboard is the reader's hand; a press selects nothing.
-            .when(self.selected && window.last_input_was_keyboard(), |d| {
-                d.bg(theme.card_strong).child(crate::focus::row_ring(
-                    &theme,
-                    theme.background,
-                    radius::md(),
-                ))
-            })
+            .when(self.selected && window.last_input_was_keyboard(), |d| d.bg(theme.card_strong).child(crate::focus::row_ring(&theme, theme.background, radius::md())))
             // The one open in front (single view only) is soft on its card.
             .when(self.open, |d| d.bg(theme.card_strong.opacity(0.6)))
             .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
@@ -272,10 +223,7 @@ impl RenderOnce for SessionRow {
                     .debug_selector(|| "row-project".into())
                     .flex_none()
                     .tooltip(Tooltip::text(name))
-                    .child(
-                        crate::project_badge::ProjectBadge::new(badge.label, badge.color)
-                            .icon(badge.icon),
-                    )
+                    .child(crate::project_badge::ProjectBadge::new(badge.label, badge.color).icon(badge.icon))
             }))
             .children(ends)
             // Short words line up in a column.

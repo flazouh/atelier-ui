@@ -37,11 +37,11 @@ pub use structs::{PromptAction, PromptInput, PromptModel};
 pub use types::{Chip, ChipLook, Message, Pasted, PromptInputEvent};
 
 #[cfg(test)]
+use gpui_kit::{Bounds, Pixels};
+#[cfg(test)]
 use crate::scale::px;
 #[cfg(test)]
 use crate::{voice_input::VoiceMode, voice_setup::SetupPhase};
-#[cfg(test)]
-use gpui_kit::{Bounds, Pixels};
 
 #[cfg(test)]
 mod tests;

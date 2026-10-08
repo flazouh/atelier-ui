@@ -1,15 +1,27 @@
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, StyledImage, Window, div, img,
+    App,
+    ElementId,
+    FontWeight,
+    InteractiveElement,
+    IntoElement,
+    ParentElement,
+    RenderOnce,
+    SharedString,
+    StatefulInteractiveElement,
+    Styled,
+    StyledImage,
+    Window,
+    div,
+    img,
 };
 
-use super::helpers::monogram_letter;
-use super::types::MARK;
 use crate::scale::px;
 use crate::{
     motion::{Channel, Curve, duration, ease},
     theme::{ActiveTheme, Appearance},
 };
+use super::types::MARK;
+use super::helpers::monogram_letter;
 
 /// A lab's or an agent's mark, one asset for each theme.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,10 +32,7 @@ pub struct BrandMark {
 
 impl BrandMark {
     pub fn new(light: impl Into<SharedString>, dark: impl Into<SharedString>) -> Self {
-        Self {
-            light: light.into(),
-            dark: dark.into(),
-        }
+        Self { light: light.into(), dark: dark.into() }
     }
 
     /// The asset for the theme in force.
@@ -45,12 +54,7 @@ pub struct ModelBadge {
 
 impl ModelBadge {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            id: None,
-            label: label.into(),
-            mark: None,
-            lit: false,
-        }
+        Self { id: None, label: label.into(), mark: None, lit: false }
     }
 
     /// Leads with a mark. It needs an id, which keeps its fade from one frame to the next.
@@ -91,28 +95,14 @@ impl RenderOnce for ModelBadge {
             .font_weight(FontWeight::MEDIUM)
             .text_color(muted)
             .child(self.label.clone());
-        let Some(id) = self.id else {
-            return label.into_any_element();
-        };
+        let Some(id) = self.id else { return label.into_any_element() };
 
         let reduce = cx.reduce_motion();
-        let motion = window.use_keyed_state(id.clone(), cx, |_, _| MarkMotion {
-            hovered: false,
-            colour: Channel::new(0.),
-        });
-        let want = if self.lit || motion.read(cx).hovered {
-            1.
-        } else {
-            0.
-        };
+        let motion = window.use_keyed_state(id.clone(), cx, |_, _| MarkMotion { hovered: false, colour: Channel::new(0.) });
+        let want = if self.lit || motion.read(cx).hovered { 1. } else { 0. };
         motion.update(cx, |m, _| {
             if (m.colour.target() - want).abs() > 1e-3 {
-                m.colour.animate(
-                    want,
-                    Curve::Ease(duration::REVEAL.as_secs_f32(), ease::OUT),
-                    0.,
-                    reduce,
-                );
+                m.colour.animate(want, Curve::Ease(duration::REVEAL.as_secs_f32(), ease::OUT), 0., reduce);
             }
         });
         let p = {
@@ -131,14 +121,7 @@ impl RenderOnce for ModelBadge {
                     .relative()
                     .flex_none()
                     .size(px(MARK))
-                    .child(
-                        img(path.clone())
-                            .absolute()
-                            .inset_0()
-                            .size(px(MARK))
-                            .grayscale(true)
-                            .opacity(0.5 * (1. - p)),
-                    )
+                    .child(img(path.clone()).absolute().inset_0().size(px(MARK)).grayscale(true).opacity(0.5 * (1. - p)))
                     .child(img(path).absolute().inset_0().size(px(MARK)).opacity(p))
                     .into_any_element()
             }

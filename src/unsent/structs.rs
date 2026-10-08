@@ -2,8 +2,6 @@ use std::rc::Rc;
 
 use gpui_kit::{App, ElementId, IntoElement, ParentElement, RenderOnce, Styled, Window, div};
 
-use super::helpers::{count_text, send_text};
-use super::types::WHO_SEES;
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
@@ -11,6 +9,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
+use super::types::WHO_SEES;
+use super::helpers::{count_text, send_text};
 
 /// The count of Unsent Comments and the control that sends them, on one row. Nothing shows with none.
 #[derive(IntoElement)]
@@ -22,11 +22,7 @@ pub struct UnsentComments {
 
 impl UnsentComments {
     pub fn new(id: impl Into<ElementId>, count: usize) -> Self {
-        Self {
-            id: id.into(),
-            count,
-            on_send: None,
-        }
+        Self { id: id.into(), count, on_send: None }
     }
 
     pub fn on_send(mut self, f: impl Fn(&mut Window, &mut App) + 'static) -> Self {
@@ -41,10 +37,7 @@ impl RenderOnce for UnsentComments {
         if self.count == 0 {
             return div().into_any_element();
         }
-        let send = Button::new(self.id.clone())
-            .label(send_text(self.count))
-            .variant(ButtonVariant::Primary)
-            .size(ButtonSize::Sm);
+        let send = Button::new(self.id.clone()).label(send_text(self.count)).variant(ButtonVariant::Primary).size(ButtonSize::Sm);
         let send = match self.on_send {
             Some(f) => send.on_click(move |_, window, cx| f(window, cx)),
             None => send.disabled(true),
@@ -66,18 +59,8 @@ impl RenderOnce for UnsentComments {
                     .flex_col()
                     .flex_1()
                     .min_w_0()
-                    .child(
-                        div()
-                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
-                            .text_color(theme.foreground.opacity(0.9))
-                            .child(count_text(self.count)),
-                    )
-                    .child(
-                        div()
-                            .truncate()
-                            .text_color(theme.muted_foreground)
-                            .child(WHO_SEES),
-                    ),
+                    .child(div().font_weight(gpui_kit::FontWeight::SEMIBOLD).text_color(theme.foreground.opacity(0.9)).child(count_text(self.count)))
+                    .child(div().truncate().text_color(theme.muted_foreground).child(WHO_SEES)),
             )
             .child(send)
             .into_any_element()

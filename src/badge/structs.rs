@@ -2,9 +2,9 @@ use gpui_kit::{
     App, FontWeight, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div,
 };
 
-use super::types::Tone;
 use crate::scale::px;
 use crate::theme::ActiveTheme;
+use super::types::Tone;
 
 #[derive(IntoElement)]
 pub struct Badge {
@@ -14,10 +14,7 @@ pub struct Badge {
 
 impl Badge {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            tone: Tone::default(),
-        }
+        Self { label: label.into(), tone: Tone::default() }
     }
     pub fn tone(mut self, tone: Tone) -> Self {
         self.tone = tone;

@@ -33,10 +33,7 @@ fn each_file_name_picks_its_language() {
 #[test]
 fn every_language_named_has_a_grammar_built_in() {
     // Without its grammar a highlighter falls back to plain text and says so.
-    let missing: Vec<_> = LANGUAGES
-        .iter()
-        .filter(|l| SyntaxHighlighter::new(l).language().as_ref() != **l)
-        .collect();
+    let missing: Vec<_> = LANGUAGES.iter().filter(|l| SyntaxHighlighter::new(l).language().as_ref() != **l).collect();
     assert!(missing.is_empty(), "no grammar for {missing:?}");
 }
 
@@ -44,10 +41,7 @@ fn every_language_named_has_a_grammar_built_in() {
 fn colour_at(lines: &[LineRuns], text: &str, line: usize, needle: &str) -> Option<gpui_kit::Hsla> {
     let row = text.split('\n').nth(line).unwrap();
     let at = row.find(needle).unwrap();
-    lines[line]
-        .iter()
-        .find(|(r, _)| r.contains(&at))
-        .and_then(|(_, s)| s.color)
+    lines[line].iter().find(|(r, _)| r.contains(&at)).and_then(|(_, s)| s.color)
 }
 
 #[test]
@@ -57,16 +51,8 @@ fn a_comment_across_two_lines_is_a_comment_on_both() {
     let lines = compute("rust", text, &theme);
     let comment = colour_at(&lines, text, 1, "one");
     assert!(comment.is_some());
-    assert_eq!(
-        colour_at(&lines, text, 2, "two"),
-        comment,
-        "the second line is still the comment"
-    );
-    assert_ne!(
-        colour_at(&lines, text, 3, "fn"),
-        comment,
-        "and the code after it is not"
-    );
+    assert_eq!(colour_at(&lines, text, 2, "two"), comment, "the second line is still the comment");
+    assert_ne!(colour_at(&lines, text, 3, "fn"), comment, "and the code after it is not");
 }
 
 #[test]
@@ -80,20 +66,12 @@ fn a_diff_highlights_each_side_as_its_whole_text() {
     let theme = syntax_theme(Appearance::Dark);
     let old_runs = compute("rust", &old.text, &theme);
     let comment = colour_at(&old_runs, &old.text, 1, "old");
-    assert_eq!(
-        colour_at(&old_runs, &old.text, 2, "still"),
-        comment,
-        "on the old side the context line is inside the comment"
-    );
+    assert_eq!(colour_at(&old_runs, &old.text, 2, "still"), comment, "on the old side the context line is inside the comment");
     // Each diff row maps to its side's line: a removed row to the old side, an added one to the new.
     let map = row_sides(&lines);
     assert_eq!(map[2], Some((Side::Old, 1)));
     assert_eq!(map[3], Some((Side::New, 1)));
-    assert_eq!(
-        map[4],
-        Some((Side::New, 2)),
-        "a context row reads from the new side"
-    );
+    assert_eq!(map[4], Some((Side::New, 2)), "a context row reads from the new side");
     assert_eq!(map[0], None, "the hunk header is not code");
 }
 
@@ -107,12 +85,8 @@ fn the_cache_computes_once_per_text() {
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(cache.computed, 1);
     // Another text, or the same text in the other theme, is another entry.
-    cache.get_or_compute(Key::new("rust", "fn b() {}", Appearance::Dark), || {
-        compute("rust", "fn b() {}", &theme)
-    });
-    cache.get_or_compute(Key::new("rust", "fn a() {}", Appearance::Light), || {
-        compute("rust", "fn a() {}", &theme)
-    });
+    cache.get_or_compute(Key::new("rust", "fn b() {}", Appearance::Dark), || compute("rust", "fn b() {}", &theme));
+    cache.get_or_compute(Key::new("rust", "fn a() {}", Appearance::Light), || compute("rust", "fn a() {}", &theme));
     assert_eq!(cache.computed, 3);
 }
 
@@ -136,21 +110,8 @@ fn the_cache_forgets_its_oldest_text_past_its_size() {
         cache.get_or_compute(Key::new("rust", &i.to_string(), Appearance::Dark), Vec::new);
     }
     assert_eq!(cache.entries.len(), MAX_ENTRIES);
-    assert!(
-        cache
-            .get(&Key::new("rust", "0", Appearance::Dark))
-            .is_none(),
-        "the first text went first"
-    );
-    assert!(
-        cache
-            .get(&Key::new(
-                "rust",
-                &MAX_ENTRIES.to_string(),
-                Appearance::Dark
-            ))
-            .is_some()
-    );
+    assert!(cache.get(&Key::new("rust", "0", Appearance::Dark)).is_none(), "the first text went first");
+    assert!(cache.get(&Key::new("rust", &MAX_ENTRIES.to_string(), Appearance::Dark)).is_some());
 }
 
 #[test]
@@ -171,18 +132,9 @@ fn the_slots_are_as_many_as_the_texts_the_cache_keeps() {
         cache.generation(ElementId::Integer(i as u64));
     }
     assert_eq!(cache.generations.len(), MAX_ENTRIES);
-    assert!(
-        !cache.generations.contains_key(&ElementId::Integer(0)),
-        "the oldest slot went first"
-    );
+    assert!(!cache.generations.contains_key(&ElementId::Integer(0)), "the oldest slot went first");
     let again = cache.generation(ElementId::Integer(MAX_ENTRIES as u64));
-    assert!(
-        Arc::ptr_eq(
-            &again,
-            &cache.generation(ElementId::Integer(MAX_ENTRIES as u64))
-        ),
-        "a slot keeps its generation"
-    );
+    assert!(Arc::ptr_eq(&again, &cache.generation(ElementId::Integer(MAX_ENTRIES as u64))), "a slot keeps its generation");
 }
 
 mod app {
@@ -206,18 +158,10 @@ mod app {
     #[gpui_kit::test]
     fn a_text_parses_off_the_ui_thread_then_draws_from_the_cache(cx: &mut TestAppContext) {
         setup(cx);
-        assert!(
-            cx.update(|cx| highlight("lua", "local a = 1", slot("a"), cx))
-                .is_none(),
-            "nothing to show yet"
-        );
+        assert!(cx.update(|cx| highlight("lua", "local a = 1", slot("a"), cx)).is_none(), "nothing to show yet");
         cx.run_until_parked();
-        let landed = cx
-            .update(|cx| highlight("lua", "local a = 1", slot("a"), cx))
-            .expect("the parse landed");
-        let again = cx
-            .update(|cx| highlight("lua", "local a = 1", slot("a"), cx))
-            .unwrap();
+        let landed = cx.update(|cx| highlight("lua", "local a = 1", slot("a"), cx)).expect("the parse landed");
+        let again = cx.update(|cx| highlight("lua", "local a = 1", slot("a"), cx)).unwrap();
         assert!(Arc::ptr_eq(&landed, &again), "and is not parsed again");
     }
 
@@ -228,52 +172,28 @@ mod app {
         let first = "def f(v):\n    return v";
         cx.update(|cx| highlight("python", first, slot("b"), cx));
         cx.run_until_parked();
-        let done = cx
-            .update(|cx| highlight("python", first, slot("b"), cx))
-            .unwrap();
+        let done = cx.update(|cx| highlight("python", first, slot("b"), cx)).unwrap();
         let next = format!("{first} + 1");
-        let between = cx
-            .update(|cx| highlight("python", &next, slot("b"), cx))
-            .expect("the slot's last colours");
+        let between = cx.update(|cx| highlight("python", &next, slot("b"), cx)).expect("the slot's last colours");
         assert_eq!(between[0], done[0]);
         assert!(!between[0].is_empty());
         cx.run_until_parked();
-        let landed = cx
-            .update(|cx| highlight("python", &next, slot("b"), cx))
-            .unwrap();
-        assert!(
-            !landed[1].is_empty(),
-            "the changed line has its colours once the parse lands"
-        );
+        let landed = cx.update(|cx| highlight("python", &next, slot("b"), cx)).unwrap();
+        assert!(!landed[1].is_empty(), "the changed line has its colours once the parse lands");
     }
 
     /// Twenty blocks at once: none parses on the UI thread, and all land after the frame.
     #[gpui_kit::test]
     fn many_blocks_in_one_frame_all_land(cx: &mut TestAppContext) {
         setup(cx);
-        let blocks: Vec<String> = (0..20)
-            .map(|i| format!("def f{i}(v):\n    return v + {i}\n").repeat(20))
-            .collect();
+        let blocks: Vec<String> = (0..20).map(|i| format!("def f{i}(v):\n    return v + {i}\n").repeat(20)).collect();
         let slots: Vec<ElementId> = (0..20).map(ElementId::Integer).collect();
-        let first: Vec<_> = cx.update(|cx| {
-            blocks
-                .iter()
-                .zip(&slots)
-                .map(|(b, s)| highlight("python", b, s.clone(), cx).is_some())
-                .collect()
-        });
-        assert!(
-            first.iter().all(|&drawn| !drawn),
-            "the frame parses none of them"
-        );
+        let first: Vec<_> =
+            cx.update(|cx| blocks.iter().zip(&slots).map(|(b, s)| highlight("python", b, s.clone(), cx).is_some()).collect());
+        assert!(first.iter().all(|&drawn| !drawn), "the frame parses none of them");
         cx.run_until_parked();
-        let later: Vec<_> = cx.update(|cx| {
-            blocks
-                .iter()
-                .zip(&slots)
-                .map(|(b, s)| highlight("python", b, s.clone(), cx).is_some())
-                .collect()
-        });
+        let later: Vec<_> =
+            cx.update(|cx| blocks.iter().zip(&slots).map(|(b, s)| highlight("python", b, s.clone(), cx).is_some()).collect());
         assert!(later.iter().all(|&drawn| drawn), "all landed after it");
     }
 
@@ -282,23 +202,13 @@ mod app {
     #[gpui_kit::test]
     fn a_new_text_drops_the_parse_of_the_one_before(cx: &mut TestAppContext) {
         setup(cx);
-        let versions: Vec<String> = (1..=50)
-            .map(|n| (0..n).map(|i| format!("x{i} = {i}\n")).collect())
-            .collect();
+        let versions: Vec<String> = (1..=50).map(|n| (0..n).map(|i| format!("x{i} = {i}\n")).collect()).collect();
         for text in &versions {
             cx.update(|cx| highlight("python", text, slot("stream"), cx));
         }
         cx.run_until_parked();
-        let parsed = cx.update(|cx| {
-            cx.global::<SyntaxCache>()
-                .parsed
-                .load(std::sync::atomic::Ordering::Relaxed)
-        });
+        let parsed = cx.update(|cx| cx.global::<SyntaxCache>().parsed.load(std::sync::atomic::Ordering::Relaxed));
         assert!(parsed <= 2, "{parsed} of 50 versions parsed");
-        assert!(
-            cx.update(|cx| highlight("python", versions.last().unwrap(), slot("stream"), cx))
-                .is_some(),
-            "the last one landed"
-        );
+        assert!(cx.update(|cx| highlight("python", versions.last().unwrap(), slot("stream"), cx)).is_some(), "the last one landed");
     }
 }

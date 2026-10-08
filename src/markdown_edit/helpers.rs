@@ -6,11 +6,7 @@ use super::types::Format;
 pub fn apply(text: &str, chosen: Range<usize>, format: Format) -> (String, Range<usize>) {
     let wrap = |open: &str, close: &str| {
         let inner = &text[chosen.clone()];
-        let out = format!(
-            "{}{open}{inner}{close}{}",
-            &text[..chosen.start],
-            &text[chosen.end..]
-        );
+        let out = format!("{}{open}{inner}{close}{}", &text[..chosen.start], &text[chosen.end..]);
         let start = chosen.start + open.len();
         (out, start..start + inner.len())
     };
@@ -31,13 +27,8 @@ pub fn apply(text: &str, chosen: Range<usize>, format: Format) -> (String, Range
 /// Puts `mark` at the start of every line `chosen` touches.
 fn mark_lines(text: &str, chosen: Range<usize>, mark: &str) -> (String, Range<usize>) {
     let first = text[..chosen.start].rfind('\n').map_or(0, |i| i + 1);
-    let last = text[chosen.end..]
-        .find('\n')
-        .map_or(text.len(), |i| chosen.end + i);
-    let lines: Vec<String> = text[first..last]
-        .split('\n')
-        .map(|l| format!("{mark}{l}"))
-        .collect();
+    let last = text[chosen.end..].find('\n').map_or(text.len(), |i| chosen.end + i);
+    let lines: Vec<String> = text[first..last].split('\n').map(|l| format!("{mark}{l}")).collect();
     let marked = lines.join("\n");
     let added = marked.len() - (last - first);
     let out = format!("{}{marked}{}", &text[..first], &text[last..]);

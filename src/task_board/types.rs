@@ -15,8 +15,5 @@ pub enum TaskBoardEvent {
     /// `c`: the reader wants a new task.
     NewTask,
     /// A card was dropped on another column. The board has applied the change to its own copy.
-    Changed {
-        ids: Vec<SharedString>,
-        change: Change,
-    },
+    Changed { ids: Vec<SharedString>, change: Change },
 }

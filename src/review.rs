@@ -13,10 +13,7 @@
 
 use std::rc::Rc;
 
-use gpui_kit::{
-    App, FocusHandle, InteractiveElement, KeyBinding, KeyDownEvent, SharedString, Window,
-    base::input,
-};
+use gpui_kit::{App, FocusHandle, InteractiveElement, KeyBinding, KeyDownEvent, SharedString, Window, base::input};
 
 use crate::{
     inline_review::{Decision, InlineHunk},
@@ -55,40 +52,17 @@ pub(crate) fn bind_keys(cx: &mut App) {
 
 /// The caps for the review's own keys, which GitQuiet's table has no command for.
 pub mod caps {
-    pub const ACCEPT_FILE: &str = if cfg!(target_os = "macos") {
-        "⌘⇧↵"
-    } else {
-        "⌃⇧↵"
-    };
-    pub const REJECT_FILE: &str = if cfg!(target_os = "macos") {
-        "⌘⇧⌫"
-    } else {
-        "⌃⇧⌫"
-    };
-    pub const ACCEPT_ALL: &str = if cfg!(target_os = "macos") {
-        "⌘⌥↵"
-    } else {
-        "⌃⌥↵"
-    };
-    pub const REJECT_ALL: &str = if cfg!(target_os = "macos") {
-        "⌘⌥⌫"
-    } else {
-        "⌃⌥⌫"
-    };
-    pub const SWITCH_SCOPE: &str = if cfg!(target_os = "macos") {
-        "⌘⇧T"
-    } else {
-        "⌃⇧T"
-    };
+    pub const ACCEPT_FILE: &str = if cfg!(target_os = "macos") { "⌘⇧↵" } else { "⌃⇧↵" };
+    pub const REJECT_FILE: &str = if cfg!(target_os = "macos") { "⌘⇧⌫" } else { "⌃⇧⌫" };
+    pub const ACCEPT_ALL: &str = if cfg!(target_os = "macos") { "⌘⌥↵" } else { "⌃⌥↵" };
+    pub const REJECT_ALL: &str = if cfg!(target_os = "macos") { "⌘⌥⌫" } else { "⌃⌥⌫" };
+    pub const SWITCH_SCOPE: &str = if cfg!(target_os = "macos") { "⌘⇧T" } else { "⌃⇧T" };
 }
 
 /// `word` with its first letter in capitals: "seen" reads "Seen".
 fn capitalized(word: &str) -> String {
     let mut chars = word.chars();
-    chars
-        .next()
-        .map(|c| c.to_uppercase().chain(chars).collect())
-        .unwrap_or_default()
+    chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default()
 }
 /// How far a review has come.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -133,19 +107,11 @@ impl ReviewProgress {
 
     /// The count with no word after it, for the narrowest bar: "1/254", "All 254".
     pub fn count_text(&self) -> SharedString {
-        if self.is_done() && self.files > 1 {
-            format!("All {}", self.files).into()
-        } else {
-            format!("{}/{}", self.reviewed, self.files).into()
-        }
+        if self.is_done() && self.files > 1 { format!("All {}", self.files).into() } else { format!("{}/{}", self.reviewed, self.files).into() }
     }
 
     pub fn fraction(&self) -> f32 {
-        if self.files == 0 {
-            0.
-        } else {
-            self.reviewed.min(self.files) as f32 / self.files as f32
-        }
+        if self.files == 0 { 0. } else { self.reviewed.min(self.files) as f32 / self.files as f32 }
     }
 
     pub fn is_done(&self) -> bool {
@@ -160,20 +126,13 @@ impl ReviewProgress {
 
 /// The file `by` steps from `current` in `order`: 1 for Next, -1 for Previous. With no current file,
 /// Next starts at the first and Previous at the last. `None` past either end.
-pub fn step(
-    order: &[SharedString],
-    current: Option<&SharedString>,
-    by: isize,
-) -> Option<SharedString> {
+pub fn step(order: &[SharedString], current: Option<&SharedString>, by: isize) -> Option<SharedString> {
     let at = match current.and_then(|c| order.iter().position(|p| p == c)) {
         Some(at) => at as isize + by,
         None if by > 0 => 0,
         None => order.len() as isize - 1,
     };
-    usize::try_from(at)
-        .ok()
-        .and_then(|at| order.get(at))
-        .cloned()
+    usize::try_from(at).ok().and_then(|at| order.get(at)).cloned()
 }
 
 /// The same decision for every hunk of a file, for [`crate::inline_review::apply`].
@@ -289,11 +248,7 @@ impl ReviewHandlers {
     /// in a read-only one, where nothing is being typed, it is the review's Escape at once.
     pub fn keys<E: InteractiveElement>(&self, pane: E, focus: &FocusHandle) -> E {
         let (accept, reject) = (self.on_accept_file.clone(), self.on_reject_file.clone());
-        let (accept_all, reject_all, switch) = (
-            self.on_accept_all.clone(),
-            self.on_reject_all.clone(),
-            self.on_switch_scope.clone(),
-        );
+        let (accept_all, reject_all, switch) = (self.on_accept_all.clone(), self.on_reject_all.clone(), self.on_switch_scope.clone());
         let handlers = self.clone();
         let pane_focus = focus.clone();
         let dismiss = self.on_dismiss.clone();
@@ -306,9 +261,7 @@ impl ReviewHandlers {
                 if !press.secondary && keys::typing(window) {
                     return;
                 }
-                let Some(command) = keys::read_now(&press, cx) else {
-                    return;
-                };
+                let Some(command) = keys::read_now(&press, cx) else { return };
                 if event.is_held && !keys::held_down(command) {
                     return;
                 }

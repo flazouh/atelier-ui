@@ -3,10 +3,10 @@ use gpui_kit::{
     Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::segment_corners;
-use super::types::SEAM;
-use crate::button::{Button, ButtonSize, ButtonVariant};
 use crate::scale::px;
+use crate::button::{Button, ButtonSize, ButtonVariant};
+use super::types::SEAM;
+use super::helpers::segment_corners;
 
 #[derive(IntoElement)]
 pub struct ButtonGroup {
@@ -20,14 +20,7 @@ pub struct ButtonGroup {
 
 impl ButtonGroup {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self {
-            id: id.into(),
-            children: Vec::new(),
-            variant: ButtonVariant::default(),
-            size: ButtonSize::default(),
-            layout: Axis::Horizontal,
-            fit: false,
-        }
+        Self { id: id.into(), children: Vec::new(), variant: ButtonVariant::default(), size: ButtonSize::default(), layout: Axis::Horizontal, fit: false }
     }
 
     pub fn child(mut self, child: Button) -> Self {
@@ -78,17 +71,8 @@ impl RenderOnce for ButtonGroup {
             .when(vertical, |d| d.flex_col())
             .when(!vertical, |d| d.items_center())
             .gap(px(SEAM))
-            .children(
-                self.children
-                    .into_iter()
-                    .enumerate()
-                    .map(move |(i, child)| {
-                        child
-                            .variant(variant)
-                            .size(size)
-                            .corners(segment_corners(i, len, layout))
-                            .focusable(true)
-                    }),
-            )
+            .children(self.children.into_iter().enumerate().map(move |(i, child)| {
+                child.variant(variant).size(size).corners(segment_corners(i, len, layout)).focusable(true)
+            }))
     }
 }

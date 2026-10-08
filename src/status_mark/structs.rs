@@ -42,11 +42,7 @@ impl Mark {
 
     /// A solid disc in `color`, with any glyph knocked out in `page`.
     pub fn filled(color: Hsla, page: Hsla) -> Self {
-        Self {
-            fill_alpha: 1.,
-            glyph: Some(page),
-            ..Self::none(color)
-        }
+        Self { fill_alpha: 1., glyph: Some(page), ..Self::none(color) }
     }
 
     pub fn check(mut self, amount: f32) -> Self {
@@ -80,11 +76,6 @@ impl StatusMark {
 impl RenderOnce for StatusMark {
     fn render(self, _window: &mut Window, _cx: &mut App) -> impl IntoElement {
         let mark = self.mark;
-        canvas(
-            |_, _, _| {},
-            move |bounds, _, window, _| paint(bounds, mark, window),
-        )
-        .size(self.size)
-        .flex_none()
+        canvas(|_, _, _| {}, move |bounds, _, window, _| paint(bounds, mark, window)).size(self.size).flex_none()
     }
 }

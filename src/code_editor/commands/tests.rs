@@ -40,10 +40,7 @@ fn applied(text: &str, edit: &Edit) -> String {
 
 fn run(source: &str, command: impl Fn(&str, &[Range<usize>]) -> Option<Edit>) -> String {
     let (text, selections) = marked(source);
-    applied(
-        &text,
-        &command(&text, &selections).expect("the command applies"),
-    )
+    applied(&text, &command(&text, &selections).expect("the command applies"))
 }
 
 fn comment(text: &str, selections: &[Range<usize>]) -> Option<Edit> {
@@ -63,55 +60,30 @@ fn a_selection_that_ends_at_a_line_start_leaves_that_line_out() {
     let text = "a\nbb\ncc\nd";
     assert_eq!(line_span(text, &(2..8)), 2..7, "lines 2 and 3, not 4");
     assert_eq!(line_span(text, &(3..3)), 2..4, "a caret takes its own line");
-    assert_eq!(
-        line_span(text, &(9..9)),
-        8..9,
-        "the last line has no newline"
-    );
+    assert_eq!(line_span(text, &(9..9)), 8..9, "the last line has no newline");
 }
 
 #[test]
 fn home_goes_to_the_indent_then_to_column_zero_for_every_caret() {
     let (text, carets) = marked("fn a() {\n    let x| = 1;\n    |y\n}");
-    assert_eq!(
-        smart_home(&text, &carets),
-        vec![13..13, 24..24],
-        "one goes to its indent, one already there to column zero"
-    );
-    assert_eq!(
-        smart_home(&text, &[13..13]),
-        vec![9..9],
-        "second press: column zero"
-    );
-    assert_eq!(
-        smart_home(&text, &[9..9]),
-        vec![13..13],
-        "third press: back to the indent"
-    );
+    assert_eq!(smart_home(&text, &carets), vec![13..13, 24..24], "one goes to its indent, one already there to column zero");
+    assert_eq!(smart_home(&text, &[13..13]), vec![9..9], "second press: column zero");
+    assert_eq!(smart_home(&text, &[9..9]), vec![13..13], "third press: back to the indent");
 }
 
 #[test]
 fn a_comment_goes_in_at_the_caret_line_and_the_caret_keeps_its_place() {
-    assert_eq!(
-        run("fn a() {\n    le|t x = 1;\n}", comment),
-        "fn a() {\n    // le|t x = 1;\n}"
-    );
+    assert_eq!(run("fn a() {\n    le|t x = 1;\n}", comment), "fn a() {\n    // le|t x = 1;\n}");
 }
 
 #[test]
 fn a_block_is_commented_at_its_shallowest_indent_and_blank_lines_are_skipped() {
-    assert_eq!(
-        run("[    if a {\n\n        b();\n    }]", comment),
-        "[    // if a {\n\n    //     b();\n    // }]"
-    );
+    assert_eq!(run("[    if a {\n\n        b();\n    }]", comment), "[    // if a {\n\n    //     b();\n    // }]");
 }
 
 #[test]
 fn a_block_that_is_all_comments_is_uncommented() {
-    assert_eq!(
-        run("[    // if a {\n    //     b();\n    // }]", comment),
-        "[    if a {\n        b();\n    }]"
-    );
+    assert_eq!(run("[    // if a {\n    //     b();\n    // }]", comment), "[    if a {\n        b();\n    }]");
 }
 
 #[test]
@@ -139,11 +111,7 @@ fn only_blank_lines_have_nothing_to_comment() {
 #[test]
 fn every_cursor_comments_its_own_line_in_one_edit() {
     assert_eq!(run("a|\nb\nc|", comment), "// a|\nb\n// c|");
-    assert_eq!(
-        run("// a|\nb\n// c|", comment),
-        "a|\nb\nc|",
-        "all commented, so all uncommented"
-    );
+    assert_eq!(run("// a|\nb\n// c|", comment), "a|\nb\nc|", "all commented, so all uncommented");
 }
 
 #[test]
@@ -153,26 +121,17 @@ fn two_cursors_on_one_line_comment_it_once() {
 
 #[test]
 fn a_line_moves_up_past_its_neighbour_and_the_caret_rides_along() {
-    assert_eq!(
-        run("one\ntw|o\nthree", |t, s| move_lines(t, s, true)),
-        "tw|o\none\nthree"
-    );
+    assert_eq!(run("one\ntw|o\nthree", |t, s| move_lines(t, s, true)), "tw|o\none\nthree");
 }
 
 #[test]
 fn a_block_moves_down_past_its_neighbour() {
-    assert_eq!(
-        run("[one\ntwo]\nthree", |t, s| move_lines(t, s, false)),
-        "three\n[one\ntwo]"
-    );
+    assert_eq!(run("[one\ntwo]\nthree", |t, s| move_lines(t, s, false)), "three\n[one\ntwo]");
 }
 
 #[test]
 fn separate_cursors_each_move_their_own_line() {
-    assert_eq!(
-        run("a\nb|\nc\nd|", |t, s| move_lines(t, s, true)),
-        "b|\na\nd|\nc"
-    );
+    assert_eq!(run("a\nb|\nc\nd|", |t, s| move_lines(t, s, true)), "b|\na\nd|\nc");
 }
 
 #[test]
@@ -182,32 +141,20 @@ fn nothing_moves_past_the_top_or_the_bottom() {
     let (text, carets) = marked("one\ntw|o");
     assert_eq!(move_lines(&text, &carets, false), None);
     let (text, carets) = marked("o|ne\ntwo\nth|ree");
-    assert_eq!(
-        move_lines(&text, &carets, true),
-        None,
-        "one block at the top holds every block"
-    );
+    assert_eq!(move_lines(&text, &carets, true), None, "one block at the top holds every block");
 }
 
 #[test]
 fn a_duplicate_goes_below_and_takes_the_caret() {
     assert_eq!(run("a\nb|b\nc", duplicate_lines), "a\nbb\nb|b\nc");
     assert_eq!(run("[a\nb]", duplicate_lines), "a\nb\n[a\nb]");
-    assert_eq!(
-        run("a|\nb\nc|", duplicate_lines),
-        "a\na|\nb\nc\nc|",
-        "each cursor duplicates its line"
-    );
+    assert_eq!(run("a|\nb\nc|", duplicate_lines), "a\na|\nb\nc\nc|", "each cursor duplicates its line");
 }
 
 #[test]
 fn a_deleted_line_hands_its_column_to_the_next_line() {
     assert_eq!(run("one\ntw|o\nthree", delete_lines), "one\nth|ree");
-    assert_eq!(
-        run("one\ntwo|two\nx", delete_lines),
-        "one\nx|",
-        "a short next line clamps the column"
-    );
+    assert_eq!(run("one\ntwo|two\nx", delete_lines), "one\nx|", "a short next line clamps the column");
 }
 
 #[test]
@@ -218,39 +165,22 @@ fn deleting_the_last_line_takes_the_newline_before_it() {
 
 #[test]
 fn separate_cursors_each_delete_their_own_line() {
-    assert_eq!(
-        run("a|\nb\nc|\nd", delete_lines),
-        "b|\nd|",
-        "each keeps its column on the line that slid up"
-    );
+    assert_eq!(run("a|\nb\nc|\nd", delete_lines), "b|\nd|", "each keeps its column on the line that slid up");
 }
 
 #[test]
 fn copy_with_nothing_selected_takes_every_caret_line_once() {
     let (text, carets) = marked("one\ntw|o\nthree");
-    assert_eq!(
-        whole_lines(&text, &carets),
-        (vec![4..8], "two\n".to_string())
-    );
+    assert_eq!(whole_lines(&text, &carets), (vec![4..8], "two\n".to_string()));
     let (text, carets) = marked("one\ntw|o");
-    assert_eq!(
-        whole_lines(&text, &carets),
-        (vec![4..7], "two\n".to_string()),
-        "the last line copies as a line"
-    );
+    assert_eq!(whole_lines(&text, &carets), (vec![4..7], "two\n".to_string()), "the last line copies as a line");
     let (text, carets) = marked("o|n|e\ntwo\nthr|ee");
-    assert_eq!(
-        whole_lines(&text, &carets),
-        (vec![0..4, 8..13], "one\nthree\n".to_string())
-    );
+    assert_eq!(whole_lines(&text, &carets), (vec![0..4, 8..13], "one\nthree\n".to_string()));
 }
 
 #[test]
 fn a_whole_line_pastes_above_the_caret_line() {
-    assert_eq!(
-        run("one\ntw|o", |t, s| whole_line_paste(t, s, "new\n")),
-        "one\nnew\ntw|o"
-    );
+    assert_eq!(run("one\ntw|o", |t, s| whole_line_paste(t, s, "new\n")), "one\nnew\ntw|o");
     assert_eq!(
         run("o|n|e\ntw|o", |t, s| whole_line_paste(t, s, "new\n")),
         "new\no|n|e\nnew\ntw|o",

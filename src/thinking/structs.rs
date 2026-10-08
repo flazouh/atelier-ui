@@ -1,18 +1,10 @@
-use std::{
-    rc::Rc,
-    time::{Duration, Instant},
-};
+use std::{rc::Rc, time::{Duration, Instant}};
 
 use gpui_kit::{
     App, ElementId, Hsla, IntoElement, ParentElement, RenderOnce, SharedString, Styled, StyledText,
     Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::{
-    breath_opacity, label, label_color, loading_strip, mark_strip, next_label_change_s, roll,
-    segment_text, tasks_text, tokens_text,
-};
-use super::types::{Shimmer, ThinkingPhase, ThinkingStyle};
 use crate::scale::px;
 use crate::{
     agent_look::AgentLook,
@@ -24,6 +16,11 @@ use crate::{
     theme::ActiveTheme,
     typography::{SEGMENT_GAP, TextSize},
     wake::Wake,
+};
+use super::types::{Shimmer, ThinkingPhase, ThinkingStyle};
+use super::helpers::{
+    breath_opacity, label, label_color, loading_strip, mark_strip, next_label_change_s, roll,
+    segment_text, tasks_text, tokens_text,
 };
 
 #[derive(IntoElement)]
@@ -126,11 +123,7 @@ impl RenderOnce for Thinking {
                 grow: [None, None, None],
             }
         });
-        let segments: [Option<SharedString>; 3] = [
-            self.elapsed,
-            self.tokens.map(tokens_text),
-            self.tasks.map(tasks_text),
-        ];
+        let segments: [Option<SharedString>; 3] = [self.elapsed, self.tokens.map(tokens_text), self.tasks.map(tasks_text)];
         let (elapsed_ms, since_label_ms, grow, picked) = motion.update(cx, |m, _| {
             if m.label != text {
                 m.label = text.clone();
@@ -144,29 +137,18 @@ impl RenderOnce for Thinking {
                 }
                 let channel = slot.get_or_insert_with(|| {
                     let mut c = Channel::new(0.);
-                    c.animate(
-                        1.,
-                        Curve::Ease(duration::MORPH.as_secs_f32(), ease::MORPH),
-                        0.,
-                        reduce,
-                    );
+                    c.animate(1., Curve::Ease(duration::MORPH.as_secs_f32(), ease::MORPH), 0., reduce);
                     c
                 });
                 channel.is_running().then(|| channel.value())
             });
-            (
-                m.start.elapsed().as_millis() as u64,
-                m.label_start.elapsed().as_millis() as u64,
-                grow,
-                m.roll,
-            )
+            (m.start.elapsed().as_millis() as u64, m.label_start.elapsed().as_millis() as u64, grow, m.roll)
         });
 
         // When the next change is due. The thinking breath and the smooth glimmer band would
         // otherwise ask for every display frame; capping their wake to REPAINT_CAP (30fps) is plenty
         // for an opacity fade or a band gliding a few px, and it lets several rows share one redraw.
-        let mut next: Option<Duration> =
-            next_label_change_s(&self.look.labels, phase, elapsed_s).map(Duration::from_secs_f32);
+        let mut next: Option<Duration> = next_label_change_s(&self.look.labels, phase, elapsed_s).map(Duration::from_secs_f32);
         let (message, glimmer_color) = (self.look.message, self.look.glimmer);
         let mut soonest = |wait: Duration| next = Some(next.map_or(wait, |n| n.min(wait)));
         let mut opacity = 1.;
@@ -174,29 +156,15 @@ impl RenderOnce for Thinking {
         let highlights = match self.style {
             _ if done => None,
             // The CLI sets the index to -100 under Reduce Motion, so nothing lights.
-            ThinkingStyle::Shimmer(_) if reduce => Some(glimmer::glimmer_highlights(
-                &text,
-                message,
-                glimmer_color,
-                |_| 0.,
-            )),
+            ThinkingStyle::Shimmer(_) if reduce => Some(glimmer::glimmer_highlights(&text, message, glimmer_color, |_| 0.)),
             ThinkingStyle::Breath if reduce => None,
             ThinkingStyle::Shimmer(Shimmer::Stepped) => {
                 let index = glimmer::glimmer_index(elapsed_ms, width, requesting);
                 let step = glimmer::step_ms(requesting);
                 soonest(Duration::from_millis(step - elapsed_ms % step));
-                Some(glimmer::glimmer_highlights(
-                    &text,
-                    message,
-                    glimmer_color,
-                    |g| {
-                        if glimmer::stepped_lit(g, index) {
-                            1.
-                        } else {
-                            0.
-                        }
-                    },
-                ))
+                Some(glimmer::glimmer_highlights(&text, message, glimmer_color, |g| {
+                    if glimmer::stepped_lit(g, index) { 1. } else { 0. }
+                }))
             }
             // Cursor's band is a CSS animation, which runs at the display's rate, so it asks for every frame.
             ThinkingStyle::Shimmer(Shimmer::Cursor) => {
@@ -213,12 +181,7 @@ impl RenderOnce for Thinking {
                     wait => soonest(Duration::from_millis(wait)),
                 }
                 let center = glimmer::glimmer_center(elapsed_ms, width, requesting);
-                Some(glimmer::glimmer_highlights(
-                    &text,
-                    message,
-                    glimmer_color,
-                    |g| glimmer::glimmer_weight(g, center),
-                ))
+                Some(glimmer::glimmer_highlights(&text, message, glimmer_color, |g| glimmer::glimmer_weight(g, center)))
             }
             ThinkingStyle::Breath => {
                 let delay = duration::BREATH_DELAY.as_millis() as u64;
@@ -239,11 +202,7 @@ impl RenderOnce for Thinking {
             None => m.wake.cancel(),
         });
 
-        let label_color = label_color(
-            &self.look,
-            !done && (highlights.is_some() || ink.is_some()),
-            muted,
-        );
+        let label_color = label_color(&self.look, !done && (highlights.is_some() || ink.is_some()), muted);
         let label_key = text.clone();
         // A moving label is a GlyphText, so its letters keep their places while their colors move.
         let label_el = move |_: &mut Window, _: &mut App| match (&highlights, &ink) {
@@ -253,9 +212,7 @@ impl RenderOnce for Thinking {
                 .when_some(ink.clone(), GlyphText::ink)
                 .into_any_element(),
         };
-        let child = |name: &'static str| {
-            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), name.into())
-        };
+        let child = |name: &'static str| ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), name.into());
         let segment_names = ["elapsed", "tokens", "tasks"];
         let segment_style = {
             let mut style = window.text_style();
@@ -276,14 +233,10 @@ impl RenderOnce for Thinking {
             .children((!done).then(|| {
                 let mark = &self.look.mark;
                 let strip = match mark_strip(mark, done, self.subagents) {
-                    working if working == mark.working => {
-                        loading_strip(&self.loading, working, picked)
-                    }
+                    working if working == mark.working => loading_strip(&self.loading, working, picked),
                     orbiting => orbiting,
                 };
-                mark.sprite(child("spark"), strip)
-                    .size(px(18.))
-                    .playing(true)
+                mark.sprite(child("spark"), strip).size(px(18.)).playing(true)
             }))
             .child(
                 div()
@@ -291,48 +244,24 @@ impl RenderOnce for Thinking {
                     .items_center()
                     .gap(px(SEGMENT_GAP))
                     .whitespace_nowrap()
-                    .child(
-                        div()
-                            .opacity(opacity)
-                            .text_color(label_color)
-                            .child(Morph::new(child("label"), label_key, label_el)),
-                    )
-                    .children(
-                        segments
-                            .into_iter()
-                            .zip(segment_names)
-                            .zip(grow)
-                            .filter_map(|((segment, name), grow)| {
-                                let segment = segment_text(&segment?);
-                                // A new segment grows from no width to its own over the morph's 180ms.
-                                let width = grow.map(|p| {
-                                    let run = segment_style.to_run(segment.len());
-                                    let full = window
-                                        .text_system()
-                                        .shape_line(
-                                            segment.clone(),
-                                            TextSize::Xs.font_size(),
-                                            &[run],
-                                            None,
-                                        )
-                                        .width;
-                                    full * p
-                                });
-                                let key = segment.clone();
-                                Some(
-                                    div()
-                                        .flex_none()
-                                        .whitespace_nowrap()
-                                        .when_some(width, |d, w| d.w(w).overflow_hidden())
-                                        .child(
-                                            Morph::new(child(name), key, move |_, _| {
-                                                segment.clone().into_any_element()
-                                            })
-                                            .enter(true),
-                                        ),
-                                )
-                            }),
-                    ),
+                    .child(div().opacity(opacity).text_color(label_color).child(Morph::new(child("label"), label_key, label_el)))
+                    .children(segments.into_iter().zip(segment_names).zip(grow).filter_map(|((segment, name), grow)| {
+                        let segment = segment_text(&segment?);
+                        // A new segment grows from no width to its own over the morph's 180ms.
+                        let width = grow.map(|p| {
+                            let run = segment_style.to_run(segment.len());
+                            let full = window.text_system().shape_line(segment.clone(), TextSize::Xs.font_size(), &[run], None).width;
+                            full * p
+                        });
+                        let key = segment.clone();
+                        Some(
+                            div()
+                                .flex_none()
+                                .whitespace_nowrap()
+                                .when_some(width, |d, w| d.w(w).overflow_hidden())
+                                .child(Morph::new(child(name), key, move |_, _| segment.clone().into_any_element()).enter(true)),
+                        )
+                    })),
             )
     }
 }

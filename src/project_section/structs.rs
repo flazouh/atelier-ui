@@ -6,10 +6,7 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::helpers::{chip, connection_words, unavailable};
-use super::types::{Chooser, Handler, MENU_ORIGIN, MenuChoice};
 use crate::scale::px;
-pub use crate::session_row::ROW_HEIGHT;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
@@ -20,6 +17,9 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
+pub use crate::session_row::ROW_HEIGHT;
+use super::types::{Chooser, Handler, MENU_ORIGIN, MenuChoice};
+use super::helpers::{chip, connection_words, unavailable};
 
 #[derive(IntoElement)]
 pub struct ProjectSection {
@@ -126,11 +126,7 @@ impl RenderOnce for ProjectSection {
                         .icon(choice.icon())
                         .debug_name(format!("project-menu-{}", choice.words()))
                         .disabled(off.is_some())
-                        .tone(if choice == MenuChoice::Close {
-                            Tone::Destructive
-                        } else {
-                            Tone::Default
-                        })
+                        .tone(if choice == MenuChoice::Close { Tone::Destructive } else { Tone::Default })
                         .on_select(move |window, cx| {
                             if let Some(choose) = &choose {
                                 choose(choice, window, cx);
@@ -150,9 +146,7 @@ impl RenderOnce for ProjectSection {
                 })
                 .collect();
             let rows = entries.len();
-            let panel = Menu::new((id.clone(), "menu-panel"), entries)
-                .look(menu::MenuLook::PROJECT)
-                .origin(MENU_ORIGIN);
+            let panel = Menu::new((id.clone(), "menu-panel"), entries).look(menu::MenuLook::PROJECT).origin(MENU_ORIGIN);
             let close = self.on_menu_close.clone().or_else(|| self.on_menu.clone());
             Popover::new((id.clone(), "menu"))
                 .open(true)
@@ -183,36 +177,15 @@ impl RenderOnce for ProjectSection {
             .text_size(TextSize::Sm.font_size())
             .when(self.selected, |d| d.bg(theme.card_strong))
             .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
-            .when_some(self.on_toggle, |d, toggle| {
-                d.on_click(move |_, window, cx| toggle(window, cx))
-            })
-            .when_some(menu_handler, |d, open| {
-                d.on_mouse_down(MouseButton::Right, move |_, window, cx| open(window, cx))
-            })
+            .when_some(self.on_toggle, |d, toggle| d.on_click(move |_, window, cx| toggle(window, cx)))
+            .when_some(menu_handler, |d, open| d.on_mouse_down(MouseButton::Right, move |_, window, cx| open(window, cx)))
             .child(
-                Icon::new(if self.expanded {
-                    IconName::ChevronDown
-                } else {
-                    IconName::ChevronRight
-                })
-                .size(px(16.))
-                .color(muted),
+                Icon::new(if self.expanded { IconName::ChevronDown } else { IconName::ChevronRight })
+                    .size(px(16.))
+                    .color(muted),
             )
-            .child(
-                crate::project_badge::ProjectBadge::new(
-                    project.badge.label.clone(),
-                    project.badge.color,
-                )
-                .icon(project.badge.icon.clone()),
-            )
-            .child(
-                div()
-                    .min_w_0()
-                    .max_w(px(160.))
-                    .truncate()
-                    .font_weight(FontWeight::MEDIUM)
-                    .child(project.name),
-            )
+            .child(crate::project_badge::ProjectBadge::new(project.badge.label.clone(), project.badge.color).icon(project.badge.icon.clone()))
+            .child(div().min_w_0().max_w(px(160.)).truncate().font_weight(FontWeight::MEDIUM).child(project.name))
             .when_some(host, |d, host| d.child(chip(host, &theme)))
             .child(div().flex_1())
             .when_some(words, |d, words| {
@@ -226,14 +199,9 @@ impl RenderOnce for ProjectSection {
                         .text_size(TextSize::Xs.font_size())
                         .text_color(if offline { theme.danger } else { muted })
                         .child(if offline {
-                            Icon::new(IconName::Error)
-                                .size(px(12.))
-                                .color(theme.danger)
-                                .into_any_element()
+                            Icon::new(IconName::Error).size(px(12.)).color(theme.danger).into_any_element()
                         } else {
-                            Spinner::new((id.clone(), "connecting"))
-                                .size(px(12.))
-                                .into_any_element()
+                            Spinner::new((id.clone(), "connecting")).size(px(12.)).into_any_element()
                         })
                         .child(words),
                 )

@@ -11,11 +11,7 @@ pub(super) const WIDTH: f32 = 576.;
 pub(super) const ROW_HEIGHT: f32 = crate::combobox::ROW_HEIGHT;
 
 /// The panel's entrance spring: it opens many times a day, so it reads as instant.
-pub(super) const ENTER: Spring = Spring {
-    stiffness: 560.,
-    damping: 40.,
-    mass: 0.5,
-};
+pub(super) const ENTER: Spring = Spring { stiffness: 560., damping: 40., mass: 0.5 };
 
 /// Who narrows the rows as the words change.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

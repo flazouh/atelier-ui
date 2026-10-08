@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use gpui_kit::{Hsla, SharedString};
 
-use super::helpers::disc_for;
 use crate::{icon::IconName, theme::Theme};
+use super::helpers::disc_for;
 
 /// The stack is at most this wide (`max-w-sm`), and 16px short of the window's width when that is less.
 pub(super) const MAX_WIDTH: f32 = 384.;
@@ -128,10 +128,7 @@ impl ToastPosition {
     }
 
     pub(super) fn bottom(self) -> bool {
-        matches!(
-            self,
-            ToastPosition::BottomLeft | ToastPosition::BottomCenter | ToastPosition::BottomRight
-        )
+        matches!(self, ToastPosition::BottomLeft | ToastPosition::BottomCenter | ToastPosition::BottomRight)
     }
 }
 

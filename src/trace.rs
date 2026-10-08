@@ -6,12 +6,7 @@ use std::{sync::OnceLock, time::Instant};
 
 fn state() -> &'static (bool, Instant) {
     static ON: OnceLock<(bool, Instant)> = OnceLock::new();
-    ON.get_or_init(|| {
-        (
-            std::env::var_os("BEUI_TRACE_MOTION").is_some(),
-            Instant::now(),
-        )
-    })
+    ON.get_or_init(|| (std::env::var_os("BEUI_TRACE_MOTION").is_some(), Instant::now()))
 }
 
 /// Whether tracing is on.
@@ -23,9 +18,6 @@ pub fn on() -> bool {
 pub fn motion(name: &str, what: &str) {
     let (on, epoch) = state();
     if *on {
-        eprintln!(
-            "trace {:>9.1} ms  {name} {what}",
-            epoch.elapsed().as_secs_f64() * 1000.
-        );
+        eprintln!("trace {:>9.1} ms  {name} {what}", epoch.elapsed().as_secs_f64() * 1000.);
     }
 }

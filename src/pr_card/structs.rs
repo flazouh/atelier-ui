@@ -5,8 +5,6 @@ use gpui_kit::{
     SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::link_actions;
-use super::types::PrHandler;
 use crate::scale::px;
 use crate::{
     copy_feedback::CopyFeedback,
@@ -19,6 +17,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::types::PrHandler;
+use super::helpers::link_actions;
 
 #[derive(IntoElement)]
 pub struct PrCard {
@@ -53,10 +53,7 @@ impl PrCard {
         self
     }
 
-    pub fn on_merge(
-        mut self,
-        f: impl Fn(crate::merge::Action, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_merge(mut self, f: impl Fn(crate::merge::Action, &mut Window, &mut App) + 'static) -> Self {
         self.on_merge = Some(Rc::new(f));
         self
     }
@@ -76,10 +73,7 @@ impl PrCard {
         self
     }
 
-    pub fn on_open(
-        mut self,
-        handler: impl Fn(&PrChipData, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_open(mut self, handler: impl Fn(&PrChipData, &mut Window, &mut App) + 'static) -> Self {
         self.on_open = Some(Rc::new(handler));
         self
     }
@@ -99,16 +93,9 @@ impl RenderOnce for PrCard {
         let actions = link_actions(&self.id, &self.pr.url, &state, &theme, window, cx);
         let (pr, on_open) = (self.pr.clone(), self.on_open.clone());
         let group: SharedString = format!("pr-card-{}", self.id).into();
-        let merge = self
-            .merge
-            .filter(|(facts, _)| facts.state == PullState::Open && facts.rights != Rights::Cannot)
-            .map(|(facts, choice)| {
-                let (on_action, on_choice) = (self.on_merge.clone(), self.on_merge_choice.clone());
-                let button = MergeButton::new(
-                    ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "merge".into()),
-                    facts,
-                    choice,
-                )
+        let merge = self.merge.filter(|(facts, _)| facts.state == PullState::Open && facts.rights != Rights::Cannot).map(|(facts, choice)| {
+            let (on_action, on_choice) = (self.on_merge.clone(), self.on_merge_choice.clone());
+            let button = MergeButton::new(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "merge".into()), facts, choice)
                 .on_action(move |action, window, cx| {
                     if let Some(f) = on_action.as_ref() {
                         f(action, window, cx);
@@ -119,15 +106,9 @@ impl RenderOnce for PrCard {
                         f(choice, window, cx);
                     }
                 });
-                // A press on the button is the button's, not the row's.
-                div()
-                    .flex_none()
-                    .ml(px(4.))
-                    .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| {
-                        cx.stop_propagation()
-                    })
-                    .child(button)
-            });
+            // A press on the button is the button's, not the row's.
+            div().flex_none().ml(px(4.)).on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation()).child(button)
+        });
 
         div()
             .id(self.id.clone())
@@ -142,21 +123,8 @@ impl RenderOnce for PrCard {
             .bg(theme.card_strong)
             .text_size(TextSize::Xs.font_size())
             .line_height(TextSize::Xs.line_height())
-            .when_some(on_open, |d, open| {
-                d.cursor_pointer()
-                    .press_stop(
-                        (self.id.clone(), "card-focus"),
-                        crate::theme::radius::md(),
-                        window,
-                        cx,
-                    )
-                    .on_click(move |_, window, cx| open(&pr, window, cx))
-            })
-            .child(
-                Icon::new(self.pr.state.icon())
-                    .size(px(14.))
-                    .color(self.pr.state.color(&theme)),
-            )
+            .when_some(on_open, |d, open| d.cursor_pointer().press_stop((self.id.clone(), "card-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, window, cx| open(&pr, window, cx)))
+            .child(Icon::new(self.pr.state.icon()).size(px(14.)).color(self.pr.state.color(&theme)))
             .child(
                 div()
                     .flex_none()
@@ -165,14 +133,7 @@ impl RenderOnce for PrCard {
                     .text_color(theme.foreground.opacity(0.9))
                     .child(self.pr.label()),
             )
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .truncate()
-                    .text_color(theme.foreground.opacity(0.85))
-                    .child(self.pr.title),
-            )
+            .child(div().flex_1().min_w_0().truncate().text_color(theme.foreground.opacity(0.85)).child(self.pr.title))
             .when(summary != ChecksSummary::None, |d| {
                 d.child(
                     div()
@@ -182,35 +143,15 @@ impl RenderOnce for PrCard {
                         .gap(px(4.))
                         .text_color(summary.color(&theme))
                         .when(summary == ChecksSummary::Running, |d| {
-                            d.child(
-                                Spinner::new(ElementId::NamedChild(
-                                    std::sync::Arc::new(self.id.clone()),
-                                    "checks".into(),
-                                ))
-                                .size(px(12.))
-                                .color(muted),
-                            )
+                            d.child(Spinner::new(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "checks".into())).size(px(12.)).color(muted))
                         })
                         .child(summary.text()),
                 )
             })
             .when(self.review != ReviewState::None, |d| {
-                d.child(
-                    div()
-                        .flex_none()
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(self.review.color(&theme))
-                        .child(self.review.text()),
-                )
+                d.child(div().flex_none().font_weight(FontWeight::MEDIUM).text_color(self.review.color(&theme)).child(self.review.text()))
             })
-            .child(
-                div()
-                    .flex()
-                    .flex_none()
-                    .opacity(0.)
-                    .group_hover(group, |s| s.opacity(1.))
-                    .children(actions),
-            )
+            .child(div().flex().flex_none().opacity(0.).group_hover(group, |s| s.opacity(1.)).children(actions))
             .children(merge)
     }
 }

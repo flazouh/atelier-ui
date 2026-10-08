@@ -15,12 +15,9 @@ pub use types::{SYNTAX_SCOPES, UI_KEYS};
 use helpers::rule_for;
 
 #[cfg(test)]
-use crate::{
-    theme::{Appearance, TEXT_CONTRAST, contrast},
-    theme_file::hex,
-};
-#[cfg(test)]
 use serde_json::Value;
+#[cfg(test)]
+use crate::{theme::{Appearance, TEXT_CONTRAST, contrast}, theme_file::hex};
 
 #[cfg(test)]
 mod tests;

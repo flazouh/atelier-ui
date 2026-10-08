@@ -45,9 +45,5 @@ pub enum Decision {
 /// What the box reports: a verdict to send, about `head_sha`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum VerdictEvent {
-    Send {
-        verb: Verb,
-        note: SharedString,
-        head_sha: SharedString,
-    },
+    Send { verb: Verb, note: SharedString, head_sha: SharedString },
 }

@@ -1,8 +1,8 @@
 use gpui_kit::{Hsla, IntoElement, ParentElement, SharedString, Styled, div};
 
+use crate::scale::px;
 use super::structs::MultiOption;
 use super::types::{EMPTY, GROUP_PAD, LABEL, LIST_PAD, ROW, TRACKING};
-use crate::scale::px;
 
 /// The default filter: every letter of the query, in order, somewhere in the value and the words.
 pub fn matches(query: &str, option: &MultiOption) -> bool {
@@ -10,12 +10,7 @@ pub fn matches(query: &str, option: &MultiOption) -> bool {
     if needle.is_empty() {
         return true;
     }
-    let haystack = std::iter::once(option.value.as_ref())
-        .chain(std::iter::once(option.label.as_ref()))
-        .chain(option.keywords.iter().map(|k| k.as_ref()))
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase();
+    let haystack = std::iter::once(option.value.as_ref()).chain(std::iter::once(option.label.as_ref())).chain(option.keywords.iter().map(|k| k.as_ref())).collect::<Vec<_>>().join(" ").to_lowercase();
     let mut at = 0;
     for c in haystack.chars() {
         if Some(&c) == needle.get(at) {
@@ -35,38 +30,19 @@ pub fn visible<'a>(options: &'a [MultiOption], query: &str) -> Vec<&'a MultiOpti
 
 /// The active option: the one the pointer or the keys last moved to, while the query is the one it was placed
 /// under and it can still be chosen; else the first chosen value that can be; else the first that can be chosen.
-pub fn active<'a>(
-    cursor: Option<&(SharedString, SharedString)>,
-    query: &str,
-    shown: &[&'a MultiOption],
-    values: &[SharedString],
-) -> Option<&'a SharedString> {
+pub fn active<'a>(cursor: Option<&(SharedString, SharedString)>, query: &str, shown: &[&'a MultiOption], values: &[SharedString]) -> Option<&'a SharedString> {
     let enabled: Vec<&MultiOption> = shown.iter().copied().filter(|o| !o.disabled).collect();
-    let live = cursor
-        .filter(|(_, at)| at.as_ref() == query)
-        .and_then(|(value, _)| enabled.iter().find(|o| &o.value == value));
-    live.or_else(|| {
-        values
-            .first()
-            .and_then(|v| enabled.iter().find(|o| &o.value == v))
-    })
-    .or(enabled.first())
-    .map(|o| &o.value)
+    let live = cursor.filter(|(_, at)| at.as_ref() == query).and_then(|(value, _)| enabled.iter().find(|o| &o.value == value));
+    live.or_else(|| values.first().and_then(|v| enabled.iter().find(|o| &o.value == v))).or(enabled.first()).map(|o| &o.value)
 }
 
 /// The value the keys reach from `from`, wrapping round the options that can be chosen.
-pub fn move_active<'a>(
-    from: Option<&SharedString>,
-    shown: &[&'a MultiOption],
-    direction: i32,
-) -> Option<&'a SharedString> {
+pub fn move_active<'a>(from: Option<&SharedString>, shown: &[&'a MultiOption], direction: i32) -> Option<&'a SharedString> {
     let enabled: Vec<&MultiOption> = shown.iter().copied().filter(|o| !o.disabled).collect();
     if enabled.is_empty() {
         return None;
     }
-    let at = from
-        .and_then(|f| enabled.iter().position(|o| &o.value == f))
-        .unwrap_or(0) as i32;
+    let at = from.and_then(|f| enabled.iter().position(|o| &o.value == f)).unwrap_or(0) as i32;
     let n = enabled.len() as i32;
     Some(&enabled[((at + direction).rem_euclid(n)) as usize].value)
 }
@@ -89,16 +65,5 @@ pub fn content_height(shown: &[&MultiOption]) -> f32 {
 }
 
 pub(super) fn tracked(label: &str, size: f32, color: Hsla) -> impl IntoElement {
-    div()
-        .flex()
-        .gap(px(TRACKING))
-        .text_size(px(size))
-        .text_color(color)
-        .children(
-            label
-                .to_uppercase()
-                .chars()
-                .map(|c| div().child(c.to_string()))
-                .collect::<Vec<_>>(),
-        )
+    div().flex().gap(px(TRACKING)).text_size(px(size)).text_color(color).children(label.to_uppercase().chars().map(|c| div().child(c.to_string())).collect::<Vec<_>>())
 }

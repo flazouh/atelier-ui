@@ -1,7 +1,7 @@
 use gpui_kit::{Context, IntoElement, Render, SharedString, Window};
 
-use super::types::{Draw, Layout, PanelContent};
 use crate::{agent_look::AgentLook, session_status::SessionStatus, sidebar_model::Location};
+use super::types::{Draw, Layout, PanelContent};
 
 /// What a panel's project is called and where it lives, for a group header and a tab group.
 #[derive(Clone, Debug, PartialEq, Eq)]

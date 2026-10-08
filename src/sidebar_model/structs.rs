@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use gpui_kit::SharedString;
 
-use super::types::{Connection, Location};
 use crate::{agent_look::AgentLook, session_status::SessionStatus};
+use super::types::{Connection, Location};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SessionData {

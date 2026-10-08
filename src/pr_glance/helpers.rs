@@ -1,30 +1,23 @@
 use std::{sync::Arc, time::Instant};
 
 use gpui_kit::{
-    AnyElement, App, AppContext, Context, Div, ElementId, Entity, FontWeight, HighlightStyle, Hsla,
-    InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled, StyledText,
-    Window, div, prelude::FluentBuilder,
+    AnyElement, App, AppContext, Context, Div, ElementId, Entity, FontWeight, HighlightStyle, Hsla, InteractiveElement, IntoElement, ParentElement,
+    StatefulInteractiveElement, StyledText, Styled, Window, div, prelude::FluentBuilder,
 };
 
-use super::structs::{
-    PrCardStore, PrCards, PrFailing, PrFile, PrGlance, PrGlanceCard, PrKey, PrSession,
-};
-use super::types::{
-    CARD_WIDTH, CONFIRM_FOR, LABEL_WIDTH, PrAction, PrDoing, PrPart, SIZE_SQUARES, TOP_FILES,
-};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
-    pr::{
-        Checks, ChecksSummary, PrChipData, PrFacts, PrReviewer, PrStanding, PrState, ReviewState,
-    },
+    pr::{Checks, ChecksSummary, PrChipData, PrFacts, PrReviewer, PrStanding, PrState, ReviewState},
     pr_card::link_actions,
     sidebar_model::since,
     spinner::Spinner,
     theme::{ActiveTheme, Theme, mix, popover_shadow, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::structs::{PrCardStore, PrCards, PrFailing, PrFile, PrGlance, PrGlanceCard, PrKey, PrSession};
+use super::types::{CARD_WIDTH, CONFIRM_FOR, LABEL_WIDTH, PrAction, PrDoing, PrPart, SIZE_SQUARES, TOP_FILES};
 
 /// The app's one card store, made on first use.
 pub fn pr_cards(cx: &mut App) -> Entity<PrCardStore> {
@@ -75,14 +68,8 @@ pub(super) fn short_path(path: &str, most: usize) -> String {
 fn two_tone(first: String, first_color: Hsla, second: String, second_color: Hsla) -> StyledText {
     let split = first.len();
     let text = format!("{first} {second}");
-    let tone = |color| HighlightStyle {
-        color: Some(color),
-        ..Default::default()
-    };
-    StyledText::new(text.clone()).with_highlights([
-        (0..split, tone(first_color)),
-        (split..text.len(), tone(second_color)),
-    ])
+    let tone = |color| HighlightStyle { color: Some(color), ..Default::default() };
+    StyledText::new(text.clone()).with_highlights([(0..split, tone(first_color)), (split..text.len(), tone(second_color))])
 }
 
 /// The last two parts of `path`, `relay/stream.rs`, cut from the left when still too long.
@@ -97,35 +84,24 @@ pub(super) fn tail_path(path: &str) -> String {
 
 /// `+120 −34` in the diff colours.
 pub(crate) fn size_text(added: u32, removed: u32, theme: &Theme) -> Div {
-    let text = two_tone(
-        format!("+{added}"),
-        theme.diff_color(true),
-        format!("\u{2212}{removed}"),
-        theme.diff_color(false),
-    );
+    let text = two_tone(format!("+{added}"), theme.diff_color(true), format!("\u{2212}{removed}"), theme.diff_color(false));
     div().flex_none().font_family(MONO_FONT_FAMILY).child(text)
 }
 
 fn size_bar(added: u32, removed: u32, theme: &Theme) -> Div {
     let green = added_squares(added, removed);
-    div()
-        .flex()
-        .flex_none()
-        .gap(px(2.))
-        .children((0..SIZE_SQUARES).map(|i| {
-            let color = match i {
-                _ if added + removed == 0 => theme.divider,
-                i if i < green => theme.diff_color(true),
-                _ => theme.diff_color(false),
-            };
-            div().size(px(7.)).rounded(px(1.5)).bg(color)
-        }))
+    div().flex().flex_none().gap(px(2.)).children((0..SIZE_SQUARES).map(|i| {
+        let color = match i {
+            _ if added + removed == 0 => theme.divider,
+            i if i < green => theme.diff_color(true),
+            _ => theme.diff_color(false),
+        };
+        div().size(px(7.)).rounded(px(1.5)).bg(color)
+    }))
 }
 
 fn now_secs() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_secs())
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
 }
 
 /// `2h ago`, or `just now`.
@@ -146,9 +122,7 @@ fn child_id(id: &ElementId, name: &'static str) -> ElementId {
     ElementId::NamedChild(Arc::new(id.clone()), name.into())
 }
 
-fn open_in_app(
-    card: &PrGlanceCard,
-) -> Option<impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static> {
+fn open_in_app(card: &PrGlanceCard) -> Option<impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static> {
     let (open, pr) = (card.on_open.clone()?, card.pr.clone());
     Some(move |_: &gpui_kit::ClickEvent, window: &mut Window, cx: &mut App| open(&pr, window, cx))
 }
@@ -170,16 +144,10 @@ fn state_pill(card: &PrGlanceCard, updated_at: u64, theme: &Theme) -> impl IntoE
         .rounded(radius::md())
         .bg(fill)
         .text_color(ink)
-        .when_some(open_in_app(card), |d, open| {
-            d.cursor_pointer()
-                .hover(|s| s.bg(mix(fill, ink, 0.12)))
-                .on_click(open)
-        })
+        .when_some(open_in_app(card), |d, open| d.cursor_pointer().hover(|s| s.bg(mix(fill, ink, 0.12))).on_click(open))
         .child(Icon::new(state.icon()).size(px(12.)).color(ink))
         .child(div().font_weight(FontWeight::SEMIBOLD).child(state.label()))
-        .when(updated_at > 0, |d| {
-            d.child(div().opacity(0.8).child(age(updated_at, now_secs())))
-        })
+        .when(updated_at > 0, |d| d.child(div().opacity(0.8).child(age(updated_at, now_secs()))))
 }
 
 /// One line of the card: a subject's name in a narrow column, then its facts.
@@ -188,78 +156,31 @@ fn ledger_line(name: &'static str, facts: impl IntoElement, theme: &Theme) -> Di
         .flex()
         .items_start()
         .gap(px(8.))
-        .child(
-            div()
-                .w(px(LABEL_WIDTH))
-                .flex_none()
-                .text_color(theme.muted_foreground)
-                .child(name),
-        )
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .gap(px(1.))
-                .flex_1()
-                .min_w_0()
-                .child(facts),
-        )
+        .child(div().w(px(LABEL_WIDTH)).flex_none().text_color(theme.muted_foreground).child(name))
+        .child(div().flex().flex_col().gap(px(1.)).flex_1().min_w_0().child(facts))
 }
 
 /// `✕ 9/10` in the checks' colour, with a spinner while some run.
 fn checks_count_mark(id: &ElementId, text: String, summary: &ChecksSummary, theme: &Theme) -> Div {
     let color = summary.color(theme);
     let mark = match summary {
-        ChecksSummary::Running => Spinner::new(child_id(id, "checks"))
-            .size(px(11.))
-            .color(color)
-            .into_any_element(),
-        ChecksSummary::Failing(_) => Icon::new(IconName::Close)
-            .size(px(12.))
-            .color(color)
-            .into_any_element(),
-        _ => Icon::new(IconName::Check)
-            .size(px(12.))
-            .color(color)
-            .into_any_element(),
+        ChecksSummary::Running => Spinner::new(child_id(id, "checks")).size(px(11.)).color(color).into_any_element(),
+        ChecksSummary::Failing(_) => Icon::new(IconName::Close).size(px(12.)).color(color).into_any_element(),
+        _ => Icon::new(IconName::Check).size(px(12.)).color(color).into_any_element(),
     };
-    div()
-        .flex()
-        .flex_none()
-        .items_center()
-        .gap(px(4.))
-        .text_color(color)
-        .font_family(MONO_FONT_FAMILY)
-        .font_weight(FontWeight::MEDIUM)
-        .child(mark)
-        .child(text)
+    div().flex().flex_none().items_center().gap(px(4.)).text_color(color).font_family(MONO_FONT_FAMILY).font_weight(FontWeight::MEDIUM).child(mark).child(text)
 }
 
 /// The count, then the failing check with its Log, then the first line of its log that says why, or that the log
 /// is being read.
-fn checks_facts(
-    id: &ElementId,
-    count: Div,
-    failing: Option<&PrFailing>,
-    this: &Entity<PrGlanceCard>,
-    theme: &Theme,
-) -> Div {
-    let Some(failing) = failing else {
-        return div().flex().child(count);
-    };
+fn checks_facts(id: &ElementId, count: Div, failing: Option<&PrFailing>, this: &Entity<PrGlanceCard>, theme: &Theme) -> Div {
+    let Some(failing) = failing else { return div().flex().child(count) };
     let top = div()
         .flex()
         .items_center()
         .gap(px(6.))
         .child(count)
-        .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .truncate()
-                .text_color(theme.danger)
-                .child(failing.name.clone()),
-        )
+        .child(div().flex_1().min_w_0().truncate().text_color(theme.danger).child(failing.name.clone()))
         .when(failing.url.is_some(), |d| {
             d.child(
                 div()
@@ -273,26 +194,14 @@ fn checks_facts(
             )
         });
     let line = match &failing.line {
-        Some(line) => div()
-            .font_family(MONO_FONT_FAMILY)
-            .text_size(px(11.))
-            .truncate()
-            .text_color(theme.foreground.opacity(0.8))
-            .child(line.clone()),
-        None => div()
-            .text_color(theme.muted_foreground)
-            .child("Reading the log…"),
+        Some(line) => div().font_family(MONO_FONT_FAMILY).text_size(px(11.)).truncate().text_color(theme.foreground.opacity(0.8)).child(line.clone()),
+        None => div().text_color(theme.muted_foreground).child("Reading the log…"),
     };
     div().flex().flex_col().gap(px(1.)).child(top).child(line)
 }
 
 fn avatar(reviewer: &PrReviewer, theme: &Theme) -> Div {
-    let initial = reviewer
-        .who
-        .chars()
-        .next()
-        .map(|c| c.to_uppercase().to_string())
-        .unwrap_or_default();
+    let initial = reviewer.who.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default();
     div()
         .flex()
         .flex_none()
@@ -313,12 +222,7 @@ fn avatar(reviewer: &PrReviewer, theme: &Theme) -> Div {
                 .text_color(theme.muted_foreground)
                 .child(initial),
         )
-        .child(two_tone(
-            reviewer.who.to_string(),
-            theme.foreground.opacity(0.8),
-            reviewer.verdict.text().to_string(),
-            reviewer.verdict.color(theme),
-        ))
+        .child(two_tone(reviewer.who.to_string(), theme.foreground.opacity(0.8), reviewer.verdict.text().to_string(), reviewer.verdict.color(theme)))
 }
 
 /// Each reviewer with their face and verdict, or the review's verdict when no one is named, and the comments.
@@ -330,17 +234,9 @@ fn review_facts(facts: &PrFacts, theme: &Theme) -> Div {
         .gap_x(px(10.))
         .gap_y(px(3.))
         .children(facts.reviewers.iter().map(|r| avatar(r, theme)))
-        .when(
-            facts.reviewers.is_empty() && facts.review != ReviewState::None,
-            |d| {
-                d.child(
-                    div()
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(facts.review.color(theme))
-                        .child(facts.review.text()),
-                )
-            },
-        )
+        .when(facts.reviewers.is_empty() && facts.review != ReviewState::None, |d| {
+            d.child(div().font_weight(FontWeight::MEDIUM).text_color(facts.review.color(theme)).child(facts.review.text()))
+        })
         .child(div().flex_1())
         .when(facts.comments > 0, |d| {
             d.child(
@@ -358,67 +254,29 @@ fn review_facts(facts: &PrFacts, theme: &Theme) -> Div {
 
 /// The size and its bar, then the biggest files by their last two parts.
 fn changes_facts(facts: &PrFacts, files: Option<&[PrFile]>, theme: &Theme) -> Div {
-    let size = div()
-        .flex()
-        .items_center()
-        .gap(px(6.))
-        .child(size_text(facts.added, facts.removed, theme))
-        .child(size_bar(facts.added, facts.removed, theme));
-    div()
-        .flex()
-        .flex_col()
-        .gap(px(1.))
-        .child(size)
-        .children(files.into_iter().flatten().map(|f| {
-            div()
-                .flex()
-                .items_center()
-                .gap(px(6.))
-                .font_family(MONO_FONT_FAMILY)
-                .text_size(px(11.))
-                .child(
-                    div()
-                        .flex_1()
-                        .min_w_0()
-                        .truncate()
-                        .text_color(theme.foreground.opacity(0.8))
-                        .child(tail_path(&f.path)),
-                )
-                .child(size_text(f.added, f.removed, theme))
-        }))
+    let size = div().flex().items_center().gap(px(6.)).child(size_text(facts.added, facts.removed, theme)).child(size_bar(facts.added, facts.removed, theme));
+    div().flex().flex_col().gap(px(1.)).child(size).children(files.into_iter().flatten().map(|f| {
+        div()
+            .flex()
+            .items_center()
+            .gap(px(6.))
+            .font_family(MONO_FONT_FAMILY)
+            .text_size(px(11.))
+            .child(div().flex_1().min_w_0().truncate().text_color(theme.foreground.opacity(0.8)).child(tail_path(&f.path)))
+            .child(size_text(f.added, f.removed, theme))
+    }))
 }
 
 /// The session the pull request came from and how it is; a press opens it.
-fn session_line(
-    id: &ElementId,
-    session: &PrSession,
-    this: &Entity<PrGlanceCard>,
-    theme: &Theme,
-) -> impl IntoElement {
+fn session_line(id: &ElementId, session: &PrSession, this: &Entity<PrGlanceCard>, theme: &Theme) -> impl IntoElement {
     ledger_line(
         "From",
         div()
             .flex()
             .items_center()
             .gap(px(6.))
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .truncate()
-                    .font_weight(FontWeight::MEDIUM)
-                    .child(session.title.clone()),
-            )
-            .child(
-                div()
-                    .flex_none()
-                    .text_color(if session.running {
-                        theme.primary
-                    } else {
-                        theme.muted_foreground
-                    })
-                    .child(session.status.clone()),
-            ),
+            .child(div().flex_1().min_w_0().truncate().font_weight(FontWeight::MEDIUM).child(session.title.clone()))
+            .child(div().flex_none().text_color(if session.running { theme.primary } else { theme.muted_foreground }).child(session.status.clone())),
         theme,
     )
     .id(child_id(id, "session"))
@@ -428,10 +286,7 @@ fn session_line(
     .on_click(act(this, PrAction::OpenSession))
 }
 
-fn act(
-    this: &Entity<PrGlanceCard>,
-    action: PrAction,
-) -> impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static {
+fn act(this: &Entity<PrGlanceCard>, action: PrAction) -> impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static {
     let this = this.downgrade();
     move |_, window, cx| {
         let Some(card) = this.upgrade() else { return };
@@ -445,12 +300,7 @@ fn act(
     }
 }
 
-fn press_merge(
-    card: &mut PrGlanceCard,
-    _: &gpui_kit::ClickEvent,
-    window: &mut Window,
-    cx: &mut Context<PrGlanceCard>,
-) {
+fn press_merge(card: &mut PrGlanceCard, _: &gpui_kit::ClickEvent, window: &mut Window, cx: &mut Context<PrGlanceCard>) {
     let confirmed = card.confirming.is_some_and(|at| at.elapsed() < CONFIRM_FOR);
     if !confirmed {
         card.confirming = Some(Instant::now());
@@ -472,16 +322,8 @@ fn press_merge(
     }
 }
 
-fn small_button(
-    id: &ElementId,
-    name: &'static str,
-    label: &'static str,
-    variant: ButtonVariant,
-) -> Button {
-    Button::new(child_id(id, name))
-        .label(label)
-        .variant(variant)
-        .size(ButtonSize::Sm)
+fn small_button(id: &ElementId, name: &'static str, label: &'static str, variant: ButtonVariant) -> Button {
+    Button::new(child_id(id, name)).label(label).variant(variant).size(ButtonSize::Sm)
 }
 
 /// Whether the pull request can merge, beside the buttons it decides: `● Ready to merge`.
@@ -494,54 +336,21 @@ fn merge_standing(standing: &PrStanding, theme: &Theme) -> Div {
         .items_center()
         .gap(px(6.))
         .child(div().flex_none().size(px(6.)).rounded_full().bg(color))
-        .child(
-            div()
-                .flex_none()
-                .font_weight(FontWeight::MEDIUM)
-                .text_color(color)
-                .child(standing.word.clone()),
-        )
-        .child(
-            div()
-                .min_w_0()
-                .truncate()
-                .text_color(theme.muted_foreground)
-                .child(standing.detail.clone()),
-        )
+        .child(div().flex_none().font_weight(FontWeight::MEDIUM).text_color(color).child(standing.word.clone()))
+        .child(div().min_w_0().truncate().text_color(theme.muted_foreground).child(standing.detail.clone()))
 }
 
 /// Fix while a check fails, Approve, and Merge for an open pull request (Confirm merge once pressed).
-fn write_buttons(
-    card: &PrGlanceCard,
-    failing: bool,
-    this: &Entity<PrGlanceCard>,
-    cx: &mut Context<PrGlanceCard>,
-) -> Div {
+fn write_buttons(card: &PrGlanceCard, failing: bool, this: &Entity<PrGlanceCard>, cx: &mut Context<PrGlanceCard>) -> Div {
     let id = &card.id;
     let confirming = card.confirming.is_some_and(|at| at.elapsed() < CONFIRM_FOR);
-    let fix = failing.then(|| {
-        small_button(id, "ask", "Fix", ButtonVariant::Ghost)
-            .tooltip("Ask the agent to fix the failing check")
-            .on_click(act(this, PrAction::AskToFix))
-    });
-    let approve = small_button(id, "approve", "Approve", ButtonVariant::Ghost)
-        .on_click(act(this, PrAction::Approve));
+    let fix = failing.then(|| small_button(id, "ask", "Fix", ButtonVariant::Ghost).tooltip("Ask the agent to fix the failing check").on_click(act(this, PrAction::AskToFix)));
+    let approve = small_button(id, "approve", "Approve", ButtonVariant::Ghost).on_click(act(this, PrAction::Approve));
     let merge = (card.pr.state == PrState::Open).then(|| {
-        let (label, variant) = if confirming {
-            ("Confirm merge", ButtonVariant::Invert)
-        } else {
-            ("Merge", ButtonVariant::Tinted)
-        };
+        let (label, variant) = if confirming { ("Confirm merge", ButtonVariant::Invert) } else { ("Merge", ButtonVariant::Tinted) };
         small_button(id, "merge", label, variant).on_click(cx.listener(press_merge))
     });
-    div()
-        .flex()
-        .flex_none()
-        .items_center()
-        .gap(px(2.))
-        .children(fix)
-        .child(approve)
-        .children(merge)
+    div().flex().flex_none().items_center().gap(px(2.)).children(fix).child(approve).children(merge)
 }
 
 fn doing_line(doing: &PrDoing, theme: &Theme) -> Div {
@@ -556,21 +365,12 @@ fn doing_line(doing: &PrDoing, theme: &Theme) -> Div {
 /// The card: the state pill, where the pull request lives and its links, the whole title, then a line each for
 /// its checks, its review, its changes and its session when it has something to say, and at the foot whether it
 /// can merge beside Fix, Approve and Merge.
-pub(super) fn card(
-    card: &mut PrGlanceCard,
-    window: &mut Window,
-    cx: &mut Context<PrGlanceCard>,
-) -> Div {
+pub(super) fn card(card: &mut PrGlanceCard, window: &mut Window, cx: &mut Context<PrGlanceCard>) -> Div {
     let theme = cx.theme().clone();
     let this = cx.entity();
     let id = card.id.clone();
     let parts = card.store.read(cx).parts();
-    let glance: PrGlance = card
-        .store
-        .read(cx)
-        .glance(&key_of(&card.pr))
-        .cloned()
-        .unwrap_or_default();
+    let glance: PrGlance = card.store.read(cx).glance(&key_of(&card.pr)).cloned().unwrap_or_default();
     let pr = card.pr.clone();
     let facts = glance.facts.clone().or_else(|| pr.facts.clone());
     let shows = |part: PrPart| parts.shows(part);
@@ -578,25 +378,13 @@ pub(super) fn card(
     let busy = matches!(glance.doing, Some(PrDoing::Working(_)));
     let can_write = shows(PrPart::Actions) && open && !busy;
 
-    let links: Vec<AnyElement> =
-        link_actions(&id, &pr.url, &card.actions, &theme, window, cx).into();
+    let links: Vec<AnyElement> = link_actions(&id, &pr.url, &card.actions, &theme, window, cx).into();
     let header = div()
         .flex()
         .items_center()
         .gap(px(8.))
-        .child(state_pill(
-            card,
-            facts.as_ref().map_or(0, |f| f.updated_at),
-            &theme,
-        ))
-        .child(
-            div()
-                .flex_1()
-                .min_w_0()
-                .truncate()
-                .text_color(theme.muted_foreground)
-                .child(format!("{} {}", pr.repo, pr.label())),
-        )
+        .child(state_pill(card, facts.as_ref().map_or(0, |f| f.updated_at), &theme))
+        .child(div().flex_1().min_w_0().truncate().text_color(theme.muted_foreground).child(format!("{} {}", pr.repo, pr.label())))
         .child(div().flex().flex_none().mr(px(-6.)).children(links));
     let title = div()
         .id(child_id(&id, "title"))
@@ -604,75 +392,23 @@ pub(super) fn card(
         .line_height(TextSize::Sm.line_height())
         .font_weight(FontWeight::MEDIUM)
         .text_color(theme.foreground.opacity(0.92))
-        .when_some(open_in_app(card), |d, open| {
-            d.cursor_pointer().hover(|s| s.underline()).on_click(open)
-        })
+        .when_some(open_in_app(card), |d, open| d.cursor_pointer().hover(|s| s.underline()).on_click(open))
         .child(pr.title.clone());
 
-    let failing = glance
-        .failing
-        .as_ref()
-        .filter(|_| shows(PrPart::Failing) && open);
-    let checks = facts
-        .as_ref()
-        .and_then(|f| f.checks)
-        .and_then(checks_count)
-        .map(|(text, summary)| {
-            ledger_line(
-                "Checks",
-                checks_facts(
-                    &id,
-                    checks_count_mark(&id, text, &summary, &theme),
-                    failing,
-                    &this,
-                    &theme,
-                ),
-                &theme,
-            )
-        });
-    let review = facts
-        .as_ref()
-        .filter(|f| {
-            shows(PrPart::Reviewers)
-                && (!f.reviewers.is_empty() || f.review != ReviewState::None || f.comments > 0)
-        })
-        .map(|f| ledger_line("Review", review_facts(f, &theme), &theme));
-    let files = glance
-        .files
-        .as_deref()
-        .filter(|files| shows(PrPart::Files) && !files.is_empty());
-    let changes = facts
-        .as_ref()
-        .map(|f| ledger_line("Changes", changes_facts(f, files, &theme), &theme));
-    let session = glance
-        .session
-        .as_ref()
-        .filter(|_| shows(PrPart::Sessions))
-        .map(|s| session_line(&id, s, &this, &theme));
-    let standing = facts
-        .as_ref()
-        .and_then(|f| f.standing.as_ref())
-        .filter(|_| shows(PrPart::Merge) && open)
-        .map(|s| merge_standing(s, &theme));
+    let failing = glance.failing.as_ref().filter(|_| shows(PrPart::Failing) && open);
+    let checks = facts.as_ref().and_then(|f| f.checks).and_then(checks_count).map(|(text, summary)| {
+        ledger_line("Checks", checks_facts(&id, checks_count_mark(&id, text, &summary, &theme), failing, &this, &theme), &theme)
+    });
+    let review = facts.as_ref().filter(|f| shows(PrPart::Reviewers) && (!f.reviewers.is_empty() || f.review != ReviewState::None || f.comments > 0)).map(|f| ledger_line("Review", review_facts(f, &theme), &theme));
+    let files = glance.files.as_deref().filter(|files| shows(PrPart::Files) && !files.is_empty());
+    let changes = facts.as_ref().map(|f| ledger_line("Changes", changes_facts(f, files, &theme), &theme));
+    let session = glance.session.as_ref().filter(|_| shows(PrPart::Sessions)).map(|s| session_line(&id, s, &this, &theme));
+    let standing = facts.as_ref().and_then(|f| f.standing.as_ref()).filter(|_| shows(PrPart::Merge) && open).map(|s| merge_standing(s, &theme));
     let writes = can_write.then(|| write_buttons(card, failing.is_some(), &this, cx));
     let foot = (standing.is_some() || writes.is_some()).then(|| {
-        div()
-            .flex()
-            .items_center()
-            .gap(px(6.))
-            .min_h(px(24.))
-            .child(standing.unwrap_or_else(|| div().flex_1()))
-            .children(writes)
+        div().flex().items_center().gap(px(6.)).min_h(px(24.)).child(standing.unwrap_or_else(|| div().flex_1())).children(writes)
     });
-    let lines = div()
-        .flex()
-        .flex_col()
-        .gap(px(3.))
-        .pt(px(2.))
-        .children(checks)
-        .children(review)
-        .children(changes)
-        .children(session);
+    let lines = div().flex().flex_col().gap(px(3.)).pt(px(2.)).children(checks).children(review).children(changes).children(session);
 
     div()
         .w(px(CARD_WIDTH))
@@ -688,11 +424,7 @@ pub(super) fn card(
         .child(header)
         .child(div().px(px(1.)).child(title))
         .child(lines)
-        .when(foot.is_some(), |d| {
-            d.child(div().h(px(1.)).my(px(1.)).bg(theme.divider))
-        })
+        .when(foot.is_some(), |d| d.child(div().h(px(1.)).my(px(1.)).bg(theme.divider)))
         .children(foot)
-        .when_some(glance.doing.as_ref(), |d, doing| {
-            d.child(doing_line(doing, &theme))
-        })
+        .when_some(glance.doing.as_ref(), |d, doing| d.child(doing_line(doing, &theme)))
 }

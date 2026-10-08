@@ -1,6 +1,5 @@
 use gpui_kit::{
-    AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement, Render,
-    Styled, TestAppContext, Window,
+    AppContext, Context, Entity, Focusable, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window,
     component::input::{Input, InputState},
     div, px,
 };
@@ -11,7 +10,7 @@ use crate::{
     panel_types::{PanelData, ProjectLabel},
     session_status::SessionStatus,
     sidebar_model::Location,
-    theme::{ActiveTheme, Appearance, set_appearance},
+    theme::{Appearance, ActiveTheme, set_appearance},
 };
 
 /// Agent panels holding one panel whose content is an input, as a session composer is.
@@ -42,48 +41,22 @@ fn a_press_on_an_input_in_a_panel_keeps_the_focus_in_the_input(cx: &mut TestAppC
         let look = AgentLook::neutral(cx.theme());
         let panel = PanelData {
             id: "p".into(),
-            project: ProjectLabel {
-                id: "project".into(),
-                name: "project".into(),
-                location: Location::Local,
-                badge: None,
-            },
+            project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
             title: "A session".into(),
             look,
             status: SessionStatus::Idle,
-            content: crate::panel_types::content_from(
-                move |_, _| {
-                    div()
-                        .size_full()
-                        .child(
-                            div()
-                                .debug_selector(|| "composer".into())
-                                .h(px(40.))
-                                .child(Input::new(&shown)),
-                        )
-                        .into_any_element()
-                },
-                cx,
-            ),
+            content: crate::panel_types::content_from(move |_, _| {
+                div().size_full().child(div().debug_selector(|| "composer".into()).h(px(40.)).child(Input::new(&shown))).into_any_element()
+            }, cx),
         };
-        panels.update(cx, |p, cx| {
-            p.set_panels(vec![panel], vec!["project".into()], cx)
-        });
+        panels.update(cx, |p, cx| p.set_panels(vec![panel], vec!["project".into()], cx));
         Host { panels, input }
     });
     cx.run_until_parked();
-    let at = cx
-        .debug_bounds("composer")
-        .expect("the panel draws its input");
+    let at = cx.debug_bounds("composer").expect("the panel draws its input");
     cx.simulate_click(at.center(), gpui_kit::Modifiers::default());
     cx.run_until_parked();
-    let focused = cx.update(|window, cx| {
-        host.read(cx)
-            .input
-            .read(cx)
-            .focus_handle(cx)
-            .is_focused(window)
-    });
+    let focused = cx.update(|window, cx| host.read(cx).input.read(cx).focus_handle(cx).is_focused(window));
     assert!(focused, "the input kept the focus");
 }
 /// When the owner's column narrows, the owner hands the panels the new width in the same frame, and
@@ -100,40 +73,17 @@ fn a_panel_fits_its_column_in_the_frame_the_column_narrows(cx: &mut TestAppConte
     let look = cx.update(|_, cx| AgentLook::neutral(cx.theme()));
     let panel = PanelData {
         id: "p".into(),
-        project: ProjectLabel {
-            id: "project".into(),
-            name: "project".into(),
-            location: Location::Local,
-            badge: None,
-        },
+        project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
         title: "A session".into(),
         look,
         status: SessionStatus::Idle,
-        content: cx.update(|_, cx| {
-            crate::panel_types::content_from(
-                |_, _| {
-                    div()
-                        .size_full()
-                        .debug_selector(|| "panel".into())
-                        .into_any_element()
-                },
-                cx,
-            )
-        }),
+        content: cx.update(|_, cx| crate::panel_types::content_from(|_, _| div().size_full().debug_selector(|| "panel".into()).into_any_element(), cx)),
     };
-    cx.update(|_, cx| {
-        panels.update(cx, |p, cx| {
-            p.set_panels(vec![panel], vec!["project".into()], cx)
-        })
-    });
+    cx.update(|_, cx| panels.update(cx, |p, cx| p.set_panels(vec![panel], vec!["project".into()], cx)));
     let frame = |cx: &mut gpui_kit::VisualTestContext, width: f32| {
         let panels = panels.clone();
         cx.update(|_, cx| panels.update(cx, |p, cx| p.fit_to(width - 16., cx)));
-        cx.draw(
-            gpui_kit::point(px(0.), px(0.)),
-            gpui_kit::size(px(width), px(800.)),
-            move |_, _| div().size_full().child(panels),
-        );
+        cx.draw(gpui_kit::point(px(0.), px(0.)), gpui_kit::size(px(width), px(800.)), move |_, _| div().size_full().child(panels));
     };
     frame(cx, 620.);
     frame(cx, 620.);
@@ -141,11 +91,7 @@ fn a_panel_fits_its_column_in_the_frame_the_column_narrows(cx: &mut TestAppConte
         frame(cx, width);
         frame(cx, width);
         let at = cx.debug_bounds("panel").expect("the panel draws");
-        assert!(
-            f32::from(at.right()) <= width - 8. + 0.5,
-            "{width}: the panel ends at {:?}, past its column",
-            at.right()
-        );
+        assert!(f32::from(at.right()) <= width - 8. + 0.5, "{width}: the panel ends at {:?}, past its column", at.right());
     }
 }
 
@@ -162,64 +108,31 @@ fn the_single_view_sits_at_the_strips_inset(cx: &mut TestAppContext) {
     let look = cx.update(|_, cx| AgentLook::neutral(cx.theme()));
     let panel = PanelData {
         id: "p".into(),
-        project: ProjectLabel {
-            id: "project".into(),
-            name: "project".into(),
-            location: Location::Local,
-            badge: None,
-        },
+        project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
         title: "A session".into(),
         look,
         status: SessionStatus::Idle,
-        content: cx.update(|_, cx| {
-            crate::panel_types::content_from(
-                |_, _| {
-                    div()
-                        .size_full()
-                        .debug_selector(|| "panel".into())
-                        .into_any_element()
-                },
-                cx,
-            )
-        }),
+        content: cx.update(|_, cx| crate::panel_types::content_from(|_, _| div().size_full().debug_selector(|| "panel".into()).into_any_element(), cx)),
     };
-    cx.update(|_, cx| {
-        panels.update(cx, |p, cx| {
-            p.set_panels(vec![panel], vec!["project".into()], cx);
-            p.set_inset_left(2., cx);
-            p.set_inset_bottom(2., cx);
-            p.set_layout(crate::panel_types::Layout::Single, cx);
-        })
-    });
+    cx.update(|_, cx| panels.update(cx, |p, cx| {
+        p.set_panels(vec![panel], vec!["project".into()], cx);
+        p.set_inset_left(2., cx);
+        p.set_inset_bottom(2., cx);
+        p.set_layout(crate::panel_types::Layout::Single, cx);
+    }));
     let frame = |cx: &mut gpui_kit::VisualTestContext, width: f32| {
         let panels = panels.clone();
         cx.update(|_, cx| panels.update(cx, |p, cx| p.fit_to(width - 16., cx)));
-        cx.draw(
-            gpui_kit::point(px(0.), px(0.)),
-            gpui_kit::size(px(width), px(800.)),
-            move |_, _| div().size_full().child(panels),
-        );
+        cx.draw(gpui_kit::point(px(0.), px(0.)), gpui_kit::size(px(width), px(800.)), move |_, _| div().size_full().child(panels));
     };
     frame(cx, 620.);
     frame(cx, 620.);
     frame(cx, 800.);
     frame(cx, 800.);
     let at = cx.debug_bounds("panel").expect("the panel draws");
-    assert!(
-        (f32::from(at.left()) - 2.).abs() < 0.5,
-        "the panel starts at {:?}, not at the strip's inset",
-        at.left()
-    );
-    assert!(
-        f32::from(at.right()) <= 800. - 8. + 0.5,
-        "the panel ends at {:?}, past the right room",
-        at.right()
-    );
-    assert!(
-        (f32::from(at.bottom()) - (800. - 2.)).abs() < 0.5,
-        "the panel ends at {:?}, not the foot inset above the foot",
-        at.bottom()
-    );
+    assert!((f32::from(at.left()) - 2.).abs() < 0.5, "the panel starts at {:?}, not at the strip's inset", at.left());
+    assert!(f32::from(at.right()) <= 800. - 8. + 0.5, "the panel ends at {:?}, past the right room", at.right());
+    assert!((f32::from(at.bottom()) - (800. - 2.)).abs() < 0.5, "the panel ends at {:?}, not the foot inset above the foot", at.bottom());
 }
 struct Strip {
     panels: Entity<AgentPanels>,
@@ -244,19 +157,11 @@ fn the_strip_fades_each_edge_only_while_more_lies_beyond_it(cx: &mut TestAppCont
         let list: Vec<PanelData> = (0..4)
             .map(|i| PanelData {
                 id: format!("p{i}").into(),
-                project: ProjectLabel {
-                    id: "project".into(),
-                    name: "project".into(),
-                    location: Location::Local,
-                    badge: None,
-                },
+                project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
                 title: format!("Session {i}").into(),
                 look: look.clone(),
                 status: SessionStatus::Idle,
-                content: crate::panel_types::content_from(
-                    |_, _| div().size_full().into_any_element(),
-                    cx,
-                ),
+                content: crate::panel_types::content_from(|_, _| div().size_full().into_any_element(), cx),
             })
             .collect();
         panels.update(cx, |p, cx| p.set_panels(list, vec!["project".into()], cx));
@@ -266,28 +171,17 @@ fn the_strip_fades_each_edge_only_while_more_lies_beyond_it(cx: &mut TestAppCont
     cx.run_until_parked();
     let panels = host.read_with(cx, |h, _| h.panels.clone());
     let fades = |cx: &mut gpui_kit::VisualTestContext| {
-        (
-            cx.debug_bounds("strip-fade-left").is_some(),
-            cx.debug_bounds("strip-fade-right").is_some(),
-        )
+        (cx.debug_bounds("strip-fade-left").is_some(), cx.debug_bounds("strip-fade-right").is_some())
     };
     panels.update(cx, |p, cx| p.scroll_to(0., cx));
     cx.run_until_parked();
-    assert_eq!(
-        fades(cx),
-        (false, true),
-        "at the start: nothing before it, more after"
-    );
+    assert_eq!(fades(cx), (false, true), "at the start: nothing before it, more after");
     panels.update(cx, |p, cx| p.scroll_to(300., cx));
     cx.run_until_parked();
     assert_eq!(fades(cx), (true, true), "in the middle: both");
     panels.update(cx, |p, cx| p.scroll_to(100000., cx));
     cx.run_until_parked();
-    assert_eq!(
-        fades(cx),
-        (true, false),
-        "at the end: more before it, nothing after"
-    );
+    assert_eq!(fades(cx), (true, false), "at the end: more before it, nothing after");
 }
 
 /// At a zoom, dragging a column's edge by some window pixels grows the column by those pixels, not by a multiple of them.
@@ -305,24 +199,11 @@ fn dragging_an_edge_at_a_zoom_moves_it_with_the_pointer(cx: &mut TestAppContext)
         let list: Vec<PanelData> = (0..2)
             .map(|i| PanelData {
                 id: format!("p{i}").into(),
-                project: ProjectLabel {
-                    id: "project".into(),
-                    name: "project".into(),
-                    location: Location::Local,
-                    badge: None,
-                },
+                project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
                 title: format!("Session {i}").into(),
                 look: look.clone(),
                 status: SessionStatus::Idle,
-                content: crate::panel_types::content_from(
-                    move |_, _| {
-                        div()
-                            .debug_selector(move || format!("col-{i}"))
-                            .size_full()
-                            .into_any_element()
-                    },
-                    cx,
-                ),
+                content: crate::panel_types::content_from(move |_, _| div().debug_selector(move || format!("col-{i}")).size_full().into_any_element(), cx),
             })
             .collect();
         panels.update(cx, |p, cx| p.set_panels(list, vec!["project".into()], cx));
@@ -332,32 +213,13 @@ fn dragging_an_edge_at_a_zoom_moves_it_with_the_pointer(cx: &mut TestAppContext)
     cx.run_until_parked();
     let before = cx.debug_bounds("col-0").expect("the first column is drawn");
     let at = gpui_kit::point(before.right() + px(1.), before.center().y);
-    cx.simulate_mouse_down(
-        at,
-        gpui_kit::MouseButton::Left,
-        gpui_kit::Modifiers::default(),
-    );
-    cx.simulate_mouse_move(
-        at + gpui_kit::point(px(40.), px(0.)),
-        gpui_kit::MouseButton::Left,
-        gpui_kit::Modifiers::default(),
-    );
-    cx.simulate_mouse_move(
-        at + gpui_kit::point(px(80.), px(0.)),
-        gpui_kit::MouseButton::Left,
-        gpui_kit::Modifiers::default(),
-    );
-    cx.simulate_mouse_up(
-        at + gpui_kit::point(px(80.), px(0.)),
-        gpui_kit::MouseButton::Left,
-        gpui_kit::Modifiers::default(),
-    );
+    cx.simulate_mouse_down(at, gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_move(at + gpui_kit::point(px(40.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_move(at + gpui_kit::point(px(80.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_up(at + gpui_kit::point(px(80.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
     cx.run_until_parked();
     crate::scale::set_zoom(1.);
     let after = cx.debug_bounds("col-0").expect("still drawn");
     let grew = f32::from(after.size.width - before.size.width);
-    assert!(
-        (grew - 80.).abs() < 3.,
-        "80 window pixels of drag grew the column by {grew}"
-    );
+    assert!((grew - 80.).abs() < 3., "80 window pixels of drag grew the column by {grew}");
 }

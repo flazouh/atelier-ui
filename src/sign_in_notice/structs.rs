@@ -1,14 +1,9 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    AnyElement, App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce,
-    SharedString, Styled, Window, div,
+    AnyElement, App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div,
 };
 
-use super::{
-    helpers::words,
-    types::{CANCEL, SIGN_IN, SignInState, WAITING},
-};
 use crate::{
     button::{Button, ButtonVariant},
     icon::{Icon, IconName},
@@ -16,6 +11,10 @@ use crate::{
     scale::px,
     theme::{ActiveTheme, radius},
     typography::TextSize,
+};
+use super::{
+    helpers::words,
+    types::{CANCEL, SIGN_IN, SignInState, WAITING},
 };
 
 type SignIn = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -35,16 +34,7 @@ pub struct SignInNotice {
 
 impl SignInNotice {
     pub fn new(id: impl Into<ElementId>, agent: impl Into<SharedString>, lead: Lead) -> Self {
-        Self {
-            id: id.into(),
-            agent: agent.into(),
-            lead,
-            account: None,
-            state: SignInState::Ready,
-            on_sign_in: None,
-            on_cancel: None,
-            action: None,
-        }
+        Self { id: id.into(), agent: agent.into(), lead, account: None, state: SignInState::Ready, on_sign_in: None, on_cancel: None, action: None }
     }
 
     /// The account the session runs on, when it is a named one.
@@ -97,10 +87,7 @@ impl SignInNotice {
 
 impl SignInNotice {
     fn cancel(&self) -> Option<Button> {
-        let f = self
-            .on_cancel
-            .clone()
-            .filter(|_| self.state == SignInState::Waiting)?;
+        let f = self.on_cancel.clone().filter(|_| self.state == SignInState::Waiting)?;
         Some(
             Button::new(ElementId::from((self.id.clone(), "cancel")))
                 .label(CANCEL)
@@ -131,11 +118,7 @@ impl RenderOnce for SignInNotice {
             .items_center()
             .gap(px(8.))
             .text_size(TextSize::Xs.font_size())
-            .child(Icon::new(IconName::Lock).size(px(14.)).color(if failed {
-                theme.danger
-            } else {
-                theme.warning
-            }))
+            .child(Icon::new(IconName::Lock).size(px(14.)).color(if failed { theme.danger } else { theme.warning }))
             .child(lead)
             .child(div().flex_1().min_w_0().whitespace_normal().child(text))
             .children(button)

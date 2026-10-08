@@ -6,8 +6,6 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
-use super::helpers::{gutter_numbers, whole_text_runs};
-use super::types::{CodeBlockStatus, LINE_HEIGHT, MAX_HEIGHT};
 use crate::scale::px;
 use crate::{
     copy_feedback::CopyFeedback,
@@ -18,6 +16,8 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
+use super::types::{CodeBlockStatus, LINE_HEIGHT, MAX_HEIGHT};
+use super::helpers::{gutter_numbers, whole_text_runs};
 
 #[derive(IntoElement)]
 pub struct CodeBlock {
@@ -101,23 +101,16 @@ impl RenderOnce for CodeBlock {
         // lucide's `animate-spin`.
         let spin_ms = duration::SPIN.as_millis();
         let spin = if streaming && !reduce {
-            (std::time::UNIX_EPOCH
-                .elapsed()
-                .unwrap_or_default()
-                .as_millis()
-                % spin_ms) as f32
-                / spin_ms as f32
+            (std::time::UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() % spin_ms) as f32 / spin_ms as f32
         } else {
             0.
         };
         if streaming && !reduce {
             window.request_animation_frame();
         }
-        let copy_state =
-            window.use_keyed_state(self.id.clone(), cx, |_, _| CopyFeedback::default());
+        let copy_state = window.use_keyed_state(self.id.clone(), cx, |_, _| CopyFeedback::default());
         let copied = copy_state.read(cx).copied();
-        let child =
-            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
         let header = div()
             .flex()
@@ -165,10 +158,7 @@ impl RenderOnce for CodeBlock {
                     .font_weight(FontWeight::MEDIUM)
                     .text_color(if streaming { theme.info } else { theme.success })
                     .child(if streaming {
-                        Icon::new(IconName::Progress)
-                            .size(px(12.))
-                            .turn(spin)
-                            .into_any_element()
+                        Icon::new(IconName::Progress).size(px(12.)).turn(spin).into_any_element()
                     } else {
                         Icon::new(IconName::Check).size(px(12.)).into_any_element()
                     })
@@ -187,27 +177,12 @@ impl RenderOnce for CodeBlock {
                         .rounded_full()
                         .cursor_pointer()
                         .text_color(muted)
-                        .hover(|s| {
-                            s.bg(theme.background.opacity(0.7))
-                                .text_color(theme.foreground)
-                        })
-                        .press_stop(
-                            (self.id.clone(), "copy-focus"),
-                            crate::theme::radius::md(),
-                            window,
-                            cx,
-                        )
+                        .hover(|s| s.bg(theme.background.opacity(0.7)).text_color(theme.foreground))
+                        .press_stop((self.id.clone(), "copy-focus"), crate::theme::radius::md(), window, cx)
                         .on_click(move |_, _, cx| {
                             CopyFeedback::click(&copy_state, |f| f, text.to_string(), cx);
                         })
-                        .child(
-                            Icon::new(if copied {
-                                IconName::Check
-                            } else {
-                                IconName::Copy
-                            })
-                            .size(px(14.)),
-                        ),
+                        .child(Icon::new(if copied { IconName::Check } else { IconName::Copy }).size(px(14.))),
                 )
             });
 
@@ -216,31 +191,24 @@ impl RenderOnce for CodeBlock {
             .find(|l| self.language.eq_ignore_ascii_case(l))
             .copied()
             .or_else(|| crate::syntax::language_for(&self.filename));
-        let runs = language.and_then(|language| {
-            crate::syntax::highlight(language, &self.code, child("syntax"), cx)
-        });
+        let runs = language.and_then(|language| crate::syntax::highlight(language, &self.code, child("syntax"), cx));
         let line_count = self.code.split('\n').count();
         // A wrapped line takes more than one row, so the gutter and the tint bands, which count rows, only
         // fit an unwrapped block.
         let gutter = self.show_line_numbers && !self.wrap;
         let text = match &runs {
-            Some(lines) => StyledText::new(self.code.clone())
-                .with_highlights(whole_text_runs(&self.code, lines)),
+            Some(lines) => StyledText::new(self.code.clone()).with_highlights(whole_text_runs(&self.code, lines)),
             None => StyledText::new(self.code.clone()),
         };
-        let bands = self
-            .highlight_lines
-            .iter()
-            .filter(|n| (1..=line_count as u32).contains(n))
-            .map(|n| {
-                div()
-                    .absolute()
-                    .left_0()
-                    .right_0()
-                    .top(px((n - 1) as f32 * LINE_HEIGHT))
-                    .h(px(LINE_HEIGHT))
-                    .bg(theme.info.opacity(0.07))
-            });
+        let bands = self.highlight_lines.iter().filter(|n| (1..=line_count as u32).contains(n)).map(|n| {
+            div()
+                .absolute()
+                .left_0()
+                .right_0()
+                .top(px((n - 1) as f32 * LINE_HEIGHT))
+                .h(px(LINE_HEIGHT))
+                .bg(theme.info.opacity(0.07))
+        });
         let pre = div()
             .relative()
             .flex()

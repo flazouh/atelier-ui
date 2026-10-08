@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, HashSet};
 
 use gpui_kit::SharedString;
 
-use super::helpers::{compact, walk};
-use super::types::Node;
 use crate::changed_files::ChangedFile;
+use super::types::Node;
+use super::helpers::{compact, walk};
 
 /// One visible row of the tree.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -47,11 +47,7 @@ impl Builder {
             [name] => {
                 self.files.insert(name.to_string(), file.clone());
             }
-            [folder, rest @ ..] => self
-                .folders
-                .entry(folder.to_string())
-                .or_default()
-                .insert(rest, file),
+            [folder, rest @ ..] => self.folders.entry(folder.to_string()).or_default().insert(rest, file),
         }
     }
 
@@ -61,12 +57,8 @@ impl Builder {
         // By name without regard to case, as VS Code lists them; the map's own order breaks ties.
         folders.sort_by_key(|(name, _)| name.to_lowercase());
         files.sort_by_key(|(name, _)| name.to_lowercase());
-        let folders = folders
-            .into_iter()
-            .map(|(name, b)| compact(name, b.build()));
-        let files = files
-            .into_iter()
-            .map(|(name, file)| Node::File { name, file });
+        let folders = folders.into_iter().map(|(name, b)| compact(name, b.build()));
+        let files = files.into_iter().map(|(name, file)| Node::File { name, file });
         folders.chain(files).collect()
     }
 }
@@ -78,9 +70,7 @@ impl FileTree {
             let parts: Vec<&str> = file.path.split('/').filter(|p| !p.is_empty()).collect();
             root.insert(&parts, file);
         }
-        Self {
-            roots: root.build(),
-        }
+        Self { roots: root.build() }
     }
 
     /// The rows to show, with each folder in `folded` closed. A folder is named by its full path.
@@ -92,15 +82,7 @@ impl FileTree {
                 Node::File { name, file } => (name.clone(), Some(file.clone()), false),
                 Node::Folder { name, .. } => (name.clone(), None, folded.contains(path)),
             };
-            out.push(TreeRow {
-                depth,
-                name: name.into(),
-                path: path.to_string().into(),
-                added,
-                removed,
-                file,
-                folded: is_folded,
-            });
+            out.push(TreeRow { depth, name: name.into(), path: path.to_string().into(), added, removed, file, folded: is_folded });
             !is_folded
         });
         out

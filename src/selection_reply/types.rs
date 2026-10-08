@@ -16,11 +16,7 @@ pub(super) const QUOTE_SHOWN: usize = 240;
 pub enum SelectionReplyEvent {
     /// The reader replies to `quote` (the words they selected) with `note`, which may be empty. `key` is what
     /// [`SelectionReply::edit`](super::SelectionReply::edit) was given, handed back, when this reply changes an earlier one.
-    Reply {
-        quote: SharedString,
-        note: SharedString,
-        key: Option<SharedString>,
-    },
+    Reply { quote: SharedString, note: SharedString, key: Option<SharedString> },
     /// The reader pressed the microphone (see [`SelectionReply::dictation`](super::SelectionReply::dictation)): the
     /// owner starts or stops listening, and hands the words back with
     /// [`SelectionReply::insert_transcript`](super::SelectionReply::insert_transcript).
@@ -33,11 +29,7 @@ pub enum SelectionReplyEvent {
 /// still empty until the next frame has read the selection.
 pub(super) enum Phase {
     Idle,
-    Writing {
-        at: Point<Pixels>,
-        quote: SharedString,
-        key: Option<SharedString>,
-    },
+    Writing { at: Point<Pixels>, quote: SharedString, key: Option<SharedString> },
 }
 /// A one-press reply in the box: its `label` is on the badge, with its `icon` in `icon_color`, and its `note` goes as the
 /// reply's note. The badge itself is plain; only the icon has a colour, and the owner picks it.
@@ -50,12 +42,7 @@ pub struct ReplyPreset {
 }
 impl ReplyPreset {
     pub fn new(label: impl Into<SharedString>, note: impl Into<SharedString>) -> Self {
-        Self {
-            label: label.into(),
-            note: note.into(),
-            icon: None,
-            icon_color: None,
-        }
+        Self { label: label.into(), note: note.into(), icon: None, icon_color: None }
     }
     pub fn icon(mut self, icon: IconName, color: impl Into<Hsla>) -> Self {
         self.icon = Some(icon);

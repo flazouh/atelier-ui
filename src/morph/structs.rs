@@ -5,10 +5,10 @@ use gpui_kit::{
     Window, div, prelude::FluentBuilder,
 };
 
-use super::helpers::{frame, morph_curve, on_key_change};
-use super::types::RenderChild;
-use crate::motion::Channel;
 use crate::scale::px;
+use crate::motion::Channel;
+use super::types::RenderChild;
+use super::helpers::{frame, morph_curve, on_key_change};
 
 #[derive(IntoElement)]
 pub struct Morph {
@@ -26,12 +26,7 @@ impl Morph {
         key: impl Into<SharedString>,
         child: impl Fn(&mut Window, &mut App) -> AnyElement + 'static,
     ) -> Self {
-        Self {
-            id: id.into(),
-            key: key.into(),
-            child: Rc::new(child),
-            enter: false,
-        }
+        Self { id: id.into(), key: key.into(), child: Rc::new(child), enter: false }
     }
 
     /// Also rise in when first shown, for content that is new to the screen.
@@ -70,13 +65,7 @@ impl RenderOnce for Morph {
             move |_, _| {
                 let mut enter = Channel::new(if enter_on_show { 0. } else { 1. });
                 enter.animate(1., morph_curve(), 0., reduce);
-                MorphState {
-                    key,
-                    current: child,
-                    old: None,
-                    exit: None,
-                    enter,
-                }
+                MorphState { key, current: child, old: None, exit: None, enter }
             }
         });
         let (old, exit_p, enter_p, moving) = state.update(cx, |m, _| {
@@ -103,12 +92,7 @@ impl RenderOnce for Morph {
                 m.old = None;
             }
             let moving = m.enter.is_running_at(now) || m.exit.is_some();
-            (
-                m.old.clone(),
-                m.exit.as_ref().map(|c| c.value_at(now)),
-                m.enter.value_at(now),
-                moving,
-            )
+            (m.old.clone(), m.exit.as_ref().map(|c| c.value_at(now)), m.enter.value_at(now), moving)
         });
         if moving {
             window.request_animation_frame();

@@ -16,11 +16,11 @@ mod structs;
 pub use structs::Resolve;
 
 #[cfg(test)]
+use std::time::Instant;
+#[cfg(test)]
 use super::Decision;
 #[cfg(test)]
 use crate::motion::duration;
-#[cfg(test)]
-use std::time::Instant;
 
 #[cfg(test)]
 mod tests;

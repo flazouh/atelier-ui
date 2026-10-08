@@ -28,13 +28,7 @@ fn the_reduced_pulse_goes_from_full_to_40_percent_and_back_over_1400_ms() {
 fn a_quarter_arc_runs_from_the_top_to_the_right() {
     let points = arc((10., 10.), 5., 0., std::f32::consts::FRAC_PI_2, 8);
     let (first, last) = (points[0], points[8]);
-    assert!(
-        (first.0 - 10.).abs() < 1e-4 && (first.1 - 5.).abs() < 1e-4,
-        "the top: {first:?}"
-    );
-    assert!(
-        (last.0 - 15.).abs() < 1e-4 && (last.1 - 10.).abs() < 1e-4,
-        "the right: {last:?}"
-    );
+    assert!((first.0 - 10.).abs() < 1e-4 && (first.1 - 5.).abs() < 1e-4, "the top: {first:?}");
+    assert!((last.0 - 15.).abs() < 1e-4 && (last.1 - 10.).abs() < 1e-4, "the right: {last:?}");
     assert_eq!(points.len(), 9);
 }

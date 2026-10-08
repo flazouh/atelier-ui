@@ -6,10 +6,7 @@ use super::structs::FnView;
 use super::types::PanelContent;
 
 /// Content drawn by `f`, as a view.
-pub fn content_from(
-    f: impl Fn(&mut Window, &mut App) -> AnyElement + 'static,
-    cx: &mut App,
-) -> PanelContent {
+pub fn content_from(f: impl Fn(&mut Window, &mut App) -> AnyElement + 'static, cx: &mut App) -> PanelContent {
     cx.new(|_| FnView(Rc::new(f))).into()
 }
 

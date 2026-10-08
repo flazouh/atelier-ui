@@ -25,12 +25,9 @@ impl PrChipData {
     /// The title without a conventional-commit head: `chore(ui): Faster chips` is `Faster chips`.
     pub fn short_title(&self) -> &str {
         let title = self.title.as_ref();
-        let Some((head, rest)) = title.split_once(": ") else {
-            return title;
-        };
+        let Some((head, rest)) = title.split_once(": ") else { return title };
         let kind = head.split('(').next().unwrap_or(head).trim_end_matches('!');
-        let conventional =
-            !kind.is_empty() && kind.chars().all(|c| c.is_ascii_lowercase()) && !rest.is_empty();
+        let conventional = !kind.is_empty() && kind.chars().all(|c| c.is_ascii_lowercase()) && !rest.is_empty();
         if conventional { rest } else { title }
     }
 }

@@ -42,13 +42,7 @@ fn the_memory_hover_names_what_the_app_holds_when_it_is_known() {
     let mut system = load(8., 32);
     assert_eq!(system.memory_tooltip().lines().count(), 1);
     system.app_memory = Some(GIB * 3 / 2);
-    assert_eq!(
-        system.memory_tooltip().lines().last(),
-        Some("atelier holds 1.5 GB")
-    );
+    assert_eq!(system.memory_tooltip().lines().last(), Some("atelier holds 1.5 GB"));
     system.app_memory = Some(300 * 1024 * 1024);
-    assert_eq!(
-        system.memory_tooltip().lines().last(),
-        Some("atelier holds 300 MB")
-    );
+    assert_eq!(system.memory_tooltip().lines().last(), Some("atelier holds 300 MB"));
 }

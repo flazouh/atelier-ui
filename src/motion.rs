@@ -21,18 +21,13 @@ pub fn epoch() -> Instant {
 
 /// Milliseconds since the Unix epoch, for an id that does not repeat between runs.
 pub fn now_millis() -> u128 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |d| d.as_millis())
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis())
 }
 
 /// A clock a test freezes and moves by hand. It is per thread, and every test runs on its own thread.
 #[cfg(test)]
 pub(crate) mod clock {
-    use std::{
-        cell::Cell,
-        time::{Duration, Instant},
-    };
+    use std::{cell::Cell, time::{Duration, Instant}};
 
     thread_local! {
         static AT: Cell<Option<Instant>> = const { Cell::new(None) };
@@ -66,67 +61,27 @@ pub struct Spring {
 
 impl Spring {
     /// Press feedback on buttons and other tappable surfaces.
-    pub const PRESS: Self = Self {
-        stiffness: 500.,
-        damping: 30.,
-        mass: 0.6,
-    };
+    pub const PRESS: Self = Self { stiffness: 500., damping: 30., mass: 0.6 };
     /// Label or icon slots trading places inside a control.
-    pub const SWAP: Self = Self {
-        stiffness: 460.,
-        damping: 30.,
-        mass: 0.55,
-    };
+    pub const SWAP: Self = Self { stiffness: 460., damping: 30., mass: 0.55 };
     /// Overlay panels summoned by the pointer.
-    pub const PANEL: Self = Self {
-        stiffness: 420.,
-        damping: 40.,
-        mass: 0.5,
-    };
+    pub const PANEL: Self = Self { stiffness: 420., damping: 40., mass: 0.5 };
     /// A slider's handle and fill following a drag (`SPRING_GLIDE`): stiff and critically damped, so it
     /// follows the pointer and never rebounds off an end.
-    pub const GLIDE: Self = Self {
-        stiffness: 700.,
-        damping: 50.,
-        mass: 0.5,
-    };
+    pub const GLIDE: Self = Self { stiffness: 700., damping: 50., mass: 0.5 };
     /// A slider's handle stretching when it is grabbed: bouncy on purpose.
-    pub const GRAB: Self = Self {
-        stiffness: 500.,
-        damping: 14.,
-        mass: 0.7,
-    };
+    pub const GRAB: Self = Self { stiffness: 500., damping: 14., mass: 0.7 };
     /// Pills and indicators gliding between positions.
     /// The toast stack's spring (`stiffness: 420, damping: 34, mass: 0.75`): a toast coming in, springing back from a
     /// drag, and the toasts round it moving.
-    pub const STACK: Self = Self {
-        stiffness: 420.,
-        damping: 34.,
-        mass: 0.75,
-    };
+    pub const STACK: Self = Self { stiffness: 420., damping: 34., mass: 0.75 };
     /// The bloom menu's box, a folder opening with a touch of overshoot (`stiffness: 300, damping: 32, mass: 0.9`).
-    pub const FOLDER: Self = Self {
-        stiffness: 300.,
-        damping: 32.,
-        mass: 0.9,
-    };
+    pub const FOLDER: Self = Self { stiffness: 300., damping: 32., mass: 0.9 };
     /// A choice of the bloom menu arriving (`stiffness: 440, damping: 34`).
-    pub const BLOOM_ITEM: Self = Self {
-        stiffness: 440.,
-        damping: 34.,
-        mass: 1.,
-    };
-    pub const LAYOUT: Self = Self {
-        stiffness: 360.,
-        damping: 32.,
-        mass: 0.6,
-    };
+    pub const BLOOM_ITEM: Self = Self { stiffness: 440., damping: 34., mass: 1. };
+    pub const LAYOUT: Self = Self { stiffness: 360., damping: 32., mass: 0.6 };
     /// A message arriving in the conversation (beui's `MESSAGE_POP_UP`).
-    pub const MESSAGE_POP: Self = Self {
-        stiffness: 480.,
-        damping: 32.,
-        mass: 0.62,
-    };
+    pub const MESSAGE_POP: Self = Self { stiffness: 480., damping: 32., mass: 0.62 };
     /// Tailwind's `transition-colors` (150ms), as a spring that restarts smoothly from anywhere.
     pub const TINT: Self = Self::critical(36.);
     /// mem0's arrow chip: the arrows sliding through it, fitted to its hover.
@@ -138,20 +93,12 @@ impl Spring {
     /// (mass 1, `stiffness = (2π / duration)²`, `damping = 2 (1 - bounce) √stiffness`).
     pub fn bouncy(duration: f32, bounce: f32) -> Self {
         let stiffness = (std::f32::consts::TAU / duration).powi(2);
-        Self {
-            stiffness,
-            damping: 2. * (1. - bounce) * stiffness.sqrt(),
-            mass: 1.,
-        }
+        Self { stiffness, damping: 2. * (1. - bounce) * stiffness.sqrt(), mass: 1. }
     }
 
     /// A spring that settles as fast as possible without overshoot, at `omega` radians per second.
     pub const fn critical(omega: f32) -> Self {
-        Self {
-            stiffness: omega * omega,
-            damping: 2. * omega,
-            mass: 1.,
-        }
+        Self { stiffness: omega * omega, damping: 2. * omega, mass: 1. }
     }
 
     /// MorphSelect's shared layout: the trigger grows into the panel and back, `{ type: "spring", duration: 0.5,
@@ -192,12 +139,7 @@ pub struct Animated {
 
 impl Animated {
     pub fn new(spring: Spring, value: f32) -> Self {
-        Self {
-            spring,
-            value,
-            velocity: 0.,
-            target: value,
-        }
+        Self { spring, value, velocity: 0., target: value }
     }
 
     pub fn value(&self) -> f32 {
@@ -223,11 +165,7 @@ impl Animated {
             self.velocity = 0.;
             return false;
         }
-        let Spring {
-            stiffness,
-            damping,
-            mass,
-        } = self.spring;
+        let Spring { stiffness, damping, mass } = self.spring;
         // Clamp so a long pause (app in background) never makes a single huge step.
         let mut left = dt.min(0.064);
         while left > 0. {
@@ -368,9 +306,7 @@ impl FrameClock {
 
 /// CSS `cubic-bezier(x1, y1, x2, y2)` at time `t`.
 pub fn cubic_bezier([x1, y1, x2, y2]: [f32; 4], t: f32) -> f32 {
-    let curve = |a: f32, b: f32, s: f32| {
-        3. * a * s * (1. - s).powi(2) + 3. * b * s * s * (1. - s) + s.powi(3)
-    };
+    let curve = |a: f32, b: f32, s: f32| 3. * a * s * (1. - s).powi(2) + 3. * b * s * s * (1. - s) + s.powi(3);
     let (mut lo, mut hi) = (0., 1.);
     for _ in 0..30 {
         let mid = (lo + hi) / 2.;
@@ -411,14 +347,7 @@ pub struct Channel {
 
 impl Channel {
     pub fn new(value: f32) -> Self {
-        Self {
-            from: value,
-            velocity: 0.,
-            to: value,
-            curve: Curve::Instant,
-            delay: 0.,
-            start: now(),
-        }
+        Self { from: value, velocity: 0., to: value, curve: Curve::Instant, delay: 0., start: now() }
     }
 
     pub fn target(&self) -> f32 {
@@ -430,14 +359,7 @@ impl Channel {
         self.animate_at(to, curve, delay, reduce_motion, now());
     }
 
-    pub fn animate_at(
-        &mut self,
-        to: f32,
-        curve: Curve,
-        delay: f32,
-        reduce_motion: bool,
-        now: Instant,
-    ) {
+    pub fn animate_at(&mut self, to: f32, curve: Curve, delay: f32, reduce_motion: bool, now: Instant) {
         let (value, velocity) = self.sample(now);
         *self = Self {
             from: value,
@@ -486,10 +408,7 @@ impl Channel {
                 if t >= duration {
                     return (self.to, 0.);
                 }
-                let at = |t: f32| {
-                    self.from
-                        + (self.to - self.from) * cubic_bezier(curve, (t / duration).clamp(0., 1.))
-                };
+                let at = |t: f32| self.from + (self.to - self.from) * cubic_bezier(curve, (t / duration).clamp(0., 1.));
                 let h = 0.001;
                 (at(t), (at(t + h) - at((t - h).max(0.))) / (h + h.min(t)))
             }
@@ -503,16 +422,7 @@ impl Channel {
 
 /// Offset from the target and speed of a damped spring after `t` seconds, starting at offset `d0` with
 /// speed `v0`.
-fn spring_offset(
-    Spring {
-        stiffness,
-        damping,
-        mass,
-    }: Spring,
-    d0: f32,
-    v0: f32,
-    t: f32,
-) -> (f32, f32) {
+fn spring_offset(Spring { stiffness, damping, mass }: Spring, d0: f32, v0: f32, t: f32) -> (f32, f32) {
     let omega = (stiffness / mass).sqrt();
     let zeta = damping / (2. * (stiffness * mass).sqrt());
     if (zeta - 1.).abs() < 1e-4 {
@@ -538,18 +448,9 @@ fn spring_offset(
 
 /// Motion keyframes: `values` reached at `times` (fractions of `duration` seconds), each segment eased by
 /// `curve`. Like Motion, they always start from the first value.
-pub fn keyframes(
-    values: &[f32],
-    times: &[f32],
-    duration: f32,
-    curve: [f32; 4],
-    elapsed: f32,
-) -> f32 {
+pub fn keyframes(values: &[f32], times: &[f32], duration: f32, curve: [f32; 4], elapsed: f32) -> f32 {
     let p = (elapsed / duration).clamp(0., 1.);
-    let i = times
-        .windows(2)
-        .position(|w| p <= w[1])
-        .unwrap_or(times.len() - 2);
+    let i = times.windows(2).position(|w| p <= w[1]).unwrap_or(times.len() - 2);
     let span = (times[i + 1] - times[i]).max(f32::EPSILON);
     let local = ((p - times[i]) / span).clamp(0., 1.);
     values[i] + (values[i + 1] - values[i]) * cubic_bezier(curve, local)

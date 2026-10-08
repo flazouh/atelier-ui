@@ -1,8 +1,8 @@
 use gpui_kit::{Styled, div};
 
-use super::types::{MessageBubbleGroupSpacing, MessageBubbleVariant};
 use crate::scale::px;
 use crate::theme::Theme;
+use super::types::{MessageBubbleGroupSpacing, MessageBubbleVariant};
 
 pub(super) fn surface_fill(variant: MessageBubbleVariant, theme: &Theme) -> Option<gpui_kit::Hsla> {
     match variant {

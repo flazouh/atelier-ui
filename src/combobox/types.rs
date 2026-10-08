@@ -2,11 +2,8 @@ use std::rc::Rc;
 
 use gpui_kit::{App, SharedString, Window};
 
+use crate::{motion::Spring, theme::{mix, radius}};
 use super::structs::ComboRow;
-use crate::{
-    motion::Spring,
-    theme::{mix, radius},
-};
 
 /// The list's padding and its tallest.
 pub const PAD: f32 = 6.;
@@ -82,14 +79,7 @@ impl ComboStyle {
         match self {
             ComboStyle::Combobox => mix(theme.card, theme.foreground, 0.06),
             // design preview: remove after Alex picks (the elevation)
-            _ => crate::design_preview::row_tone(
-                theme,
-                crate::design_preview::panel_fill(
-                    theme,
-                    crate::design_preview::elevation(),
-                    theme.popover,
-                ),
-            ),
+            _ => crate::design_preview::row_tone(theme, crate::design_preview::panel_fill(theme, crate::design_preview::elevation(), theme.popover)),
         }
     }
 
@@ -109,11 +99,7 @@ impl ComboStyle {
 }
 
 /// The pill of the command palette follows rapid arrow keys, so it is tighter than the layout spring.
-pub const PALETTE_SPRING: Spring = Spring {
-    stiffness: 480.,
-    damping: 38.,
-    mass: 1.,
-};
+pub const PALETTE_SPRING: Spring = Spring { stiffness: 480., damping: 38., mass: 1. };
 
 pub(super) type Pick = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 

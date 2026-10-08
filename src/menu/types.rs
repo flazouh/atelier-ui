@@ -65,25 +65,11 @@ pub struct Branch {
 
 impl Branch {
     pub fn leaf(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self {
-            id: id.into(),
-            label: label.into(),
-            lead: None,
-            branches: Vec::new(),
-        }
+        Self { id: id.into(), label: label.into(), lead: None, branches: Vec::new() }
     }
 
-    pub fn with(
-        id: impl Into<SharedString>,
-        label: impl Into<SharedString>,
-        branches: Vec<Branch>,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            label: label.into(),
-            lead: None,
-            branches,
-        }
+    pub fn with(id: impl Into<SharedString>, label: impl Into<SharedString>, branches: Vec<Branch>) -> Self {
+        Self { id: id.into(), label: label.into(), lead: None, branches }
     }
 
     /// The same, with `lead` before its words.
@@ -160,10 +146,7 @@ impl Origin {
             Origin::BottomLeft => (0., size.1),
             Origin::BottomRight => size,
         };
-        (
-            x.clamp(12., (size.0 - 12.).max(12.)),
-            y.clamp(12., (size.1 - 12.).max(12.)),
-        )
+        (x.clamp(12., (size.0 - 12.).max(12.)), y.clamp(12., (size.1 - 12.).max(12.)))
     }
 }
 

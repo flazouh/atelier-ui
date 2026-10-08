@@ -14,9 +14,9 @@ pub use helpers::{curve, frame, stagger_delay};
 pub use structs::{Arrivals, Entrance, EntranceFrame, EntranceList};
 
 #[cfg(test)]
-use crate::motion::{Curve, ENTER_RISE, STAGGER_CAP, STAGGER_STEP, duration, ease};
-#[cfg(test)]
 use gpui_kit::ElementId;
+#[cfg(test)]
+use crate::motion::{Curve, ENTER_RISE, STAGGER_CAP, STAGGER_STEP, duration, ease};
 
 #[cfg(test)]
 mod tests;

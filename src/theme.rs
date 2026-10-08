@@ -12,10 +12,7 @@
 
 use std::sync::Arc;
 
-use gpui_kit::{
-    App, BoxShadow, Global, Hsla, Pixels, SharedString, component::highlighter::HighlightTheme,
-    point, px, transparent_black,
-};
+use gpui_kit::{App, BoxShadow, Global, Hsla, Pixels, SharedString, component::highlighter::HighlightTheme, point, px, transparent_black};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Appearance {
@@ -131,11 +128,7 @@ impl Theme {
 
     /// The background of an added or removed diff line.
     pub fn diff_line(&self, added: bool) -> Hsla {
-        if added {
-            self.diff_added
-        } else {
-            self.diff_removed
-        }
+        if added { self.diff_added } else { self.diff_removed }
     }
 
     /// The sign and the `+n` / `-n` counts of a diff.
@@ -155,20 +148,8 @@ pub fn dropdown_edge(theme: &Theme) -> Hsla {
 pub fn popover_shadow(theme: &Theme) -> Vec<BoxShadow> {
     let color = theme.shadow;
     vec![
-        BoxShadow {
-            color,
-            offset: point(px(0.), px(10.)),
-            blur_radius: px(15.),
-            spread_radius: px(-3.),
-            inset: false,
-        },
-        BoxShadow {
-            color,
-            offset: point(px(0.), px(4.)),
-            blur_radius: px(6.),
-            spread_radius: px(-4.),
-            inset: false,
-        },
+        BoxShadow { color, offset: point(px(0.), px(10.)), blur_radius: px(15.), spread_radius: px(-3.), inset: false },
+        BoxShadow { color, offset: point(px(0.), px(4.)), blur_radius: px(6.), spread_radius: px(-4.), inset: false },
     ]
 }
 
@@ -188,12 +169,8 @@ impl Appearance {
     /// Light or dark to match a macOS appearance; the vibrant ones count as their plain kind.
     pub fn of_system(system: gpui_kit::WindowAppearance) -> Self {
         match system {
-            gpui_kit::WindowAppearance::Dark | gpui_kit::WindowAppearance::VibrantDark => {
-                Self::Dark
-            }
-            gpui_kit::WindowAppearance::Light | gpui_kit::WindowAppearance::VibrantLight => {
-                Self::Light
-            }
+            gpui_kit::WindowAppearance::Dark | gpui_kit::WindowAppearance::VibrantDark => Self::Dark,
+            gpui_kit::WindowAppearance::Light | gpui_kit::WindowAppearance::VibrantLight => Self::Light,
         }
     }
 }
@@ -262,9 +239,7 @@ pub fn text_on(theme: &Theme, fill: Hsla) -> Option<Hsla> {
     } else {
         (theme.foreground, theme.background)
     };
-    [light, dark]
-        .into_iter()
-        .find(|text| contrast(*text, fill) >= FILL_TEXT_CONTRAST)
+    [light, dark].into_iter().find(|text| contrast(*text, fill) >= FILL_TEXT_CONTRAST)
 }
 
 /// A mark on a `fill` (a tick, a bar, an icon with no words): the same tone as the words ([`text_on`]), and the ink
@@ -295,9 +270,7 @@ pub fn can_be_primary(theme: &Theme, color: Hsla) -> bool {
 pub fn with_pick(theme: &Theme, pick: Option<Hsla>) -> Theme {
     let mut out = theme.clone();
     let Some(pick) = pick else { return out };
-    let Some(text) = text_on(theme, pick) else {
-        return out;
-    };
+    let Some(text) = text_on(theme, pick) else { return out };
     out.primary = pick;
     out.primary_foreground = text;
     if contrast(pick, theme.background) >= MARK_CONTRAST {
@@ -373,20 +346,11 @@ pub fn raise(color: Hsla, ink: Hsla, against: &[Hsla], least: f32) -> Option<Hsl
     }
     if color.s > 0.2 {
         let toward = if ink.l < color.l { -1. } else { 1. };
-        if let Some(held) = (1..=50)
-            .map(|step| Hsla {
-                l: (color.l + toward * step as f32 * 0.02).clamp(0., 1.),
-                ..color
-            })
-            .find(|c| passes(*c))
-        {
+        if let Some(held) = (1..=50).map(|step| Hsla { l: (color.l + toward * step as f32 * 0.02).clamp(0., 1.), ..color }).find(|c| passes(*c)) {
             return Some(held);
         }
     }
-    (1..=20)
-        .map(|step| mix(color, ink, step as f32 * 0.05))
-        .find(|c| passes(*c))
-        .or(Some(ink))
+    (1..=20).map(|step| mix(color, ink, step as f32 * 0.05)).find(|c| passes(*c)).or(Some(ink))
 }
 
 /// Every status mark reaches [`MARK_CONTRAST`] on the page: one that does not moves toward the ink,
@@ -402,13 +366,7 @@ pub fn raise_marks(theme: &mut Theme) {
 /// The relative luminance of an opaque color, as WCAG defines it.
 fn luminance(c: Hsla) -> f32 {
     let c = c.to_rgb();
-    let channel = |x: f32| {
-        if x <= 0.03928 {
-            x / 12.92
-        } else {
-            ((x + 0.055) / 1.055).powf(2.4)
-        }
-    };
+    let channel = |x: f32| if x <= 0.03928 { x / 12.92 } else { ((x + 0.055) / 1.055).powf(2.4) };
     0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
 }
 
@@ -427,13 +385,7 @@ pub fn mix(a: Hsla, b: Hsla, amount: f32) -> Hsla {
         return transparent_black();
     }
     let channel = |x: f32, y: f32| lerp(x * a.a, y * b.a) / alpha;
-    gpui_kit::Rgba {
-        r: channel(a.r, b.r),
-        g: channel(a.g, b.g),
-        b: channel(a.b, b.b),
-        a: alpha,
-    }
-    .into()
+    gpui_kit::Rgba { r: channel(a.r, b.r), g: channel(a.g, b.g), b: channel(a.b, b.b), a: alpha }.into()
 }
 
 /// Tailwind radii as beui uses them. Keep one radius system per surface group.

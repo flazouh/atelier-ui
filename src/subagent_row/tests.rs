@@ -1,12 +1,7 @@
 use super::*;
 
 fn row() -> SubagentRow {
-    SubagentRow::new(
-        "explore",
-        AgentLook::neutral(&crate::theme::Theme::dark()),
-        "Explore",
-        "Find the diff parser",
-    )
+    SubagentRow::new("explore", AgentLook::neutral(&crate::theme::Theme::dark()), "Explore", "Find the diff parser")
 }
 
 #[test]

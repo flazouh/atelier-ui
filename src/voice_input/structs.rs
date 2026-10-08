@@ -5,8 +5,6 @@ use gpui_kit::{
     SharedString, Styled, Window, div,
 };
 
-use super::helpers::{key, listening_row, mic_slot};
-use super::types::{BAR_HEIGHT, VoiceInputEvent, VoiceMode};
 use crate::{
     morph::Morph,
     motion::{Channel, Curve, Spring},
@@ -14,7 +12,9 @@ use crate::{
     theme::{ActiveTheme, Theme, radius},
     typography::TextSize,
     voice_setup::{SetupPhase, VoiceSetup},
-};
+    };
+use super::types::{BAR_HEIGHT, VoiceInputEvent, VoiceMode};
+use super::helpers::{key, listening_row, mic_slot};
 
 pub struct VoiceInput {
     pub(super) mode: VoiceMode,
@@ -36,14 +36,7 @@ impl Default for VoiceInput {
 
 impl VoiceInput {
     pub fn new() -> Self {
-        Self {
-            mode: VoiceMode::Idle,
-            phase: SetupPhase::Prepare,
-            total_mb: 164.,
-            level: 0.,
-            since: None,
-            swap: Channel::new(0.),
-        }
+        Self { mode: VoiceMode::Idle, phase: SetupPhase::Prepare, total_mb: 164., level: 0., since: None, swap: Channel::new(0.) }
     }
 
     pub fn mode(&self) -> VoiceMode {
@@ -66,12 +59,7 @@ impl VoiceInput {
         }
         self.mode = mode;
         let reduce = cx.reduce_motion();
-        self.swap.animate(
-            if listening { 1. } else { 0. },
-            Curve::Spring(Spring::SWAP),
-            0.,
-            reduce,
-        );
+        self.swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
         cx.notify();
     }
 
@@ -131,24 +119,13 @@ impl Render for VoiceInput {
                     .text_color(muted)
                     .child(SharedString::from("Press the microphone to dictate"))
                     .into_any_element(),
-                VoiceMode::Setup => div()
-                    .w_full()
-                    .child(VoiceSetup::new("voice-input-setup", phase).total_mb(total_mb))
-                    .into_any_element(),
+                VoiceMode::Setup => div().w_full().child(VoiceSetup::new("voice-input-setup", phase).total_mb(total_mb)).into_any_element(),
                 VoiceMode::Listening => listening_row(level, seconds, muted),
             }
         });
 
         let this = cx.entity().downgrade();
-        let mic = Mic {
-            id: "voice-input-button",
-            mode: self.mode,
-            swap: t,
-            seconds,
-            blocked: false,
-            theme: theme.clone(),
-            reduce,
-        };
+        let mic = Mic { id: "voice-input-button", mode: self.mode, swap: t, seconds, blocked: false, theme: theme.clone(), reduce };
         let slot = mic_slot(mic, move |_, _, cx| {
             this.update(cx, |this, cx| match this.mode {
                 VoiceMode::Idle | VoiceMode::Failed => cx.emit(VoiceInputEvent::Start),
@@ -169,14 +146,7 @@ impl Render for VoiceInput {
             .pr(px(8.))
             .rounded(radius::xl())
             .bg(theme.card)
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .flex()
-                    .items_center()
-                    .child(div().w_full().child(said)),
-            )
+            .child(div().flex_1().min_w_0().flex().items_center().child(div().w_full().child(said)))
             .child(slot)
     }
 }

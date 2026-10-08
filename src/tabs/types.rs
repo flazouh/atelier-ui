@@ -5,11 +5,7 @@ use gpui_kit::{App, Window};
 use crate::motion::Spring;
 
 /// The indicator's spring: `{ stiffness: 245, damping: 36, mass: 1.2 }`.
-pub const GLIDE: Spring = Spring {
-    stiffness: 245.,
-    damping: 36.,
-    mass: 1.2,
-};
+pub const GLIDE: Spring = Spring { stiffness: 245., damping: 36., mass: 1.2 };
 
 /// An underline tab's least height (`min-h-[44px]`).
 pub const UNDERLINE_HEIGHT: f32 = 44.;
@@ -37,21 +33,14 @@ pub enum TabsVariant {
 impl TabsVariant {
     /// One of the editor strip's designs.
     pub fn is_editor(self) -> bool {
-        matches!(
-            self,
-            TabsVariant::Chip | TabsVariant::ChipLine | TabsVariant::Dot | TabsVariant::Tick
-        )
+        matches!(self, TabsVariant::Chip | TabsVariant::ChipLine | TabsVariant::Dot | TabsVariant::Tick)
     }
     /// The list's padding.
     pub fn pad(self) -> f32 {
         match self {
             TabsVariant::Pill => 4.,
             TabsVariant::Segment => 2.,
-            TabsVariant::Underline
-            | TabsVariant::Chip
-            | TabsVariant::ChipLine
-            | TabsVariant::Dot
-            | TabsVariant::Tick => 0.,
+            TabsVariant::Underline | TabsVariant::Chip | TabsVariant::ChipLine | TabsVariant::Dot | TabsVariant::Tick => 0.,
         }
     }
 
@@ -67,9 +56,7 @@ impl TabsVariant {
     pub fn tab_pad(self) -> (f32, f32) {
         match self {
             TabsVariant::Underline => (12., 0.),
-            TabsVariant::Chip | TabsVariant::ChipLine | TabsVariant::Dot | TabsVariant::Tick => {
-                (10., 0.)
-            }
+            TabsVariant::Chip | TabsVariant::ChipLine | TabsVariant::Dot | TabsVariant::Tick => (10., 0.),
             _ => (14., 6.),
         }
     }

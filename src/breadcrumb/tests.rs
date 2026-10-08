@@ -1,9 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use gpui_kit::{
-    Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext,
-    VisualTestContext, Window, div, px,
-};
+use gpui_kit::{Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
 
 use super::*;
 use crate::theme::{Appearance, set_appearance};
@@ -12,17 +9,9 @@ use crate::theme::{Appearance, set_appearance};
 fn a_short_path_shows_every_part_and_a_long_one_folds_its_middle() {
     assert_eq!(shown(3, 4), vec![Some(0), Some(1), Some(2)]);
     assert_eq!(shown(4, 4), vec![Some(0), Some(1), Some(2), Some(3)]);
-    assert_eq!(
-        shown(6, 4),
-        vec![Some(0), None, Some(4), Some(5)],
-        "the first, the ellipsis, and the last two"
-    );
+    assert_eq!(shown(6, 4), vec![Some(0), None, Some(4), Some(5)], "the first, the ellipsis, and the last two");
     assert_eq!(shown(6, 3), vec![Some(0), None, Some(5)]);
-    assert_eq!(
-        shown(6, 1),
-        vec![Some(0), None, Some(5)],
-        "at least three slots"
-    );
+    assert_eq!(shown(6, 1), vec![Some(0), None, Some(5)], "at least three slots");
     assert_eq!(hidden(6, 4), 1..4);
     assert_eq!(hidden(3, 4), 0..0);
 }
@@ -36,21 +25,12 @@ impl Render for Page {
     fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
         let log = self.log.clone();
         div().p(px(20.)).w(px(700.)).child(
-            Breadcrumb::new("bc", self.crumbs.iter().map(|c| Crumb::new(*c)))
-                .debug_name("bc")
-                .on_press(move |i, _, _| log.borrow_mut().push(i)),
+            Breadcrumb::new("bc", self.crumbs.iter().map(|c| Crumb::new(*c))).debug_name("bc").on_press(move |i, _, _| log.borrow_mut().push(i)),
         )
     }
 }
 
-fn open<'a>(
-    crumbs: Vec<&'static str>,
-    cx: &'a mut TestAppContext,
-) -> (
-    Entity<Page>,
-    &'a mut VisualTestContext,
-    Rc<RefCell<Vec<usize>>>,
-) {
+fn open<'a>(crumbs: Vec<&'static str>, cx: &'a mut TestAppContext) -> (Entity<Page>, &'a mut VisualTestContext, Rc<RefCell<Vec<usize>>>) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Light, cx);
@@ -75,28 +55,14 @@ fn a_press_on_a_folder_reports_its_index_and_the_page_is_not_pressed(cx: &mut Te
     let page = cx.debug_bounds("bc-3").unwrap();
     assert_eq!(f32::from(page.size.height), HEIGHT);
     cx.simulate_click(page.center(), Modifiers::default());
-    assert_eq!(
-        *log.borrow(),
-        vec![1],
-        "the last part is where the reader is"
-    );
+    assert_eq!(*log.borrow(), vec![1], "the last part is where the reader is");
 }
 
 #[gpui_kit::test]
 fn a_long_path_folds_and_the_ellipsis_lists_the_hidden_folders(cx: &mut TestAppContext) {
-    let (page, cx, log) = open(
-        vec!["crates", "beui", "src", "menu", "tests", "menu.rs"],
-        cx,
-    );
-    assert!(
-        cx.debug_bounds("bc-1").is_none() && cx.debug_bounds("bc-3").is_none(),
-        "the middle is folded"
-    );
-    assert!(
-        cx.debug_bounds("bc-0").is_some()
-            && cx.debug_bounds("bc-4").is_some()
-            && cx.debug_bounds("bc-5").is_some()
-    );
+    let (page, cx, log) = open(vec!["crates", "beui", "src", "menu", "tests", "menu.rs"], cx);
+    assert!(cx.debug_bounds("bc-1").is_none() && cx.debug_bounds("bc-3").is_none(), "the middle is folded");
+    assert!(cx.debug_bounds("bc-0").is_some() && cx.debug_bounds("bc-4").is_some() && cx.debug_bounds("bc-5").is_some());
     let more = cx.debug_bounds("bc-more").expect("the ellipsis");
     cx.simulate_click(more.center(), Modifiers::default());
     for _ in 0..5 {

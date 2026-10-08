@@ -1,17 +1,10 @@
 use gpui_kit::SharedString;
 
-use super::types::TABLE_LIMIT;
 use crate::file_diff::{DiffLine, DiffLineKind};
+use super::types::TABLE_LIMIT;
 
 fn lines_of(text: &str) -> Vec<&str> {
-    if text.is_empty() {
-        Vec::new()
-    } else {
-        text.strip_suffix('\n')
-            .unwrap_or(text)
-            .split('\n')
-            .collect()
-    }
+    if text.is_empty() { Vec::new() } else { text.strip_suffix('\n').unwrap_or(text).split('\n').collect() }
 }
 
 /// The line diff of `old` into `new`, every line of both in order, numbered from `start`. It is the longest common
@@ -37,18 +30,11 @@ pub fn line_diff(old: &str, new: &str, start: u32) -> Vec<DiffLine> {
                 (None, Some(new_no))
             }
         };
-        rows.push(DiffLine {
-            kind,
-            old_line,
-            new_line,
-            text: text.to_string().into(),
-        });
+        rows.push(DiffLine { kind, old_line, new_line, text: text.to_string().into() });
     };
     if (n + 1) * (m + 1) > TABLE_LIMIT {
-        a.iter()
-            .for_each(|l| push(DiffLineKind::Removed, l, &mut rows));
-        b.iter()
-            .for_each(|l| push(DiffLineKind::Added, l, &mut rows));
+        a.iter().for_each(|l| push(DiffLineKind::Removed, l, &mut rows));
+        b.iter().for_each(|l| push(DiffLineKind::Added, l, &mut rows));
         return rows;
     }
     // table[i][j]: the common run of a[i..] and b[j..].
@@ -56,11 +42,7 @@ pub fn line_diff(old: &str, new: &str, start: u32) -> Vec<DiffLine> {
     let at = |i: usize, j: usize| i * (m + 1) + j;
     for i in (0..n).rev() {
         for j in (0..m).rev() {
-            table[at(i, j)] = if a[i] == b[j] {
-                table[at(i + 1, j + 1)] + 1
-            } else {
-                table[at(i + 1, j)].max(table[at(i, j + 1)])
-            };
+            table[at(i, j)] = if a[i] == b[j] { table[at(i + 1, j + 1)] + 1 } else { table[at(i + 1, j)].max(table[at(i, j + 1)]) };
         }
     }
     let (mut i, mut j) = (0, 0);
@@ -83,10 +65,7 @@ pub fn line_diff(old: &str, new: &str, start: u32) -> Vec<DiffLine> {
 /// `path` relative to `root`, when it is inside it; else `path` as it is.
 pub fn relative_path(path: &str, root: &str) -> SharedString {
     let root = root.trim_end_matches('/');
-    match path
-        .strip_prefix(root)
-        .and_then(|rest| rest.strip_prefix('/'))
-    {
+    match path.strip_prefix(root).and_then(|rest| rest.strip_prefix('/')) {
         Some(rest) if !root.is_empty() && !rest.is_empty() => rest.to_string().into(),
         _ => path.to_string().into(),
     }

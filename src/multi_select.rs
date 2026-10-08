@@ -25,9 +25,9 @@ pub use types::MultiSelectEvent;
 use types::{CHIP_HEIGHT, EMPTY, LABEL, ROW};
 
 #[cfg(test)]
-use crate::scale::px;
-#[cfg(test)]
 use gpui_kit::SharedString;
+#[cfg(test)]
+use crate::scale::px;
 
 #[cfg(test)]
 mod tests;

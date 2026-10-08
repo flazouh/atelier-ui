@@ -1,12 +1,13 @@
 use std::time::Instant;
 
 use gpui_kit::{
-    App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div, px,
+    App, ElementId, Hsla, IntoElement, ParentElement, Pixels, RenderOnce, Styled, Window, div,
+    px,
 };
 
-use super::helpers::{amber_for, bar, smooth};
-use super::types::{MAX_BAR_WIDTH, MIN_BAR};
 use crate::{scale::px as scaled, theme::ActiveTheme};
+use super::types::{MAX_BAR_WIDTH, MIN_BAR};
+use super::helpers::{amber_for, bar, smooth};
 
 /// One ribbon: how many waves fit across, how fast and which way they drift, where they start, how opaque, how tall.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -36,14 +37,7 @@ pub struct VoiceWaves {
 
 impl VoiceWaves {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self {
-            id: id.into(),
-            level: 0.,
-            height: px(40.),
-            color: None,
-            bars: 36,
-            gap: 3.,
-        }
+        Self { id: id.into(), level: 0., height: px(40.), color: None, bars: 36, gap: 3. }
     }
 
     /// The microphone's level now, 0 to 1.
@@ -79,20 +73,12 @@ impl VoiceWaves {
 impl RenderOnce for VoiceWaves {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let reduce = cx.reduce_motion();
-        let state = window.use_keyed_state(self.id, cx, |_, _| WaveState {
-            level: 0.,
-            phase: 0.,
-            at: Instant::now(),
-        });
+        let state = window.use_keyed_state(self.id, cx, |_, _| WaveState { level: 0., phase: 0., at: Instant::now() });
         let (level, phase) = state.update(cx, |s, _| {
             let now = Instant::now();
             let dt = now.duration_since(s.at).as_secs_f32().min(0.1);
             s.at = now;
-            s.level = if reduce {
-                self.level
-            } else {
-                smooth(s.level, self.level, dt)
-            };
+            s.level = if reduce { self.level } else { smooth(s.level, self.level, dt) };
             if !reduce {
                 s.phase += dt * (1.6 + 5. * s.level);
             }
@@ -113,14 +99,6 @@ impl RenderOnce for VoiceWaves {
                 .rounded(scaled(MAX_BAR_WIDTH / 2.))
                 .bg(color.opacity(0.4 + 0.6 * a))
         });
-        div()
-            .w_full()
-            .h(self.height)
-            .flex()
-            .flex_row()
-            .items_center()
-            .justify_center()
-            .gap(scaled(self.gap))
-            .children(bars)
+        div().w_full().h(self.height).flex().flex_row().items_center().justify_center().gap(scaled(self.gap)).children(bars)
     }
 }

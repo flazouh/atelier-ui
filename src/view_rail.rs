@@ -5,8 +5,8 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
+    App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString, StatefulInteractiveElement,
+    Styled, Window, div, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -63,19 +63,8 @@ pub struct ViewRail {
 
 impl ViewRail {
     /// `selected` is the view in front; `open` whether its sidebar shows.
-    pub fn new(
-        id: impl Into<ElementId>,
-        views: Vec<RailView>,
-        selected: usize,
-        open: bool,
-    ) -> Self {
-        Self {
-            id: id.into(),
-            views,
-            selected,
-            open,
-            on_select: None,
-        }
+    pub fn new(id: impl Into<ElementId>, views: Vec<RailView>, selected: usize, open: bool) -> Self {
+        Self { id: id.into(), views, selected, open, on_select: None }
     }
 
     pub fn on_select(mut self, handler: impl Fn(usize, &mut Window, &mut App) + 'static) -> Self {
@@ -102,11 +91,7 @@ impl RenderOnce for ViewRail {
             .children(self.views.into_iter().enumerate().map(|(i, view)| {
                 let m = mark(i, selected, open);
                 let on_select = self.on_select.clone();
-                let color = if m == Mark::Rest {
-                    theme.muted_foreground
-                } else {
-                    theme.foreground
-                };
+                let color = if m == Mark::Rest { theme.muted_foreground } else { theme.foreground };
                 div()
                     .id(("view-rail-item", i))
                     .debug_selector(move || view.debug.into())
@@ -119,22 +104,11 @@ impl RenderOnce for ViewRail {
                     .when(m == Mark::Selected, |d| d.bg(theme.accent.opacity(0.14)))
                     .relative()
                     .when(m == Mark::Folded, |d| {
-                        d.child(
-                            div()
-                                .absolute()
-                                .left(px(-5.))
-                                .top(px(8.))
-                                .bottom(px(8.))
-                                .w(px(2.))
-                                .rounded(px(1.))
-                                .bg(theme.accent),
-                        )
+                        d.child(div().absolute().left(px(-5.)).top(px(8.)).bottom(px(8.)).w(px(2.)).rounded(px(1.)).bg(theme.accent))
                     })
                     .when(m == Mark::Rest, |d| d.hover(|s| s.bg(theme.muted_hover())))
                     .tooltip(crate::tooltip::Tooltip::text(view.label.clone()))
-                    .when_some(on_select, |d, select| {
-                        d.on_click(move |_, window, cx| select(i, window, cx))
-                    })
+                    .when_some(on_select, |d, select| d.on_click(move |_, window, cx| select(i, window, cx)))
                     .child(Icon::new(view.icon).size(px(18.)).color(color))
                     .when(view.count > 0, |d| d.child(count_badge(view.count, &theme)))
             }))
@@ -175,13 +149,7 @@ pub struct RailButton {
 
 impl RailButton {
     pub fn new(id: impl Into<ElementId>, icon: IconName, tooltip: impl Into<SharedString>) -> Self {
-        Self {
-            id: id.into(),
-            icon,
-            tooltip: tooltip.into(),
-            debug: "rail-button",
-            on_click: None,
-        }
+        Self { id: id.into(), icon, tooltip: tooltip.into(), debug: "rail-button", on_click: None }
     }
 
     /// The name tests and the control socket find it by.
@@ -212,24 +180,14 @@ impl RenderOnce for RailButton {
             .cursor_pointer()
             .hover(|s| s.bg(theme.muted_hover()))
             .tooltip(crate::tooltip::Tooltip::text(self.tooltip))
-            .when_some(self.on_click, |d, click| {
-                d.on_click(move |_, window, cx| click(window, cx))
-            })
-            .child(
-                Icon::new(self.icon)
-                    .size(px(18.))
-                    .color(theme.muted_foreground),
-            )
+            .when_some(self.on_click, |d, click| d.on_click(move |_, window, cx| click(window, cx)))
+            .child(Icon::new(self.icon).size(px(18.)).color(theme.muted_foreground))
     }
 }
 
 /// A count as the badge writes it: past 9 it says "9+".
 pub fn count_words(count: usize) -> SharedString {
-    if count > 9 {
-        "9+".into()
-    } else {
-        count.to_string().into()
-    }
+    if count > 9 { "9+".into() } else { count.to_string().into() }
 }
 
 #[cfg(test)]

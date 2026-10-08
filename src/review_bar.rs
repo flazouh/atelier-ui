@@ -25,8 +25,8 @@ mod helpers;
 mod structs;
 mod types;
 
-pub(crate) use helpers::worded;
 pub use helpers::{choose, menu_entries, need_at};
+pub(crate) use helpers::worded;
 pub use structs::{ReviewBar, Step};
 pub use types::STEPS;
 

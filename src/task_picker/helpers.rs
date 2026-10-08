@@ -1,12 +1,10 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    AnyElement, IntoElement, KeyDownEvent, Keystroke, ParentElement, Pixels, Styled, Window, div,
-    prelude::FluentBuilder,
+    AnyElement, IntoElement, KeyDownEvent, Keystroke, ParentElement, Pixels, Styled, Window,
+    div, prelude::FluentBuilder,
 };
 
-use super::structs::{Chip, PickerMorph};
-use super::types::{Outcome, Pick, WIDTH};
 use crate::scale::px;
 use crate::{
     combobox::{ComboEntry, ComboList, ComboRow},
@@ -17,6 +15,8 @@ use crate::{
     theme::{Theme, popover_shadow, radius},
     typography::TextSize,
 };
+use super::structs::{Chip, PickerMorph};
+use super::types::{Outcome, Pick, WIDTH};
 
 /// Routes one key to an open picker: `key` is the key's name (`escape`, `enter`, `up`, `down`,
 /// `backspace`) and `text` the characters it types, if any.
@@ -39,10 +39,7 @@ pub fn handle_key(picker: &mut Picker, key: &str, text: Option<&str>) -> Outcome
             Some(change) => {
                 let stays_open = picker.stays_open();
                 if let Change::ToggleLabel(label) = &change {
-                    let now_on = !picker
-                        .candidates()
-                        .iter()
-                        .any(|c| c.change == change && c.chosen);
+                    let now_on = !picker.candidates().iter().any(|c| c.change == change && c.chosen);
                     picker.mark(label, now_on);
                 }
                 Outcome::Chosen { change, stays_open }
@@ -63,22 +60,9 @@ fn mark(candidate: &Candidate, theme: &Theme) -> AnyElement {
     match &candidate.change {
         Change::Status(status) => TaskStatusMark::new(*status).into_any_element(),
         Change::Priority(priority) => PriorityMark::new(*priority).into_any_element(),
-        Change::Assignee(Some(who)) => {
-            crate::task_row::assignee_mark("picker-assignee", who, 16., theme)
-        }
+        Change::Assignee(Some(who)) => crate::task_row::assignee_mark("picker-assignee", who, 16., theme),
         Change::Assignee(None) => div().size(px(16.)).into_any_element(),
-        Change::ToggleLabel(label) => div()
-            .flex()
-            .size(px(16.))
-            .items_center()
-            .justify_center()
-            .child(
-                div()
-                    .size(px(8.))
-                    .rounded_full()
-                    .bg(label_tone_color(label, theme)),
-            )
-            .into_any_element(),
+        Change::ToggleLabel(label) => div().flex().size(px(16.)).items_center().justify_center().child(div().size(px(8.)).rounded_full().bg(label_tone_color(label, theme))).into_any_element(),
     }
 }
 
@@ -86,11 +70,7 @@ fn mark(candidate: &Candidate, theme: &Theme) -> AnyElement {
 /// cursor's row lit by the list's gliding pill.
 /// Enter, for an owner that takes a press on a row as the cursor going there and Enter after it.
 pub fn enter() -> KeyDownEvent {
-    KeyDownEvent {
-        keystroke: Keystroke::parse("enter").expect("enter is a key"),
-        is_held: false,
-        prefer_character_input: false,
-    }
+    KeyDownEvent { keystroke: Keystroke::parse("enter").expect("enter is a key"), is_held: false, prefer_character_input: false }
 }
 
 /// The candidates as a [`ComboList`], the cursor's row lit by the list's gliding pill.
@@ -98,51 +78,23 @@ fn picker_list(id: &'static str, picker: &Picker, theme: &Theme, pick: Option<Pi
     let shown = picker.shown();
     let entries = shown.iter().enumerate().map(|(row, &index)| {
         let candidate = &picker.candidates()[index];
-        ComboEntry::from(
-            ComboRow::new(candidate.words.clone())
-                .debug_name(format!("picker-row-{row}"))
-                .leading(mark(candidate, theme))
-                .selected(candidate.chosen),
-        )
+        ComboEntry::from(ComboRow::new(candidate.words.clone()).debug_name(format!("picker-row-{row}")).leading(mark(candidate, theme)).selected(candidate.chosen))
     });
-    ComboList::new(id, entries)
-        .style(crate::combobox::ComboStyle::Task)
-        .padded(false)
-        .when_some(pick, |list, pick| {
-            list.on_pick(move |i, window, cx| pick(i, window, cx))
-        })
-        .active((!shown.is_empty()).then(|| picker.cursor()))
-        .empty("Nothing matches")
+    ComboList::new(id, entries).style(crate::combobox::ComboStyle::Task).padded(false).when_some(pick, |list, pick| list.on_pick(move |i, window, cx| pick(i, window, cx))).active((!shown.is_empty()).then(|| picker.cursor())).empty("Nothing matches")
 }
 
-pub fn picker_view(
-    id: &'static str,
-    picker: &Picker,
-    theme: &Theme,
-    pick: Option<Pick>,
-) -> AnyElement {
+pub fn picker_view(id: &'static str, picker: &Picker, theme: &Theme, pick: Option<Pick>) -> AnyElement {
     let query = picker.query();
     let list = picker_list(id, picker, theme, pick);
     div()
         .w(px(WIDTH))
         .p(px(4.))
         .rounded(radius::lg())
-        // design preview: remove after Alex picks (the elevation)
-        .bg(crate::design_preview::panel_fill(
-            theme,
-            crate::design_preview::elevation(),
-            theme.popover,
-        ))
+                // design preview: remove after Alex picks (the elevation)
+        .bg(crate::design_preview::panel_fill(theme, crate::design_preview::elevation(), theme.popover))
         .border_1()
-        .border_color(crate::design_preview::panel_edge(
-            theme,
-            crate::design_preview::elevation(),
-        ))
-        .shadow(crate::design_preview::panel_shadows(
-            theme,
-            crate::design_preview::elevation(),
-            popover_shadow(theme),
-        ))
+        .border_color(crate::design_preview::panel_edge(theme, crate::design_preview::elevation()))
+        .shadow(crate::design_preview::panel_shadows(theme, crate::design_preview::elevation(), popover_shadow(theme)))
         .text_size(TextSize::Sm.font_size())
         .text_color(theme.foreground)
         .child(
@@ -156,11 +108,7 @@ pub fn picker_view(
                 .text_color(theme.muted_foreground)
                 .child(picker.field().words())
                 .child(div().flex_1())
-                .child(if query.is_empty() {
-                    "Type to filter".to_string()
-                } else {
-                    query.to_string()
-                }),
+                .child(if query.is_empty() { "Type to filter".to_string() } else { query.to_string() }),
         )
         .child(list)
         .into_any_element()
@@ -202,19 +150,14 @@ pub fn morph_popover<T: 'static>(
     // Too near the right edge for the picker's width: it grows toward the left, its right edge on the chip's.
     let end = f32::from(anchor.left()) + pw > f32::from(window.width) - 8.;
     let level = crate::design_preview::elevation();
-    let fill = crate::theme::mix(
-        chip.fill,
-        crate::design_preview::panel_fill(theme, level, theme.popover),
-        lift,
-    );
-    let shadows: Vec<gpui_kit::BoxShadow> =
-        crate::design_preview::panel_shadows(theme, level, popover_shadow(theme))
-            .into_iter()
-            .map(|mut shadow| {
-                shadow.color.a *= lift;
-                shadow
-            })
-            .collect();
+    let fill = crate::theme::mix(chip.fill, crate::design_preview::panel_fill(theme, level, theme.popover), lift);
+    let shadows: Vec<gpui_kit::BoxShadow> = crate::design_preview::panel_shadows(theme, level, popover_shadow(theme))
+        .into_iter()
+        .map(|mut shadow| {
+            shadow.color.a *= lift;
+            shadow
+        })
+        .collect();
     let mut edge = crate::design_preview::panel_edge(theme, level);
     edge.a *= lift;
     let corner = chip.radius + (f32::from(radius::lg()) - chip.radius) * lift;
@@ -222,9 +165,7 @@ pub fn morph_popover<T: 'static>(
     let closer = owner.clone();
     let chooser = owner.clone();
     let pick: Pick = Rc::new(move |row, window, cx| {
-        chooser
-            .update(cx, |owner, cx| pick(owner, row, window, cx))
-            .ok();
+        chooser.update(cx, |owner, cx| pick(owner, row, window, cx)).ok();
     });
     // The face fades out as the filter fades in, in the same row.
     let header = div()
@@ -272,27 +213,16 @@ pub fn morph_popover<T: 'static>(
                 .text_color(theme.muted_foreground)
                 .child(picker.field().words())
                 .child(div().flex_1())
-                .child(if query.is_empty() {
-                    "Type to filter".to_string()
-                } else {
-                    query.to_string()
-                }),
+                .child(if query.is_empty() { "Type to filter".to_string() } else { query.to_string() }),
         );
     // The rows come in a moment after the open, fading and rising as a select's options do.
     let t = morph.opened.map_or(1., |at| at.elapsed().as_secs_f32()) - 0.08;
     let (alpha, rise) = if t <= 0. {
         (0., -6.)
     } else {
-        (
-            cubic_bezier(ease::MOTION_DEFAULT, (t / 0.3).clamp(0., 1.)),
-            -6. * (1. - spring_unit(500., 25., t)),
-        )
+        (cubic_bezier(ease::MOTION_DEFAULT, (t / 0.3).clamp(0., 1.)), -6. * (1. - spring_unit(500., 25., t)))
     };
-    let (alpha, rise) = if morph.reduce {
-        (1., 0.)
-    } else {
-        (alpha, rise)
-    };
+    let (alpha, rise) = if morph.reduce { (1., 0.) } else { (alpha, rise) };
     let list = div()
         .absolute()
         .left_0()
@@ -318,30 +248,15 @@ pub fn morph_popover<T: 'static>(
         .text_color(theme.foreground)
         .child(list)
         .child(header)
-        .child(
-            div()
-                .absolute()
-                .inset_0()
-                .rounded(px(corner))
-                .border_1()
-                .border_color(edge),
-        );
+        .child(div().absolute().inset_0().rounded(px(corner)).border_1().border_color(edge));
     let owner_close = owner;
     Some(
         crate::popover::Popover::new(id)
             .open(morph.open)
             .shown(true)
             .anchor(Some(anchor))
-            .align(if end {
-                crate::popover::Align::End
-            } else {
-                crate::popover::Align::Start
-            })
-            .side(if upward {
-                crate::popover::Side::CoverAbove
-            } else {
-                crate::popover::Side::CoverBelow
-            })
+            .align(if end { crate::popover::Align::End } else { crate::popover::Align::Start })
+            .side(if upward { crate::popover::Side::CoverAbove } else { crate::popover::Side::CoverBelow })
             .height(list_h)
             .width(px(pw))
             .keep_focus()
@@ -370,9 +285,7 @@ pub fn picker_popover<T: 'static>(
 ) -> crate::popover::Popover {
     let chooser = owner.clone();
     let pick: Pick = Rc::new(move |row, window, cx| {
-        chooser
-            .update(cx, |owner, cx| pick(owner, row, window, cx))
-            .ok();
+        chooser.update(cx, |owner, cx| pick(owner, row, window, cx)).ok();
     });
     crate::popover::Popover::new(id)
         .open(true)

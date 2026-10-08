@@ -1,18 +1,12 @@
 use gpui_kit::Hsla;
 
-use super::types::{BadgeStatus, PULSE_MILLIS, PULSE_WASH};
 use crate::{icon::IconName, motion::keyframes, theme::Theme};
+use super::types::{BadgeStatus, PULSE_MILLIS, PULSE_WASH};
 
 /// The wash's strength `millis` into the pulse.
 pub fn pulse_at(millis: u128) -> f32 {
     let t = (millis % PULSE_MILLIS) as f32 / PULSE_MILLIS as f32;
-    keyframes(
-        &[PULSE_WASH.0, PULSE_WASH.1, PULSE_WASH.0],
-        &[0., 0.5, 1.],
-        1.,
-        [0.42, 0., 0.58, 1.],
-        t,
-    )
+    keyframes(&[PULSE_WASH.0, PULSE_WASH.1, PULSE_WASH.0], &[0., 0.5, 1.], 1., [0.42, 0., 0.58, 1.], t)
 }
 
 /// The words' colour and the fill of a status: the old `Badge`'s.

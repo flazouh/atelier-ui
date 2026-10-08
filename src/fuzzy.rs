@@ -8,15 +8,8 @@
 /// length. So a run of letters beats a scatter of word starts. The best placement wins.
 pub fn score(query: &str, text: &str) -> Option<i32> {
     let text: Vec<char> = text.chars().collect();
-    let lower: Vec<char> = text
-        .iter()
-        .map(|c| c.to_lowercase().next().unwrap_or(*c))
-        .collect();
-    let query: Vec<char> = query
-        .chars()
-        .filter(|c| !c.is_whitespace())
-        .filter_map(|c| c.to_lowercase().next())
-        .collect();
+    let lower: Vec<char> = text.iter().map(|c| c.to_lowercase().next().unwrap_or(*c)).collect();
+    let query: Vec<char> = query.chars().filter(|c| !c.is_whitespace()).filter_map(|c| c.to_lowercase().next()).collect();
     if query.is_empty() {
         return Some(0);
     }
@@ -51,8 +44,7 @@ fn starts_word(text: &[char], i: usize) -> bool {
     match i.checked_sub(1).map(|p| text[p]) {
         None => true,
         Some(before) => {
-            matches!(before, '/' | '\\' | '_' | '-' | '.' | ' ' | ':')
-                || (before.is_lowercase() && text[i].is_uppercase())
+            matches!(before, '/' | '\\' | '_' | '-' | '.' | ' ' | ':') || (before.is_lowercase() && text[i].is_uppercase())
         }
     }
 }

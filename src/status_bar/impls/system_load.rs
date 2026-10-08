@@ -32,10 +32,7 @@ impl SystemLoad {
             self.memory_words(),
             (self.memory_fraction() * 100.).round() as u32
         )];
-        lines.extend(
-            self.app_memory
-                .map(|bytes| format!("atelier holds {}", sized(bytes))),
-        );
+        lines.extend(self.app_memory.map(|bytes| format!("atelier holds {}", sized(bytes))));
         lines.join("\n")
     }
 }

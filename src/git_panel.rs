@@ -56,16 +56,7 @@ pub struct GitPanel {
 
 impl GitPanel {
     pub fn new(id: impl Into<ElementId>, repo: impl Into<SharedString>) -> Self {
-        Self {
-            id: id.into(),
-            repo: repo.into(),
-            branch: None,
-            session: None,
-            files: Vec::new(),
-            current: None,
-            on_open: None,
-            worktrees: Vec::new(),
-        }
+        Self { id: id.into(), repo: repo.into(), branch: None, session: None, files: Vec::new(), current: None, on_open: None, worktrees: Vec::new() }
     }
 
     pub fn branch(mut self, branch: Option<SharedString>) -> Self {
@@ -96,10 +87,7 @@ impl GitPanel {
         self
     }
 
-    pub fn on_open(
-        mut self,
-        handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static,
-    ) -> Self {
+    pub fn on_open(mut self, handler: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
         self.on_open = Some(Rc::new(handler));
         self
     }
@@ -122,13 +110,7 @@ impl RenderOnce for GitPanel {
                 .child(div().min_w_0().truncate().child(text))
         };
         let heading = |text: SharedString| {
-            div()
-                .px(px(12.))
-                .pt(px(12.))
-                .pb(px(4.))
-                .text_size(TextSize::Xs.font_size())
-                .text_color(muted)
-                .child(text)
+            div().px(px(12.)).pt(px(12.)).pb(px(4.)).text_size(TextSize::Xs.font_size()).text_color(muted).child(text)
         };
         let body = match (&self.session, self.files.is_empty()) {
             (None, _) => Some("Focus a session to see what it changed."),
@@ -138,10 +120,7 @@ impl RenderOnce for GitPanel {
         let rows = self.files.into_iter().map(|file| {
             let colour = tone(&file.change, &theme);
             let (folder, name) = split_path(&file.path);
-            let (folder, name) = (
-                SharedString::from(folder.to_string()),
-                SharedString::from(name.to_string()),
-            );
+            let (folder, name) = (SharedString::from(folder.to_string()), SharedString::from(name.to_string()));
             let current = self.current.as_ref() == Some(&file.path);
             let open = self.on_open.clone();
             let path = file.path.clone();
@@ -161,36 +140,11 @@ impl RenderOnce for GitPanel {
                 .text_size(TextSize::Sm.font_size())
                 .when(current, |d| d.bg(theme.accent.opacity(0.12)))
                 .when(!current, |d| d.hover(|s| s.bg(theme.muted_hover())))
-                .when_some(open, |d, open| {
-                    d.on_click(move |_, window, cx| open(&path, window, cx))
-                })
-                .child(
-                    div()
-                        .flex_none()
-                        .w(px(10.))
-                        .font_family(MONO_FONT_FAMILY)
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(colour)
-                        .child(letter(&file.change)),
-                )
+                .when_some(open, |d, open| d.on_click(move |_, window, cx| open(&path, window, cx)))
+                .child(div().flex_none().w(px(10.)).font_family(MONO_FONT_FAMILY).text_size(TextSize::Xs.font_size()).text_color(colour).child(letter(&file.change)))
                 .child(FileIcon::file(&file.path).size(px(14.)))
-                .child(
-                    div()
-                        .flex_none()
-                        .max_w(px(160.))
-                        .truncate()
-                        .text_color(colour)
-                        .child(name),
-                )
-                .child(
-                    div()
-                        .flex_1()
-                        .min_w_0()
-                        .truncate()
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(muted)
-                        .child(folder),
-                )
+                .child(div().flex_none().max_w(px(160.)).truncate().text_color(colour).child(name))
+                .child(div().flex_1().min_w_0().truncate().text_size(TextSize::Xs.font_size()).text_color(muted).child(folder))
                 .child(
                     div()
                         .flex_none()
@@ -198,20 +152,8 @@ impl RenderOnce for GitPanel {
                         .gap(px(4.))
                         .font_family(MONO_FONT_FAMILY)
                         .text_size(TextSize::Xs.font_size())
-                        .when(file.added > 0, |d| {
-                            d.child(
-                                div()
-                                    .text_color(theme.diff_color(true))
-                                    .child(format!("+{}", file.added)),
-                            )
-                        })
-                        .when(file.removed > 0, |d| {
-                            d.child(
-                                div()
-                                    .text_color(theme.diff_color(false))
-                                    .child(format!("−{}", file.removed)),
-                            )
-                        }),
+                        .when(file.added > 0, |d| d.child(div().text_color(theme.diff_color(true)).child(format!("+{}", file.added))))
+                        .when(file.removed > 0, |d| d.child(div().text_color(theme.diff_color(false)).child(format!("−{}", file.removed)))),
                 )
         });
         let count = rows.len();
@@ -223,36 +165,11 @@ impl RenderOnce for GitPanel {
             .size_full()
             .pt(px(8.))
             .child(line(IconName::Folder, self.repo, "git-repo"))
-            .when_some(self.branch, |d, branch| {
-                d.child(line(IconName::PrOpen, branch, "git-branch"))
-            })
-            .when_some(self.session, |d, title| {
-                d.child(line(IconName::Forum, title, "git-session"))
-            })
-            .child(heading(if count == 0 {
-                "Changes".into()
-            } else {
-                format!("Changes · {count}").into()
-            }))
-            .when_some(body, |d, words| {
-                d.child(
-                    div()
-                        .px(px(12.))
-                        .text_size(TextSize::Xs.font_size())
-                        .text_color(muted)
-                        .child(words),
-                )
-            })
-            .child(
-                div()
-                    .id("git-files")
-                    .flex()
-                    .flex_col()
-                    .flex_1()
-                    .min_h(px(120.))
-                    .overflow_y_scroll()
-                    .children(rows),
-            )
+            .when_some(self.branch, |d, branch| d.child(line(IconName::PrOpen, branch, "git-branch")))
+            .when_some(self.session, |d, title| d.child(line(IconName::Forum, title, "git-session")))
+            .child(heading(if count == 0 { "Changes".into() } else { format!("Changes · {count}").into() }))
+            .when_some(body, |d, words| d.child(div().px(px(12.)).text_size(TextSize::Xs.font_size()).text_color(muted).child(words)))
+            .child(div().id("git-files").flex().flex_col().flex_1().min_h(px(120.)).overflow_y_scroll().children(rows))
             .when(!self.worktrees.is_empty(), |d| {
                 d.child(
                     div()

@@ -78,20 +78,10 @@ pub struct ButtonState {
 
 impl ButtonState {
     pub(super) fn doing(action: Action, ready: bool) -> Self {
-        Self {
-            label: action.word(),
-            action: Some(action),
-            reason: None,
-            ready,
-        }
+        Self { label: action.word(), action: Some(action), reason: None, ready }
     }
 
     pub(super) fn refused(label: impl Into<String>, reason: impl Into<String>) -> Self {
-        Self {
-            label: label.into(),
-            action: None,
-            reason: Some(reason.into()),
-            ready: false,
-        }
+        Self { label: label.into(), action: None, reason: Some(reason.into()), ready: false }
     }
 }

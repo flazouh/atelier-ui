@@ -88,8 +88,7 @@ fn a_bar_with_nothing_to_tell_is_empty_but_for_itself(cx: &mut TestAppContext) {
 
 #[gpui_kit::test]
 fn a_provider_with_no_numbers_still_shows_with_a_dash(cx: &mut TestAppContext) {
-    let provider = ProviderGauge::new("Codex", Lead::Monogram)
-        .state(GaugeState::Unavailable("not signed in".into()));
+    let provider = ProviderGauge::new("Codex", Lead::Monogram).state(GaugeState::Unavailable("not signed in".into()));
     let cx = shown(
         Host {
             load: None,
@@ -119,45 +118,25 @@ fn the_bar_is_as_tall_as_it_says(cx: &mut TestAppContext) {
 }
 
 mod cards {
+    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
     use crate::{
         menu::Lead,
         panel_layout::GAP,
         status_bar::{Gauge, HEIGHT, ProviderGauge, StatusBar, SystemLoad},
         theme::{Appearance, set_appearance},
     };
-    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
     struct Bar(Option<f32>, Option<f32>);
     impl gpui_kit::Render for Bar {
-        fn render(
-            &mut self,
-            _: &mut gpui_kit::Window,
-            _: &mut gpui_kit::Context<Self>,
-        ) -> impl IntoElement {
-            let load = SystemLoad {
-                cpu: 0.3,
-                cpu_history: vec![0.3; 4],
-                memory_used: 8 << 30,
-                memory_total: 16 << 30,
-                app_memory: None,
-            };
+        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+            let load = SystemLoad { cpu: 0.3, cpu_history: vec![0.3; 4], memory_used: 8 << 30, memory_total: 16 << 30, app_memory: None };
             let claude = ProviderGauge::new("Claude", Lead::Monogram)
                 .gauge(Gauge::new("5h", 0.43, Some(600)))
                 .gauge(Gauge::new("7d", 0.24, Some(86_400)));
-            let codex =
-                ProviderGauge::new("Codex", Lead::Monogram).gauge(Gauge::new("30d", 1.0, None));
-            div().w(px(1000.)).child(
-                StatusBar::new("bar")
-                    .load(Some(load))
-                    .providers(vec![claude, codex])
-                    .columns(self.0, self.1),
-            )
+            let codex = ProviderGauge::new("Codex", Lead::Monogram).gauge(Gauge::new("30d", 1.0, None));
+            div().w(px(1000.)).child(StatusBar::new("bar").load(Some(load)).providers(vec![claude, codex]).columns(self.0, self.1))
         }
     }
-    fn open(
-        lead: Option<f32>,
-        tail: Option<f32>,
-        cx: &mut TestAppContext,
-    ) -> &mut gpui_kit::VisualTestContext {
+    fn open(lead: Option<f32>, tail: Option<f32>, cx: &mut TestAppContext) -> &mut gpui_kit::VisualTestContext {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Dark, cx);
@@ -179,30 +158,13 @@ mod cards {
             cx.debug_bounds("status-card-load").unwrap(),
         );
         let near = |a: gpui_kit::Pixels, b: f32| (f32::from(a) - b).abs() < 0.6;
-        assert!(
-            near(machine.size.width, 300.),
-            "the first card is the sidebar's width: {:?}",
-            machine.size.width
-        );
-        assert!(
-            near(providers.size.width, 260.),
-            "the last card is the right pane's width: {:?}",
-            providers.size.width
-        );
-        assert!(
-            near(main.left() - machine.right(), GAP),
-            "a panels' gap before the middle card"
-        );
+        assert!(near(machine.size.width, 300.), "the first card is the sidebar's width: {:?}", machine.size.width);
+        assert!(near(providers.size.width, 260.), "the last card is the right pane's width: {:?}", providers.size.width);
+        assert!(near(main.left() - machine.right(), GAP), "a panels' gap before the middle card");
         assert!(near(providers.left() - main.right(), GAP), "and after it");
-        assert!(
-            near(bar.right() - providers.right(), 0.),
-            "the last card ends at the bar's edge"
-        );
+        assert!(near(bar.right() - providers.right(), 0.), "the last card ends at the bar's edge");
         for card in [machine, main, providers] {
-            assert!(
-                near(card.size.height, HEIGHT) && near(card.top() - bar.top(), 0.),
-                "each card takes the bar's whole height"
-            );
+            assert!(near(card.size.height, HEIGHT) && near(card.top() - bar.top(), 0.), "each card takes the bar's whole height");
         }
     }
     /// The processor, with its whole history, and the memory fit the card under a right pane of a usual width.
@@ -212,10 +174,7 @@ mod cards {
         let card = cx.debug_bounds("status-card-load").unwrap();
         for part in ["status-cpu", "status-memory"] {
             let b = cx.debug_bounds(part).unwrap();
-            assert!(
-                b.left() >= card.left() && b.right() <= card.right(),
-                "{part} is in the card"
-            );
+            assert!(b.left() >= card.left() && b.right() <= card.right(), "{part} is in the card");
         }
     }
 
@@ -223,49 +182,30 @@ mod cards {
     #[gpui_kit::test]
     fn with_no_columns_there_is_one_card(cx: &mut TestAppContext) {
         let cx = open(None, None, cx);
-        assert!(
-            cx.debug_bounds("status-card-version").is_none()
-                && cx.debug_bounds("status-card-load").is_none()
-        );
-        assert!(
-            cx.debug_bounds("status-card-main").is_some()
-                && cx.debug_bounds("status-cpu").is_some()
-        );
+        assert!(cx.debug_bounds("status-card-version").is_none() && cx.debug_bounds("status-card-load").is_none());
+        assert!(cx.debug_bounds("status-card-main").is_some() && cx.debug_bounds("status-cpu").is_some());
         assert!(cx.debug_bounds("status-provider-Claude").is_some());
     }
     /// A provider with a short and a long window shows both, compactly; one with a single window shows that one.
     #[gpui_kit::test]
     fn a_chip_shows_the_five_hour_and_the_weekly_window(cx: &mut TestAppContext) {
         let cx = open(Some(300.), Some(260.), cx);
-        let (five, week) = (
-            cx.debug_bounds("status-window-Claude-5h"),
-            cx.debug_bounds("status-window-Claude-7d"),
-        );
+        let (five, week) = (cx.debug_bounds("status-window-Claude-5h"), cx.debug_bounds("status-window-Claude-7d"));
         assert!(five.is_some() && week.is_some(), "both windows show");
-        assert!(
-            five.unwrap().right() <= week.unwrap().left(),
-            "the short one first"
-        );
-        assert!(
-            cx.debug_bounds("status-window-Codex-30d").is_some(),
-            "a single window shows alone"
-        );
+        assert!(five.unwrap().right() <= week.unwrap().left(), "the short one first");
+        assert!(cx.debug_bounds("status-window-Codex-30d").is_some(), "a single window shows alone");
     }
 }
 
 mod work {
+    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
     use crate::{
         status_bar::{StatusBar, Work},
         theme::{Appearance, set_appearance},
     };
-    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
     struct Bar(Work);
     impl gpui_kit::Render for Bar {
-        fn render(
-            &mut self,
-            _: &mut gpui_kit::Window,
-            _: &mut gpui_kit::Context<Self>,
-        ) -> impl IntoElement {
+        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
             div().w(px(600.)).child(StatusBar::new("bar").work(self.0))
         }
     }
@@ -282,10 +222,7 @@ mod work {
     /// The bar tells the sessions that wait on the reader and says nothing of the ones that work.
     #[gpui_kit::test]
     fn only_the_sessions_that_wait_on_the_reader_show(cx: &mut TestAppContext) {
-        assert!(
-            !shows(Work::new(3, 0), cx),
-            "sessions at work are not counted"
-        );
+        assert!(!shows(Work::new(3, 0), cx), "sessions at work are not counted");
         assert!(shows(Work::new(0, 1), cx), "a session that waits is");
         assert!(shows(Work::new(2, 1), cx), "and with some at work too");
     }

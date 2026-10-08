@@ -3,12 +3,7 @@ use crate::inline_review::{Decision, InlineHunk, apply_to_text};
 
 #[test]
 fn the_bar_counts_what_changed_and_what_is_reviewed() {
-    let p = ReviewProgress {
-        files: 7,
-        reviewed: 3,
-        added: 62,
-        removed: 12,
-    };
+    let p = ReviewProgress { files: 7, reviewed: 3, added: 62, removed: 12 };
     assert_eq!(p.changed_text(), "7 changed");
     assert_eq!(p.reviewed_text(), "3 of 7 reviewed");
     assert_eq!(p.reviewed_text_as("seen"), "3 of 7 seen");
@@ -18,12 +13,7 @@ fn the_bar_counts_what_changed_and_what_is_reviewed() {
 
 #[test]
 fn every_file_reviewed_reads_all_and_next_becomes_done() {
-    let p = ReviewProgress {
-        files: 7,
-        reviewed: 7,
-        added: 62,
-        removed: 12,
-    };
+    let p = ReviewProgress { files: 7, reviewed: 7, added: 62, removed: 12 };
     assert_eq!(p.reviewed_text(), "All 7 reviewed");
     assert!(p.is_done());
     assert_eq!(p.next_label(), "Done");
@@ -54,10 +44,7 @@ fn next_and_previous_walk_the_file_order_and_stop_at_the_ends() {
 fn accepting_a_file_keeps_the_new_side_of_every_hunk() {
     // Rows: 0 keep, 1 old, 2 new, 3 keep, 4 old, 5 new, 6 new, 7 keep.
     let text = "keep\nold one\nnew one\nkeep\nold two\nnew two\nnew three\nkeep\n";
-    let hunks = [
-        InlineHunk::new("a", 1..2, 2..3),
-        InlineHunk::new("b", 4..5, 5..7),
-    ];
+    let hunks = [InlineHunk::new("a", 1..2, 2..3), InlineHunk::new("b", 4..5, 5..7)];
     let accepted = apply_to_text(text, &whole_file(&hunks, Decision::Accept));
     assert_eq!(accepted, "keep\nnew one\nkeep\nnew two\nnew three\nkeep\n");
     let rejected = apply_to_text(text, &whole_file(&hunks, Decision::Reject));
@@ -68,8 +55,8 @@ mod keys {
     use std::{cell::RefCell, rc::Rc};
 
     use gpui_kit::{
-        Context, Entity, FocusHandle, IntoElement, ParentElement, Render, Styled, TestAppContext,
-        Window, component::input::EditorState, div,
+        Context, Entity, FocusHandle, IntoElement, ParentElement, Render, Styled, TestAppContext, Window,
+        component::input::EditorState, div,
     };
 
     use super::super::ReviewHandlers;
@@ -100,22 +87,11 @@ mod keys {
                 .on_toggle_files(log("files"))
                 .on_toggle_details(log("details"))
                 .on_dismiss(log("dismiss"));
-            handlers.keys(
-                div()
-                    .size_full()
-                    .child(CodeEditor::new(&self.editor).read_only(self.read_only)),
-                &self.focus,
-            )
+            handlers.keys(div().size_full().child(CodeEditor::new(&self.editor).read_only(self.read_only)), &self.focus)
         }
     }
 
-    fn setup(
-        cx: &mut TestAppContext,
-    ) -> (
-        Entity<Pane>,
-        &mut gpui_kit::VisualTestContext,
-        Rc<RefCell<Vec<&'static str>>>,
-    ) {
+    fn setup(cx: &mut TestAppContext) -> (Entity<Pane>, &mut gpui_kit::VisualTestContext, Rc<RefCell<Vec<&'static str>>>) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             crate::code_editor::bind_keys(cx);
@@ -140,10 +116,7 @@ mod keys {
         let (pane, cx, log) = setup(cx);
         cx.update(|window, cx| pane.read(cx).focus.clone().focus(window, cx));
         cx.simulate_keystrokes("s s w x r");
-        assert_eq!(
-            *log.borrow(),
-            ["next", "next", "previous", "mark", "review mode"]
-        );
+        assert_eq!(*log.borrow(), ["next", "next", "previous", "mark", "review mode"]);
         // A shifted combo reads the same whichever way the platform reports the letter.
         log.borrow_mut().clear();
         cx.simulate_keystrokes("secondary-shift-b");
@@ -164,11 +137,7 @@ mod keys {
         assert_eq!(text, "swxr");
         assert!(log.borrow().is_empty(), "nothing reached the review");
         cx.simulate_keystrokes("escape s");
-        assert_eq!(
-            *log.borrow(),
-            ["next"],
-            "after Escape the pane has the letters"
-        );
+        assert_eq!(*log.borrow(), ["next"], "after Escape the pane has the letters");
         let text = pane.read_with(cx, |p, cx| p.editor.read(cx).value().to_string());
         assert_eq!(text, "swxr", "and the editor took no more");
     }
@@ -213,27 +182,10 @@ mod keys {
 /// One file reads "Reviewed", not "All 1 reviewed"; more read "All 3 reviewed".
 #[test]
 fn one_reviewed_file_reads_reviewed() {
-    let one = ReviewProgress {
-        files: 1,
-        reviewed: 1,
-        added: 1,
-        removed: 0,
-    };
+    let one = ReviewProgress { files: 1, reviewed: 1, added: 1, removed: 0 };
     assert_eq!(one.reviewed_text(), "Reviewed");
     assert_eq!(one.reviewed_text_as("seen"), "Seen");
     assert_eq!(one.short_text("seen"), "Seen");
-    assert_eq!(
-        ReviewProgress { reviewed: 0, ..one }.reviewed_text(),
-        "0 of 1 reviewed"
-    );
-    assert_eq!(
-        ReviewProgress {
-            files: 3,
-            reviewed: 3,
-            added: 1,
-            removed: 0
-        }
-        .reviewed_text(),
-        "All 3 reviewed"
-    );
+    assert_eq!(ReviewProgress { reviewed: 0, ..one }.reviewed_text(), "0 of 1 reviewed");
+    assert_eq!(ReviewProgress { files: 3, reviewed: 3, added: 1, removed: 0 }.reviewed_text(), "All 3 reviewed");
 }

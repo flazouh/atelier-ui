@@ -1,13 +1,9 @@
 use gpui_kit::{ElementId, IntoElement, SharedString};
 
+use crate::scale::px;
+use crate::{icon::{Icon, IconName}, spinner::Spinner, theme::Theme};
 use super::structs::{CheckRun, Fault, Groups, JobStep};
 use super::types::{CheckState, Standing};
-use crate::scale::px;
-use crate::{
-    icon::{Icon, IconName},
-    spinner::Spinner,
-    theme::Theme,
-};
 
 pub fn standing(checks: &[CheckRun]) -> Standing {
     let total = checks.len();
@@ -40,15 +36,7 @@ pub fn tolerated_text(count: usize) -> SharedString {
 /// A step the runner does around the work, rather than the work itself.
 fn is_chore(step: &JobStep) -> bool {
     let name = step.name.as_ref();
-    [
-        "Set up job",
-        "Complete job",
-        "Post ",
-        "Initialize containers",
-        "Stop containers",
-    ]
-    .iter()
-    .any(|p| name.starts_with(p))
+    ["Set up job", "Complete job", "Post ", "Initialize containers", "Stop containers"].iter().any(|p| name.starts_with(p))
         || name.contains("actions/checkout")
         || name.contains("actions/cache")
 }
@@ -112,26 +100,14 @@ fn strip_escapes(raw: &str) -> String {
 /// `2026-09-28T12:00:01.1234567Z ` at the start of a line.
 fn strip_timestamp(line: &str) -> &str {
     let b = line.as_bytes();
-    let digits =
-        |r: std::ops::Range<usize>| b.get(r).is_some_and(|s| s.iter().all(u8::is_ascii_digit));
-    let date = b.len() > 11
-        && digits(0..4)
-        && b[4] == b'-'
-        && digits(5..7)
-        && b[7] == b'-'
-        && digits(8..10)
-        && b[10] == b'T';
+    let digits = |r: std::ops::Range<usize>| b.get(r).is_some_and(|s| s.iter().all(u8::is_ascii_digit));
+    let date = b.len() > 11 && digits(0..4) && b[4] == b'-' && digits(5..7) && b[7] == b'-' && digits(8..10) && b[10] == b'T';
     if !date {
         return line;
     }
-    let time = b[11..]
-        .iter()
-        .take_while(|c| c.is_ascii_digit() || **c == b':' || **c == b'.')
-        .count();
+    let time = b[11..].iter().take_while(|c| c.is_ascii_digit() || **c == b':' || **c == b'.').count();
     match b.get(11 + time) {
-        Some(b'Z') => line[12 + time..]
-            .strip_prefix(' ')
-            .unwrap_or(&line[12 + time..]),
+        Some(b'Z') => line[12 + time..].strip_prefix(' ').unwrap_or(&line[12 + time..]),
         _ => line,
     }
 }
@@ -140,13 +116,10 @@ fn strip_timestamp(line: &str) -> &str {
 fn strip_marker(line: &str) -> Option<&str> {
     let rest = line.strip_prefix("##[")?;
     let close = rest.find(']')?;
-    rest[..close]
-        .chars()
-        .all(|c| c.is_ascii_lowercase())
-        .then(|| {
-            let after = &rest[close + 1..];
-            after.strip_prefix(' ').unwrap_or(after)
-        })
+    rest[..close].chars().all(|c| c.is_ascii_lowercase()).then(|| {
+        let after = &rest[close + 1..];
+        after.strip_prefix(' ').unwrap_or(after)
+    })
 }
 
 /// `::error ...::`, `::warning::` and the rest, at the start.
@@ -169,50 +142,28 @@ pub fn fault(check: &CheckRun) -> Option<Fault> {
         return None;
     }
     let failed = |s: &&JobStep| matches!(s.state, CheckState::Failed | CheckState::Tolerated);
-    let step = check
-        .steps
-        .iter()
-        .filter(|s| !is_chore(s))
-        .find(failed)
-        .or_else(|| check.steps.iter().find(failed))?;
+    let step = check.steps.iter().filter(|s| !is_chore(s)).find(failed).or_else(|| check.steps.iter().find(failed))?;
     // Ranked and shown clean, so a runner's markup never outranks or hides the words.
     let lines: Vec<String> = step.log.iter().map(|l| clean_line(l)).collect();
-    let best = lines
-        .iter()
-        .map(|l| (rank(l), l))
-        .filter(|(r, _)| *r > 0)
-        .fold(None::<(u8, &String)>, |best, (r, l)| match best {
+    let best = lines.iter().map(|l| (rank(l), l)).filter(|(r, _)| *r > 0).fold(None::<(u8, &String)>, |best, (r, l)| {
+        match best {
             Some((b, _)) if b >= r => best,
             _ => Some((r, l)),
-        });
-    let line: SharedString = best
-        .map(|(_, l)| l.clone())
-        .or_else(|| lines.last().cloned())
-        .unwrap_or_default()
-        .into();
-    Some(Fault {
-        step: step.name.clone(),
-        line,
-    })
+        }
+    });
+    let line: SharedString = best.map(|(_, l)| l.clone()).or_else(|| lines.last().cloned()).unwrap_or_default().into();
+    Some(Fault { step: step.name.clone(), line })
 }
 
 /// A check's mark: a cross when it failed, a warning when it was allowed to, a turning ring while it
 /// runs, a tick once green.
 pub(super) fn mark(state: CheckState, id: ElementId, theme: &Theme) -> gpui_kit::AnyElement {
-    let icon = |name, color| {
-        Icon::new(name)
-            .size(px(14.))
-            .color(color)
-            .into_any_element()
-    };
+    let icon = |name, color| Icon::new(name).size(px(14.)).color(color).into_any_element();
     match state {
         CheckState::Passed => icon(IconName::CheckCircle, theme.success),
         CheckState::Failed => icon(IconName::Cancel, theme.danger),
         CheckState::Tolerated => icon(IconName::Error, theme.warning),
-        CheckState::Running => Spinner::new(id)
-            .size(px(14.))
-            .color(theme.warning)
-            .into_any_element(),
+        CheckState::Running => Spinner::new(id).size(px(14.)).color(theme.warning).into_any_element(),
         CheckState::Queued => icon(IconName::Schedule, theme.muted_foreground),
         CheckState::Skipped => icon(IconName::Block, theme.muted_foreground),
     }

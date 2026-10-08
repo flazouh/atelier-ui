@@ -14,15 +14,7 @@ pub(super) type Chooser = Rc<dyn Fn(MenuChoice, &mut Window, &mut App)>;
 pub const MENU_ORIGIN: Origin = Origin::TopRight;
 
 /// What the `⋯` menu offers, in order.
-pub const MENU: [&str; 7] = [
-    "Pull requests",
-    "Tasks",
-    "Worktrees",
-    "Choose an icon…",
-    "Close project",
-    "Files",
-    "Copy path",
-];
+pub const MENU: [&str; 7] = ["Pull requests", "Tasks", "Worktrees", "Choose an icon…", "Close project", "Files", "Copy path"];
 
 /// Which of the menu's entries a press chose.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,15 +29,7 @@ pub enum MenuChoice {
 }
 
 impl MenuChoice {
-    pub const ALL: [MenuChoice; 7] = [
-        Self::PullRequests,
-        Self::Tasks,
-        Self::Worktrees,
-        Self::ChooseIcon,
-        Self::Close,
-        Self::Files,
-        Self::CopyPath,
-    ];
+    pub const ALL: [MenuChoice; 7] = [Self::PullRequests, Self::Tasks, Self::Worktrees, Self::ChooseIcon, Self::Close, Self::Files, Self::CopyPath];
 
     /// The icon before the row's words.
     pub fn icon(self) -> IconName {

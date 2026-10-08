@@ -27,11 +27,7 @@ fn line_end(text: &str, offset: usize) -> usize {
 pub fn line_span(text: &str, selection: &Range<usize>) -> Range<usize> {
     let start = line_start(text, selection.start);
     let mut end = selection.end;
-    if selection.end > selection.start
-        && end > start
-        && end < text.len()
-        && line_start(text, end) == end
-    {
+    if selection.end > selection.start && end > start && end < text.len() && line_start(text, end) == end {
         end -= 1;
     }
     start..line_end(text, end)
@@ -73,11 +69,7 @@ fn compose(text: &str, mut parts: Vec<Edit>) -> Option<Edit> {
         selections.extend(part.selections.iter().map(|s| moved(s.start)..moved(s.end)));
         delta += part.text.len() as isize - part.range.len() as isize;
     }
-    Some(Edit {
-        range,
-        text: out,
-        selections,
-    })
+    Some(Edit { range, text: out, selections })
 }
 
 /// Where the first non-blank character of the line holding `offset` is.
@@ -95,11 +87,7 @@ pub fn smart_home(text: &str, selections: &[Range<usize>]) -> Vec<Range<usize>> 
         .map(|selection| {
             let caret = selection.end;
             let indent = indent_end(text, caret);
-            let home = if caret == indent {
-                line_start(text, caret)
-            } else {
-                indent
-            };
+            let home = if caret == indent { line_start(text, caret) } else { indent };
             home..home
         })
         .collect()
@@ -155,9 +143,7 @@ pub fn toggle_comment(text: &str, selections: &[Range<usize>], prefix: &str) -> 
     if filled.is_empty() {
         return None;
     }
-    let commented = filled
-        .iter()
-        .all(|line| line.trim_start().starts_with(prefix));
+    let commented = filled.iter().all(|line| line.trim_start().starts_with(prefix));
     let parts = blocks
         .into_iter()
         .map(|(span, inside)| {
@@ -175,8 +161,7 @@ pub fn toggle_comment(text: &str, selections: &[Range<usize>], prefix: &str) -> 
                     out.push(line.to_string());
                 } else if commented {
                     let at = line.len() - line.trim_start().len();
-                    let removed =
-                        prefix.len() + usize::from(line[at + prefix.len()..].starts_with(' '));
+                    let removed = prefix.len() + usize::from(line[at + prefix.len()..].starts_with(' '));
                     out.push(format!("{}{}", &line[..at], &line[at + removed..]));
                     edits.push((start + at, -(removed as isize)));
                 } else {
@@ -188,11 +173,7 @@ pub fn toggle_comment(text: &str, selections: &[Range<usize>], prefix: &str) -> 
                 .iter()
                 .map(|s| shift(s.start, !s.is_empty(), &edits)..shift(s.end, false, &edits))
                 .collect();
-            Edit {
-                range: span,
-                text: out.join("\n"),
-                selections,
-            }
+            Edit { range: span, text: out.join("\n"), selections }
         })
         .collect();
     compose(text, parts)
@@ -213,10 +194,7 @@ pub fn move_lines(text: &str, selections: &[Range<usize>], up: bool) -> Option<E
             Edit {
                 range: above..span.end,
                 text: format!("{block}\n{}", &text[above..span.start - 1]),
-                selections: inside
-                    .iter()
-                    .map(|s| s.start - moved..s.end - moved)
-                    .collect(),
+                selections: inside.iter().map(|s| s.start - moved..s.end - moved).collect(),
             }
         } else {
             if span.end >= text.len() {
@@ -228,10 +206,7 @@ pub fn move_lines(text: &str, selections: &[Range<usize>], up: bool) -> Option<E
             Edit {
                 range: span.start..below,
                 text: format!("{neighbour}\n{block}"),
-                selections: inside
-                    .iter()
-                    .map(|s| s.start + moved..s.end + moved)
-                    .collect(),
+                selections: inside.iter().map(|s| s.start + moved..s.end + moved).collect(),
             }
         };
         parts.push(part);
@@ -250,10 +225,7 @@ pub fn duplicate_lines(text: &str, selections: &[Range<usize>]) -> Option<Edit> 
             Edit {
                 range: span.end..span.end,
                 text: format!("\n{block}"),
-                selections: inside
-                    .iter()
-                    .map(|s| s.start + moved..s.end + moved)
-                    .collect(),
+                selections: inside.iter().map(|s| s.start + moved..s.end + moved).collect(),
             }
         })
         .collect();
@@ -271,21 +243,13 @@ pub fn delete_lines(text: &str, selections: &[Range<usize>]) -> Option<Edit> {
                 // The line below slides up to where the block began.
                 let landing = span.end + 1;
                 let caret = span.start + column.min(line_end(text, landing) - landing);
-                Edit {
-                    range: span.start..landing,
-                    text: String::new(),
-                    selections: vec![caret..caret],
-                }
+                Edit { range: span.start..landing, text: String::new(), selections: vec![caret..caret] }
             } else {
                 // The block is the last line: take the newline before it, and land on the line above.
                 let range = span.start.saturating_sub(1)..span.end;
                 let above = line_start(text, range.start);
                 let caret = above + column.min(range.start - above);
-                Edit {
-                    range,
-                    text: String::new(),
-                    selections: vec![caret..caret],
-                }
+                Edit { range, text: String::new(), selections: vec![caret..caret] }
             }
         })
         .collect();
@@ -305,11 +269,7 @@ pub fn whole_lines(text: &str, carets: &[Range<usize>]) -> (Vec<Range<usize>>, S
             continue;
         }
         let end = line_end(text, caret.start);
-        ranges.push(if end < text.len() {
-            start..end + 1
-        } else {
-            start..end
-        });
+        ranges.push(if end < text.len() { start..end + 1 } else { start..end });
         copied.push_str(&text[start..end]);
         copied.push('\n');
     }
@@ -327,11 +287,7 @@ pub fn whole_line_paste(text: &str, carets: &[Range<usize>], line: &str) -> Opti
         let moved = caret.start + line.len();
         match parts.last_mut() {
             Some(part) if part.range.start == start => part.selections.push(moved..moved),
-            _ => parts.push(Edit {
-                range: start..start,
-                text: line.to_string(),
-                selections: vec![moved..moved],
-            }),
+            _ => parts.push(Edit { range: start..start, text: line.to_string(), selections: vec![moved..moved] }),
         }
     }
     compose(text, parts)

@@ -11,9 +11,9 @@ mod helpers;
 mod structs;
 mod types;
 
+pub use structs::SubagentStrip;
 #[cfg(test)]
 pub(crate) use structs::StripState;
-pub use structs::SubagentStrip;
 pub use types::STACK_GAP;
 
 #[cfg(test)]
