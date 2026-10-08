@@ -175,7 +175,7 @@ impl RenderOnce for ReleaseSheet {
         });
         let notes = div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows).children(earlier);
         // The notes scroll when they do not fit: with earlier versions under them, past a height of their own; always, past what the
-        // window leaves once the picture, the panel\'s gaps and its foot have taken theirs. At a zoom the window holds fewer design
+        // window leaves once the picture, the panel's gaps and its foot have taken theirs. At a zoom the window holds fewer design
         // pixels, so a sheet that fits at 1 would stand taller than the window.
         let foot = if self.on_install.is_some() { FOOT_HEIGHT } else { 0. };
         let room = (crate::scale::design(window.viewport_size().height) - SHEET_CHROME - foot).max(MIN_NOTES_HEIGHT);

@@ -172,7 +172,7 @@ impl RenderOnce for Modal {
                 .top(px(VIEW_Y * (1. - swap)))
                 .opacity(swap)
                 .child(measure(move |b, cx| {
-                    // Measured in window pixels; the panel\'s height is kept in design pixels, which the zoom turns back.
+                    // Measured in window pixels; the panel's height is kept in design pixels, which the zoom turns back.
                     let height = crate::scale::design(b.size.height);
                     report.update(cx, |s, _| {
                         if s.content != Some(height) {
