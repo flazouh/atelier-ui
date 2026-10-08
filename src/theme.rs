@@ -61,6 +61,9 @@ pub struct Theme {
     pub chip_rest: Hsla,
     pub chip_hover: Hsla,
     pub chip_arrow: Hsla,
+    /// The chart palette: four hues (Claude, Codex, OpenRouter, Anthropic API), each in three shades (base, darker,
+    /// lighter), so several accounts of one provider share a hue and differ by shade. Read it with [`Theme::series`].
+    pub chart: [[Hsla; 3]; 4],
     /// The status marks by presence: running, done, failed, pending, cancelled.
     pub status: [Hsla; 5],
     /// A pull request's state marks in GitHub's own colours, whatever the theme: open, draft, merged, closed.
@@ -113,6 +116,11 @@ impl Theme {
             .unwrap_or(self.muted_foreground)
     }
 
+    /// A chart series' colour: `hue` 0 Claude, 1 Codex, 2 OpenRouter, 3 Anthropic API; `shade` 0 base, 1 darker, 2
+    /// lighter. A larger index wraps round.
+    pub fn series(&self, hue: usize, shade: usize) -> Hsla {
+        self.chart[hue % self.chart.len()][shade % 3]
+    }
     /// The tone of a status mark: the theme's own, by presence. atelier's are a muted ramp; an imported
     /// theme's are its blue, green, red, yellow and muted text.
     pub fn status_tone(&self, tone: StatusTone) -> Hsla {

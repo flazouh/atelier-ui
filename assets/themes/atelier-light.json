@@ -27,6 +27,8 @@
   "#B0B8B8"
  ],
  "status_lightness": 0.88,
+ "chart": [["#d4623a", "#a9482a", "#e8957a"], ["#0d9488", "#0f766e", "#14b8a6"], ["#7c3aed", "#5b21b6", "#a78bfa"], ["#dc2626", "#b91c1c", "#f87171"]],
+ "chart_note": "Chart hues: Claude, Codex, OpenRouter, Anthropic API; each base, darker, lighter.",
  "note": "Status marks: the muted ramp by presence (running, done, failed, pending, cancelled). On the cream page every tone's lightness is scaled by status_lightness, so each stays over its floor.",
  "syntax": {
   "name": "atelier light",
