@@ -7,17 +7,14 @@ use std::{
 };
 
 use gpui_kit::{
-    App,
-    AppContext,
-    ElementId,
-    HighlightStyle,
+    App, AppContext, ElementId, HighlightStyle,
     base::input::Rope,
     component::highlighter::{HighlightTheme, SyntaxHighlighter},
 };
 
-use crate::file_diff::{DiffLine, DiffLineKind};
 use super::structs::{Key, Shown, SideText, SyntaxCache};
 use super::types::{LineRuns, Side};
+use crate::file_diff::{DiffLine, DiffLineKind};
 
 /// The language to highlight a path as: by its whole name first (`Makefile`), then its extension. A
 /// trailing `:line` is ignored. `None` leaves it plain.
@@ -77,14 +74,20 @@ thread_local! {
 pub fn compute(language: &str, text: &str, theme: &HighlightTheme) -> Vec<LineRuns> {
     HIGHLIGHTERS.with(|h| {
         let mut h = h.borrow_mut();
-        let highlighter = h.entry(language.to_string()).or_insert_with(|| SyntaxHighlighter::new(language));
+        let highlighter = h
+            .entry(language.to_string())
+            .or_insert_with(|| SyntaxHighlighter::new(language));
         compute_with(highlighter, text, theme)
     })
 }
 
 /// `text` highlighted with `highlighter`, then split into lines. With no edit given, the highlighter
 /// parses `text` whole, whatever it held before.
-pub fn compute_with(highlighter: &mut SyntaxHighlighter, text: &str, theme: &HighlightTheme) -> Vec<LineRuns> {
+pub fn compute_with(
+    highlighter: &mut SyntaxHighlighter,
+    text: &str,
+    theme: &HighlightTheme,
+) -> Vec<LineRuns> {
     highlighter.update(None, &Rope::from(text), None);
     let styles = highlighter.styles(&(0..text.len()), theme);
     split_lines(text, &styles)
@@ -118,11 +121,20 @@ fn split_lines(text: &str, styles: &[(Range<usize>, HighlightStyle)]) -> Vec<Lin
 /// and added rows).
 pub fn sides(lines: &[DiffLine]) -> (SideText, SideText) {
     let join = |keep: fn(DiffLineKind) -> bool| {
-        lines.iter().filter(|l| keep(l.kind)).map(|l| l.text.as_ref()).collect::<Vec<_>>().join("\n")
+        lines
+            .iter()
+            .filter(|l| keep(l.kind))
+            .map(|l| l.text.as_ref())
+            .collect::<Vec<_>>()
+            .join("\n")
     };
     (
-        SideText { text: join(|k| matches!(k, DiffLineKind::Context | DiffLineKind::Removed)) },
-        SideText { text: join(|k| matches!(k, DiffLineKind::Context | DiffLineKind::Added)) },
+        SideText {
+            text: join(|k| matches!(k, DiffLineKind::Context | DiffLineKind::Removed)),
+        },
+        SideText {
+            text: join(|k| matches!(k, DiffLineKind::Context | DiffLineKind::Added)),
+        },
     )
 }
 
@@ -166,13 +178,20 @@ pub fn carry(last_text: &str, last: &[LineRuns], text: &str) -> Vec<LineRuns> {
 
 /// The editor's syntax colours for the theme in force.
 fn theme_in(cx: &App) -> Arc<HighlightTheme> {
-    gpui_kit::component::Theme::global(cx).highlight_theme.clone()
+    gpui_kit::component::Theme::global(cx)
+        .highlight_theme
+        .clone()
 }
 
 /// `text`'s lines in `language`, highlighted, from the cache. A text not cached yet starts a parse on a
 /// background thread, and the windows redraw when it lands. Until then `slot` keeps its last text's
 /// colours on the lines that did not change; with no last text, this returns `None`.
-pub fn highlight(language: &str, text: &str, slot: ElementId, cx: &mut App) -> Option<Arc<Vec<LineRuns>>> {
+pub fn highlight(
+    language: &str,
+    text: &str,
+    slot: ElementId,
+    cx: &mut App,
+) -> Option<Arc<Vec<LineRuns>>> {
     let start = Instant::now();
     let lines = lookup(language, text, slot, cx);
     cx.global_mut::<SyntaxCache>().spent += start.elapsed();
@@ -188,7 +207,13 @@ fn lookup(language: &str, text: &str, slot: ElementId, cx: &mut App) -> Option<A
     let cache = cx.global_mut::<SyntaxCache>();
     if let Some(hit) = cache.get(&key) {
         if cache.shown.get(&slot).is_none_or(|shown| shown.key != key) {
-            cache.shown.insert(slot, Shown { key, text: text.into() });
+            cache.shown.insert(
+                slot,
+                Shown {
+                    key,
+                    text: text.into(),
+                },
+            );
         }
         return Some(hit);
     }

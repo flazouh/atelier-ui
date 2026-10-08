@@ -19,7 +19,7 @@ mod types;
 
 pub use helpers::{cell_color, lit, loading_cell, pour, whole_cells};
 pub use structs::CellBar;
-pub use types::{CELLS, CELL_GAP, CELL_HEIGHT, CELL_WIDTH, DARK_CELL, STEPS_PER_SECOND};
+pub use types::{CELL_GAP, CELL_HEIGHT, CELL_WIDTH, CELLS, DARK_CELL, STEPS_PER_SECOND};
 
 #[cfg(test)]
 mod tests;

@@ -6,16 +6,16 @@ use gpui_kit::{
     div, prelude::FluentBuilder, px,
 };
 
+use super::helpers::stroke;
+use super::types::{
+    BOX, CORNER, ChangeHandler, DISABLED, DRAW_DASH, DRAW_DELAY, DRAW_TICK, EDGE, FADE, GAP, MARK,
+    Mark, PRESS_SCALE, RING_ALPHA, TINT, Toggle,
+};
 use crate::{
     motion::{Channel, Curve, Spring, ease},
     theme::{ActiveTheme, mix},
     typography::TextSize,
 };
-use super::types::{
-    BOX, CORNER, ChangeHandler, DISABLED, DRAW_DASH, DRAW_DELAY, DRAW_TICK, EDGE,
-    FADE, GAP, MARK, Mark, PRESS_SCALE, RING_ALPHA, TINT, Toggle,
-};
-use super::helpers::stroke;
 
 #[derive(IntoElement)]
 pub struct Checkbox {
@@ -30,7 +30,15 @@ pub struct Checkbox {
 
 impl Checkbox {
     pub fn new(id: impl Into<ElementId>, checked: bool) -> Self {
-        Self { id: id.into(), checked, indeterminate: false, disabled: false, label: None, on_change: None, focus: None }
+        Self {
+            id: id.into(),
+            checked,
+            indeterminate: false,
+            disabled: false,
+            label: None,
+            on_change: None,
+            focus: None,
+        }
     }
 
     /// The box's focus, from its owner, so the owner can place it in a Tab order or focus it.
@@ -99,7 +107,8 @@ impl RenderOnce for Checkbox {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
         let want = Mark::of(self.checked, self.indeterminate);
-        let motion = window.use_keyed_state(self.id.clone(), cx, move |_, cx| Motion::new(cx, want));
+        let motion =
+            window.use_keyed_state(self.id.clone(), cx, move |_, cx| Motion::new(cx, want));
 
         motion.update(cx, |m, _| {
             if m.mark != want {
@@ -111,14 +120,23 @@ impl RenderOnce for Checkbox {
                 } else {
                     m.leaving = None;
                 }
-                crate::trace::motion("checkbox", "mark told to change (first render with the new value)");
+                crate::trace::motion(
+                    "checkbox",
+                    "mark told to change (first render with the new value)",
+                );
                 m.mark = want;
                 if want != Mark::None {
                     m.appear = Channel::new(0.);
-                    m.appear.animate(1., Curve::Ease(FADE, ease::OUT), 0., reduce);
+                    m.appear
+                        .animate(1., Curve::Ease(FADE, ease::OUT), 0., reduce);
                     m.draw = Channel::new(0.);
-                    let duration = if want == Mark::Dash { DRAW_DASH } else { DRAW_TICK };
-                    m.draw.animate(1., Curve::Ease(duration, ease::OUT), DRAW_DELAY, reduce);
+                    let duration = if want == Mark::Dash {
+                        DRAW_DASH
+                    } else {
+                        DRAW_TICK
+                    };
+                    m.draw
+                        .animate(1., Curve::Ease(duration, ease::OUT), DRAW_DELAY, reduce);
                 }
             }
             let on = if want == Mark::None { 0. } else { 1. };
@@ -128,7 +146,12 @@ impl RenderOnce for Checkbox {
             if m.leaving.as_ref().is_some_and(|(_, c)| !c.is_running()) {
                 m.leaving = None;
             }
-            let running = m.appear.is_running() || m.draw.is_running() || m.tone.is_running() || m.hover.is_running() || m.scale.is_running() || m.leaving.is_some();
+            let running = m.appear.is_running()
+                || m.draw.is_running()
+                || m.tone.is_running()
+                || m.hover.is_running()
+                || m.scale.is_running()
+                || m.leaving.is_some();
             if running {
                 window.request_animation_frame();
             }
@@ -136,12 +159,33 @@ impl RenderOnce for Checkbox {
 
         let m = motion.read(cx);
         if crate::trace::on() && (m.appear.is_running() || m.draw.is_running()) {
-            crate::trace::motion("checkbox", &format!("render while the mark moves: appear={:.2} draw={:.2}", m.appear.value(), m.draw.value()));
+            crate::trace::motion(
+                "checkbox",
+                &format!(
+                    "render while the mark moves: appear={:.2} draw={:.2}",
+                    m.appear.value(),
+                    m.draw.value()
+                ),
+            );
         }
-        let (focus, keyboard) = (self.focus.clone().unwrap_or_else(|| m.focus.clone()), m.keyboard);
-        let (tone, hover, scale) = (m.tone.value().clamp(0., 1.), m.hover.value().clamp(0., 1.), m.scale.value());
-        let (mark, appear, draw) = (m.mark, m.appear.value().clamp(0., 1.), m.draw.value().clamp(0., 1.));
-        let leaving = m.leaving.as_ref().map(|(k, c)| (*k, c.value().clamp(0., 1.)));
+        let (focus, keyboard) = (
+            self.focus.clone().unwrap_or_else(|| m.focus.clone()),
+            m.keyboard,
+        );
+        let (tone, hover, scale) = (
+            m.tone.value().clamp(0., 1.),
+            m.hover.value().clamp(0., 1.),
+            m.scale.value(),
+        );
+        let (mark, appear, draw) = (
+            m.mark,
+            m.appear.value().clamp(0., 1.),
+            m.draw.value().clamp(0., 1.),
+        );
+        let leaving = m
+            .leaving
+            .as_ref()
+            .map(|(k, c)| (*k, c.value().clamp(0., 1.)));
 
         let rest = mix(theme.faint(), theme.muted_foreground, hover);
         let edge = mix(rest, theme.primary, tone);
@@ -149,7 +193,11 @@ impl RenderOnce for Checkbox {
         let side = BOX * scale;
         let off = self.disabled;
         let mark_size = MARK * scale;
-        let marks: Vec<(Mark, f32, f32)> = leaving.into_iter().map(|(k, exit)| (k, exit, 1.)).chain((mark != Mark::None).then_some((mark, appear, draw))).collect();
+        let marks: Vec<(Mark, f32, f32)> = leaving
+            .into_iter()
+            .map(|(k, exit)| (k, exit, 1.))
+            .chain((mark != Mark::None).then_some((mark, appear, draw)))
+            .collect();
         // A tick is a mark, not words: the page when it reaches 3:1 on the fill.
         let ink = crate::theme::mark_on(&theme, theme.primary);
 
@@ -161,12 +209,21 @@ impl RenderOnce for Checkbox {
                 }
             })
         };
-        let (press, release, enter, leave, key_motion) = (motion.clone(), motion.clone(), motion.clone(), motion.clone(), motion.clone());
+        let (press, release, enter, leave, key_motion) = (
+            motion.clone(),
+            motion.clone(),
+            motion.clone(),
+            motion.clone(),
+            motion.clone(),
+        );
         let (click, key_toggle, click_focus) = (toggle.clone(), toggle, focus.clone());
         let ring = keyboard && focus.is_focused(window) && !off;
 
         let control = div()
-            .id(ElementId::NamedChild(Arc::new(self.id.clone()), "box".into()))
+            .id(ElementId::NamedChild(
+                Arc::new(self.id.clone()),
+                "box".into(),
+            ))
             .debug_selector(|| "checkbox-box".into())
             .relative()
             .flex_none()
@@ -181,7 +238,8 @@ impl RenderOnce for Checkbox {
                     press.update(cx, |m, cx| {
                         m.keyboard = false;
                         if !reduce {
-                            m.scale.animate(PRESS_SCALE, Curve::Spring(Spring::PRESS), 0., false);
+                            m.scale
+                                .animate(PRESS_SCALE, Curve::Spring(Spring::PRESS), 0., false);
                         }
                         cx.notify();
                     });
@@ -232,10 +290,25 @@ impl RenderOnce for Checkbox {
                     .justify_center()
                     .children(marks.into_iter().map(|(kind, shown, drawn)| {
                         let size = mark_size * (0.5 + 0.5 * shown);
-                        div().debug_selector(|| "checkbox-mark".into()).absolute().size(px(size)).child(
-                            canvas(|_, _, _| {}, move |bounds, _, window, _| stroke(bounds, kind.points(), drawn, ink.opacity(ink.a * shown), window))
+                        div()
+                            .debug_selector(|| "checkbox-mark".into())
+                            .absolute()
+                            .size(px(size))
+                            .child(
+                                canvas(
+                                    |_, _, _| {},
+                                    move |bounds, _, window, _| {
+                                        stroke(
+                                            bounds,
+                                            kind.points(),
+                                            drawn,
+                                            ink.opacity(ink.a * shown),
+                                            window,
+                                        )
+                                    },
+                                )
                                 .size_full(),
-                        )
+                            )
                     })),
             )
             .when(ring, |d| {

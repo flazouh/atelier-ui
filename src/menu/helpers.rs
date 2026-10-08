@@ -1,9 +1,12 @@
 use gpui_kit::{Hsla, InteractiveElement, IntoElement, ParentElement, SharedString, Styled, div};
 
+use super::structs::{Inset, MenuItem, MenuLook};
+use super::types::{
+    BORDER, Branch, CLIP_HALF, Entry, FILL_RAMP, LABEL, LEAD, LINE, Lead, Pick, RADIUS_END,
+    RADIUS_START, SLOT, Tone,
+};
 use crate::scale::px;
 use crate::theme::Theme;
-use super::structs::{Inset, MenuItem, MenuLook};
-use super::types::{BORDER, Branch, CLIP_HALF, Entry, FILL_RAMP, LABEL, LEAD, LINE, Lead, Pick, SLOT, RADIUS_END, RADIUS_START, Tone};
 
 /// The height of a panel of `rows` plain rows in `look`: the padding, the rows and the 1px edge.
 pub fn height_in(look: MenuLook, rows: usize) -> f32 {
@@ -13,7 +16,10 @@ pub fn height_in(look: MenuLook, rows: usize) -> f32 {
 /// The height of a panel of `entries` in `look`: the rows, each heading over a group, and the gap between groups.
 pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
     use super::types::Entry;
-    let rows = entries.iter().filter(|e| matches!(e, Entry::Item(_))).count();
+    let rows = entries
+        .iter()
+        .filter(|e| matches!(e, Entry::Item(_)))
+        .count();
     entries.iter().fold(height_in(look, rows), |h, e| match e {
         Entry::Label(_) => h + LABEL,
         Entry::Separator => h + look.group,
@@ -22,9 +28,17 @@ pub fn height_of(look: MenuLook, entries: &[super::types::Entry]) -> f32 {
 }
 
 /// A lead of `size`: the mark's image, or the monogram of `label`. For any place an agent's name shows.
-pub fn lead_icon(label: &SharedString, lead: Lead, size: f32, theme: &Theme) -> gpui_kit::AnyElement {
+pub fn lead_icon(
+    label: &SharedString,
+    lead: Lead,
+    size: f32,
+    theme: &Theme,
+) -> gpui_kit::AnyElement {
     match lead {
-        Lead::Mark(mark) => gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(size)).into_any_element(),
+        Lead::Mark(mark) => gpui_kit::img(mark.for_theme(theme.appearance))
+            .flex_none()
+            .size(px(size))
+            .into_any_element(),
         Lead::Monogram => crate::select::monogram(label, size, theme).into_any_element(),
     }
 }
@@ -33,7 +47,16 @@ pub fn lead_icon(label: &SharedString, lead: Lead, size: f32, theme: &Theme) -> 
 pub(super) fn lead_slot(label: &SharedString, lead: Lead, theme: &Theme) -> gpui_kit::AnyElement {
     let inner = lead_icon(label, lead, LEAD, theme);
     let name = format!("menu-lead-{label}");
-    div().debug_selector(move || name.clone()).flex_none().mt(px(2.)).size(px(SLOT)).flex().items_center().justify_center().child(inner).into_any_element()
+    div()
+        .debug_selector(move || name.clone())
+        .flex_none()
+        .mt(px(2.))
+        .size(px(SLOT))
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(inner)
+        .into_any_element()
 }
 
 /// The rows of a menu for `branches`: a leaf is a row that runs `pick` with its id, a branch a row that opens the
@@ -42,14 +65,16 @@ pub fn entries_of(branches: &[Branch], pick: &Pick) -> Vec<Entry> {
     branches
         .iter()
         .map(|branch| {
-            let row = MenuItem::new(branch.label.clone()).debug_name(format!("branch-{}", branch.id));
+            let row =
+                MenuItem::new(branch.label.clone()).debug_name(format!("branch-{}", branch.id));
             let row = match &branch.lead {
                 Some(lead) => row.lead(lead.clone()),
                 None => row,
             };
             if branch.branches.is_empty() {
                 let (pick, id) = (pick.clone(), branch.id.clone());
-                row.on_select(move |window, cx| pick(&id, window, cx)).into()
+                row.on_select(move |window, cx| pick(&id, window, cx))
+                    .into()
             } else {
                 row.submenu(entries_of(&branch.branches, pick)).into()
             }
@@ -76,7 +101,12 @@ pub fn collapsed(origin: (f32, f32), size: (f32, f32)) -> Inset {
 pub fn unfolded(start: Inset, t: f32) -> (Inset, f32) {
     let k = 1. - t;
     (
-        Inset { top: start.top * k, right: start.right * k, bottom: start.bottom * k, left: start.left * k },
+        Inset {
+            top: start.top * k,
+            right: start.right * k,
+            bottom: start.bottom * k,
+            left: start.left * k,
+        },
         RADIUS_START + (RADIUS_END - RADIUS_START) * t,
     )
 }
@@ -86,7 +116,10 @@ pub fn unfolded(start: Inset, t: f32) -> (Inset, f32) {
 /// would be a little wider than the last.
 pub fn panel_size(inner_width: gpui_kit::Pixels, inner_height: gpui_kit::Pixels) -> (f32, f32) {
     let border = gpui_kit::px(2. * BORDER);
-    (crate::scale::design(inner_width + border), crate::scale::design(inner_height + border))
+    (
+        crate::scale::design(inner_width + border),
+        crate::scale::design(inner_height + border),
+    )
 }
 /// The panel's opacity while it unfolds, `reveal` being how far the unfold has gone (0 to 1).
 pub fn fill_opacity(reveal: f32) -> f32 {
@@ -110,7 +143,9 @@ pub fn walk(reachable: &[usize], current: Option<usize>, step: i32) -> Option<us
 /// The first of `rows` (an index and its words) whose words start with `typed`, in any case.
 pub fn jump(rows: &[(usize, String)], typed: &str) -> Option<usize> {
     let typed = typed.to_lowercase();
-    rows.iter().find(|(_, words)| words.trim().to_lowercase().starts_with(&typed)).map(|(i, _)| *i)
+    rows.iter()
+        .find(|(_, words)| words.trim().to_lowercase().starts_with(&typed))
+        .map(|(i, _)| *i)
 }
 
 pub(super) fn pill_fill(theme: &Theme, tone: Tone) -> Hsla {

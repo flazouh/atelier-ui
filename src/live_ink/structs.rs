@@ -41,7 +41,12 @@ fn split(text: &str) -> Vec<Range<usize>> {
 
 impl Ink {
     pub fn new(now: Instant) -> Self {
-        Self { text: String::new(), words: Vec::new(), last: now, still: false }
+        Self {
+            text: String::new(),
+            words: Vec::new(),
+            last: now,
+            still: false,
+        }
     }
 
     /// Reduced motion: words show whole the moment they come, and nothing is animated.

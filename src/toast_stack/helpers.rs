@@ -1,11 +1,14 @@
 use gpui_kit::{Hsla, IntoElement, ParentElement, Styled, div, prelude::FluentBuilder};
 
-use crate::scale::px;
-use crate::{icon::Icon, theme::{MARK_CONTRAST, Theme, contrast, mix}};
 use super::structs::Toast;
 use super::types::{
     DISC_MOST, DISC_VISIBLE, DRAG_DISTANCE, DRAG_SPEED, ELASTIC, ICON_GLYPH, MAX_WIDTH,
     SIDE_GUTTER, ToastPosition, ToastStatus,
+};
+use crate::scale::px;
+use crate::{
+    icon::Icon,
+    theme::{MARK_CONTRAST, Theme, contrast, mix},
 };
 
 /// The disc of `tone` and the glyph on it. `alpha` is where the web starts.
@@ -52,9 +55,18 @@ pub fn drawn<T: Clone>(items: &[T], max: usize, position: ToastPosition) -> Vec<
 }
 
 /// One icon disc, laid over the others in the icon box: `rise` px below its place, at `opacity`.
-pub(super) fn layer(theme: &Theme, toast: &Toast, spin: f32, rise: f32, opacity: f32) -> impl IntoElement {
+pub(super) fn layer(
+    theme: &Theme,
+    toast: &Toast,
+    spin: f32,
+    rise: f32,
+    opacity: f32,
+) -> impl IntoElement {
     let (glyph, disc) = toast.status.tones(theme, theme.card);
-    let icon = Icon::new(toast.status.icon()).size(px(ICON_GLYPH)).color(glyph).when(toast.status == ToastStatus::Loading, |i| i.turn(spin));
+    let icon = Icon::new(toast.status.icon())
+        .size(px(ICON_GLYPH))
+        .color(glyph)
+        .when(toast.status == ToastStatus::Loading, |i| i.turn(spin));
     div()
         .absolute()
         .inset_0()

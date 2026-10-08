@@ -9,6 +9,8 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
+use super::helpers::{panel_height, scrim};
+use super::types::{CORNER, Close, ENTER_Y, PAD, PANEL, SCRIM_SECONDS, VIEW_SECONDS, VIEW_Y};
 use crate::scale::px;
 use crate::{
     motion::{Animated, Channel, Curve, FrameClock, ease},
@@ -16,8 +18,6 @@ use crate::{
     popover::PRIORITY,
     theme::ActiveTheme,
 };
-use super::types::{CORNER, Close, ENTER_Y, PAD, PANEL, SCRIM_SECONDS, VIEW_SECONDS, VIEW_Y};
-use super::helpers::{panel_height, scrim};
 
 struct State {
     previous: Option<FocusHandle>,
@@ -46,7 +46,16 @@ pub struct Modal {
 
 impl Modal {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), view: 0, width: 384., focus: None, on_close: None, child: None, selector: None, flush: false }
+        Self {
+            id: id.into(),
+            view: 0,
+            width: 384.,
+            focus: None,
+            on_close: None,
+            child: None,
+            selector: None,
+            flush: false,
+        }
     }
 
     /// Which view is shown. When it changes, the panel morphs to the new height and the view comes in.
@@ -122,7 +131,8 @@ impl RenderOnce for Modal {
             if s.view != view {
                 s.view = view;
                 s.swap = Channel::new(0.);
-                s.swap.animate(1., Curve::Ease(VIEW_SECONDS, ease::OUT), 0., reduce);
+                s.swap
+                    .animate(1., Curve::Ease(VIEW_SECONDS, ease::OUT), 0., reduce);
             }
             if let Some(content) = s.content {
                 let want = panel_height(content) - if flush { 2. * PAD } else { 0. };
@@ -133,13 +143,22 @@ impl RenderOnce for Modal {
                 s.height.set_target(want);
             }
             let dt = s.clock.tick();
-            let mut moving = s.enter.step(dt, reduce) | s.height.step(dt, reduce) | s.scrim.is_running() | s.swap.is_running();
+            let mut moving = s.enter.step(dt, reduce)
+                | s.height.step(dt, reduce)
+                | s.scrim.is_running()
+                | s.swap.is_running();
             // The panel is measured a frame after it first draws.
             moving |= s.content.is_none();
             if !moving {
                 s.clock.rest();
             }
-            (if reduce { 1. } else { s.enter.value() }, if reduce { 1. } else { s.scrim.value() }, s.sized.then(|| s.height.value()), s.swap.value(), moving)
+            (
+                if reduce { 1. } else { s.enter.value() },
+                if reduce { 1. } else { s.scrim.value() },
+                s.sized.then(|| s.height.value()),
+                s.swap.value(),
+                moving,
+            )
         });
         if moving {
             window.request_animation_frame();
@@ -192,7 +211,9 @@ impl RenderOnce for Modal {
             .p(px(if flush { 0. } else { PAD }))
             .top(px(ENTER_Y * (1. - enter.min(1.))))
             .opacity(enter.clamp(0., 1.))
-            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
+            .when_some(self.selector, |d, name| {
+                d.debug_selector(move || name.into())
+            })
             .occlude()
             .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
             .on_key_down(move |event, window, cx| {
@@ -226,7 +247,17 @@ impl RenderOnce for Modal {
                     })
                     .on_scroll_wheel(|_, _, cx| cx.stop_propagation()),
             )
-            .child(div().absolute().inset_0().flex().items_center().justify_center().child(panel));
-        deferred(anchored().position(point(px(0.), px(0.))).child(layer)).with_priority(PRIORITY).into_any_element()
+            .child(
+                div()
+                    .absolute()
+                    .inset_0()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(panel),
+            );
+        deferred(anchored().position(point(px(0.), px(0.))).child(layer))
+            .with_priority(PRIORITY)
+            .into_any_element()
     }
 }

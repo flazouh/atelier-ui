@@ -6,6 +6,9 @@ use gpui_kit::{
     prelude::FluentBuilder, relative,
 };
 
+use super::helpers::follow_status;
+use super::types::{CARD_HEADER_HEIGHT, CARD_HEADER_PAD_X, MAX_OUTPUT_HEIGHT, ToolStatus};
+use crate::preview_clamp::{self, EXPANDED_ROWS, Press, ROW_HEIGHT};
 use crate::scale::px;
 use crate::{
     copy_feedback::CopyFeedback,
@@ -17,9 +20,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use crate::preview_clamp::{self, EXPANDED_ROWS, Press, ROW_HEIGHT};
-use super::types::{CARD_HEADER_HEIGHT, CARD_HEADER_PAD_X, MAX_OUTPUT_HEIGHT, ToolStatus};
-use super::helpers::follow_status;
 
 #[derive(IntoElement)]
 pub struct ToolCall {
@@ -159,17 +159,31 @@ impl RenderOnce for ToolCall {
             expanded: false,
             following: true,
         });
-        follow_status(&motion, status, has_body, self.default_open, self.collapse_on_complete, reduce, cx);
+        follow_status(
+            &motion,
+            status,
+            has_body,
+            self.default_open,
+            self.collapse_on_complete,
+            reduce,
+            cx,
+        );
         let m = motion.read(cx);
         // Nothing spins here any more, so only the open and close reveal needs frames.
         if m.disclosure.is_moving() {
             window.request_animation_frame();
         }
-        let (reveal, chevron, copied, expanded) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied(), m.expanded);
+        let (reveal, chevron, copied, expanded) = (
+            m.disclosure.reveal.value(),
+            m.disclosure.chevron.value(),
+            m.copy.copied(),
+            m.expanded,
+        );
         let height = m.disclosure.height.clone();
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
-        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child =
+            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
 
         let flat = self.flat;
         let toggle = motion.clone();
@@ -180,18 +194,29 @@ impl RenderOnce for ToolCall {
             .items_center()
             .gap(px(8.))
             .when(flat, |d| d.min_h(px(24.)).rounded(radius::md()))
-            .when(!flat, |d| d.min_h(px(CARD_HEADER_HEIGHT)).px(px(CARD_HEADER_PAD_X)).rounded(radius::card()))
+            .when(!flat, |d| {
+                d.min_h(px(CARD_HEADER_HEIGHT))
+                    .px(px(CARD_HEADER_PAD_X))
+                    .rounded(radius::card())
+            })
             .text_size(TextSize::Sm.font_size())
             .line_height(TextSize::Sm.line_height())
             .when(has_body, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), if flat { radius::md() } else { radius::card() }, window, cx).on_click(move |_, _, cx| {
-                    let reduce = cx.reduce_motion();
-                    toggle.update(cx, |m, cx| {
-                        let open = !m.disclosure.open;
-                        m.disclosure.set_open(open, reduce);
-                        cx.notify();
+                d.cursor_pointer()
+                    .press_stop(
+                        (self.id.clone(), "head-focus"),
+                        if flat { radius::md() } else { radius::card() },
+                        window,
+                        cx,
+                    )
+                    .on_click(move |_, _, cx| {
+                        let reduce = cx.reduce_motion();
+                        toggle.update(cx, |m, cx| {
+                            let open = !m.disclosure.open;
+                            m.disclosure.set_open(open, reduce);
+                            cx.notify();
+                        })
                     })
-                })
             })
             .child(
                 div()
@@ -200,7 +225,15 @@ impl RenderOnce for ToolCall {
                     .min_w_0()
                     .items_baseline()
                     .gap(px(8.))
-                    .when_some(self.icon, |d, icon| d.child(div().flex_none().self_center().text_color(theme.faint()).child(Icon::new(icon).size(px(14.)))))
+                    .when_some(self.icon, |d, icon| {
+                        d.child(
+                            div()
+                                .flex_none()
+                                .self_center()
+                                .text_color(theme.faint())
+                                .child(Icon::new(icon).size(px(14.))),
+                        )
+                    })
                     // The name keeps its width, up to most of the row; the path gives way first.
                     .child(
                         div()
@@ -212,9 +245,22 @@ impl RenderOnce for ToolCall {
                             .child(self.title),
                     )
                     .when_some(self.meta, |d, meta| {
-                        d.child(div().flex_none().text_size(TextSize::Xs.font_size()).text_color(muted).child(meta))
+                        d.child(
+                            div()
+                                .flex_none()
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(muted)
+                                .child(meta),
+                        )
                     })
-                    .when_some(self.file.clone(), |d, path| d.child(div().flex_none().self_center().child(FileIcon::file(&path).size(px(12.)))))
+                    .when_some(self.file.clone(), |d, path| {
+                        d.child(
+                            div()
+                                .flex_none()
+                                .self_center()
+                                .child(FileIcon::file(&path).size(px(12.))),
+                        )
+                    })
                     .when(!self.tool.is_empty(), |d| {
                         d.child(
                             div()
@@ -237,7 +283,10 @@ impl RenderOnce for ToolCall {
                     // The status is an icon alone: the muted spinner while the call runs (nothing blue), a disc
                     // with its glyph once it has ended.
                     .child(if status == ToolStatus::Running {
-                        crate::spinner::Spinner::new(child("running")).size(px(12.)).color(muted).into_any_element()
+                        crate::spinner::Spinner::new(child("running"))
+                            .size(px(12.))
+                            .color(muted)
+                            .into_any_element()
                     } else {
                         StatusMark::new(status.mark(&theme), px(12.)).into_any_element()
                     }),
@@ -248,7 +297,11 @@ impl RenderOnce for ToolCall {
                         .flex_none()
                         .text_color(theme.faint())
                         .group_hover("tool-header", |s| s.text_color(muted))
-                        .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
+                        .child(
+                            Icon::new(IconName::ChevronDown)
+                                .size(px(14.))
+                                .turn(chevron / 360.),
+                        ),
                 )
             });
 
@@ -256,13 +309,22 @@ impl RenderOnce for ToolCall {
             let copy_state = motion.clone();
             let text = output.to_string();
             // In a card the output runs to the card's left, right and bottom edges; flat, it is a well indented under the title.
-            let body = if flat { div().pl(px(24.)).pt(px(6.)) } else { div() };
+            let body = if flat {
+                div().pl(px(24.)).pt(px(6.))
+            } else {
+                div()
+            };
             let scroll = motion.read(cx).scroll.clone();
             // A clipped output shows its last lines, which do not scroll, until it is pressed open to a taller view.
             let total = text.lines().count();
             let clip = self.preview_rows.filter(|&rows| !expanded && total > rows);
             let shown = match clip {
-                Some(rows) => text.lines().skip(total - rows).collect::<Vec<_>>().join("\n").into(),
+                Some(rows) => text
+                    .lines()
+                    .skip(total - rows)
+                    .collect::<Vec<_>>()
+                    .join("\n")
+                    .into(),
                 None => output,
             };
             // An output that scrolls pins its end while the call runs, until the reader scrolls up; clipped, it does not scroll.
@@ -276,9 +338,13 @@ impl RenderOnce for ToolCall {
                     scroll.scroll_to_bottom();
                 }
             }
-            let viewport = self.preview_rows.map_or(MAX_OUTPUT_HEIGHT, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT + 24.);
+            let viewport = self.preview_rows.map_or(MAX_OUTPUT_HEIGHT, |_| {
+                EXPANDED_ROWS as f32 * ROW_HEIGHT + 24.
+            });
             // The words can be selected and replied to; a drag over them is not a press on the output.
-            let lines = div().debug_selector(|| "tool-output-text".into()).child(gpui_kit::base::SelectableText::new(child("output-text"), shown));
+            let lines = div().debug_selector(|| "tool-output-text".into()).child(
+                gpui_kit::base::SelectableText::new(child("output-text"), shown),
+            );
             let text_box = div()
                 .id(child("output"))
                 .debug_selector(|| "tool-output".into())
@@ -289,8 +355,18 @@ impl RenderOnce for ToolCall {
                 .text_color(theme.foreground.opacity(0.85));
             let text_box = match clip {
                 // The last lines stay in view: what does not fit runs off the top.
-                Some(rows) => text_box.flex().flex_col().justify_end().max_h(px(rows as f32 * ROW_HEIGHT + 24.)).overflow_hidden().child(lines),
-                None => text_box.max_h(px(viewport)).overflow_y_scroll().track_scroll(&scroll).child(lines),
+                Some(rows) => text_box
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .max_h(px(rows as f32 * ROW_HEIGHT + 24.))
+                    .overflow_hidden()
+                    .child(lines),
+                None => text_box
+                    .max_h(px(viewport))
+                    .overflow_y_scroll()
+                    .track_scroll(&scroll)
+                    .child(lines),
             };
             // With a clip set, the output and its hint are one press target: they open, and tell the owner.
             let text_box = match self.preview_rows {
@@ -319,7 +395,9 @@ impl RenderOnce for ToolCall {
                             }
                         })
                         .child(text_box)
-                        .when(clipped, |d| d.child(preview_clamp::hint(total - limit, expanded, &theme)))
+                        .when(clipped, |d| {
+                            d.child(preview_clamp::hint(total - limit, expanded, &theme))
+                        })
                         .into_any_element()
                 }
                 None => text_box.into_any_element(),
@@ -330,10 +408,16 @@ impl RenderOnce for ToolCall {
                     .flex_col()
                     .overflow_hidden()
                     .when(flat, |d| d.rounded(radius::xl()))
-                    .bg(if flat { theme.card_strong } else { theme.background.opacity(0.5) })
+                    .bg(if flat {
+                        theme.card_strong
+                    } else {
+                        theme.background.opacity(0.5)
+                    })
                     // The output keeps the wheel while it scrolls; at its ends the wheel goes on to the panel. A clipped one does not
                     // scroll, and leaves the wheel to the panel.
-                    .when(clip.is_none(), |d| d.on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone())))
+                    .when(clip.is_none(), |d| {
+                        d.on_scroll_wheel(crate::scroll_chain::keep_inside(scroll.clone()))
+                    })
                     .child(text_box)
                     .child(
                         div()
@@ -352,12 +436,31 @@ impl RenderOnce for ToolCall {
                                     .rounded(radius::md())
                                     .cursor_pointer()
                                     .text_color(muted)
-                                    .hover(|s| s.bg(theme.muted_hover()).text_color(theme.foreground))
-                                    .press_stop((self.id.clone(), "copy-focus"), crate::theme::radius::md(), window, cx)
-                                    .on_click(move |_, _, cx| {
-                                        CopyFeedback::click(&copy_state, |m: &mut CallMotion| &mut m.copy, text.clone(), cx);
+                                    .hover(|s| {
+                                        s.bg(theme.muted_hover()).text_color(theme.foreground)
                                     })
-                                    .child(Icon::new(if copied { IconName::Check } else { IconName::Copy }).size(px(14.))),
+                                    .press_stop(
+                                        (self.id.clone(), "copy-focus"),
+                                        crate::theme::radius::md(),
+                                        window,
+                                        cx,
+                                    )
+                                    .on_click(move |_, _, cx| {
+                                        CopyFeedback::click(
+                                            &copy_state,
+                                            |m: &mut CallMotion| &mut m.copy,
+                                            text.clone(),
+                                            cx,
+                                        );
+                                    })
+                                    .child(
+                                        Icon::new(if copied {
+                                            IconName::Check
+                                        } else {
+                                            IconName::Copy
+                                        })
+                                        .size(px(14.)),
+                                    ),
                             )
                             .child(div().flex_1()),
                     ),
@@ -368,10 +471,14 @@ impl RenderOnce for ToolCall {
             .flex()
             .flex_col()
             .w_full()
-            .when(!flat, |d| d.rounded(radius::card()).bg(theme.card_strong).overflow_hidden())
+            .when(!flat, |d| {
+                d.rounded(radius::card())
+                    .bg(theme.card_strong)
+                    .overflow_hidden()
+            })
             .child(header)
             .when_some(body.filter(|_| reveal > 0.001), |d, body| {
-            d.child(crate::reveal::body(body, reveal, &height))
-        })
+                d.child(crate::reveal::body(body, reveal, &height))
+            })
     }
 }

@@ -23,9 +23,14 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{collapsed, entries_of, fill_opacity, lead_icon, height, height_in, height_of, jump, panel_size, unfolded, walk};
+pub use helpers::{
+    collapsed, entries_of, fill_opacity, height, height_in, height_of, jump, lead_icon, panel_size,
+    unfolded, walk,
+};
 pub use structs::{Inset, Menu, MenuItem, MenuLook};
-pub use types::{BORDER, Branch, Choice, Entry, LINE, Lead, Origin, Pick, SLOT, Select, TEXT, Tone};
+pub use types::{
+    BORDER, Branch, Choice, Entry, LINE, Lead, Origin, Pick, SLOT, Select, TEXT, Tone,
+};
 
 #[cfg(test)]
 use gpui_kit::Pixels;

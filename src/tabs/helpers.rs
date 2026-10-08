@@ -1,7 +1,7 @@
 use gpui_kit::Hsla;
 
-use crate::theme::Theme;
 use super::types::TabsVariant;
+use crate::theme::Theme;
 
 /// How much of a tab (`tab_left`, `tab_width`) the indicator (`left`, `width`) covers, 0 to 1.
 pub fn covered(tab_left: f32, tab_width: f32, left: f32, width: f32) -> f32 {

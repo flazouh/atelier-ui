@@ -2,14 +2,14 @@ use std::rc::Rc;
 
 use gpui_kit::{
     AnyElement, App, Bounds, ElementId, FocusHandle, Global, InteractiveElement, IntoElement,
-    MouseButton, ParentElement, Pixels, RenderOnce, Size, Styled, Window, anchored, deferred,
-    div, point, prelude::FluentBuilder, relative,
+    MouseButton, ParentElement, Pixels, RenderOnce, Size, Styled, Window, anchored, deferred, div,
+    point, prelude::FluentBuilder, relative,
 };
 
-use crate::scale::px;
-use crate::placement::measure;
-use super::types::{Align, CloseHandler, HIDDEN_AFTER_FRAMES, Hang, MARGIN, PRIORITY, Side};
 use super::helpers::{cover, placement, watch};
+use super::types::{Align, CloseHandler, HIDDEN_AFTER_FRAMES, Hang, MARGIN, PRIORITY, Side};
+use crate::placement::measure;
+use crate::scale::px;
 
 /// Which popover opened last.
 #[derive(Default)]
@@ -214,15 +214,19 @@ impl Popover {
 
 impl RenderOnce for Popover {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let state = window.use_keyed_state(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "popover".into()), cx, |_, cx| PopState {
-            was_open: false,
-            seq: 0,
-            opened_at: None,
-            active_at_open: false,
-            marker: None,
-            escape: None,
-            panel: cx.focus_handle(),
-        });
+        let state = window.use_keyed_state(
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "popover".into()),
+            cx,
+            |_, cx| PopState {
+                was_open: false,
+                seq: 0,
+                opened_at: None,
+                active_at_open: false,
+                marker: None,
+                escape: None,
+                panel: cx.focus_handle(),
+            },
+        );
         // Its own state's id, not its element id: two copies of one view, such as two agent panels, give
         // their popovers the same element ids.
         let key = state.entity_id().to_string();
@@ -230,7 +234,11 @@ impl RenderOnce for Popover {
         let active = window.is_window_active();
         let shown = self.shown.unwrap_or(self.open);
         // A popover hung from its parent takes the trigger's place from the marker it draws.
-        let anchor_now = if self.hang.is_some() { state.read(cx).marker } else { self.anchor };
+        let anchor_now = if self.hang.is_some() {
+            state.read(cx).marker
+        } else {
+            self.anchor
+        };
         if let (true, None, Some(trigger)) = (self.switchable, self.hang, anchor_now) {
             let registry = cx.default_global::<Registry>();
             let frame = registry.frame;
@@ -257,7 +265,11 @@ impl RenderOnce for Popover {
         if self.open {
             {
                 let registry = cx.default_global::<Registry>();
-                let frames = registry.frames.entry(key.clone()).or_insert(Frames { watched: 0, drawn: 0, close: None });
+                let frames = registry.frames.entry(key.clone()).or_insert(Frames {
+                    watched: 0,
+                    drawn: 0,
+                    close: None,
+                });
                 frames.drew();
                 frames.close = close.clone();
             }
@@ -269,7 +281,10 @@ impl RenderOnce for Popover {
                     registry.owner = Some(key.clone());
                     registry.seq
                 };
-                let target = self.panel_focus.clone().unwrap_or_else(|| state.read(cx).panel.clone());
+                let target = self
+                    .panel_focus
+                    .clone()
+                    .unwrap_or_else(|| state.read(cx).panel.clone());
                 state.update(cx, |s, _| {
                     s.was_open = true;
                     s.seq = seq;
@@ -283,7 +298,9 @@ impl RenderOnce for Popover {
                     let ask = ask_close.clone();
                     let window_handle = window.window_handle();
                     let subscription = cx.observe_keystrokes(move |event, window, cx| {
-                        if event.keystroke.key == "escape" && window.window_handle() == window_handle {
+                        if event.keystroke.key == "escape"
+                            && window.window_handle() == window_handle
+                        {
                             ask(window, cx);
                         }
                     });
@@ -296,7 +313,9 @@ impl RenderOnce for Popover {
             let opened_at = state.read(cx).opened_at;
             let moved = match (opened_at, anchor_now) {
                 (Some((was, size)), Some(now)) => {
-                    (was.origin.x - now.origin.x).abs() > px(1.) || (was.origin.y - now.origin.y).abs() > px(1.) || size != viewport
+                    (was.origin.x - now.origin.x).abs() > px(1.)
+                        || (was.origin.y - now.origin.y).abs() > px(1.)
+                        || size != viewport
                 }
                 _ => false,
             };
@@ -305,7 +324,7 @@ impl RenderOnce for Popover {
             if !opening && (moved || superseded || inactive) {
                 state.update(cx, |s, _| {
                     s.was_open = false;
-                    });
+                });
                 let ask = ask_close.clone();
                 window.defer(cx, move |window, cx| ask(window, cx));
                 return div().into_any_element();
@@ -327,7 +346,13 @@ impl RenderOnce for Popover {
                 Hang::Centre(y) => at.left(relative(0.5)).top(px(y)),
             }
         });
-        let wrap = |d: gpui_kit::Div| if self.hang.is_some() { d.absolute().inset_0() } else { d };
+        let wrap = |d: gpui_kit::Div| {
+            if self.hang.is_some() {
+                d.absolute().inset_0()
+            } else {
+                d
+            }
+        };
         let (Some(anchor), Some(child), true) = (anchor_now, self.child, shown) else {
             // Hung, and not measured yet: draw the marker, and come back for the measure.
             if self.open && self.hang.is_some() {
@@ -335,8 +360,24 @@ impl RenderOnce for Popover {
             }
             return wrap(div()).children(marker).into_any_element();
         };
-        let (_, corner, at) = placement(anchor, self.side, match self.hang { Some(Hang::Right(..)) => Align::End, Some(Hang::Centre(_)) => Align::Center, _ => self.align }, self.gap.unwrap_or(if self.hang.is_some() { 0. } else { 4. }) * crate::scale::zoom(), self.height * crate::scale::zoom(), f32::from(viewport.height));
-        let panel_focus = self.panel_focus.clone().unwrap_or_else(|| state.read(cx).panel.clone());
+        let (_, corner, at) = placement(
+            anchor,
+            self.side,
+            match self.hang {
+                Some(Hang::Right(..)) => Align::End,
+                Some(Hang::Centre(_)) => Align::Center,
+                _ => self.align,
+            },
+            self.gap
+                .unwrap_or(if self.hang.is_some() { 0. } else { 4. })
+                * crate::scale::zoom(),
+            self.height * crate::scale::zoom(),
+            f32::from(viewport.height),
+        );
+        let panel_focus = self
+            .panel_focus
+            .clone()
+            .unwrap_or_else(|| state.read(cx).panel.clone());
         let tracked = self.panel_focus.is_none() && !self.keep_focus;
         let dismiss = {
             let ask = ask_close.clone();
@@ -382,14 +423,25 @@ impl RenderOnce for Popover {
                 // Other triggers drawn in the last two frames; an older one belongs to a view no longer drawn.
                 let registry = cx.default_global::<Registry>();
                 let fresh = registry.frame.saturating_sub(1);
-                holes.extend(registry.triggers.iter().filter(|(k, (_, at))| **k != key && *at >= fresh).map(|(_, (b, _))| *b));
+                holes.extend(
+                    registry
+                        .triggers
+                        .iter()
+                        .filter(|(k, (_, at))| **k != key && *at >= fresh)
+                        .map(|(_, (b, _))| *b),
+                );
             }
             let whole = div()
                 .relative()
                 .w(viewport.width)
                 .h(viewport.height)
-                .children(cover(viewport, &holes).into_iter().map(|r| strip(r.left(), r.top(), r.size.width, r.size.height)));
-            deferred(anchored().position(point(px(0.), px(0.))).child(whole)).with_priority(PRIORITY)
+                .children(
+                    cover(viewport, &holes)
+                        .into_iter()
+                        .map(|r| strip(r.left(), r.top(), r.size.width, r.size.height)),
+                );
+            deferred(anchored().position(point(px(0.), px(0.))).child(whole))
+                .with_priority(PRIORITY)
         });
         let panel = deferred(
             anchored()
@@ -398,27 +450,36 @@ impl RenderOnce for Popover {
                 .snap_to_window_with_margin(px(MARGIN))
                 .child(
                     div()
-                        .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "panel".into()))
+                        .id(ElementId::NamedChild(
+                            std::sync::Arc::new(self.id.clone()),
+                            "panel".into(),
+                        ))
                         .occlude()
                         .when_some(self.width, |d, w| d.w(w))
                         .when_some(self.min_width, |d, w| d.min_w(w))
                         .when(tracked, |d| d.track_focus(&panel_focus))
                         .key_context("BeuiPopover")
-                        .on_key_down(move |event, window, cx| match event.keystroke.key.as_str() {
-                            "escape" => {
-                                cx.stop_propagation();
-                                dismiss(false, window, cx);
-                            }
-                            "tab" => {
-                                cx.stop_propagation();
-                                dismiss(true, window, cx);
-                            }
-                            _ => {}
-                        })
+                        .on_key_down(
+                            move |event, window, cx| match event.keystroke.key.as_str() {
+                                "escape" => {
+                                    cx.stop_propagation();
+                                    dismiss(false, window, cx);
+                                }
+                                "tab" => {
+                                    cx.stop_propagation();
+                                    dismiss(true, window, cx);
+                                }
+                                _ => {}
+                            },
+                        )
                         .child(child),
                 ),
         )
         .with_priority(PRIORITY + 1);
-        wrap(div()).children(marker).children(backdrop).child(panel).into_any_element()
+        wrap(div())
+            .children(marker)
+            .children(backdrop)
+            .child(panel)
+            .into_any_element()
     }
 }

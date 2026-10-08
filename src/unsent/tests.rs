@@ -9,7 +9,10 @@ fn the_count_never_says_pending_or_draft() {
     for n in 1..4 {
         for words in [count_text(n), send_text(n), SharedString::from(WHO_SEES)] {
             let lower = words.to_lowercase();
-            assert!(!lower.contains("pending") && !lower.contains("draft"), "{words}");
+            assert!(
+                !lower.contains("pending") && !lower.contains("draft"),
+                "{words}"
+            );
         }
     }
 }

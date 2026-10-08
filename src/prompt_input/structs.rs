@@ -1,34 +1,26 @@
 use std::time::Instant;
 
 use gpui_kit::{
-    App,
-    AppContext,
-    Bounds,
-    Context,
-    Entity,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    Pixels,
-    Render,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    Subscription,
-    Window,
-    component::input::{Backspace, InputEvent, MoveDown, MoveUp, Position, Textarea, TextareaState},
+    App, AppContext, Bounds, Context, Entity, EventEmitter, FocusHandle, Focusable,
+    InteractiveElement, IntoElement, ParentElement, Pixels, Render, SharedString,
+    StatefulInteractiveElement, Styled, Subscription, Window,
+    component::input::{
+        Backspace, InputEvent, MoveDown, MoveUp, Position, Textarea, TextareaState,
+    },
     div,
     prelude::FluentBuilder,
 };
 
 use std::rc::Rc;
 
-use crate::scale::px;
+use super::helpers::{append_transcript, is_inline_paste, live_text};
+use super::types::{
+    Chip, ChipLook, LiveWords, Message, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, Pasted,
+    PromptInputEvent, STEER_HINT, Sending,
+};
 use crate::context_meter::ContextMeter;
 use crate::context_usage::{self, ContextPart, ContextUsage};
+use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     button_group::ButtonGroup,
@@ -45,8 +37,6 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
-use super::helpers::{append_transcript, is_inline_paste, live_text};
 
 /// One choice in the model picker.
 #[derive(Clone, Debug)]
@@ -60,7 +50,12 @@ pub struct PromptModel {
 
 impl PromptModel {
     pub fn new(value: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { value: value.into(), label: label.into(), icon: None, mark: None }
+        Self {
+            value: value.into(),
+            label: label.into(),
+            icon: None,
+            mark: None,
+        }
     }
 
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -85,7 +80,12 @@ pub struct PromptAction {
 
 impl PromptAction {
     pub fn new(value: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { value: value.into(), label: label.into(), description: None, icon: None }
+        Self {
+            value: value.into(),
+            label: label.into(),
+            description: None,
+            icon: None,
+        }
     }
 
     pub fn description(mut self, description: impl Into<SharedString>) -> Self {
@@ -118,12 +118,21 @@ pub(super) struct ActionsMenu {
 
 impl ActionsMenu {
     pub(super) fn new() -> Self {
-        Self { open: false, trigger_hovered: false, rotate: Channel::new(0.) }
+        Self {
+            open: false,
+            trigger_hovered: false,
+            rotate: Channel::new(0.),
+        }
     }
 
     fn set_open(&mut self, open: bool, reduce: bool) {
         self.open = open;
-        self.rotate.animate(if open { 45. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+        self.rotate.animate(
+            if open { 45. } else { 0. },
+            Curve::Spring(Spring::SWAP),
+            0.,
+            reduce,
+        );
     }
 }
 
@@ -223,20 +232,31 @@ impl PromptInput {
                 .placeholder(placeholder)
                 .default_value(default_value)
         });
-        let subscription = cx.subscribe_in(&text, window, |this, _, event: &InputEvent, window, cx| match event {
-            // Enter sends, and ⌘↵ (⌃↵ elsewhere) too, as the brief's key; while a turn runs ⌘↵ queues instead.
-            InputEvent::PressEnter { shift: false, secondary } => {
-                let sending = if *secondary && this.running { Sending::AfterTurn } else { Sending::Now };
-                this.send(sending, window, cx)
-            }
-            // Send turns on and off with the text, so redraw on every edit; a `/` or an `@` opens a list.
-            InputEvent::Change => {
-                this.refresh_picking(cx);
-                this.retarget_send(cx);
-                cx.notify()
-            }
-            _ => {}
-        });
+        let subscription = cx.subscribe_in(
+            &text,
+            window,
+            |this, _, event: &InputEvent, window, cx| match event {
+                // Enter sends, and ⌘↵ (⌃↵ elsewhere) too, as the brief's key; while a turn runs ⌘↵ queues instead.
+                InputEvent::PressEnter {
+                    shift: false,
+                    secondary,
+                } => {
+                    let sending = if *secondary && this.running {
+                        Sending::AfterTurn
+                    } else {
+                        Sending::Now
+                    };
+                    this.send(sending, window, cx)
+                }
+                // Send turns on and off with the text, so redraw on every edit; a `/` or an `@` opens a list.
+                InputEvent::Change => {
+                    this.refresh_picking(cx);
+                    this.retarget_send(cx);
+                    cx.notify()
+                }
+                _ => {}
+            },
+        );
         Self {
             text,
             models: Vec::new(),
@@ -338,11 +358,18 @@ impl PromptInput {
 
     /// Gives the picker a new list, keeping the model chosen when it is still in it, and `default` as the model of the filled star. The
     /// picker lets the reader star, hide and drag the models once an owner listens to [`PromptInputEvent::ModelStarred`] and the others.
-    pub fn set_models(&mut self, models: Vec<PromptModel>, default: Option<SharedString>, cx: &mut Context<Self>) {
+    pub fn set_models(
+        &mut self,
+        models: Vec<PromptModel>,
+        default: Option<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
         let chosen = self.models.get(self.model).map(|m| m.value.clone());
         self.models = models;
         self.default_model = default;
-        self.model = chosen.and_then(|c| self.models.iter().position(|m| m.value == c)).unwrap_or(0);
+        self.model = chosen
+            .and_then(|c| self.models.iter().position(|m| m.value == c))
+            .unwrap_or(0);
         cx.notify();
     }
 
@@ -399,13 +426,17 @@ impl PromptInput {
 
     /// Whether the button stops the turn: it runs, and there is nothing to send into it.
     pub(super) fn stops(&self, cx: &App) -> bool {
-        self.running && self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none()
+        self.running
+            && self.text(cx).trim().is_empty()
+            && self.chips.is_empty()
+            && self.command.is_none()
     }
 
     fn retarget_send(&mut self, cx: &mut Context<Self>) {
         let target = if self.stops(cx) { 1. } else { 0. };
         if self.send_swap.target() != target {
-            self.send_swap.animate(target, Curve::Spring(Spring::SWAP), 0., cx.reduce_motion());
+            self.send_swap
+                .animate(target, Curve::Spring(Spring::SWAP), 0., cx.reduce_motion());
         }
     }
 
@@ -454,7 +485,12 @@ impl PromptInput {
     }
 
     /// The microphones to offer, and which is chosen (`None` for the system's default, which the list may also name).
-    pub fn set_voice_devices(&mut self, devices: Vec<VoiceDevice>, selected: Option<SharedString>, cx: &mut Context<Self>) {
+    pub fn set_voice_devices(
+        &mut self,
+        devices: Vec<VoiceDevice>,
+        selected: Option<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
         self.voice_devices = devices;
         self.voice_device = selected;
         cx.notify();
@@ -499,8 +535,18 @@ impl PromptInput {
             self.mic_menu = false;
         }
         self.voice = mode;
-        self.mic_swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
-        self.voice_fade.animate(if mode == VoiceMode::Idle { 0. } else { 1. }, Curve::Ease(0.22, ease::OUT), 0., reduce);
+        self.mic_swap.animate(
+            if listening { 1. } else { 0. },
+            Curve::Spring(Spring::SWAP),
+            0.,
+            reduce,
+        );
+        self.voice_fade.animate(
+            if mode == VoiceMode::Idle { 0. } else { 1. },
+            Curve::Ease(0.22, ease::OUT),
+            0.,
+            reduce,
+        );
         cx.notify();
     }
 
@@ -556,7 +602,12 @@ impl PromptInput {
     /// [`insert_transcript`](Self::insert_transcript) puts the final words in their place, and
     /// [`end_live_transcript`](Self::end_live_transcript) takes them out. Once the person edits the box meanwhile, the words
     /// shown stay and stop moving.
-    pub fn set_live_transcript(&mut self, words: &str, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn set_live_transcript(
+        &mut self,
+        words: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let now = self.text(cx).to_string();
         let (base, shown) = match &self.live {
             LiveWords::Left => return,
@@ -574,7 +625,10 @@ impl PromptInput {
         self.ink.set_still(cx.reduce_motion());
         self.ink.observe(words.trim());
         self.write(&written, written.len(), window, cx);
-        self.live = LiveWords::Showing { base, shown: words.trim().to_string() };
+        self.live = LiveWords::Showing {
+            base,
+            shown: words.trim().to_string(),
+        };
         cx.notify();
     }
 
@@ -590,8 +644,14 @@ impl PromptInput {
 
     /// The text as it is while a press records: each live word in the strength of ink it has come to, laid exactly where the
     /// box lays the same text. `None` when no words are live, or the person has edited the box.
-    fn live_overlay(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Option<gpui_kit::AnyElement> {
-        let LiveWords::Showing { base, shown } = &self.live else { return None };
+    fn live_overlay(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<gpui_kit::AnyElement> {
+        let LiveWords::Showing { base, shown } = &self.live else {
+            return None;
+        };
         let written = live_text(base, shown);
         if self.text(cx) != written {
             return None;
@@ -611,7 +671,13 @@ impl PromptInput {
             .filter(|w| w.alpha < 1.)
             .map(|w| {
                 let color = theme.foreground.blend(surface.opacity(1. - w.alpha));
-                (from + w.range.start..from + w.range.end, gpui_kit::HighlightStyle { color: Some(color), ..Default::default() })
+                (
+                    from + w.range.start..from + w.range.end,
+                    gpui_kit::HighlightStyle {
+                        color: Some(color),
+                        ..Default::default()
+                    },
+                )
             })
             .collect();
         // The box scrolls once it passes its rows; the words go up with it.
@@ -650,7 +716,12 @@ impl PromptInput {
         self.text.read(cx).value()
     }
 
-    pub fn set_text(&mut self, text: impl Into<SharedString>, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn set_text(
+        &mut self,
+        text: impl Into<SharedString>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let text = text.into();
         self.text.update(cx, |t, cx| t.set_value(text, window, cx));
     }
@@ -683,9 +754,27 @@ impl PromptInput {
         let entries = item.entries();
         let found = entries
             .iter()
-            .find_map(|e| if let ClipboardEntry::Image(image) = e { Some(Pasted::Image(std::sync::Arc::new(image.clone()))) } else { None })
-            .or_else(|| entries.iter().find_map(|e| if let ClipboardEntry::ExternalPaths(paths) = e { Some(Pasted::Files(paths.paths().to_vec())) } else { None }))
-            .or_else(|| item.text().filter(|t| !t.is_empty() && !is_inline_paste(t)).map(|t| Pasted::Text(t.into())));
+            .find_map(|e| {
+                if let ClipboardEntry::Image(image) = e {
+                    Some(Pasted::Image(std::sync::Arc::new(image.clone())))
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
+                entries.iter().find_map(|e| {
+                    if let ClipboardEntry::ExternalPaths(paths) = e {
+                        Some(Pasted::Files(paths.paths().to_vec()))
+                    } else {
+                        None
+                    }
+                })
+            })
+            .or_else(|| {
+                item.text()
+                    .filter(|t| !t.is_empty() && !is_inline_paste(t))
+                    .map(|t| Pasted::Text(t.into()))
+            });
         match found {
             Some(pasted) => {
                 cx.emit(PromptInputEvent::Paste(pasted));
@@ -764,7 +853,12 @@ impl PromptInput {
             (t.value(), t.cursor())
         };
         let matches = match trigger(&text, cursor) {
-            Some(Trigger::Command { query }) if !self.commands.is_empty() => Some((Trigger::Command { query: query.clone() }, ranked(&query, &self.commands))),
+            Some(Trigger::Command { query }) if !self.commands.is_empty() => Some((
+                Trigger::Command {
+                    query: query.clone(),
+                },
+                ranked(&query, &self.commands),
+            )),
             Some(Trigger::Mention { start, query }) if !self.files.is_empty() => {
                 let found = if query.is_empty() {
                     (0..self.files.len().min(50)).collect()
@@ -775,14 +869,23 @@ impl PromptInput {
             }
             _ => None,
         };
-        self.picking = matches.filter(|(_, m)| !m.is_empty()).map(|(trigger, matches)| Picking { trigger, matches, active: 0 });
+        self.picking = matches
+            .filter(|(_, m)| !m.is_empty())
+            .map(|(trigger, matches)| Picking {
+                trigger,
+                matches,
+                active: 0,
+            });
     }
 
     /// Fills the box and puts the caret at byte `caret`, as a pick does; the list closes.
     fn write(&mut self, text: &str, caret: usize, window: &mut Window, cx: &mut Context<Self>) {
         let before = &text[..caret];
         let line = before.matches('\n').count() as u32;
-        let character = before.rsplit('\n').next().map_or(0, |last| last.encode_utf16().count()) as u32;
+        let character = before
+            .rsplit('\n')
+            .next()
+            .map_or(0, |last| last.encode_utf16().count()) as u32;
         self.text.update(cx, |t, cx| {
             t.set_value(text.to_string(), window, cx);
             t.set_cursor_position(Position::new(line, character), window, cx);
@@ -792,7 +895,9 @@ impl PromptInput {
 
     /// Moves the row in front of the open list by `by`, round the ends; false when no list is open.
     fn step_pick(&mut self, by: isize, cx: &mut Context<Self>) -> bool {
-        let Some(picking) = &mut self.picking else { return false };
+        let Some(picking) = &mut self.picking else {
+            return false;
+        };
         let rows = picking.matches.len() as isize;
         picking.active = (picking.active as isize + by).rem_euclid(rows) as usize;
         cx.notify();
@@ -801,8 +906,12 @@ impl PromptInput {
 
     /// Runs or writes the row in front of the open list.
     fn pick(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(picking) = self.picking.take() else { return };
-        let Some(&index) = picking.matches.get(picking.active) else { return };
+        let Some(picking) = self.picking.take() else {
+            return;
+        };
+        let Some(&index) = picking.matches.get(picking.active) else {
+            return;
+        };
         match picking.trigger {
             Trigger::Command { .. } => {
                 let command = self.commands[index].clone();
@@ -813,7 +922,10 @@ impl PromptInput {
                     self.command = Some(command.name);
                 } else {
                     self.text.update(cx, |t, cx| t.set_value("", window, cx));
-                    cx.emit(PromptInputEvent::Command { name: command.name, args: SharedString::default() });
+                    cx.emit(PromptInputEvent::Command {
+                        name: command.name,
+                        args: SharedString::default(),
+                    });
                 }
             }
             Trigger::Mention { start, .. } => {
@@ -843,10 +955,18 @@ impl PromptInput {
         }
         let text = self.text(cx);
         let text = text.trim();
-        if (text.is_empty() && self.chips.is_empty() && self.command.is_none()) || self.disabled || self.dictating() {
+        if (text.is_empty() && self.chips.is_empty() && self.command.is_none())
+            || self.disabled
+            || self.dictating()
+        {
             return;
         }
-        let mentions = self.chips.iter().filter_map(|c| c.mention.as_deref()).collect::<Vec<_>>().join(" ");
+        let mentions = self
+            .chips
+            .iter()
+            .filter_map(|c| c.mention.as_deref())
+            .collect::<Vec<_>>()
+            .join(" ");
         let with = |words: &str| -> SharedString {
             match (mentions.is_empty(), words.is_empty()) {
                 (true, _) => words.to_string().into(),
@@ -862,12 +982,16 @@ impl PromptInput {
         if let Some(rest) = text.strip_prefix('/') {
             let (name, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
             if self.commands.iter().any(|c| c.name == name) {
-                let (name, args): (SharedString, SharedString) = (name.to_string().into(), with(args.trim()));
+                let (name, args): (SharedString, SharedString) =
+                    (name.to_string().into(), with(args.trim()));
                 self.clear(window, cx);
                 return cx.emit(PromptInputEvent::Command { name, args });
             }
         }
-        let message = Message { text: with(text), chips: self.chips.clone() };
+        let message = Message {
+            text: with(text),
+            chips: self.chips.clone(),
+        };
         self.clear(window, cx);
         self.retarget_send(cx);
         cx.emit(match sending {
@@ -892,79 +1016,123 @@ impl PromptInput {
         let this = cx.entity().downgrade();
         // The command goes first: it is the beginning of the message.
         let command = self.command.as_ref().map(|name| {
-            let mut chip = Chip::new("command", format!("/{name}")).look(ChipLook::Icon(IconName::Command));
+            let mut chip =
+                Chip::new("command", format!("/{name}")).look(ChipLook::Icon(IconName::Command));
             chip.mention = None;
             (chip, true)
         });
         let (chip_bg, ink) = (theme.chip_rest, super::helpers::chip_ink(&theme));
         let quiet = crate::theme::mix(ink, chip_bg, 0.4);
-        let all = command.into_iter().chain(self.chips.iter().cloned().map(|c| (c, false))).collect::<Vec<_>>();
-        Some(div().flex().flex_wrap().gap(px(4.)).px(px(2.)).pb(px(6.)).children(all.into_iter().map(|(chip, is_command)| {
-            let (id, remove_id, gone, pressed) = (chip.id.clone(), chip.id.clone(), chip.id.clone(), chip.id.clone());
-            let owner = this.clone();
-            let presser = this.clone();
-            let picture = match &chip.look {
-                ChipLook::None => None,
-                ChipLook::Icon(name) => Some(Icon::new(*name).size(px(12.)).color(quiet).into_any_element()),
-                ChipLook::File(path) => Some(crate::file_icon::FileIcon::file(path).size(px(12.)).into_any_element()),
-                ChipLook::Image(image) => Some(
-                    <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(image.clone()), gpui_kit::ObjectFit::Cover).flex_none().size(px(16.)).rounded(px(3.)).into_any_element(),
-                ),
-            };
+        let all = command
+            .into_iter()
+            .chain(self.chips.iter().cloned().map(|c| (c, false)))
+            .collect::<Vec<_>>();
+        Some(
             div()
-                .id(SharedString::from(format!("chip-{id}")))
-                .debug_selector(move || format!("chip-{id}"))
                 .flex()
-                .items_center()
+                .flex_wrap()
                 .gap(px(4.))
-                .h(px(24.))
-                .pl(px(6.))
-                .pr(px(2.))
-                .rounded(radius::md())
-                .bg(theme.chip_rest)
-                // Not `chip_hover`: that is the light end of the arrow chips, which would wash the label out.
-                .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.1)))
-                .text_size(TextSize::Xs.font_size())
-                .text_color(ink)
-                .when(!is_command, |d| {
-                    d.on_click(move |_, _, cx| {
-                        presser.update(cx, |_, cx| cx.emit(PromptInputEvent::ChipPressed(pressed.clone()))).ok();
-                    })
-                })
-                .tooltip(crate::tooltip::Tooltip::text(chip.detail.clone().unwrap_or_else(|| chip.label.clone())))
-                .children(picture)
-                .child(chip.label.clone())
-                .child(
+                .px(px(2.))
+                .pb(px(6.))
+                .children(all.into_iter().map(|(chip, is_command)| {
+                    let (id, remove_id, gone, pressed) = (
+                        chip.id.clone(),
+                        chip.id.clone(),
+                        chip.id.clone(),
+                        chip.id.clone(),
+                    );
+                    let owner = this.clone();
+                    let presser = this.clone();
+                    let picture = match &chip.look {
+                        ChipLook::None => None,
+                        ChipLook::Icon(name) => Some(
+                            Icon::new(*name)
+                                .size(px(12.))
+                                .color(quiet)
+                                .into_any_element(),
+                        ),
+                        ChipLook::File(path) => Some(
+                            crate::file_icon::FileIcon::file(path)
+                                .size(px(12.))
+                                .into_any_element(),
+                        ),
+                        ChipLook::Image(image) => Some(
+                            <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(
+                                gpui_kit::img(image.clone()),
+                                gpui_kit::ObjectFit::Cover,
+                            )
+                            .flex_none()
+                            .size(px(16.))
+                            .rounded(px(3.))
+                            .into_any_element(),
+                        ),
+                    };
                     div()
-                        .id(SharedString::from(format!("chip-remove-{remove_id}")))
-                        .debug_selector({
-                            let remove_id = remove_id.clone();
-                            move || format!("chip-remove-{remove_id}")
-                        })
+                        .id(SharedString::from(format!("chip-{id}")))
+                        .debug_selector(move || format!("chip-{id}"))
                         .flex()
                         .items_center()
-                        .justify_center()
-                        .size(px(18.))
-                        .rounded(px(4.))
-                        .text_color(quiet)
-                        .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.2)).text_color(ink))
-                        .child(Icon::new(IconName::Close).size(px(12.)))
-                        .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation())
-                        .on_click(move |_, _, cx| {
-                            cx.stop_propagation();
-                            owner
-                                .update(cx, |p, cx| {
-                                    if is_command {
-                                        p.command = None;
-                                        cx.notify();
-                                    } else {
-                                        p.remove_chip(&gone, cx);
-                                    }
+                        .gap(px(4.))
+                        .h(px(24.))
+                        .pl(px(6.))
+                        .pr(px(2.))
+                        .rounded(radius::md())
+                        .bg(theme.chip_rest)
+                        // Not `chip_hover`: that is the light end of the arrow chips, which would wash the label out.
+                        .hover(move |d| d.bg(crate::theme::mix(chip_bg, ink, 0.1)))
+                        .text_size(TextSize::Xs.font_size())
+                        .text_color(ink)
+                        .when(!is_command, |d| {
+                            d.on_click(move |_, _, cx| {
+                                presser
+                                    .update(cx, |_, cx| {
+                                        cx.emit(PromptInputEvent::ChipPressed(pressed.clone()))
+                                    })
+                                    .ok();
+                            })
+                        })
+                        .tooltip(crate::tooltip::Tooltip::text(
+                            chip.detail.clone().unwrap_or_else(|| chip.label.clone()),
+                        ))
+                        .children(picture)
+                        .child(chip.label.clone())
+                        .child(
+                            div()
+                                .id(SharedString::from(format!("chip-remove-{remove_id}")))
+                                .debug_selector({
+                                    let remove_id = remove_id.clone();
+                                    move || format!("chip-remove-{remove_id}")
                                 })
-                                .ok();
-                        }),
-                )
-        })).into_any_element())
+                                .flex()
+                                .items_center()
+                                .justify_center()
+                                .size(px(18.))
+                                .rounded(px(4.))
+                                .text_color(quiet)
+                                .hover(move |d| {
+                                    d.bg(crate::theme::mix(chip_bg, ink, 0.2)).text_color(ink)
+                                })
+                                .child(Icon::new(IconName::Close).size(px(12.)))
+                                .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| {
+                                    cx.stop_propagation()
+                                })
+                                .on_click(move |_, _, cx| {
+                                    cx.stop_propagation();
+                                    owner
+                                        .update(cx, |p, cx| {
+                                            if is_command {
+                                                p.command = None;
+                                                cx.notify();
+                                            } else {
+                                                p.remove_chip(&gone, cx);
+                                            }
+                                        })
+                                        .ok();
+                                }),
+                        )
+                }))
+                .into_any_element(),
+        )
     }
 
     /// The open list, over or under the box, as a Select's list: the elevation's fill and shadow.
@@ -992,7 +1160,8 @@ impl PromptInput {
             })
             .collect();
         let rows = entries.len() as f32;
-        let height = (2. * PICK_PAD + rows * PICK_ROW + (rows - 1.).max(0.) * PICK_GAP).min(PICK_MOST);
+        let height =
+            (2. * PICK_PAD + rows * PICK_ROW + (rows - 1.).max(0.) * PICK_GAP).min(PICK_MOST);
         let width = self.frame.map_or(px(360.), |f| f.size.width);
         let this = cx.entity().downgrade();
         let (hover, choose, close) = (this.clone(), this.clone(), this);
@@ -1004,7 +1173,11 @@ impl PromptInput {
             .rounded(px(12.))
             .overflow_hidden()
             .bg(crate::design_preview::panel_fill(&theme, level, theme.card))
-            .shadow(crate::design_preview::panel_shadows(&theme, level, crate::theme::popover_shadow(&theme)))
+            .shadow(crate::design_preview::panel_shadows(
+                &theme,
+                level,
+                crate::theme::popover_shadow(&theme),
+            ))
             .child(
                 ComboList::new("prompt-picker-list", entries)
                     .style(ComboStyle::Task)
@@ -1066,8 +1239,15 @@ impl PromptInput {
     /// What the model picker lets the reader do to its rows: each press becomes an event for the owner, who arranges the list and gives it
     /// back with [`PromptInput::set_models`].
     fn model_manage(&self, cx: &mut Context<Self>) -> crate::SelectManage {
-        let (star, hide, drag) = (cx.entity().downgrade(), cx.entity().downgrade(), cx.entity().downgrade());
-        let default = self.default_model.as_ref().and_then(|d| self.models.iter().position(|m| m.value == *d));
+        let (star, hide, drag) = (
+            cx.entity().downgrade(),
+            cx.entity().downgrade(),
+            cx.entity().downgrade(),
+        );
+        let default = self
+            .default_model
+            .as_ref()
+            .and_then(|d| self.models.iter().position(|m| m.value == *d));
         crate::SelectManage {
             default,
             on_default: std::rc::Rc::new(move |i, _, cx| {
@@ -1088,9 +1268,14 @@ impl PromptInput {
             }),
             on_move: std::rc::Rc::new(move |from, before, _, cx| {
                 drag.update(cx, |this, cx| {
-                    let values: Vec<SharedString> = this.models.iter().map(|m| m.value.clone()).collect();
+                    let values: Vec<SharedString> =
+                        this.models.iter().map(|m| m.value.clone()).collect();
                     if let (Some(moving), Some(target)) = (values.get(from), values.get(before)) {
-                        cx.emit(PromptInputEvent::ModelsMoved(crate::model_list::moved(&values, moving, Some(target))));
+                        cx.emit(PromptInputEvent::ModelsMoved(crate::model_list::moved(
+                            &values,
+                            moving,
+                            Some(target),
+                        )));
                     }
                 })
                 .ok();
@@ -1103,7 +1288,8 @@ impl Render for PromptInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
         let disabled = self.disabled;
-        let empty = self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none();
+        let empty =
+            self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none();
         let can_submit = !empty && !disabled && !self.dictating();
         let stops = self.stops(cx);
 
@@ -1164,7 +1350,11 @@ impl Render for PromptInput {
                 });
             let steers = self.running && !stops;
             let button = button.debug_name("prompt-send");
-            if steers { button.tooltip(STEER_HINT) } else { button }
+            if steers {
+                button.tooltip(STEER_HINT)
+            } else {
+                button
+            }
         };
 
         // The Plus trigger and its menu, shown only when there is something to add: as beui does.
@@ -1172,32 +1362,40 @@ impl Render for PromptInput {
             let rotate = self.menu.rotate.value();
             let open = self.menu.open;
             let this = cx.entity().downgrade();
-            let plus = div().relative().size(px(16.)).flex().items_center().justify_center().child(
-                Icon::new(IconName::Add).size(px(16.)).turn(rotate / 360.),
-            );
+            let plus = div()
+                .relative()
+                .size(px(16.))
+                .flex()
+                .items_center()
+                .justify_center()
+                .child(Icon::new(IconName::Add).size(px(16.)).turn(rotate / 360.));
             let hover = this.clone();
             let trigger = div()
                 .id("prompt-add-hover")
                 .on_hover(move |on, _, cx| {
-                    hover.update(cx, |this, _| this.menu.trigger_hovered = *on).ok();
-                })
-                .child(Button::new("prompt-add")
-                .content(plus)
-                .pill(true)
-                .variant(ButtonVariant::Ghost)
-                .size(ButtonSize::Icon)
-                .disabled(disabled || self.running)
-                .on_click({
-                    let this = this.clone();
-                    move |_, _, cx| {
-                        this.update(cx, |this, cx| {
-                            let reduce = cx.reduce_motion();
-                            this.menu.set_open(!this.menu.open, reduce);
-                            cx.notify();
-                        })
+                    hover
+                        .update(cx, |this, _| this.menu.trigger_hovered = *on)
                         .ok();
-                    }
-                }));
+                })
+                .child(
+                    Button::new("prompt-add")
+                        .content(plus)
+                        .pill(true)
+                        .variant(ButtonVariant::Ghost)
+                        .size(ButtonSize::Icon)
+                        .disabled(disabled || self.running)
+                        .on_click({
+                            let this = this.clone();
+                            move |_, _, cx| {
+                                this.update(cx, |this, cx| {
+                                    let reduce = cx.reduce_motion();
+                                    this.menu.set_open(!this.menu.open, reduce);
+                                    cx.notify();
+                                })
+                                .ok();
+                            }
+                        }),
+                );
             let menu = open.then(|| {
                 let text_focus = self.text.focus_handle(cx);
                 let items = self.actions.iter().cloned().map(|action| {
@@ -1221,14 +1419,17 @@ impl Render for PromptInput {
                 let close = this.clone();
                 let done = this.clone();
                 let focus_back = text_focus.clone();
-                let panel = Menu::new("prompt-actions-menu", items).look(crate::menu::MenuLook::PROMPT).origin(Origin::BottomLeft).on_dismiss(move |window, cx| {
-                    done.update(cx, |this, cx| {
-                        this.menu.set_open(false, cx.reduce_motion());
-                        cx.notify();
-                    })
-                    .ok();
-                    window.focus(&focus_back, cx);
-                });
+                let panel = Menu::new("prompt-actions-menu", items)
+                    .look(crate::menu::MenuLook::PROMPT)
+                    .origin(Origin::BottomLeft)
+                    .on_dismiss(move |window, cx| {
+                        done.update(cx, |this, cx| {
+                            this.menu.set_open(false, cx.reduce_motion());
+                            cx.notify();
+                        })
+                        .ok();
+                        window.focus(&focus_back, cx);
+                    });
                 Popover::new("prompt-actions-popover")
                     .open(true)
                     .hang(Hang::Left(0., 0.))
@@ -1246,44 +1447,61 @@ impl Render for PromptInput {
                     })
                     .child(panel)
             });
-            div().id("prompt-add-wrap").relative().child(trigger).children(menu)
+            div()
+                .id("prompt-add-wrap")
+                .relative()
+                .child(trigger)
+                .children(menu)
         });
 
         let model_select = (!self.models.is_empty()).then(|| {
             let this = cx.entity().downgrade();
-            div().flex_none().max_w(px(208.)).debug_selector(|| "prompt-model-select".into()).child(
-                Select::new("prompt-model", self.models.iter())
-                    .selected(Some(self.model))
-                    .placeholder("Choose model")
-                    .disabled(disabled || self.running)
-                    .compact(true)
-                    .chevron(false)
-                    .shadow(false)
-                    .panel_width(px(208.))
-                    .when(self.models_managed, |s| s.manage(self.model_manage(cx)))
-                    .on_change(move |i, _, cx| {
-                        this.update(cx, |this, cx| {
-                            if let Some(model) = this.models.get(i) {
-                                this.model = i;
-                                cx.emit(PromptInputEvent::ModelChanged(model.value.clone()));
-                                cx.notify();
-                            }
-                        })
-                        .ok();
-                    }),
-            )
+            div()
+                .flex_none()
+                .max_w(px(208.))
+                .debug_selector(|| "prompt-model-select".into())
+                .child(
+                    Select::new("prompt-model", self.models.iter())
+                        .selected(Some(self.model))
+                        .placeholder("Choose model")
+                        .disabled(disabled || self.running)
+                        .compact(true)
+                        .chevron(false)
+                        .shadow(false)
+                        .panel_width(px(208.))
+                        .when(self.models_managed, |s| s.manage(self.model_manage(cx)))
+                        .on_change(move |i, _, cx| {
+                            this.update(cx, |this, cx| {
+                                if let Some(model) = this.models.get(i) {
+                                    this.model = i;
+                                    cx.emit(PromptInputEvent::ModelChanged(model.value.clone()));
+                                    cx.notify();
+                                }
+                            })
+                            .ok();
+                        }),
+                )
         });
 
         let mode_select = (!self.modes.is_empty()).then(|| {
             let this = cx.entity().downgrade();
-            div().flex_none().max_w(px(180.)).debug_selector(|| "prompt-mode-select".into()).child(
-                Select::new(
-                    "prompt-mode",
-                    self.modes.iter().enumerate().map(|(i, words)| match self.mode_icons.get(i) {
-                        Some((icon, color)) => crate::SelectOption::new(words.clone(), *icon).icon_color(*color),
-                        None => crate::SelectOption::from(words.clone()),
-                    }),
-                )
+            div()
+                .flex_none()
+                .max_w(px(180.))
+                .debug_selector(|| "prompt-mode-select".into())
+                .child(
+                    Select::new(
+                        "prompt-mode",
+                        self.modes.iter().enumerate().map(|(i, words)| {
+                            match self.mode_icons.get(i) {
+                                Some((icon, color)) => {
+                                    crate::SelectOption::new(words.clone(), *icon)
+                                        .icon_color(*color)
+                                }
+                                None => crate::SelectOption::from(words.clone()),
+                            }
+                        }),
+                    )
                     .selected(Some(self.mode))
                     .disabled(disabled)
                     .compact(true)
@@ -1300,40 +1518,56 @@ impl Render for PromptInput {
                         })
                         .ok();
                     }),
-            )
+                )
         });
 
         // The left of the row: Plus, the model and the mode, which cross-fade with the setup or the bars while dictation runs.
         let fade = self.voice_fade.value().clamp(0., 1.);
         let seconds = self.voice_since.map_or(0., |s| s.elapsed().as_secs_f32());
-        let (face, phase, total_mb, level) = (self.voice_face, self.voice_phase, self.voice_total_mb, self.voice_level);
-        let (muted, error, themed) = (theme.muted_foreground, self.voice_error.clone(), theme.clone());
+        let (face, phase, total_mb, level) = (
+            self.voice_face,
+            self.voice_phase,
+            self.voice_total_mb,
+            self.voice_level,
+        );
+        let (muted, error, themed) = (
+            theme.muted_foreground,
+            self.voice_error.clone(),
+            theme.clone(),
+        );
         let discarding = cx.entity().downgrade();
-        let said = Morph::new("prompt-voice-said", voice_input::key(face), move |_, _| match face {
-            VoiceMode::Listening => voice_input::listening_row(level, seconds, muted),
-            VoiceMode::Failed => voice_input::failed_row(error.clone(), &themed),
-            _ => {
-                let discarding = discarding.clone();
-                div()
-                    .w_full()
-                    .flex()
-                    .items_center()
-                    .gap(px(4.))
-                    .child(div().min_w_0().child(VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb)))
-                    .child(
-                        Button::new("prompt-voice-discard")
-                            .icon(IconName::Close)
-                            .variant(ButtonVariant::Ghost)
-                            .size(ButtonSize::IconSm)
-                            .tooltip("Discard what you said")
-                            .debug_name("prompt-voice-discard")
-                            .on_click(move |_, _, cx| {
-                                discarding.update(cx, |p, cx| p.discard_waiting(cx)).ok();
-                            }),
-                    )
-                    .into_any_element()
-            }
-        });
+        let said =
+            Morph::new(
+                "prompt-voice-said",
+                voice_input::key(face),
+                move |_, _| match face {
+                    VoiceMode::Listening => voice_input::listening_row(level, seconds, muted),
+                    VoiceMode::Failed => voice_input::failed_row(error.clone(), &themed),
+                    _ => {
+                        let discarding = discarding.clone();
+                        div()
+                            .w_full()
+                            .flex()
+                            .items_center()
+                            .gap(px(4.))
+                            .child(div().min_w_0().child(
+                                VoiceSetup::new("prompt-voice-setup", phase).total_mb(total_mb),
+                            ))
+                            .child(
+                                Button::new("prompt-voice-discard")
+                                    .icon(IconName::Close)
+                                    .variant(ButtonVariant::Ghost)
+                                    .size(ButtonSize::IconSm)
+                                    .tooltip("Discard what you said")
+                                    .debug_name("prompt-voice-discard")
+                                    .on_click(move |_, _, cx| {
+                                        discarding.update(cx, |p, cx| p.discard_waiting(cx)).ok();
+                                    }),
+                            )
+                            .into_any_element()
+                    }
+                },
+            );
         let left = div()
             .relative()
             .flex_1()
@@ -1424,7 +1658,8 @@ impl Render for PromptInput {
             let first = if listening {
                 let click = on_click.clone();
                 let (down, up) = (hold_down.clone(), hold_up.clone());
-                let slot = voice_input::mic_slot(mic, move |e, w, cx| click(e, w, cx)).debug_selector(|| "prompt-mic".into());
+                let slot = voice_input::mic_slot(mic, move |e, w, cx| click(e, w, cx))
+                    .debug_selector(|| "prompt-mic".into());
                 let slot = if hold {
                     slot.on_mouse_down(gpui_kit::MouseButton::Left, {
                         let down = down.clone();
@@ -1434,7 +1669,9 @@ impl Render for PromptInput {
                         let up = up.clone();
                         move |_, window, cx| up(window, cx)
                     })
-                    .on_mouse_up_out(gpui_kit::MouseButton::Left, move |_, window, cx| up(window, cx))
+                    .on_mouse_up_out(gpui_kit::MouseButton::Left, move |_, window, cx| {
+                        up(window, cx)
+                    })
                 } else {
                     slot
                 };
@@ -1508,20 +1745,26 @@ impl Render for PromptInput {
                 );
                 let rows = self.voice_devices.len() + 1;
                 let (close, done, focus_back) = (this.clone(), this.clone(), text_focus.clone());
-                let panel = Menu::new("prompt-mic-menu-list", entries).look(crate::menu::MenuLook::SELECT).origin(Origin::BottomRight).on_dismiss(move |window, cx| {
-                    done.update(cx, |this, cx| {
-                        this.mic_menu = false;
-                        cx.notify();
-                    })
-                    .ok();
-                    window.focus(&focus_back, cx);
-                });
+                let panel = Menu::new("prompt-mic-menu-list", entries)
+                    .look(crate::menu::MenuLook::SELECT)
+                    .origin(Origin::BottomRight)
+                    .on_dismiss(move |window, cx| {
+                        done.update(cx, |this, cx| {
+                            this.mic_menu = false;
+                            cx.notify();
+                        })
+                        .ok();
+                        window.focus(&focus_back, cx);
+                    });
                 Popover::new("prompt-mic-popover")
                     .open(true)
                     .hang(Hang::Right(0., 0.))
                     .side(Side::Auto)
                     .gap(8.)
-                    .height(crate::menu::height_in(crate::menu::MenuLook::SELECT, rows + 1) + crate::menu::MenuLook::SELECT.group)
+                    .height(
+                        crate::menu::height_in(crate::menu::MenuLook::SELECT, rows + 1)
+                            + crate::menu::MenuLook::SELECT.group,
+                    )
                     .return_focus(&text_focus)
                     .on_close(move |_, cx| {
                         close
@@ -1545,7 +1788,12 @@ impl Render for PromptInput {
                         arrow
                             .variant(ButtonVariant::Tinted)
                             .size(ButtonSize::Icon)
-                            .corners(gpui_kit::Corners { top_left: false, top_right: true, bottom_left: false, bottom_right: true })
+                            .corners(gpui_kit::Corners {
+                                top_left: false,
+                                top_right: true,
+                                bottom_left: false,
+                                bottom_right: true,
+                            })
                             .focusable(true),
                     )
                     .into_any_element(),
@@ -1556,33 +1804,43 @@ impl Render for PromptInput {
                     .child(arrow)
                     .into_any_element(),
             };
-            div().id("prompt-mic-group").relative().flex_none().child(control).children(menu)
+            div()
+                .id("prompt-mic-group")
+                .relative()
+                .flex_none()
+                .child(control)
+                .children(menu)
         });
 
         let meter = self.context.map(|(used, window)| {
             let this = cx.entity().downgrade();
             let open = self.context_open;
-            let ring = ContextMeter::new("prompt-context", used, window).tip(!open).on_click({
-                let this = this.clone();
-                move |_, _, cx| {
-                    this.update(cx, |this, cx| {
-                        this.context_open = !this.context_open;
-                        cx.notify();
-                    })
-                    .ok();
-                }
-            });
+            let ring = ContextMeter::new("prompt-context", used, window)
+                .tip(!open)
+                .on_click({
+                    let this = this.clone();
+                    move |_, _, cx| {
+                        this.update(cx, |this, cx| {
+                            this.context_open = !this.context_open;
+                            cx.notify();
+                        })
+                        .ok();
+                    }
+                });
             let panel = open.then(|| {
                 let text_focus = self.text.focus_handle(cx);
                 let (close, cross) = (this.clone(), this.clone());
                 let rows = self.context_parts.len();
-                let usage = ContextUsage::new(used, window).parts(self.context_parts.clone()).on_close(move |_, _, cx| {
-                    cross.update(cx, |this, cx| {
-                        this.context_open = false;
-                        cx.notify();
-                    })
-                    .ok();
-                });
+                let usage = ContextUsage::new(used, window)
+                    .parts(self.context_parts.clone())
+                    .on_close(move |_, _, cx| {
+                        cross
+                            .update(cx, |this, cx| {
+                                this.context_open = false;
+                                cx.notify();
+                            })
+                            .ok();
+                    });
                 Popover::new("prompt-context-popover")
                     .open(true)
                     .hang(Hang::Right(0., 0.))
@@ -1600,9 +1858,23 @@ impl Render for PromptInput {
                     })
                     .child(usage)
             });
-            div().id("prompt-context-wrap").relative().flex_none().child(ring).children(panel)
+            div()
+                .id("prompt-context-wrap")
+                .relative()
+                .flex_none()
+                .child(ring)
+                .children(panel)
         });
-        let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).child(send);
+        let toolbar = div()
+            .debug_selector(|| "prompt-toolbar".into())
+            .flex()
+            .items_center()
+            .gap(px(4.))
+            .min_h(px(32.))
+            .child(left)
+            .children(meter)
+            .children(mic)
+            .child(send);
 
         let this = cx.entity().downgrade();
         let (pasting, dropping, backing) = (this.clone(), this.clone(), this.clone());
@@ -1619,7 +1891,9 @@ impl Render for PromptInput {
             // With a list open, its keys are its own before the text sees them.
             .capture_key_down(move |event, window, cx| {
                 keys.update(cx, |p, cx| {
-                    if p.picking.is_none() { return }
+                    if p.picking.is_none() {
+                        return;
+                    }
                     match event.keystroke.key.as_str() {
                         "tab" => p.pick(window, cx),
                         "escape" => p.picking = None,
@@ -1633,7 +1907,10 @@ impl Render for PromptInput {
             // The text binds Up and Down to its caret as actions, which a key listener never sees first.
             // Backspace in an empty box takes off the last chip, then the command in front: the text binds it as an action too.
             .capture_action(move |_: &Backspace, _, cx| {
-                if backing.update(cx, |p, cx| p.take_last_chip(cx)).unwrap_or(false) {
+                if backing
+                    .update(cx, |p, cx| p.take_last_chip(cx))
+                    .unwrap_or(false)
+                {
                     cx.stop_propagation();
                 }
             })
@@ -1665,14 +1942,18 @@ impl Render for PromptInput {
                 dropping
                     .update(cx, |p, cx| {
                         if p.paste_chips && !p.disabled {
-                            cx.emit(PromptInputEvent::Paste(Pasted::Files(paths.paths().to_vec())));
+                            cx.emit(PromptInputEvent::Paste(Pasted::Files(
+                                paths.paths().to_vec(),
+                            )));
                         }
                     })
                     .ok();
             })
             // A press anywhere in the box writes in it. A picker's own click comes after, and takes the
             // focus it needs.
-            .on_mouse_down(gpui_kit::MouseButton::Left, move |_, window, cx| text.update(cx, |t, cx| t.focus(window, cx)))
+            .on_mouse_down(gpui_kit::MouseButton::Left, move |_, window, cx| {
+                text.update(cx, |t, cx| t.focus(window, cx))
+            })
             .flex()
             .flex_col()
             .p(px(8.))
@@ -1700,26 +1981,33 @@ impl Render for PromptInput {
                 // not seen; it stays where it is, so the caret, the focus and the height are the same as ever.
                 // The field keeps its own padding; the row crops it (see `TRIM_Y`) so the text row is as high as the
                 // controls' row, and the box has the same room above the text as below the controls.
-                div().debug_selector(|| "prompt-text".into()).overflow_hidden().child(
-                    div()
-                        .relative()
-                        .my(px(-TRIM_Y))
-                        // The field's own padding (its 4 and the editor's 10) puts the caret that far in; the box shifts left by what is
-                        // more than the first control's own padding, so the caret starts where that control's content starts.
-                        .ml(px(-(4. + EDITOR_PAD_X - CONTROL_PAD_X)))
-                        .child(
-                            div().when(overlay.is_some(), |d| d.opacity(0.)).child(
-                                Textarea::new(&self.text)
-                                    .on_paste(move |item, _, cx| pasting.update(cx, |p, cx| p.pasted(item, cx)).unwrap_or(false))
-                                    .appearance(false)
-                                    .disabled(disabled)
-                                    .px(px(4.))
-                                    .text_size(TextSize::Sm.font_size())
-                                    .line_height(px(24.)),
-                            ),
-                        )
-                        .children(overlay),
-                ),
+                div()
+                    .debug_selector(|| "prompt-text".into())
+                    .overflow_hidden()
+                    .child(
+                        div()
+                            .relative()
+                            .my(px(-TRIM_Y))
+                            // The field's own padding (its 4 and the editor's 10) puts the caret that far in; the box shifts left by what is
+                            // more than the first control's own padding, so the caret starts where that control's content starts.
+                            .ml(px(-(4. + EDITOR_PAD_X - CONTROL_PAD_X)))
+                            .child(
+                                div().when(overlay.is_some(), |d| d.opacity(0.)).child(
+                                    Textarea::new(&self.text)
+                                        .on_paste(move |item, _, cx| {
+                                            pasting
+                                                .update(cx, |p, cx| p.pasted(item, cx))
+                                                .unwrap_or(false)
+                                        })
+                                        .appearance(false)
+                                        .disabled(disabled)
+                                        .px(px(4.))
+                                        .text_size(TextSize::Sm.font_size())
+                                        .line_height(px(24.)),
+                                ),
+                            )
+                            .children(overlay),
+                    ),
             )
             .child(toolbar)
     }

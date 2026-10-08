@@ -9,9 +9,16 @@ use super::structs::Strip;
 pub(crate) fn native_size(bytes: &[u8]) -> (f32, f32) {
     let fallback = (100., 100.);
     let text = std::str::from_utf8(bytes).unwrap_or_default();
-    let Some(after) = text.split("viewBox=\"").nth(1) else { return fallback };
-    let Some(value) = after.split('"').next() else { return fallback };
-    let nums: Vec<f32> = value.split_whitespace().filter_map(|n| n.parse().ok()).collect();
+    let Some(after) = text.split("viewBox=\"").nth(1) else {
+        return fallback;
+    };
+    let Some(value) = after.split('"').next() else {
+        return fallback;
+    };
+    let nums: Vec<f32> = value
+        .split_whitespace()
+        .filter_map(|n| n.parse().ok())
+        .collect();
     match nums.as_slice() {
         [_, _, w, h] => (*w, *h),
         _ => fallback,
@@ -24,7 +31,11 @@ pub(crate) fn native_size(bytes: &[u8]) -> (f32, f32) {
 /// The box of a sprite and of one frame of its strip, in window pixels, for a `size` that is already at the zoom. Both stay
 /// whole numbers, and neither goes through the zoom again: a frame scaled twice would be taller than its box, and the next
 /// frame would show above the mark.
-pub(crate) fn frame_box(size: gpui_kit::Pixels, native: (f32, f32), frames: usize) -> (gpui_kit::Pixels, gpui_kit::Pixels) {
+pub(crate) fn frame_box(
+    size: gpui_kit::Pixels,
+    native: (f32, f32),
+    frames: usize,
+) -> (gpui_kit::Pixels, gpui_kit::Pixels) {
     let size = gpui_kit::px(f32::from(size).round().max(1.));
     let frame = gpui_kit::px(frame_height(native, frames, f32::from(size)));
     (size, frame)

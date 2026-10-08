@@ -1,23 +1,15 @@
 use gpui_kit::{
-    AnyElement,
-    App,
-    IntoElement,
-    ParentElement,
-    RenderOnce,
-    SharedString,
-    Styled,
-    Window,
-    div,
+    AnyElement, App, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div,
     prelude::FluentBuilder,
 };
 
+use super::types::SectionTone;
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::SectionTone;
 
 #[derive(IntoElement)]
 pub struct RailSection {
@@ -30,7 +22,13 @@ pub struct RailSection {
 
 impl RailSection {
     pub fn new(name: impl Into<SharedString>) -> Self {
-        Self { name: name.into(), icon: None, summary: None, tone: SectionTone::Plain, body: Vec::new() }
+        Self {
+            name: name.into(),
+            icon: None,
+            summary: None,
+            tone: SectionTone::Plain,
+            body: Vec::new(),
+        }
     }
 
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -81,9 +79,27 @@ impl RenderOnce for RailSection {
                     .px(px(12.))
                     .text_size(TextSize::Xs.font_size())
                     .whitespace_nowrap()
-                    .when_some(self.icon, |d, icon| d.child(Icon::new(icon).size(px(14.)).color(theme.muted_foreground)))
-                    .child(div().flex_none().font_weight(gpui_kit::FontWeight::SEMIBOLD).text_color(theme.foreground.opacity(0.9)).child(self.name))
-                    .when_some(self.summary, |d, summary| d.child(div().flex().items_center().min_w_0().truncate().text_color(tone).child(summary))),
+                    .when_some(self.icon, |d, icon| {
+                        d.child(Icon::new(icon).size(px(14.)).color(theme.muted_foreground))
+                    })
+                    .child(
+                        div()
+                            .flex_none()
+                            .font_weight(gpui_kit::FontWeight::SEMIBOLD)
+                            .text_color(theme.foreground.opacity(0.9))
+                            .child(self.name),
+                    )
+                    .when_some(self.summary, |d, summary| {
+                        d.child(
+                            div()
+                                .flex()
+                                .items_center()
+                                .min_w_0()
+                                .truncate()
+                                .text_color(tone)
+                                .child(summary),
+                        )
+                    }),
             )
             .children(self.body)
     }

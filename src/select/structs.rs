@@ -1,27 +1,25 @@
 use std::{rc::Rc, time::Instant};
 
 use gpui_kit::{
-    App,
-    Bounds,
-    Corners,
-    ElementId,
-    Hsla,
-    FocusHandle,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    Pixels,
-    RenderOnce,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    Window,
-    base::{Select as BaseSelect, actions::{SelectDown, SelectFirst, SelectLast, SelectUp}},
+    App, Bounds, Corners, ElementId, FocusHandle, Hsla, InteractiveElement, IntoElement,
+    ParentElement, Pixels, RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window,
+    base::{
+        Select as BaseSelect,
+        actions::{SelectDown, SelectFirst, SelectLast, SelectUp},
+    },
     div,
     prelude::FluentBuilder,
     transparent_black,
 };
 
+use super::helpers::{
+    header_inset, list_height_of, monogram, opens_in, should_light, spring_unit, step_active,
+    surface_at, trigger_tone, type_ahead,
+};
+use super::types::{
+    HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_RISE, ITEM_STEP, PANEL_PAD,
+    RISE_DAMPING, RISE_STIFFNESS, ROW_GAP, SelectHandler, TYPE_AHEAD,
+};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -30,14 +28,6 @@ use crate::{
     popover::{Popover, Side},
     theme::{ActiveTheme, mix, popover_shadow, radius},
     typography::TextSize,
-};
-use super::types::{
-    HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_RISE, ITEM_STEP, PANEL_PAD,
-    RISE_DAMPING, RISE_STIFFNESS, ROW_GAP, SelectHandler, TYPE_AHEAD,
-};
-use super::helpers::{
-    header_inset, list_height_of, monogram, opens_in, should_light, spring_unit, step_active,
-    surface_at, trigger_tone, type_ahead,
 };
 
 /// One option: a label, the icon beui shows before it (the model picker's provider mark), and the
@@ -55,13 +45,25 @@ pub struct SelectOption {
 
 impl<T: Into<SharedString>> From<T> for SelectOption {
     fn from(label: T) -> Self {
-        Self { label: label.into(), icon: None, icon_color: None, mark: None, group: None }
+        Self {
+            label: label.into(),
+            icon: None,
+            icon_color: None,
+            mark: None,
+            group: None,
+        }
     }
 }
 
 impl SelectOption {
     pub fn new(label: impl Into<SharedString>, icon: IconName) -> Self {
-        Self { label: label.into(), icon: Some(icon), icon_color: None, mark: None, group: None }
+        Self {
+            label: label.into(),
+            icon: Some(icon),
+            icon_color: None,
+            mark: None,
+            group: None,
+        }
     }
     /// Draws the icon in `color`.
     pub fn icon_color(mut self, color: gpui_kit::Hsla) -> Self {
@@ -107,7 +109,16 @@ struct RowGhost(SharedString);
 impl gpui_kit::Render for RowGhost {
     fn render(&mut self, _: &mut Window, cx: &mut gpui_kit::Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
-        div().px(px(10.)).h(px(28.)).flex().items_center().rounded(radius::md()).bg(theme.card_strong).text_size(TextSize::Sm.font_size()).text_color(theme.foreground).child(self.0.clone())
+        div()
+            .px(px(10.))
+            .h(px(28.))
+            .flex()
+            .items_center()
+            .rounded(radius::md())
+            .bg(theme.card_strong)
+            .text_size(TextSize::Sm.font_size())
+            .text_color(theme.foreground)
+            .child(self.0.clone())
     }
 }
 
@@ -133,7 +144,10 @@ pub struct Select {
 }
 
 impl Select {
-    pub fn new(id: impl Into<ElementId>, options: impl IntoIterator<Item = impl Into<SelectOption>>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        options: impl IntoIterator<Item = impl Into<SelectOption>>,
+    ) -> Self {
         Self {
             id: id.into(),
             options: options.into_iter().map(Into::into).collect(),
@@ -142,7 +156,12 @@ impl Select {
             disabled: false,
             default_open: false,
             compact: false,
-            corners: Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true },
+            corners: Corners {
+                top_left: true,
+                top_right: true,
+                bottom_left: true,
+                bottom_right: true,
+            },
             fill: None,
             chevron: true,
             shadow: true,
@@ -288,7 +307,12 @@ impl SelectMotion {
             return;
         }
         self.open = open;
-        self.morph.animate(if open { 1. } else { 0. }, Curve::Spring(Spring::select_morph()), 0., reduce);
+        self.morph.animate(
+            if open { 1. } else { 0. },
+            Curve::Spring(Spring::select_morph()),
+            0.,
+            reduce,
+        );
         if open {
             self.opened = Some(Instant::now());
         } else {
@@ -298,7 +322,12 @@ impl SelectMotion {
     }
     fn set_trigger_hovered(&mut self, hovered: bool, reduce: bool) {
         self.trigger_hovered = hovered;
-        self.tint.animate(if hovered { 1. } else { 0. }, Curve::Spring(Spring::TINT), 0., reduce);
+        self.tint.animate(
+            if hovered { 1. } else { 0. },
+            Curve::Spring(Spring::TINT),
+            0.,
+            reduce,
+        );
     }
 
     /// Moves the highlighted option by one, matching native `<select>`: it stops at the ends instead of
@@ -312,7 +341,11 @@ impl SelectMotion {
     fn retarget_items(&mut self, selected: Option<usize>, len: usize, reduce: bool) {
         self.item_tints.resize_with(len, || Channel::new(0.));
         for (i, tint) in self.item_tints.iter_mut().enumerate() {
-            let lit = if selected == Some(i) || self.active == Some(i) { 1. } else { 0. };
+            let lit = if selected == Some(i) || self.active == Some(i) {
+                1.
+            } else {
+                0.
+            };
             if tint.target() != lit {
                 tint.animate(lit, Curve::Spring(Spring::TINT), 0., reduce);
             }
@@ -321,19 +354,26 @@ impl SelectMotion {
 
     /// Opacity and rise of option `i` as it comes in. Once in, an option stays in, so a close does not undo it.
     pub(super) fn item(&self, i: usize, reduce: bool) -> (f32, f32) {
-        let Some(opened) = self.opened.filter(|_| !reduce) else { return (1., 0.) };
+        let Some(opened) = self.opened.filter(|_| !reduce) else {
+            return (1., 0.);
+        };
         let t = opened.elapsed().as_secs_f32() - ITEM_DELAY - ITEM_STEP * i as f32;
         if t <= 0. {
             return (0., -ITEM_RISE);
         }
         let fade = cubic_bezier(ease::MOTION_DEFAULT, (t / ITEM_FADE).clamp(0., 1.));
-        (fade, -ITEM_RISE * (1. - spring_unit(RISE_STIFFNESS, RISE_DAMPING, t)))
+        (
+            fade,
+            -ITEM_RISE * (1. - spring_unit(RISE_STIFFNESS, RISE_DAMPING, t)),
+        )
     }
     fn is_moving(&self, items: usize) -> bool {
         self.morph.is_running()
             || self.tint.is_running()
             || self.item_tints.iter().any(|c| c.is_running())
-            || self.opened.is_some_and(|at| at.elapsed().as_secs_f32() < opens_in(items) + 0.6)
+            || self
+                .opened
+                .is_some_and(|at| at.elapsed().as_secs_f32() < opens_in(items) + 0.6)
     }
 }
 
@@ -376,7 +416,10 @@ impl RenderOnce for Select {
                 m.focus = given;
             }
             let focus = m.focus.get_or_insert_with(|| cx.focus_handle()).clone();
-            let content = m.content_focus.get_or_insert_with(|| cx.focus_handle()).clone();
+            let content = m
+                .content_focus
+                .get_or_insert_with(|| cx.focus_handle())
+                .clone();
             (focus, content)
         });
         // The panel that covered the trigger is gone and the pointer is still on it: no move came to say so, so the
@@ -385,7 +428,12 @@ impl RenderOnce for Select {
             let m = motion.read(cx);
             (m.trigger_hovered, m.anchor)
         };
-        if should_light(motion.read(cx).open || motion.read(cx).morph.is_running(), hovered, anchor_now, window.mouse_position()) {
+        if should_light(
+            motion.read(cx).open || motion.read(cx).morph.is_running(),
+            hovered,
+            anchor_now,
+            window.mouse_position(),
+        ) {
             motion.update(cx, |m, _| m.set_trigger_hovered(true, reduce));
         }
         let m = motion.read(cx);
@@ -394,7 +442,9 @@ impl RenderOnce for Select {
         }
         // Up when asked, or when the window has no room below the trigger and more above it.
         let window_height = f32::from(window.viewport_size().height);
-        let upward = self.upward || m.anchor.is_some_and(|a| opens_upward(a, list_h * crate::scale::zoom(), 0., window_height));
+        let upward = self.upward
+            || m.anchor
+                .is_some_and(|a| opens_upward(a, list_h * crate::scale::zoom(), 0., window_height));
         let theme = cx.theme().clone();
         let open = m.open;
         let p = m.morph.value();
@@ -402,14 +452,30 @@ impl RenderOnce for Select {
         // The trigger's size, to begin the surface from: measured, or a guess before the first layout.
         let compact = self.compact;
         // The surface is worked out in design pixels: what was measured is in the window's, so it is brought back.
-        let (tw, th) = m.anchor.map_or((self.panel_width.map_or(200., crate::scale::design), if compact { 32. } else { 36. }), |a| {
-            (crate::scale::design(a.size.width), crate::scale::design(a.size.height))
-        });
+        let (tw, th) = m.anchor.map_or(
+            (
+                self.panel_width.map_or(200., crate::scale::design),
+                if compact { 32. } else { 36. },
+            ),
+            |a| {
+                (
+                    crate::scale::design(a.size.width),
+                    crate::scale::design(a.size.height),
+                )
+            },
+        );
         let pw = self.panel_width.map_or(tw, crate::scale::design).max(tw);
         let (surface_w, surface_h) = surface_at((tw, th), pw, list_h, p);
         let shown = open || m.morph.is_running() || p.abs() > 0.002;
         // design preview: remove after Alex picks (the elevation)
-        let pill = crate::design_preview::row_tone(&theme, crate::design_preview::panel_fill(&theme, crate::design_preview::elevation(), theme.card));
+        let pill = crate::design_preview::row_tone(
+            &theme,
+            crate::design_preview::panel_fill(
+                &theme,
+                crate::design_preview::elevation(),
+                theme.card,
+            ),
+        );
         let items: Vec<(f32, f32)> = (0..self.options.len()).map(|i| m.item(i, reduce)).collect();
         let item_tints: Vec<f32> = m.item_tints.iter().map(|c| c.value()).collect();
 
@@ -437,7 +503,15 @@ impl RenderOnce for Select {
 
         // One tone for every trigger, the Ghost button's hover; the open surface holds it.
         let held = tint.max(p.clamp(0., 1.));
-        let trigger_bg = trigger_tone(&theme, if compact { transparent_black() } else { self.fill.unwrap_or(theme.card) }, held);
+        let trigger_bg = trigger_tone(
+            &theme,
+            if compact {
+                transparent_black()
+            } else {
+                self.fill.unwrap_or(theme.card)
+            },
+            held,
+        );
         let anchor = {
             let motion = motion.clone();
             measure(move |bounds, cx| motion.update(cx, |m, _| m.anchor = Some(bounds)))
@@ -445,30 +519,76 @@ impl RenderOnce for Select {
         let placeholder = self.placeholder.clone();
         // The row of the trigger, which is also the header of the open surface: one row, so the morph is one surface.
         let face = || {
-                div()
-                    .flex()
-                    .min_w_0()
-                    .items_center()
-                    .gap(px(6.))
-                    .when_some(selected_option.as_ref().and_then(|o| o.icon.map(|icon| (icon, o.icon_color))), |d, (icon, color)| {
-                        d.child(div().flex_none().text_color(color.unwrap_or(theme.muted_foreground)).child(Icon::new(icon).size(px(14.)).color(color.unwrap_or(theme.muted_foreground))))
-                    })
-                    .when_some(selected_option.as_ref().and_then(|o| o.mark.clone()), |d, mark| {
-                        d.child(gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(12.)))
-                    })
-                    .when(monograms && selected_option.as_ref().is_some_and(|o| o.mark.is_none() && o.icon.is_none()), |d| {
-                        d.child(monogram(&selected_option.as_ref().map(|o| o.label.clone()).unwrap_or_default(), 12., &theme))
-                    })
-                    .child(
-                        div()
-                            .truncate()
-                            .text_color(if has_value { theme.foreground } else { theme.muted_foreground })
-                            .child(selected_option.clone().map(|o| o.label).unwrap_or_else(|| placeholder.clone())),
-                    )
+            div()
+                .flex()
+                .min_w_0()
+                .items_center()
+                .gap(px(6.))
+                .when_some(
+                    selected_option
+                        .as_ref()
+                        .and_then(|o| o.icon.map(|icon| (icon, o.icon_color))),
+                    |d, (icon, color)| {
+                        d.child(
+                            div()
+                                .flex_none()
+                                .text_color(color.unwrap_or(theme.muted_foreground))
+                                .child(
+                                    Icon::new(icon)
+                                        .size(px(14.))
+                                        .color(color.unwrap_or(theme.muted_foreground)),
+                                ),
+                        )
+                    },
+                )
+                .when_some(
+                    selected_option.as_ref().and_then(|o| o.mark.clone()),
+                    |d, mark| {
+                        d.child(
+                            gpui_kit::img(mark.for_theme(theme.appearance))
+                                .flex_none()
+                                .size(px(12.)),
+                        )
+                    },
+                )
+                .when(
+                    monograms
+                        && selected_option
+                            .as_ref()
+                            .is_some_and(|o| o.mark.is_none() && o.icon.is_none()),
+                    |d| {
+                        d.child(monogram(
+                            &selected_option
+                                .as_ref()
+                                .map(|o| o.label.clone())
+                                .unwrap_or_default(),
+                            12.,
+                            &theme,
+                        ))
+                    },
+                )
+                .child(
+                    div()
+                        .truncate()
+                        .text_color(if has_value {
+                            theme.foreground
+                        } else {
+                            theme.muted_foreground
+                        })
+                        .child(
+                            selected_option
+                                .clone()
+                                .map(|o| o.label)
+                                .unwrap_or_else(|| placeholder.clone()),
+                        ),
+                )
         };
         let round = |on: bool| if on { radius::lg() } else { px(0.) };
         let chevron_at = |turn: f32| {
-            div().flex_none().text_color(theme.muted_foreground).child(Icon::new(IconName::ChevronDown).size(px(16.)).turn(turn))
+            div()
+                .flex_none()
+                .text_color(theme.muted_foreground)
+                .child(Icon::new(IconName::ChevronDown).size(px(16.)).turn(turn))
         };
         let trigger = div()
             .id("trigger")
@@ -488,7 +608,11 @@ impl RenderOnce for Select {
             .bg(trigger_bg)
             // The surface drawn over it is the trigger while it is open or moving.
             .when(shown, |d| d.opacity(0.))
-            .text_size(if compact { TextSize::Xs.font_size() } else { TextSize::Sm.font_size() })
+            .text_size(if compact {
+                TextSize::Xs.font_size()
+            } else {
+                TextSize::Sm.font_size()
+            })
             .line_height(TextSize::Sm.line_height())
             .child(face())
             .when(self.chevron, |d| d.child(chevron_at(0.)))
@@ -531,7 +655,12 @@ impl RenderOnce for Select {
             let (alpha, rise) = items[i];
             let selected = self.selected == Some(i);
             let lit = item_tints.get(i).copied().unwrap_or(0.);
-            let (on_change, toggle, motion, back_to) = (on_change.clone(), toggle.clone(), motion.clone(), focus.clone());
+            let (on_change, toggle, motion, back_to) = (
+                on_change.clone(),
+                toggle.clone(),
+                motion.clone(),
+                focus.clone(),
+            );
             let row = div()
                 .id(("option", i))
                 .debug_selector(move || format!("select-option-{i}"))
@@ -551,7 +680,11 @@ impl RenderOnce for Select {
                 .cursor_pointer()
                 .on_hover(move |on, _, cx| {
                     motion.update(cx, |m, cx| {
-                        m.active = if *on { Some(i) } else { m.active.filter(|a| *a != i) };
+                        m.active = if *on {
+                            Some(i)
+                        } else {
+                            m.active.filter(|a| *a != i)
+                        };
                         cx.notify();
                     })
                 })
@@ -564,18 +697,32 @@ impl RenderOnce for Select {
                     back_to.focus(window, cx);
                 })
                 .when_some(manage.clone(), |d, manage| {
-                    let (drop_manage, label, list) = (manage.clone(), option.label.clone(), self.id.to_string());
+                    let (drop_manage, label, list) =
+                        (manage.clone(), option.label.clone(), self.id.to_string());
                     let drop_list = list.clone();
-                    d.on_drag(DraggedRow { list: list.into(), from: i, label }, |d, _, _, cx| gpui_kit::AppContext::new(cx, |_| RowGhost(d.label.clone())))
-                        .drag_over::<DraggedRow>(|s, _, _, cx| s.bg(cx.theme().card_strong))
-                        .on_drop::<DraggedRow>(move |dragged, window, cx| {
-                            if dragged.list.as_ref() == drop_list.as_str() && dragged.from != i {
-                                (drop_manage.on_move)(dragged.from, i, window, cx);
-                            }
-                        })
+                    d.on_drag(
+                        DraggedRow {
+                            list: list.into(),
+                            from: i,
+                            label,
+                        },
+                        |d, _, _, cx| gpui_kit::AppContext::new(cx, |_| RowGhost(d.label.clone())),
+                    )
+                    .drag_over::<DraggedRow>(|s, _, _, cx| s.bg(cx.theme().card_strong))
+                    .on_drop::<DraggedRow>(move |dragged, window, cx| {
+                        if dragged.list.as_ref() == drop_list.as_str() && dragged.from != i {
+                            (drop_manage.on_move)(dragged.from, i, window, cx);
+                        }
+                    })
                 })
                 .when(manage.is_some(), |d| {
-                    d.child(div().flex_none().cursor_grab().child(Icon::new(IconName::Grip).size(px(14.)).color(theme.muted_foreground.opacity(0.5))))
+                    d.child(
+                        div().flex_none().cursor_grab().child(
+                            Icon::new(IconName::Grip)
+                                .size(px(14.))
+                                .color(theme.muted_foreground.opacity(0.5)),
+                        ),
+                    )
                 })
                 .child(
                     div()
@@ -592,9 +739,16 @@ impl RenderOnce for Select {
                             }))
                         })
                         .when_some(option.mark.clone(), |d, mark| {
-                            d.child(gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(14.)))
+                            d.child(
+                                gpui_kit::img(mark.for_theme(theme.appearance))
+                                    .flex_none()
+                                    .size(px(14.)),
+                            )
                         })
-                        .when(monograms && option.mark.is_none() && option.icon.is_none(), |d| d.child(monogram(&option.label, 14., &theme)))
+                        .when(
+                            monograms && option.mark.is_none() && option.icon.is_none(),
+                            |d| d.child(monogram(&option.label, 14., &theme)),
+                        )
                         .child(div().truncate().child(option.label.clone())),
                 )
                 .when_some(manage.clone(), |d, manage| {
@@ -618,7 +772,11 @@ impl RenderOnce for Select {
                                     cx.stop_propagation();
                                     (eye.on_hide)(i, window, cx);
                                 })
-                                .child(Icon::new(IconName::Visibility).size(px(14.)).color(theme.muted_foreground)),
+                                .child(
+                                    Icon::new(IconName::Visibility)
+                                        .size(px(14.))
+                                        .color(theme.muted_foreground),
+                                ),
                         )
                     })
                     .when(lit > 0.3 || is_default, |d| {
@@ -633,21 +791,44 @@ impl RenderOnce for Select {
                                 .size(px(22.))
                                 .rounded(radius::md())
                                 .hover(|s| s.bg(cx_card_strong))
-                                .tooltip(crate::tooltip::Tooltip::text(if is_default { "The model new sessions start on" } else { "Start new sessions on this model" }))
+                                .tooltip(crate::tooltip::Tooltip::text(if is_default {
+                                    "The model new sessions start on"
+                                } else {
+                                    "Start new sessions on this model"
+                                }))
                                 .on_click(move |_, window, cx| {
                                     cx.stop_propagation();
                                     (star.on_default)(i, window, cx);
                                 })
                                 .child(if is_default {
-                                    Icon::new(IconName::StarFilled).size(px(14.)).color(crate::model_list::star_colour(&theme))
+                                    Icon::new(IconName::StarFilled)
+                                        .size(px(14.))
+                                        .color(crate::model_list::star_colour(&theme))
                                 } else {
-                                    Icon::new(IconName::Star).size(px(14.)).color(theme.muted_foreground)
+                                    Icon::new(IconName::Star)
+                                        .size(px(14.))
+                                        .color(theme.muted_foreground)
                                 }),
                         )
                     })
                 })
-                .when(selected, |d| d.child(div().size(px(20.)).flex_none().flex().items_center().justify_center().child(Icon::new(IconName::Check).size(px(16.)).color(theme.foreground))));
-            head.into_iter().chain(std::iter::once(row.into_any_element()))
+                .when(selected, |d| {
+                    d.child(
+                        div()
+                            .size(px(20.))
+                            .flex_none()
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .child(
+                                Icon::new(IconName::Check)
+                                    .size(px(16.))
+                                    .color(theme.foreground),
+                            ),
+                    )
+                });
+            head.into_iter()
+                .chain(std::iter::once(row.into_any_element()))
         });
 
         let pop_id = ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "pop".into());
@@ -656,14 +837,19 @@ impl RenderOnce for Select {
         // design preview: remove after Alex picks (the elevation)
         let level = crate::design_preview::elevation();
         let lift = p.clamp(0., 1.);
-        let surface_fill = mix(trigger_bg, crate::design_preview::panel_fill(&theme, level, theme.card), lift);
-        let surface_shadows: Vec<gpui_kit::BoxShadow> = crate::design_preview::panel_shadows(&theme, level, popover_shadow(&theme))
-            .into_iter()
-            .map(|mut shadow| {
-                shadow.color.a *= lift;
-                shadow
-            })
-            .collect();
+        let surface_fill = mix(
+            trigger_bg,
+            crate::design_preview::panel_fill(&theme, level, theme.card),
+            lift,
+        );
+        let surface_shadows: Vec<gpui_kit::BoxShadow> =
+            crate::design_preview::panel_shadows(&theme, level, popover_shadow(&theme))
+                .into_iter()
+                .map(|mut shadow| {
+                    shadow.color.a *= lift;
+                    shadow
+                })
+                .collect();
         let mut edge = crate::design_preview::panel_edge(&theme, level);
         edge.a *= lift;
         // The header is the trigger's row, at the trigger's end of the surface; the options grow away from it.
@@ -682,7 +868,11 @@ impl RenderOnce for Select {
             .gap(px(8.))
             // The row's inset eases from the trigger's to the options', so header and rows line up once open.
             .px(px(header_inset(if compact { 8. } else { 12. }, p)))
-            .text_size(if compact { TextSize::Xs.font_size() } else { TextSize::Sm.font_size() })
+            .text_size(if compact {
+                TextSize::Xs.font_size()
+            } else {
+                TextSize::Sm.font_size()
+            })
             .line_height(TextSize::Sm.line_height())
             .cursor_pointer()
             .on_click({
@@ -692,7 +882,13 @@ impl RenderOnce for Select {
                     toggle(!open, window, cx)
                 }
             })
-            .child(div().flex().min_w_0().debug_selector(|| "select-header-face".into()).child(face()))
+            .child(
+                div()
+                    .flex()
+                    .min_w_0()
+                    .debug_selector(|| "select-header-face".into())
+                    .child(face()),
+            )
             .when(self.chevron, |d| d.child(chevron_at(0.5 * p)));
         let list = div()
             .absolute()
@@ -727,7 +923,6 @@ impl RenderOnce for Select {
             .rounded_tr(round(shape.top_right))
             .rounded_bl(round(shape.bottom_left))
             .rounded_br(round(shape.bottom_right))
-
             .overflow_hidden()
             .bg(surface_fill)
             .when(self.shadow, |d| d.shadow(surface_shadows))
@@ -771,10 +966,17 @@ impl RenderOnce for Select {
             })
             .on_key_down({
                 let motion = motion.clone();
-                let labels: Vec<SharedString> = self.options.iter().map(|o| o.label.clone()).collect();
+                let labels: Vec<SharedString> =
+                    self.options.iter().map(|o| o.label.clone()).collect();
                 move |event, _, cx| {
                     let keys = &event.keystroke;
-                    let Some(letter) = keys.key_char.as_deref().filter(|c| c.chars().count() == 1 && *c != " ") else { return };
+                    let Some(letter) = keys
+                        .key_char
+                        .as_deref()
+                        .filter(|c| c.chars().count() == 1 && *c != " ")
+                    else {
+                        return;
+                    };
                     if keys.modifiers.control || keys.modifiers.platform || keys.modifiers.alt {
                         return;
                     }
@@ -801,7 +1003,11 @@ impl RenderOnce for Select {
             .shown(shown)
             .anchor(anchor_bounds)
             .switchable()
-            .side(if upward { Side::CoverAbove } else { Side::CoverBelow })
+            .side(if upward {
+                Side::CoverAbove
+            } else {
+                Side::CoverBelow
+            })
             .height(list_h)
             .width(px(pw))
             .return_focus(&focus)
@@ -822,7 +1028,9 @@ impl RenderOnce for Select {
             .content_focus_handle(&content_focus)
             .on_open_change(move |open, window, cx| toggle_open(open, window, cx))
             .on_confirm(move |window, cx| {
-                let Some(i) = confirm_motion.read(cx).active else { return };
+                let Some(i) = confirm_motion.read(cx).active else {
+                    return;
+                };
                 if let Some(f) = confirm_on_change.as_ref() {
                     f(i, window, cx);
                 }

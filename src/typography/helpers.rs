@@ -10,7 +10,9 @@ pub(crate) fn load_fonts(cx: &mut App) {
         Cow::Borrowed(include_bytes!("../../assets/fonts/GeistMono-Regular.ttf")),
         Cow::Borrowed(include_bytes!("../../assets/fonts/GeistMono-Medium.ttf")),
     ];
-    cx.text_system().add_fonts(fonts).expect("the embedded Geist fonts are valid");
+    cx.text_system()
+        .add_fonts(fonts)
+        .expect("the embedded Geist fonts are valid");
 }
 
 /// Match CSS `-webkit-font-smoothing: antialiased`, which beui uses. Without this,
@@ -21,13 +23,19 @@ pub(crate) fn load_fonts(cx: &mut App) {
 #[cfg(target_os = "macos")]
 pub(crate) fn disable_font_smoothing() {
     use core_foundation::{base::TCFType, number::CFNumber, string::CFString};
-    use core_foundation_sys::preferences::{CFPreferencesSetAppValue, kCFPreferencesCurrentApplication};
+    use core_foundation_sys::preferences::{
+        CFPreferencesSetAppValue, kCFPreferencesCurrentApplication,
+    };
 
     let key = CFString::new("AppleFontSmoothing");
     let zero = CFNumber::from(0i32);
     // SAFETY: both values are live CoreFoundation objects for the duration of the call.
     unsafe {
-        CFPreferencesSetAppValue(key.as_concrete_TypeRef(), zero.as_CFTypeRef(), kCFPreferencesCurrentApplication);
+        CFPreferencesSetAppValue(
+            key.as_concrete_TypeRef(),
+            zero.as_CFTypeRef(),
+            kCFPreferencesCurrentApplication,
+        );
     }
 }
 

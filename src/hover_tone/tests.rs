@@ -10,7 +10,11 @@ fn it_is_at_rest_until_the_pointer_or_a_picker_holds_it() {
     assert_eq!(tone.level(), 1.);
     tone.set_hovered(false);
     tone.sync(true, true);
-    assert_eq!(tone.level(), 1., "an open picker holds it with the pointer gone");
+    assert_eq!(
+        tone.level(),
+        1.,
+        "an open picker holds it with the pointer gone"
+    );
     tone.sync(false, true);
     assert_eq!(tone.level(), 0.);
 }

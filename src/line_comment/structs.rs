@@ -3,30 +3,16 @@ use super::{CancelComment, SubmitComment};
 use std::rc::Rc;
 
 use gpui_kit::{
-    App,
-    AppContext,
-    ClickEvent,
-    Context,
-    ElementId,
-    Entity,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    FontWeight,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    Render,
-    RenderOnce,
-    SharedString,
-    Styled,
-    Subscription,
-    Window,
+    App, AppContext, ClickEvent, Context, ElementId, Entity, EventEmitter, FocusHandle, Focusable,
+    FontWeight, InteractiveElement, IntoElement, ParentElement, Render, RenderOnce, SharedString,
+    Styled, Subscription, Window,
     component::input::{InputEvent, Textarea, TextareaState},
     div,
     prelude::FluentBuilder,
 };
 
+use super::helpers::{card, gap_frame};
+use super::types::{COMPOSER, LineComposerEvent, SEND_KEYS};
 use crate::scale::px;
 use crate::{
     ClickHandler,
@@ -38,8 +24,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{COMPOSER, LineComposerEvent, SEND_KEYS};
-use super::helpers::{card, gap_frame};
 
 /// One comment in a thread.
 #[derive(Clone, Debug, PartialEq)]
@@ -52,13 +36,26 @@ pub struct Comment {
 }
 
 impl Comment {
-    pub fn new(author: impl Into<SharedString>, time: impl Into<SharedString>, body: impl Into<SharedString>) -> Self {
-        Self { author: author.into(), time: time.into(), body: body.into() }
+    pub fn new(
+        author: impl Into<SharedString>,
+        time: impl Into<SharedString>,
+        body: impl Into<SharedString>,
+    ) -> Self {
+        Self {
+            author: author.into(),
+            time: time.into(),
+            body: body.into(),
+        }
     }
 
     /// The author's first letter, for the avatar.
     pub fn initial(&self) -> SharedString {
-        self.author.chars().next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default().into()
+        self.author
+            .chars()
+            .next()
+            .map(|c| c.to_uppercase().collect::<String>())
+            .unwrap_or_default()
+            .into()
     }
 }
 
@@ -73,7 +70,13 @@ pub struct LineComment {
 
 impl LineComment {
     pub fn new(id: impl Into<ElementId>, comments: Vec<Comment>) -> Self {
-        Self { id: id.into(), comments, on_reply: None, on_resolve: None, resolved: false }
+        Self {
+            id: id.into(),
+            comments,
+            on_reply: None,
+            on_resolve: None,
+            resolved: false,
+        }
     }
 
     /// The thread is answered: it says "Resolved" in place of its buttons, and its text steps back.
@@ -82,12 +85,18 @@ impl LineComment {
         self
     }
 
-    pub fn on_reply(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_reply(
+        mut self,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_reply = Some(Rc::new(handler));
         self
     }
 
-    pub fn on_resolve(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_resolve(
+        mut self,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_resolve = Some(Rc::new(handler));
         self
     }
@@ -129,18 +138,35 @@ impl RenderOnce for LineComment {
                                 .gap(px(8.))
                                 .h(px(22.))
                                 .text_size(TextSize::Xs.font_size())
-                                .child(div().font_weight(FontWeight::MEDIUM).text_color(theme.foreground.opacity(0.9)).child(comment.author))
+                                .child(
+                                    div()
+                                        .font_weight(FontWeight::MEDIUM)
+                                        .text_color(theme.foreground.opacity(0.9))
+                                        .child(comment.author),
+                                )
                                 .child(div().text_color(muted).child(comment.time)),
                         )
-                        .child(AgentText::new(ElementId::NamedInteger(format!("{id}-body").into(), i as u64), comment.body).status(AgentTextStatus::Streaming)),
+                        .child(
+                            AgentText::new(
+                                ElementId::NamedInteger(format!("{id}-body").into(), i as u64),
+                                comment.body,
+                            )
+                            .status(AgentTextStatus::Streaming),
+                        ),
                 )
         };
-        let button = |name: &'static str, label: &'static str, icon: IconName, handler: Option<ClickHandler>| {
-            let b = Button::new(ElementId::NamedChild(std::sync::Arc::new(id.clone()), name.into()))
-                .icon(icon)
-                .label(label)
-                .variant(ButtonVariant::Ghost)
-                .size(ButtonSize::Sm);
+        let button = |name: &'static str,
+                      label: &'static str,
+                      icon: IconName,
+                      handler: Option<ClickHandler>| {
+            let b = Button::new(ElementId::NamedChild(
+                std::sync::Arc::new(id.clone()),
+                name.into(),
+            ))
+            .icon(icon)
+            .label(label)
+            .variant(ButtonVariant::Ghost)
+            .size(ButtonSize::Sm);
             match handler {
                 Some(h) => b.on_click(move |e, w, cx| h(e, w, cx)),
                 None => b.disabled(true),
@@ -154,7 +180,11 @@ impl RenderOnce for LineComment {
                 .ml(px(32.))
                 .text_size(TextSize::Xs.font_size())
                 .text_color(muted)
-                .child(crate::icon::Icon::new(IconName::Check).size(px(14.)).color(theme.success))
+                .child(
+                    crate::icon::Icon::new(IconName::Check)
+                        .size(px(14.))
+                        .color(theme.success),
+                )
                 .child("Resolved")
         } else {
             div()
@@ -162,7 +192,12 @@ impl RenderOnce for LineComment {
                 .gap(px(4.))
                 .ml(px(24.))
                 .child(button("reply", "Reply", IconName::Return, self.on_reply))
-                .child(button("resolve", "Resolve", IconName::Check, self.on_resolve))
+                .child(button(
+                    "resolve",
+                    "Resolve",
+                    IconName::Check,
+                    self.on_resolve,
+                ))
         };
         gap_frame().child(
             card(cx)
@@ -192,14 +227,23 @@ impl Focusable for LineComposer {
 
 impl LineComposer {
     pub fn new(row: usize, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let text = cx.new(|cx| TextareaState::new(window, cx).auto_grow(2, 8).placeholder("Leave a comment"));
+        let text = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .auto_grow(2, 8)
+                .placeholder("Leave a comment")
+        });
         // Sending needs text, so Comment turns on and off with it.
         let subscription = cx.subscribe_in(&text, window, |_, _, event: &InputEvent, _, cx| {
             if let InputEvent::Change = event {
                 cx.notify()
             }
         });
-        Self { row, pass: None, text, _subscription: subscription }
+        Self {
+            row,
+            pass: None,
+            text,
+            _subscription: subscription,
+        }
     }
 
     /// A comment here can be held for a review, sent with a verdict later. `in_review` is whether a review is
@@ -225,7 +269,17 @@ impl LineComposer {
             return;
         }
         self.text.update(cx, |t, cx| t.set_value("", window, cx));
-        cx.emit(if hold { LineComposerEvent::Hold { row: self.row, text } } else { LineComposerEvent::Submit { row: self.row, text } });
+        cx.emit(if hold {
+            LineComposerEvent::Hold {
+                row: self.row,
+                text,
+            }
+        } else {
+            LineComposerEvent::Submit {
+                row: self.row,
+                text,
+            }
+        });
     }
 
     fn cancel(&mut self, cx: &mut Context<Self>) {
@@ -240,17 +294,22 @@ impl Render for LineComposer {
         gap_frame().child(
             card(cx)
                 .key_context(COMPOSER)
-                .on_action(cx.listener(|this, _: &SubmitComment, window, cx| this.submit(window, cx)))
+                .on_action(
+                    cx.listener(|this, _: &SubmitComment, window, cx| this.submit(window, cx)),
+                )
                 .on_action(cx.listener(|this, _: &CancelComment, _, cx| this.cancel(cx)))
                 .child(
-                    Field::new(self.text.focus_handle(cx), 
+                    Field::new(
+                        self.text.focus_handle(cx),
                         Textarea::new(&self.text)
                             .appearance(false)
                             .px(px(8.))
                             .py(px(6.))
                             .text_size(TextSize::Sm.font_size())
                             .line_height(px(20.)),
-                    ).radius(radius::lg()).surface(theme.background),
+                    )
+                    .radius(radius::lg())
+                    .surface(theme.background),
                 )
                 .child(
                     div()
@@ -272,16 +331,24 @@ impl Render for LineComposer {
                                     .variant(ButtonVariant::Secondary)
                                     .size(ButtonSize::Sm)
                                     .disabled(empty)
-                                    .on_click(cx.listener(|this, _, window, cx| this.send(true, window, cx))),
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.send(true, window, cx)
+                                    })),
                             )
                         })
                         .child(
                             Button::new("comment-send")
-                                .label(if self.pass == Some(true) { "Add to review" } else { "Comment" })
+                                .label(if self.pass == Some(true) {
+                                    "Add to review"
+                                } else {
+                                    "Comment"
+                                })
                                 .variant(ButtonVariant::Primary)
                                 .size(ButtonSize::Sm)
                                 .disabled(empty)
-                                .on_click(cx.listener(|this, _, window, cx| this.submit(window, cx))),
+                                .on_click(
+                                    cx.listener(|this, _, window, cx| this.submit(window, cx)),
+                                ),
                         )
                         .child(Kbd::new(SEND_KEYS)),
                 ),

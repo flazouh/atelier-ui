@@ -21,7 +21,10 @@ fn file_headers_are_dropped_and_the_hunk_is_kept() {
 #[test]
 fn lines_are_numbered_from_the_hunk_start() {
     let lines = DiffLine::parse(DIFF);
-    let numbers: Vec<_> = lines.iter().map(|l| (l.kind, l.new_line, l.old_line)).collect();
+    let numbers: Vec<_> = lines
+        .iter()
+        .map(|l| (l.kind, l.new_line, l.old_line))
+        .collect();
     assert_eq!(
         numbers,
         vec![
@@ -62,7 +65,9 @@ fn an_added_line_that_starts_with_two_pluses_is_kept() {
 
 #[test]
 fn the_git_preamble_is_dropped() {
-    let lines = DiffLine::parse("diff --git a/x b/x\nindex 1..2 100644\n--- a/x\n+++ b/x\n@@ -1,1 +1,1 @@\n-a\n+b\n");
+    let lines = DiffLine::parse(
+        "diff --git a/x b/x\nindex 1..2 100644\n--- a/x\n+++ b/x\n@@ -1,1 +1,1 @@\n-a\n+b\n",
+    );
     assert_eq!(lines.len(), 3);
     assert_eq!(lines[0].kind, DiffLineKind::Hunk);
 }
@@ -70,7 +75,10 @@ fn the_git_preamble_is_dropped() {
 #[test]
 fn no_newline_markers_are_skipped_and_do_not_count() {
     let lines = DiffLine::parse("@@ -1,1 +1,1 @@\n-a\n\\ No newline at end of file\n+b\n c\n");
-    let kinds: Vec<_> = lines.iter().map(|l| (l.kind, l.new_line, l.old_line)).collect();
+    let kinds: Vec<_> = lines
+        .iter()
+        .map(|l| (l.kind, l.new_line, l.old_line))
+        .collect();
     assert_eq!(
         kinds,
         vec![
@@ -122,7 +130,10 @@ fn a_second_files_diff_header_resets_the_hunk_state() {
 }
 
 mod tail {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, UniformListScrollHandle, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext,
+        UniformListScrollHandle, Window, div, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -136,9 +147,18 @@ mod tail {
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let lines = (0..self.rows)
-                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .map(|n| DiffLine {
+                    kind: DiffLineKind::Added,
+                    old_line: None,
+                    new_line: Some(n as u32 + 1),
+                    text: format!("line {n}").into(),
+                })
                 .collect();
-            div().w(px(600.)).child(FileDiff::new("tail", "src/main.rs", lines).status(self.status).scroll_handle(self.scroll.clone()))
+            div().w(px(600.)).child(
+                FileDiff::new("tail", "src/main.rs", lines)
+                    .status(self.status)
+                    .scroll_handle(self.scroll.clone()),
+            )
         }
     }
 
@@ -150,7 +170,15 @@ mod tail {
         cx.run_until_parked();
     }
 
-    fn open(rows: usize, status: FileDiffStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, UniformListScrollHandle) {
+    fn open(
+        rows: usize,
+        status: FileDiffStatus,
+        cx: &mut TestAppContext,
+    ) -> (
+        gpui_kit::Entity<Host>,
+        &mut gpui_kit::VisualTestContext,
+        UniformListScrollHandle,
+    ) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
@@ -158,7 +186,11 @@ mod tail {
         });
         let scroll = UniformListScrollHandle::new();
         let handle = scroll.clone();
-        let (host, cx) = cx.add_window_view(move |_, _| Host { rows, status, scroll });
+        let (host, cx) = cx.add_window_view(move |_, _| Host {
+            rows,
+            status,
+            scroll,
+        });
         cx.simulate_resize(size(px(700.), px(700.)));
         settle(&host, cx);
         (host, cx, handle)
@@ -173,20 +205,35 @@ mod tail {
     #[gpui_kit::test]
     fn a_streaming_diff_follows_its_newest_row(cx: &mut TestAppContext) {
         let (host, cx, handle) = open(30, FileDiffStatus::Streaming, cx);
-        assert!(f32::from(handle.0.borrow().base_handle.max_offset().y) > 0., "30 rows are more than the viewport shows");
-        assert!(from_end(&handle).abs() < 1., "the end is in view: {}", from_end(&handle));
+        assert!(
+            f32::from(handle.0.borrow().base_handle.max_offset().y) > 0.,
+            "30 rows are more than the viewport shows"
+        );
+        assert!(
+            from_end(&handle).abs() < 1.,
+            "the end is in view: {}",
+            from_end(&handle)
+        );
         host.update(cx, |h, cx| {
             h.rows = 60;
             cx.notify();
         });
         settle(&host, cx);
-        assert!(from_end(&handle).abs() < 1., "it follows the new rows: {}", from_end(&handle));
+        assert!(
+            from_end(&handle).abs() < 1.,
+            "it follows the new rows: {}",
+            from_end(&handle)
+        );
     }
 
     #[gpui_kit::test]
     fn a_complete_diff_stays_where_the_reader_left_it(cx: &mut TestAppContext) {
         let (host, cx, handle) = open(30, FileDiffStatus::Complete, cx);
-        assert!(from_end(&handle) > 100., "a finished diff starts at its top: {}", from_end(&handle));
+        assert!(
+            from_end(&handle) > 100.,
+            "a finished diff starts at its top: {}",
+            from_end(&handle)
+        );
         host.update(cx, |h, cx| {
             h.rows = 60;
             cx.notify();
@@ -223,7 +270,10 @@ fn a_diff_parts_from_the_panel_and_from_a_box_it_sits_in() {
 mod clipped {
     use std::{cell::Cell, rc::Rc};
 
-    use gpui_kit::{Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window,
+        div, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -237,7 +287,12 @@ mod clipped {
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let lines = (0..self.rows)
-                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .map(|n| DiffLine {
+                    kind: DiffLineKind::Added,
+                    old_line: None,
+                    new_line: Some(n as u32 + 1),
+                    text: format!("line {n}").into(),
+                })
                 .collect();
             let opened = self.opened.clone();
             div().w(px(600.)).child(
@@ -257,7 +312,15 @@ mod clipped {
         cx.run_until_parked();
     }
 
-    fn open(rows: usize, status: FileDiffStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, Rc<Cell<usize>>) {
+    fn open(
+        rows: usize,
+        status: FileDiffStatus,
+        cx: &mut TestAppContext,
+    ) -> (
+        gpui_kit::Entity<Host>,
+        &mut gpui_kit::VisualTestContext,
+        Rc<Cell<usize>>,
+    ) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
@@ -265,7 +328,11 @@ mod clipped {
         });
         let opened = Rc::new(Cell::new(0));
         let seen = opened.clone();
-        let (host, cx) = cx.add_window_view(move |_, _| Host { rows, status, opened });
+        let (host, cx) = cx.add_window_view(move |_, _| Host {
+            rows,
+            status,
+            opened,
+        });
         cx.simulate_resize(size(px(700.), px(900.)));
         settle(&host, cx);
         (host, cx, seen)
@@ -276,7 +343,14 @@ mod clipped {
     }
 
     fn press_body(cx: &mut gpui_kit::VisualTestContext) {
-        let at = cx.debug_bounds("diff-rows").map(|b| b.center()).or_else(|| cx.debug_bounds("diff-body").map(|b| b.origin + gpui_kit::point(px(20.), px(20.)))).unwrap();
+        let at = cx
+            .debug_bounds("diff-rows")
+            .map(|b| b.center())
+            .or_else(|| {
+                cx.debug_bounds("diff-body")
+                    .map(|b| b.origin + gpui_kit::point(px(20.), px(20.)))
+            })
+            .unwrap();
         cx.simulate_click(at, Modifiers::none());
     }
 
@@ -300,8 +374,15 @@ mod clipped {
         press_body(cx);
         settle(&host, cx);
         assert_eq!(opened.get(), 0);
-        assert!(cx.debug_bounds("diff-rows").is_none(), "the clipped rows give way to the taller view");
-        assert!(height(cx, "diff-body") > before + 100., "it grew: {} from {before}", height(cx, "diff-body"));
+        assert!(
+            cx.debug_bounds("diff-rows").is_none(),
+            "the clipped rows give way to the taller view"
+        );
+        assert!(
+            height(cx, "diff-body") > before + 100.,
+            "it grew: {} from {before}",
+            height(cx, "diff-body")
+        );
     }
 
     #[gpui_kit::test]
@@ -317,7 +398,10 @@ mod clipped {
 }
 
 mod capped {
-    use gpui_kit::{Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext,
+        Window, div, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -327,10 +411,22 @@ mod capped {
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let lines = (0..self.0)
-                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .map(|n| DiffLine {
+                    kind: DiffLineKind::Added,
+                    old_line: None,
+                    new_line: Some(n as u32 + 1),
+                    text: format!("line {n}").into(),
+                })
                 .collect();
-            let diff = FileDiff::new("capped", "src/main.rs", lines).status(FileDiffStatus::Complete).collapse_on_complete(false).max_height(300.);
-            div().size_full().flex().flex_col().child(div().debug_selector(|| "capped".into()).child(diff))
+            let diff = FileDiff::new("capped", "src/main.rs", lines)
+                .status(FileDiffStatus::Complete)
+                .collapse_on_complete(false)
+                .max_height(300.);
+            div()
+                .size_full()
+                .flex()
+                .flex_col()
+                .child(div().debug_selector(|| "capped".into()).child(diff))
         }
     }
 
@@ -353,13 +449,19 @@ mod capped {
     #[gpui_kit::test]
     fn a_long_diff_scrolls_in_its_max_height(cx: &mut TestAppContext) {
         let h = height(500, cx);
-        assert!(h <= 300. + crate::tool_call::CARD_HEADER_HEIGHT + 8., "500 rows in 300 px: {h}");
+        assert!(
+            h <= 300. + crate::tool_call::CARD_HEADER_HEIGHT + 8.,
+            "500 rows in 300 px: {h}"
+        );
     }
 
     #[gpui_kit::test]
     fn a_short_diff_under_its_max_height_is_as_tall_as_its_rows(cx: &mut TestAppContext) {
         let h = height(3, cx);
-        assert!(h < 3. * ROW_HEIGHT + crate::tool_call::CARD_HEADER_HEIGHT + 8., "3 rows: {h}");
+        assert!(
+            h < 3. * ROW_HEIGHT + crate::tool_call::CARD_HEADER_HEIGHT + 8.,
+            "3 rows: {h}"
+        );
     }
 }
 
@@ -367,8 +469,9 @@ mod capped {
 /// own rows first; and one folded back is a clipped diff again.
 mod wheel {
     use gpui_kit::{
-        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
-        StatefulInteractiveElement, Styled, TestAppContext, TouchPhase, UniformListScrollHandle, Window, div, point, px, size,
+        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta,
+        ScrollHandle, ScrollWheelEvent, StatefulInteractiveElement, Styled, TestAppContext,
+        TouchPhase, UniformListScrollHandle, Window, div, point, px, size,
     };
 
     use super::super::*;
@@ -384,7 +487,12 @@ mod wheel {
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let lines = (0..self.rows)
-                .map(|n| DiffLine { kind: DiffLineKind::Added, old_line: None, new_line: Some(n as u32 + 1), text: format!("line {n}").into() })
+                .map(|n| DiffLine {
+                    kind: DiffLineKind::Added,
+                    old_line: None,
+                    new_line: Some(n as u32 + 1),
+                    text: format!("line {n}").into(),
+                })
                 .collect();
             div()
                 .id("panel")
@@ -393,12 +501,22 @@ mod wheel {
                 .overflow_y_scroll()
                 .track_scroll(&self.panel)
                 .child(div().h(px(100.)))
-                .child(FileDiff::new("wheel", "src/main.rs", lines).status(self.status).scroll_handle(self.inner.clone()).preview_rows(8))
+                .child(
+                    FileDiff::new("wheel", "src/main.rs", lines)
+                        .status(self.status)
+                        .scroll_handle(self.inner.clone())
+                        .preview_rows(8),
+                )
                 .child(div().h(px(1500.)))
         }
     }
 
-    type Opened<'a> = (gpui_kit::Entity<Host>, &'a mut gpui_kit::VisualTestContext, ScrollHandle, UniformListScrollHandle);
+    type Opened<'a> = (
+        gpui_kit::Entity<Host>,
+        &'a mut gpui_kit::VisualTestContext,
+        ScrollHandle,
+        UniformListScrollHandle,
+    );
 
     fn open(status: FileDiffStatus, cx: &mut TestAppContext) -> Opened<'_> {
         cx.update(|cx| {
@@ -408,7 +526,12 @@ mod wheel {
         });
         let (panel, inner) = (ScrollHandle::new(), UniformListScrollHandle::new());
         let handles = (panel.clone(), inner.clone());
-        let (host, cx) = cx.add_window_view(move |_, _| Host { panel, inner, rows: 40, status });
+        let (host, cx) = cx.add_window_view(move |_, _| Host {
+            panel,
+            inner,
+            rows: 40,
+            status,
+        });
         cx.simulate_resize(size(px(700.), px(500.)));
         settle(&host, cx);
         (host, cx, handles.0, handles.1)
@@ -424,7 +547,10 @@ mod wheel {
 
     /// A wheel of `dy` px over the diff's rows: negative moves on, positive goes back.
     fn wheel(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext, dy: f32) {
-        let at = cx.debug_bounds("diff-body").expect("the diff is drawn").center();
+        let at = cx
+            .debug_bounds("diff-body")
+            .expect("the diff is drawn")
+            .center();
         cx.simulate_event(ScrollWheelEvent {
             position: at,
             delta: ScrollDelta::Pixels(point(px(0.), px(dy))),
@@ -435,7 +561,11 @@ mod wheel {
     }
 
     fn press(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
-        let at = cx.debug_bounds("diff-body").expect("the diff is drawn").origin + point(px(40.), px(10.));
+        let at = cx
+            .debug_bounds("diff-body")
+            .expect("the diff is drawn")
+            .origin
+            + point(px(40.), px(10.));
         cx.simulate_click(at, Modifiers::none());
         settle(host, cx);
     }
@@ -487,20 +617,34 @@ mod wheel {
         assert!(inner_top(&inner) > 50.);
         press(&host, cx);
         press(&host, cx);
-        assert!(inner_top(&inner) < 1., "not where it was left: {}", inner_top(&inner));
+        assert!(
+            inner_top(&inner) < 1.,
+            "not where it was left: {}",
+            inner_top(&inner)
+        );
     }
 
     #[gpui_kit::test]
-    fn a_streaming_diff_follows_its_newest_row_until_the_reader_scrolls_up(cx: &mut TestAppContext) {
+    fn a_streaming_diff_follows_its_newest_row_until_the_reader_scrolls_up(
+        cx: &mut TestAppContext,
+    ) {
         let (host, cx, _, inner) = open(FileDiffStatus::Streaming, cx);
         press(&host, cx);
-        assert!(from_end(&inner) < 1., "pinned to the newest row: {}", from_end(&inner));
+        assert!(
+            from_end(&inner) < 1.,
+            "pinned to the newest row: {}",
+            from_end(&inner)
+        );
         host.update(cx, |h, cx| {
             h.rows = 60;
             cx.notify();
         });
         settle(&host, cx);
-        assert!(from_end(&inner) < 1., "it follows the new rows: {}", from_end(&inner));
+        assert!(
+            from_end(&inner) < 1.,
+            "it follows the new rows: {}",
+            from_end(&inner)
+        );
         wheel(&host, cx, 200.);
         let away = from_end(&inner);
         assert!(away > 150., "the reader scrolled up: {away}");
@@ -509,11 +653,17 @@ mod wheel {
             cx.notify();
         });
         settle(&host, cx);
-        assert!(from_end(&inner) > away - 1., "it does not pull them back: {} from {away}", from_end(&inner));
+        assert!(
+            from_end(&inner) > away - 1.,
+            "it does not pull them back: {} from {away}",
+            from_end(&inner)
+        );
     }
 
     #[gpui_kit::test]
-    fn a_streaming_diff_follows_again_when_the_reader_comes_back_to_the_end(cx: &mut TestAppContext) {
+    fn a_streaming_diff_follows_again_when_the_reader_comes_back_to_the_end(
+        cx: &mut TestAppContext,
+    ) {
         let (host, cx, _, inner) = open(FileDiffStatus::Streaming, cx);
         press(&host, cx);
         wheel(&host, cx, 200.);
@@ -524,7 +674,11 @@ mod wheel {
             cx.notify();
         });
         settle(&host, cx);
-        assert!(from_end(&inner) < 1., "following again: {}", from_end(&inner));
+        assert!(
+            from_end(&inner) < 1.,
+            "following again: {}",
+            from_end(&inner)
+        );
     }
 }
 
@@ -532,9 +686,25 @@ mod wheel {
 #[test]
 fn the_last_row_rounds_its_corners_when_it_stands_at_the_cards_bottom() {
     use super::helpers::bottom_row;
-    assert_eq!(bottom_row(3, false, false, false), Some(2), "the rows end the card");
+    assert_eq!(
+        bottom_row(3, false, false, false),
+        Some(2),
+        "the rows end the card"
+    );
     assert_eq!(bottom_row(0, false, false, false), None, "no rows");
-    assert_eq!(bottom_row(3, true, false, false), None, "the hint stands under the rows");
-    assert_eq!(bottom_row(3, false, true, false), None, "the copy footer stands under the rows");
-    assert_eq!(bottom_row(30, false, false, true), None, "scrolling rows are cut anywhere");
+    assert_eq!(
+        bottom_row(3, true, false, false),
+        None,
+        "the hint stands under the rows"
+    );
+    assert_eq!(
+        bottom_row(3, false, true, false),
+        None,
+        "the copy footer stands under the rows"
+    );
+    assert_eq!(
+        bottom_row(30, false, false, true),
+        None,
+        "scrolling rows are cut anywhere"
+    );
 }

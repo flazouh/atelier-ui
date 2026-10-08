@@ -2,31 +2,51 @@ use super::*;
 
 #[test]
 fn a_running_card_leads_with_its_live_tool_call() {
-    assert_eq!(lead_text(None, Some("Read crates/ui/src/theme.rs".into())).as_deref(), Some("Read crates/ui/src/theme.rs"));
+    assert_eq!(
+        lead_text(None, Some("Read crates/ui/src/theme.rs".into())).as_deref(),
+        Some("Read crates/ui/src/theme.rs")
+    );
     assert_eq!(lead_text(None, None), None);
 }
 
 #[test]
 fn a_finished_card_leads_with_how_long_it_ran() {
-    assert_eq!(lead_text(Some(Some(38)), None).as_deref(), Some("Done in 38s"));
-    assert_eq!(lead_text(Some(None), Some("Read a.rs".into())).as_deref(), Some("Done"));
+    assert_eq!(
+        lead_text(Some(Some(38)), None).as_deref(),
+        Some("Done in 38s")
+    );
+    assert_eq!(
+        lead_text(Some(None), Some("Read a.rs".into())).as_deref(),
+        Some("Done")
+    );
 }
 
 mod mark {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
     use crate::{
         agent_look::AgentLook,
         subagent_card::SubagentCard,
         theme::{ActiveTheme, Appearance, set_appearance},
+    };
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
     };
     struct Host {
         done: bool,
     }
     impl Render for Host {
         fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-            let card = SubagentCard::new("card", AgentLook::neutral(cx.theme()), "general-purpose", "Count chars")
-                .tint(gpui_kit::hsla(0.5, 0.8, 0.6, 1.));
-            div().size_full().child(if self.done { card.finished(Some(3)) } else { card })
+            let card = SubagentCard::new(
+                "card",
+                AgentLook::neutral(cx.theme()),
+                "general-purpose",
+                "Count chars",
+            )
+            .tint(gpui_kit::hsla(0.5, 0.8, 0.6, 1.));
+            div().size_full().child(if self.done {
+                card.finished(Some(3))
+            } else {
+                card
+            })
         }
     }
     fn drawn(done: bool, cx: &mut TestAppContext) -> bool {

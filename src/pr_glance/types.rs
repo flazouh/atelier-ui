@@ -17,7 +17,15 @@ pub enum PrPart {
 }
 
 impl PrPart {
-    pub const ALL: [PrPart; 7] = [Self::Failing, Self::Reviewers, Self::Merge, Self::Sessions, Self::Files, Self::Actions, Self::Live];
+    pub const ALL: [PrPart; 7] = [
+        Self::Failing,
+        Self::Reviewers,
+        Self::Merge,
+        Self::Sessions,
+        Self::Files,
+        Self::Actions,
+        Self::Live,
+    ];
 
     /// The part's name in saved settings: it never changes.
     pub fn key(self) -> &'static str {

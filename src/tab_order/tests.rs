@@ -19,9 +19,21 @@ fn order(tabs: &TabOrder) -> Vec<String> {
 #[test]
 fn opening_a_tab_adds_it_at_the_end_and_makes_it_active_and_a_second_open_only_activates() {
     let mut t = tabs(&["a", "b", "c"]);
-    assert_eq!((order(&t), t.active().map(|a| a.to_string())), (vec!["a".to_string(), "b".into(), "c".into()], Some("c".into())));
+    assert_eq!(
+        (order(&t), t.active().map(|a| a.to_string())),
+        (
+            vec!["a".to_string(), "b".into(), "c".into()],
+            Some("c".into())
+        )
+    );
     t.open(s("a"));
-    assert_eq!((order(&t), t.active().map(|a| a.to_string())), (vec!["a".to_string(), "b".into(), "c".into()], Some("a".into())));
+    assert_eq!(
+        (order(&t), t.active().map(|a| a.to_string())),
+        (
+            vec!["a".to_string(), "b".into(), "c".into()],
+            Some("a".into())
+        )
+    );
 }
 
 #[test]
@@ -40,7 +52,11 @@ fn closing_the_active_tab_activates_its_right_neighbour_else_its_left() {
     assert_eq!(t.close("b").map(|a| a.to_string()), Some("c".into()));
     assert_eq!(order(&t), ["a", "c", "d"]);
     t.activate("d");
-    assert_eq!(t.close("d").map(|a| a.to_string()), Some("c".into()), "the last has no right neighbour");
+    assert_eq!(
+        t.close("d").map(|a| a.to_string()),
+        Some("c".into()),
+        "the last has no right neighbour"
+    );
     assert_eq!(t.close("c").map(|a| a.to_string()), Some("a".into()));
     assert_eq!(t.close("a"), None, "the last tab closes to nothing");
     assert!(t.order().is_empty());
@@ -51,7 +67,11 @@ fn closing_a_tab_that_is_not_active_leaves_the_active_one_alone() {
     let mut t = tabs(&["a", "b", "c"]);
     t.activate("a");
     assert_eq!(t.close("c").map(|a| a.to_string()), Some("a".into()));
-    assert_eq!(t.close("zzz").map(|a| a.to_string()), Some("a".into()), "an unknown tab closes nothing");
+    assert_eq!(
+        t.close("zzz").map(|a| a.to_string()),
+        Some("a".into()),
+        "an unknown tab closes nothing"
+    );
     assert_eq!(order(&t), ["a", "b"]);
 }
 
@@ -107,16 +127,33 @@ fn project_of(id: &SharedString) -> SharedString {
 fn grouped_tabs_gather_by_project_in_the_sidebars_order_and_keep_their_own_order() {
     let open = vec![s("web:1"), s("api:1"), s("web:2"), s("docs:1"), s("api:2")];
     let groups = grouped(&open, project_of, &[s("api"), s("web")]);
-    let shape: Vec<_> = groups.iter().map(|g| (g.project.to_string(), g.tabs.iter().map(|t| t.to_string()).collect::<Vec<_>>())).collect();
+    let shape: Vec<_> = groups
+        .iter()
+        .map(|g| {
+            (
+                g.project.to_string(),
+                g.tabs.iter().map(|t| t.to_string()).collect::<Vec<_>>(),
+            )
+        })
+        .collect();
     assert_eq!(
         shape,
         [
-            ("api".to_string(), vec!["api:1".to_string(), "api:2".to_string()]),
-            ("web".to_string(), vec!["web:1".to_string(), "web:2".to_string()]),
+            (
+                "api".to_string(),
+                vec!["api:1".to_string(), "api:2".to_string()]
+            ),
+            (
+                "web".to_string(),
+                vec!["web:1".to_string(), "web:2".to_string()]
+            ),
             ("docs".to_string(), vec!["docs:1".to_string()]),
         ]
     );
-    let visual: Vec<_> = visual_order(&groups).iter().map(|t| t.to_string()).collect();
+    let visual: Vec<_> = visual_order(&groups)
+        .iter()
+        .map(|t| t.to_string())
+        .collect();
     assert_eq!(visual, ["api:1", "api:2", "web:1", "web:2", "docs:1"]);
 }
 
@@ -126,7 +163,11 @@ fn control_tab_follows_the_grouped_order_when_grouping_is_on() {
     let groups = grouped(t.order(), project_of, &[s("api"), s("web")]);
     let visual = visual_order(&groups);
     t.activate("api:1");
-    assert_eq!(t.cycle(&visual, true), Some(s("web:1")), "api:1 is followed by the first web tab, not by web:2");
+    assert_eq!(
+        t.cycle(&visual, true),
+        Some(s("web:1")),
+        "api:1 is followed by the first web tab, not by web:2"
+    );
 }
 
 #[test]

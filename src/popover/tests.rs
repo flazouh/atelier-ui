@@ -2,8 +2,9 @@ use gpui_kit::prelude::FluentBuilder;
 use std::time::Duration;
 
 use gpui_kit::{
-    AppContext as _, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement, ParentElement, Pixels, Render, StatefulInteractiveElement,
-    Styled, TestAppContext, VisualTestContext, Window, div, point, px, size,
+    AppContext as _, Bounds, Context, Entity, FocusHandle, InteractiveElement, IntoElement,
+    ParentElement, Pixels, Render, StatefulInteractiveElement, Styled, TestAppContext,
+    VisualTestContext, Window, div, point, px, size,
 };
 
 use super::*;
@@ -58,7 +59,11 @@ impl Host {
         let this = cx.entity().downgrade();
         let clicks = cx.entity().downgrade();
         let popover = Popover::new(("popover", i));
-        let popover = if self.switchable { popover.switchable() } else { popover };
+        let popover = if self.switchable {
+            popover.switchable()
+        } else {
+            popover
+        };
         popover
             .open(self.open[i])
             .anchor(self.anchors[i])
@@ -116,7 +121,9 @@ impl Render for Host {
             )
             .child(self.trigger(0, cx))
             .child(self.trigger(1, cx))
-            .when(self.drawn, |d| d.child(self.popover(0, cx)).child(self.popover(1, cx)))
+            .when(self.drawn, |d| {
+                d.child(self.popover(0, cx)).child(self.popover(1, cx))
+            })
     }
 }
 
@@ -154,19 +161,29 @@ struct Pair([Entity<Host>; 2]);
 
 impl Render for Pair {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().children(self.0.iter().map(|host| div().relative().w(px(600.)).h(px(200.)).child(host.clone())))
+        div().size_full().children(
+            self.0
+                .iter()
+                .map(|host| div().relative().w(px(600.)).h(px(200.)).child(host.clone())),
+        )
     }
 }
 
 fn press(host: &Entity<Host>, i: usize, cx: &mut VisualTestContext) {
-    let at = host.read_with(cx, |h, _| h.anchors[i]).expect("the trigger is drawn").center();
+    let at = host
+        .read_with(cx, |h, _| h.anchors[i])
+        .expect("the trigger is drawn")
+        .center();
     cx.simulate_click(at, gpui_kit::Modifiers::default());
     cx.run_until_parked();
     cx.run_until_parked();
 }
 
 fn click(cx: &mut VisualTestContext, selector: &'static str) {
-    let at = cx.debug_bounds(selector).unwrap_or_else(|| panic!("{selector} is not drawn")).center();
+    let at = cx
+        .debug_bounds(selector)
+        .unwrap_or_else(|| panic!("{selector} is not drawn"))
+        .center();
     cx.simulate_click(at, gpui_kit::Modifiers::default());
     cx.run_until_parked();
 }
@@ -179,7 +196,10 @@ fn open_first(host: &Entity<Host>, cx: &mut VisualTestContext) {
     click(cx, "trigger-0");
     assert!(is_open(host, 0, cx), "a click on the trigger opens it");
     cx.run_until_parked();
-    assert!(cx.debug_bounds("panel-0").is_some(), "and the panel is drawn");
+    assert!(
+        cx.debug_bounds("panel-0").is_some(),
+        "and the panel is drawn"
+    );
 }
 
 #[gpui_kit::test]
@@ -190,7 +210,11 @@ fn a_click_outside_closes_it_and_does_nothing_else(cx: &mut TestAppContext) {
     cx.simulate_click(point(px(450.), px(300.)), gpui_kit::Modifiers::default());
     cx.run_until_parked();
     assert!(!is_open(&host, 0, cx), "the press outside closed it");
-    assert_eq!(host.read_with(cx, |h, _| h.beneath_clicks), 0, "and the element under it heard nothing");
+    assert_eq!(
+        host.read_with(cx, |h, _| h.beneath_clicks),
+        0,
+        "and the element under it heard nothing"
+    );
     // With it closed, the same spot works again.
     cx.simulate_click(point(px(450.), px(300.)), gpui_kit::Modifiers::default());
     assert_eq!(host.read_with(cx, |h, _| h.beneath_clicks), 1);
@@ -201,9 +225,17 @@ fn nothing_under_it_is_hovered_while_it_is_open(cx: &mut TestAppContext) {
     let (host, cx) = host(cx);
     let before = host.read_with(cx, |h, _| h.beneath_hovers);
     open_first(&host, cx);
-    cx.simulate_mouse_move(point(px(450.), px(300.)), None, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_move(
+        point(px(450.), px(300.)),
+        None,
+        gpui_kit::Modifiers::default(),
+    );
     cx.run_until_parked();
-    assert_eq!(host.read_with(cx, |h, _| h.beneath_hovers), before, "the backdrop blocks hover");
+    assert_eq!(
+        host.read_with(cx, |h, _| h.beneath_hovers),
+        before,
+        "the backdrop blocks hover"
+    );
 }
 
 #[gpui_kit::test]
@@ -211,7 +243,10 @@ fn a_click_on_the_trigger_toggles_it(cx: &mut TestAppContext) {
     let (host, cx) = host(cx);
     open_first(&host, cx);
     click(cx, "trigger-0");
-    assert!(!is_open(&host, 0, cx), "a second click on the trigger closes it");
+    assert!(
+        !is_open(&host, 0, cx),
+        "a second click on the trigger closes it"
+    );
     click(cx, "trigger-0");
     assert!(is_open(&host, 0, cx), "and a third opens it again");
 }
@@ -221,8 +256,14 @@ fn a_click_on_the_panel_reaches_the_panel_and_not_the_element_under_it(cx: &mut 
     let (host, cx) = host(cx);
     open_first(&host, cx);
     click(cx, "item-0");
-    assert_eq!(host.read_with(cx, |h, _| (h.item_clicks, h.beneath_clicks)), (1, 0));
-    assert!(is_open(&host, 0, cx), "a press inside does not close it: the owner decides on a pick");
+    assert_eq!(
+        host.read_with(cx, |h, _| (h.item_clicks, h.beneath_clicks)),
+        (1, 0)
+    );
+    assert!(
+        is_open(&host, 0, cx),
+        "a press inside does not close it: the owner decides on a pick"
+    );
 }
 
 #[gpui_kit::test]
@@ -233,7 +274,10 @@ fn escape_closes_it_and_focus_returns_to_the_trigger(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert!(!is_open(&host, 0, cx));
     let trigger = host.read_with(cx, |h, _| h.focus[0].clone());
-    assert!(cx.update(|window, _| trigger.is_focused(window)), "focus is on the trigger again");
+    assert!(
+        cx.update(|window, _| trigger.is_focused(window)),
+        "focus is on the trigger again"
+    );
 }
 
 #[gpui_kit::test]
@@ -256,11 +300,16 @@ fn opening_one_closes_the_other(cx: &mut TestAppContext) {
     cx.run_until_parked();
     cx.run_until_parked();
     assert!(is_open(&host, 1, cx));
-    assert!(!is_open(&host, 0, cx), "the first was closed by the second opening");
+    assert!(
+        !is_open(&host, 0, cx),
+        "the first was closed by the second opening"
+    );
 }
 
 #[gpui_kit::test]
-fn a_press_on_another_switchable_trigger_closes_this_one_and_opens_that_one(cx: &mut TestAppContext) {
+fn a_press_on_another_switchable_trigger_closes_this_one_and_opens_that_one(
+    cx: &mut TestAppContext,
+) {
     let (host, cx) = host(cx);
     host.update(cx, |h, cx| {
         h.switchable = true;
@@ -275,11 +324,16 @@ fn a_press_on_another_switchable_trigger_closes_this_one_and_opens_that_one(cx: 
     assert_eq!(host.read_with(cx, |h, _| h.beneath_clicks), 0);
     click(cx, "trigger-0");
     cx.run_until_parked();
-    assert!(is_open(&host, 0, cx) && !is_open(&host, 1, cx), "and back again");
+    assert!(
+        is_open(&host, 0, cx) && !is_open(&host, 1, cx),
+        "and back again"
+    );
 }
 
 #[gpui_kit::test]
-fn a_press_on_a_switchable_trigger_in_another_copy_of_the_view_switches_to_it(cx: &mut TestAppContext) {
+fn a_press_on_a_switchable_trigger_in_another_copy_of_the_view_switches_to_it(
+    cx: &mut TestAppContext,
+) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Dark, cx);
@@ -297,13 +351,21 @@ fn a_press_on_a_switchable_trigger_in_another_copy_of_the_view_switches_to_it(cx
     cx.simulate_resize(size(px(600.), px(400.)));
     cx.run_until_parked();
     let [a, b] = pair.read_with(cx, |p, _| p.0.clone());
-    let open = |host: &Entity<Host>, i: usize, cx: &mut VisualTestContext| host.read_with(cx, |h, _| h.open[i]);
+    let open = |host: &Entity<Host>, i: usize, cx: &mut VisualTestContext| {
+        host.read_with(cx, |h, _| h.open[i])
+    };
     press(&a, 0, cx);
     assert!(open(&a, 0, cx), "the first view's popover opened");
     press(&b, 1, cx);
-    assert!(open(&b, 1, cx) && !open(&a, 0, cx), "a press on the other view's other trigger switched to it");
+    assert!(
+        open(&b, 1, cx) && !open(&a, 0, cx),
+        "a press on the other view's other trigger switched to it"
+    );
     press(&a, 1, cx);
-    assert!(open(&a, 1, cx) && !open(&b, 1, cx), "and the popover with the same id in the first view takes over from it");
+    assert!(
+        open(&a, 1, cx) && !open(&b, 1, cx),
+        "and the popover with the same id in the first view takes over from it"
+    );
 }
 
 #[gpui_kit::test]
@@ -318,17 +380,29 @@ fn a_press_on_a_trigger_that_does_not_switch_only_closes_the_open_one(cx: &mut T
 #[test]
 fn the_backdrop_covers_the_window_but_its_holes() {
     let b = |x: f32, y: f32, w: f32, h: f32| Bounds::new(point(px(x), px(y)), size(px(w), px(h)));
-    let area = |rects: &[Bounds<Pixels>]| rects.iter().map(|r| f32::from(r.size.width) * f32::from(r.size.height)).sum::<f32>();
+    let area = |rects: &[Bounds<Pixels>]| {
+        rects
+            .iter()
+            .map(|r| f32::from(r.size.width) * f32::from(r.size.height))
+            .sum::<f32>()
+    };
     let window = size(px(100.), px(50.));
     assert_eq!(cover(window, &[]), vec![b(0., 0., 100., 50.)]);
     let holes = [b(10., 10., 20., 10.), b(50., 15., 20., 10.)];
     let strips = cover(window, &holes);
     assert_eq!(area(&strips), 5000. - 400., "everything but the holes");
     for strip in &strips {
-        assert!(holes.iter().all(|h| !strip.intersects(h)), "{strip:?} covers a hole");
+        assert!(
+            holes.iter().all(|h| !strip.intersects(h)),
+            "{strip:?} covers a hole"
+        );
     }
     let outside = cover(window, &[b(-10., -10., 30., 20.), b(90., 40., 30., 30.)]);
-    assert_eq!(area(&outside), 5000. - 200. - 100., "a hole past the edge is cut to the window");
+    assert_eq!(
+        area(&outside),
+        5000. - 200. - 100.,
+        "a hole past the edge is cut to the window"
+    );
 }
 
 #[gpui_kit::test]
@@ -344,7 +418,10 @@ fn it_closes_when_the_trigger_moves(cx: &mut TestAppContext) {
         host.update(cx, |_, cx| cx.notify());
         cx.run_until_parked();
     }
-    assert!(!is_open(&host, 0, cx), "a trigger that scrolled away takes the popover with it");
+    assert!(
+        !is_open(&host, 0, cx),
+        "a trigger that scrolled away takes the popover with it"
+    );
 }
 
 #[gpui_kit::test]
@@ -359,7 +436,11 @@ fn it_closes_when_the_window_resizes(cx: &mut TestAppContext) {
 
 #[test]
 fn a_popover_is_hidden_after_three_frames_it_missed_and_never_while_it_is_drawn() {
-    let mut frames = Frames { watched: 0, drawn: 0, close: None };
+    let mut frames = Frames {
+        watched: 0,
+        drawn: 0,
+        close: None,
+    };
     for _ in 0..500 {
         assert!(!frames.tick(), "drawn in every frame");
         frames.drew();
@@ -367,11 +448,18 @@ fn a_popover_is_hidden_after_three_frames_it_missed_and_never_while_it_is_drawn(
     assert!(!frames.tick(), "one frame missed");
     assert!(!frames.tick(), "two frames missed");
     assert!(frames.tick(), "three frames missed: its view is gone");
-    let mut back = Frames { watched: 9, drawn: 9, close: None };
+    let mut back = Frames {
+        watched: 9,
+        drawn: 9,
+        close: None,
+    };
     back.tick();
     back.tick();
     back.drew();
-    assert!(!back.tick(), "drawn again after two missed frames: the count starts over");
+    assert!(
+        !back.tick(),
+        "drawn again after two missed frames: the count starts over"
+    );
 }
 #[gpui_kit::test]
 fn a_3_second_frame_does_not_close_it_because_only_frames_are_counted(cx: &mut TestAppContext) {
@@ -395,17 +483,29 @@ fn it_opens_above_the_trigger_when_there_is_no_room_below(cx: &mut TestAppContex
     open_first(&host, cx);
     let trigger = cx.debug_bounds("trigger-0").unwrap();
     let panel = cx.debug_bounds("panel-0").unwrap();
-    assert!(panel.bottom() <= trigger.top(), "the panel is above: {panel:?} over {trigger:?}");
+    assert!(
+        panel.bottom() <= trigger.top(),
+        "the panel is above: {panel:?} over {trigger:?}"
+    );
 }
 
 #[test]
 fn placement_chooses_the_side_and_the_corner() {
-    let anchor = Bounds { origin: point(px(100.), px(100.)), size: size(px(80.), px(30.)) };
+    let anchor = Bounds {
+        origin: point(px(100.), px(100.)),
+        size: size(px(80.), px(30.)),
+    };
     let (up, corner, at) = placement(anchor, Side::Auto, Align::Start, 4., 120., 600.);
     assert!(!up && corner == Anchor::TopLeft && at == point(px(100.), px(134.)));
-    let low = Bounds { origin: point(px(100.), px(400.)), size: size(px(80.), px(30.)) };
+    let low = Bounds {
+        origin: point(px(100.), px(400.)),
+        size: size(px(80.), px(30.)),
+    };
     let (up, corner, at) = placement(low, Side::Auto, Align::End, 4., 300., 600.);
-    assert!(up && corner == Anchor::BottomRight && at == point(px(180.), px(396.)), "no room below, more above, right edge");
+    assert!(
+        up && corner == Anchor::BottomRight && at == point(px(180.), px(396.)),
+        "no room below, more above, right edge"
+    );
     assert!(placement(anchor, Side::Above, Align::Start, 4., 10., 600.).0);
     assert!(!placement(anchor, Side::Below, Align::Start, 4., 900., 600.).0);
 }
@@ -441,7 +541,12 @@ impl Render for Hung {
                         })
                         .ok();
                     })
-                    .child(div().debug_selector(|| "hung-panel".into()).w(px(120.)).h(px(100.))),
+                    .child(
+                        div()
+                            .debug_selector(|| "hung-panel".into())
+                            .w(px(120.))
+                            .h(px(100.)),
+                    ),
             )
     }
 }
@@ -452,7 +557,11 @@ fn hung(cx: &mut TestAppContext) -> (Entity<Hung>, &mut VisualTestContext) {
         set_appearance(Appearance::Dark, cx);
         cx.set_reduce_motion(true);
     });
-    let (view, cx) = cx.add_window_view(|_, cx| Hung { open: false, page_clicks: 0, focus: cx.focus_handle() });
+    let (view, cx) = cx.add_window_view(|_, cx| Hung {
+        open: false,
+        page_clicks: 0,
+        focus: cx.focus_handle(),
+    });
     cx.simulate_resize(size(px(400.), px(300.)));
     cx.run_until_parked();
     let focus = view.read_with(cx, |h, _| h.focus.clone());
@@ -473,9 +582,15 @@ fn hung(cx: &mut TestAppContext) -> (Entity<Hung>, &mut VisualTestContext) {
 fn a_popover_hung_from_its_parent_sits_at_the_point_and_keeps_focus(cx: &mut TestAppContext) {
     let (view, cx) = hung(cx);
     let panel = cx.debug_bounds("hung-panel").expect("the panel is drawn");
-    assert!((f32::from(panel.left()) - 40.).abs() < 1.5 && (f32::from(panel.top()) - 60.).abs() < 1.5, "at the point: {panel:?}");
+    assert!(
+        (f32::from(panel.left()) - 40.).abs() < 1.5 && (f32::from(panel.top()) - 60.).abs() < 1.5,
+        "at the point: {panel:?}"
+    );
     let focus = view.read_with(cx, |h, _| h.focus.clone());
-    assert!(cx.update(|window, _| focus.is_focused(window)), "the owner still has focus");
+    assert!(
+        cx.update(|window, _| focus.is_focused(window)),
+        "the owner still has focus"
+    );
 }
 
 #[gpui_kit::test]
@@ -485,7 +600,11 @@ fn a_hung_popover_closes_on_a_press_outside_and_the_page_hears_nothing(cx: &mut 
     cx.simulate_click(point(px(350.), px(250.)), gpui_kit::Modifiers::default());
     cx.run_until_parked();
     assert!(!view.read_with(cx, |h, _| h.open), "closed");
-    assert_eq!(view.read_with(cx, |h, _| h.page_clicks), before, "and the page heard nothing");
+    assert_eq!(
+        view.read_with(cx, |h, _| h.page_clicks),
+        before,
+        "and the page heard nothing"
+    );
 }
 
 #[gpui_kit::test]
@@ -513,17 +632,30 @@ mod components {
 
     impl Render for BarPage {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let handlers = ReviewHandlers::default().on_accept_all(|_, _| {}).on_reject_all(|_, _| {});
+            let handlers = ReviewHandlers::default()
+                .on_accept_all(|_, _| {})
+                .on_reject_all(|_, _| {});
             div()
                 .id("bar-page")
                 .size_full()
                 .on_click(|_, _, _| PAGE.with(|p| p.set(p.get() + 1)))
-                .child(ReviewBar::new("bar", ReviewProgress { files: 3, reviewed: 1, added: 4, removed: 2 }, handlers))
+                .child(ReviewBar::new(
+                    "bar",
+                    ReviewProgress {
+                        files: 3,
+                        reviewed: 1,
+                        added: 4,
+                        removed: 2,
+                    },
+                    handlers,
+                ))
         }
     }
 
     #[gpui_kit::test]
-    fn the_review_bar_menu_closes_on_a_press_outside_and_the_page_hears_nothing(cx: &mut TestAppContext) {
+    fn the_review_bar_menu_closes_on_a_press_outside_and_the_page_hears_nothing(
+        cx: &mut TestAppContext,
+    ) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Dark, cx);
@@ -537,7 +669,11 @@ mod components {
         let opened_with = PAGE.with(|p| p.get());
         cx.simulate_click(point(px(450.), px(300.)), gpui_kit::Modifiers::default());
         cx.run_until_parked();
-        assert_eq!(PAGE.with(|p| p.get()), opened_with, "the press that closes the menu goes no further");
+        assert_eq!(
+            PAGE.with(|p| p.get()),
+            opened_with,
+            "the press that closes the menu goes no further"
+        );
         // With it closed, the same spot reaches the page again.
         cx.simulate_click(point(px(450.), px(300.)), gpui_kit::Modifiers::default());
         assert_eq!(PAGE.with(|p| p.get()), opened_with + 1);
@@ -555,7 +691,12 @@ impl Render for Right {
                 .open(true)
                 .hang(Hang::Right(10., 20.))
                 .keep_focus()
-                .child(div().debug_selector(|| "right-panel".into()).w(px(100.)).h(px(40.))),
+                .child(
+                    div()
+                        .debug_selector(|| "right-panel".into())
+                        .w(px(100.))
+                        .h(px(40.)),
+                ),
         )
     }
 }
@@ -575,7 +716,10 @@ fn a_popover_hung_from_the_right_lines_its_right_edge_up_with_the_point(cx: &mut
     }
     cx.run_until_parked();
     let panel = cx.debug_bounds("right-panel").expect("drawn");
-    assert!((f32::from(panel.right()) - 390.).abs() < 1.5, "its right edge is 10px from the window's: {panel:?}");
+    assert!(
+        (f32::from(panel.right()) - 390.).abs() < 1.5,
+        "its right edge is 10px from the window's: {panel:?}"
+    );
 }
 
 /// A trigger with a field in it, and a popover with a hole around the trigger.
@@ -588,7 +732,12 @@ struct Holed {
 
 impl Render for Holed {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let (this, page, trig, measured) = (cx.entity().downgrade(), cx.entity().downgrade(), cx.entity().downgrade(), cx.entity().downgrade());
+        let (this, page, trig, measured) = (
+            cx.entity().downgrade(),
+            cx.entity().downgrade(),
+            cx.entity().downgrade(),
+            cx.entity().downgrade(),
+        );
         div()
             .id("holed-page")
             .size_full()
@@ -630,19 +779,31 @@ impl Render for Holed {
                         })
                         .ok();
                     })
-                    .child(div().debug_selector(|| "holed-panel".into()).w(px(200.)).h(px(80.))),
+                    .child(
+                        div()
+                            .debug_selector(|| "holed-panel".into())
+                            .w(px(200.))
+                            .h(px(80.)),
+                    ),
             )
     }
 }
 
 #[gpui_kit::test]
-fn a_popover_with_a_hole_leaves_its_trigger_live_and_closes_on_a_press_anywhere_else(cx: &mut TestAppContext) {
+fn a_popover_with_a_hole_leaves_its_trigger_live_and_closes_on_a_press_anywhere_else(
+    cx: &mut TestAppContext,
+) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Dark, cx);
         cx.set_reduce_motion(true);
     });
-    let (view, cx) = cx.add_window_view(|_, _| Holed { open: false, anchor: None, trigger_clicks: 0, page_clicks: 0 });
+    let (view, cx) = cx.add_window_view(|_, _| Holed {
+        open: false,
+        anchor: None,
+        trigger_clicks: 0,
+        page_clicks: 0,
+    });
     cx.simulate_resize(size(px(500.), px(300.)));
     for _ in 0..3 {
         cx.run_until_parked();
@@ -653,14 +814,27 @@ fn a_popover_with_a_hole_leaves_its_trigger_live_and_closes_on_a_press_anywhere_
         cx.run_until_parked();
         view.update(cx, |_, cx| cx.notify());
     }
-    assert!(view.read_with(cx, |h, _| h.open) && cx.debug_bounds("holed-panel").is_some(), "the trigger opened it");
+    assert!(
+        view.read_with(cx, |h, _| h.open) && cx.debug_bounds("holed-panel").is_some(),
+        "the trigger opened it"
+    );
     click(cx, "holed-trigger");
     let (trigger, open) = view.read_with(cx, |h, _| (h.trigger_clicks, h.open));
-    assert_eq!(trigger, 2, "the trigger heard the press while the popover was open");
+    assert_eq!(
+        trigger, 2,
+        "the trigger heard the press while the popover was open"
+    );
     assert!(open, "and a press on the trigger does not close it");
     let page = view.read_with(cx, |h, _| h.page_clicks);
     cx.simulate_click(point(px(450.), px(250.)), gpui_kit::Modifiers::default());
     cx.run_until_parked();
-    assert!(!view.read_with(cx, |h, _| h.open), "a press elsewhere closes it");
-    assert_eq!(view.read_with(cx, |h, _| h.page_clicks), page, "and reaches nothing else");
+    assert!(
+        !view.read_with(cx, |h, _| h.open),
+        "a press elsewhere closes it"
+    );
+    assert_eq!(
+        view.read_with(cx, |h, _| h.page_clicks),
+        page,
+        "and reaches nothing else"
+    );
 }

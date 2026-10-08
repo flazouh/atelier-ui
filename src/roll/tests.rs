@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use gpui_kit::{Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+use gpui_kit::{
+    Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext,
+    VisualTestContext, Window, div, px,
+};
 
 use super::*;
 use crate::{
@@ -21,7 +24,10 @@ fn the_old_content_leaves_upward_to_half_opacity() {
     assert_eq!(leaving(Kind::Icon, 0.), (0., 1.));
     assert_eq!(leaving(Kind::Icon, 1.), (-0.8, 0.5));
     assert_eq!(leaving(Kind::Words, 1.), (-0.85, 0.5));
-    assert_eq!((Kind::Icon.exit_seconds(), Kind::Words.exit_seconds()), (0.22, 0.2));
+    assert_eq!(
+        (Kind::Icon.exit_seconds(), Kind::Words.exit_seconds()),
+        (0.22, 0.2)
+    );
 }
 
 #[test]
@@ -35,10 +41,20 @@ struct Page {
 
 impl Render for Page {
     fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
-        div().p(px(20.)).flex().child(Roll::new("roll", self.key, Kind::Words, px(16.), |key: &&'static str| {
-            let name = format!("roll-{key}");
-            div().h(px(16.)).debug_selector(move || name.clone()).child(*key).into_any_element()
-        }))
+        div().p(px(20.)).flex().child(Roll::new(
+            "roll",
+            self.key,
+            Kind::Words,
+            px(16.),
+            |key: &&'static str| {
+                let name = format!("roll-{key}");
+                div()
+                    .h(px(16.))
+                    .debug_selector(move || name.clone())
+                    .child(*key)
+                    .into_any_element()
+            },
+        ))
     }
 }
 
@@ -72,14 +88,28 @@ fn a_new_key_comes_up_from_below_and_the_old_one_is_gone_when_it_ends(cx: &mut T
     motion::clock::advance(Duration::from_millis(60));
     frames(&page, cx, 2);
     let start = cx.debug_bounds("roll-Done");
-    assert!(start.is_some_and(|b| b.origin.y > rest), "starts below its place");
-    assert!(cx.debug_bounds("roll-Working").is_some_and(|b| b.origin.y < rest), "the old one goes up");
+    assert!(
+        start.is_some_and(|b| b.origin.y > rest),
+        "starts below its place"
+    );
+    assert!(
+        cx.debug_bounds("roll-Working")
+            .is_some_and(|b| b.origin.y < rest),
+        "the old one goes up"
+    );
     for _ in 0..60 {
         motion::clock::advance(Duration::from_millis(30));
         frames(&page, cx, 1);
     }
-    assert_eq!(cx.debug_bounds("roll-Done").unwrap().origin.y, rest, "at rest in its place");
-    assert!(cx.debug_bounds("roll-Working").is_none(), "the old one is gone");
+    assert_eq!(
+        cx.debug_bounds("roll-Done").unwrap().origin.y,
+        rest,
+        "at rest in its place"
+    );
+    assert!(
+        cx.debug_bounds("roll-Working").is_none(),
+        "the old one is gone"
+    );
 }
 
 #[gpui_kit::test]

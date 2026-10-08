@@ -1,33 +1,25 @@
 use gpui_kit::{
-    AppContext,
-    Context,
-    Entity,
-    EventEmitter,
-    Focusable,
-    FontWeight,
-    IntoElement,
-    ParentElement,
-    Render,
-    SharedString,
-    Styled,
-    Window,
+    AppContext, Context, Entity, EventEmitter, Focusable, FontWeight, IntoElement, ParentElement,
+    Render, SharedString, Styled, Window,
     component::input::{Input, InputState, Textarea, TextareaState},
     div,
     prelude::FluentBuilder,
 };
 
+use super::helpers::mark;
+use super::types::MergeBoxEvent;
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     focus::Field,
     icon::{Icon, IconName},
-    merge::{Action, Blocker, Choice, MergeFacts, MergeMethod, PullState, blockers, button, standing},
+    merge::{
+        Action, Blocker, Choice, MergeFacts, MergeMethod, PullState, blockers, button, standing,
+    },
     merge_button::MergeButton,
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use super::types::MergeBoxEvent;
-use super::helpers::mark;
 
 pub struct MergeBox {
     pub(super) facts: MergeFacts,
@@ -57,11 +49,19 @@ impl MergeBox {
             state
         });
         let message = cx.new(|cx| {
-            let mut state = TextareaState::new(window, cx).auto_grow(2, 8).placeholder("Commit message");
+            let mut state = TextareaState::new(window, cx)
+                .auto_grow(2, 8)
+                .placeholder("Commit message");
             state.set_value(body, window, cx);
             state
         });
-        Self { facts, choice, title, message, branch_deleted: false }
+        Self {
+            facts,
+            choice,
+            title,
+            message,
+            branch_deleted: false,
+        }
     }
 
     /// New facts from the forge, after a press or a refresh.
@@ -79,7 +79,12 @@ impl MergeBox {
 
     pub(super) fn act(&mut self, action: Action, cx: &mut Context<Self>) {
         let (title, message) = (self.title.read(cx).value(), self.message.read(cx).value());
-        cx.emit(MergeBoxEvent::Act { action, choice: self.choice, title, message });
+        cx.emit(MergeBoxEvent::Act {
+            action,
+            choice: self.choice,
+            title,
+            message,
+        });
     }
 }
 
@@ -93,9 +98,25 @@ impl Render for MergeBox {
             .flex()
             .items_center()
             .gap(px(8.))
-            .child(Icon::new(IconName::PrMerged).size(px(14.)).color(if ready { theme.success } else { muted }))
-            .child(div().text_size(TextSize::Sm.font_size()).font_weight(FontWeight::MEDIUM).child("Merge"))
-            .child(div().min_w_0().truncate().text_size(TextSize::Xs.font_size()).text_color(muted).child(standing(facts)));
+            .child(Icon::new(IconName::PrMerged).size(px(14.)).color(if ready {
+                theme.success
+            } else {
+                muted
+            }))
+            .child(
+                div()
+                    .text_size(TextSize::Sm.font_size())
+                    .font_weight(FontWeight::MEDIUM)
+                    .child("Merge"),
+            )
+            .child(
+                div()
+                    .min_w_0()
+                    .truncate()
+                    .text_size(TextSize::Xs.font_size())
+                    .text_color(muted)
+                    .child(standing(facts)),
+            );
 
         let open = facts.state == PullState::Open;
         let reasons = if open { blockers(facts) } else { Vec::new() };
@@ -109,17 +130,37 @@ impl Render for MergeBox {
                 .flex()
                 .items_start()
                 .gap(px(8.))
-                .child(div().pt(px(2.)).flex_none().child(Icon::new(icon).size(px(14.)).color(tone)))
+                .child(
+                    div()
+                        .pt(px(2.))
+                        .flex_none()
+                        .child(Icon::new(icon).size(px(14.)).color(tone)),
+                )
                 .child(
                     div()
                         .flex()
                         .flex_col()
                         .min_w_0()
                         .gap(px(2.))
-                        .child(div().text_size(TextSize::Xs.font_size()).font_weight(FontWeight::MEDIUM).child(blocker.name()))
-                        .child(div().text_size(TextSize::Xs.font_size()).text_color(muted).child(blocker.explanation()))
+                        .child(
+                            div()
+                                .text_size(TextSize::Xs.font_size())
+                                .font_weight(FontWeight::MEDIUM)
+                                .child(blocker.name()),
+                        )
+                        .child(
+                            div()
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(muted)
+                                .child(blocker.explanation()),
+                        )
                         .children(files.into_iter().map(|file| {
-                            div().truncate().font_family(MONO_FONT_FAMILY).text_size(TextSize::Xs.font_size()).text_color(muted).child(file)
+                            div()
+                                .truncate()
+                                .font_family(MONO_FONT_FAMILY)
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(muted)
+                                .child(file)
                         })),
                 )
         });
@@ -130,23 +171,38 @@ impl Render for MergeBox {
                 .flex()
                 .flex_col()
                 .gap(px(6.))
-                .child(div().text_size(TextSize::Xs.font_size()).text_color(muted).child("The squash commit"))
-                .child(Field::new(self.title.focus_handle(cx), 
-                    Input::new(&self.title)
-                        .appearance(false)
-                        .px(px(10.))
-                        .text_size(TextSize::Sm.font_size())
-                        .font_weight(FontWeight::MEDIUM),
-                ).radius(radius::md()).surface(theme.card_strong))
-                .child(Field::new(self.message.focus_handle(cx), 
-                    // The textarea keeps 10px of its own inside, so this lines its text up with the title's.
-                    Textarea::new(&self.message)
-                        .appearance(false)
-                        .px(px(0.))
-                        .py(px(6.))
+                .child(
+                    div()
                         .text_size(TextSize::Xs.font_size())
-                        .line_height(TextSize::Xs.line_height()),
-                ).radius(radius::md()).surface(theme.card_strong))
+                        .text_color(muted)
+                        .child("The squash commit"),
+                )
+                .child(
+                    Field::new(
+                        self.title.focus_handle(cx),
+                        Input::new(&self.title)
+                            .appearance(false)
+                            .px(px(10.))
+                            .text_size(TextSize::Sm.font_size())
+                            .font_weight(FontWeight::MEDIUM),
+                    )
+                    .radius(radius::md())
+                    .surface(theme.card_strong),
+                )
+                .child(
+                    Field::new(
+                        self.message.focus_handle(cx),
+                        // The textarea keeps 10px of its own inside, so this lines its text up with the title's.
+                        Textarea::new(&self.message)
+                            .appearance(false)
+                            .px(px(0.))
+                            .py(px(6.))
+                            .text_size(TextSize::Xs.font_size())
+                            .line_height(TextSize::Xs.line_height()),
+                    )
+                    .radius(radius::md())
+                    .surface(theme.card_strong),
+                )
         });
 
         let this = cx.entity().downgrade();
@@ -181,8 +237,16 @@ impl Render for MergeBox {
                         .items_center()
                         .gap(px(6.))
                         .text_size(TextSize::Xs.font_size())
-                        .child(Icon::new(IconName::CheckCircle).size(px(14.)).color(theme.success))
-                        .child(if self.branch_deleted { "Merged, and the branch deleted" } else { "Merged" }),
+                        .child(
+                            Icon::new(IconName::CheckCircle)
+                                .size(px(14.))
+                                .color(theme.success),
+                        )
+                        .child(if self.branch_deleted {
+                            "Merged, and the branch deleted"
+                        } else {
+                            "Merged"
+                        }),
                 )
                 .child(div().flex_1())
                 .when(!self.branch_deleted, |d| {
@@ -192,7 +256,9 @@ impl Render for MergeBox {
                             .variant(ButtonVariant::Secondary)
                             .size(ButtonSize::Sm)
                             .on_click(move |_, _, cx| {
-                                delete.update(cx, |b, cx| b.act(Action::DeleteBranch, cx)).ok();
+                                delete
+                                    .update(cx, |b, cx| b.act(Action::DeleteBranch, cx))
+                                    .ok();
                             }),
                     )
                 })

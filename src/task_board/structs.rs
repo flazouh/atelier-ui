@@ -1,26 +1,12 @@
 use std::{ops::Range, rc::Rc};
 
 use gpui_kit::{
-    AnyElement,
-    Context,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    ParentElement,
-    Render,
-    ScrollStrategy,
-    ScrollWheelEvent,
-    SharedString,
-    Styled,
-    UniformListScrollHandle,
-    Window,
-    div,
-    uniform_list,
+    AnyElement, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
+    KeyDownEvent, ParentElement, Render, ScrollStrategy, ScrollWheelEvent, SharedString, Styled,
+    UniformListScrollHandle, Window, div, uniform_list,
 };
 
+use super::types::{DROP_LIFT, MARGIN, TaskBoardEvent};
 use crate::scale::px;
 use crate::{
     keys::{self, Press},
@@ -28,7 +14,10 @@ use crate::{
     panel_layout::Geometry,
     placement::measure,
     popover::Hang,
-    task_board_model::{BoardMove, CARD_GAP, CARD_HEIGHT, COLUMN_WIDTH, Spot, columns, drop_on, geometry, move_cursor, spot_of, task_at},
+    task_board_model::{
+        BoardMove, CARD_GAP, CARD_HEIGHT, COLUMN_WIDTH, Spot, columns, drop_on, geometry,
+        move_cursor, spot_of, task_at,
+    },
     task_card::{DraggedTask, TaskCard},
     task_edit::{self, Change, Field, Picker},
     task_keys::{self, TaskCommand},
@@ -39,7 +28,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{DROP_LIFT, MARGIN, TaskBoardEvent};
 
 pub struct TaskBoard {
     pub(super) tasks: Vec<TaskData>,
@@ -130,9 +118,16 @@ impl TaskBoard {
     fn recompute(&mut self, under: Option<SharedString>, cx: &mut Context<Self>) {
         self.columns = columns(&self.tasks, &self.filters, &self.me, self.sort);
         self.shown = Rc::new(self.tasks.clone());
-        self.shown_columns = self.columns.iter().map(|c| Rc::new(c.tasks.clone())).collect();
+        self.shown_columns = self
+            .columns
+            .iter()
+            .map(|c| Rc::new(c.tasks.clone()))
+            .collect();
         // The cursor stays on its card when the card moves; on its place when the card is gone.
-        self.cursor = under.as_ref().and_then(|id| spot_of(&self.columns, &self.tasks, id)).or(self.cursor.filter(|s| task_at(&self.columns, *s).is_some()));
+        self.cursor = under
+            .as_ref()
+            .and_then(|id| spot_of(&self.columns, &self.tasks, id))
+            .or(self.cursor.filter(|s| task_at(&self.columns, *s).is_some()));
         cx.notify();
     }
 
@@ -180,7 +175,9 @@ impl TaskBoard {
     }
 
     fn open_picker(&mut self, field: Field, cx: &mut Context<Self>) {
-        let Some(index) = self.cursor.and_then(|s| task_at(&self.columns, s)) else { return };
+        let Some(index) = self.cursor.and_then(|s| task_at(&self.columns, s)) else {
+            return;
+        };
         let task = &self.tasks[index];
         let one = [task];
         let mut labels: Vec<Label> = Vec::new();
@@ -194,7 +191,9 @@ impl TaskBoard {
         self.picker = Some(match field {
             Field::Status => Picker::status(Some(task.status)),
             Field::Priority => Picker::priority(Some(task.priority)),
-            Field::Assignee => Picker::assignee(&self.people, task.assignee.as_ref().map(Assignee::name)),
+            Field::Assignee => {
+                Picker::assignee(&self.people, task.assignee.as_ref().map(Assignee::name))
+            }
             Field::Labels => Picker::labels(&labels, &task_edit::shared_labels(&one)),
         });
         cx.notify();
@@ -207,9 +206,18 @@ impl TaskBoard {
         }
         self.key(&crate::task_picker::enter(), window, cx);
     }
-    pub(super) fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn key(
+        &mut self,
+        event: &KeyDownEvent,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if let Some(picker) = self.picker.as_mut() {
-            match handle_key(picker, event.keystroke.key.as_str(), event.keystroke.key_char.as_deref()) {
+            match handle_key(
+                picker,
+                event.keystroke.key.as_str(),
+                event.keystroke.key_char.as_deref(),
+            ) {
                 Outcome::Open => {}
                 Outcome::Close => self.picker = None,
                 Outcome::Chosen { change, stays_open } => {
@@ -226,7 +234,9 @@ impl TaskBoard {
             return;
         }
         let press = Press::from_keystroke(&event.keystroke);
-        let Some(command) = task_keys::read(&press, keys::typing(window)) else { return };
+        let Some(command) = task_keys::read(&press, keys::typing(window)) else {
+            return;
+        };
         let go = |board: &mut Self, step: BoardMove, cx: &mut Context<Self>| {
             if let Some(spot) = move_cursor(&board.columns, board.cursor, step) {
                 board.reveal(spot);
@@ -257,21 +267,30 @@ impl TaskBoard {
             }
             TaskCommand::MoveNext | TaskCommand::MovePrev => {
                 if let Some(id) = self.cursor_task() {
-                    let shifts = task_edit::shift_status(&self.tasks, std::slice::from_ref(&id), command == TaskCommand::MoveNext);
+                    let shifts = task_edit::shift_status(
+                        &self.tasks,
+                        std::slice::from_ref(&id),
+                        command == TaskCommand::MoveNext,
+                    );
                     for (id, change) in shifts {
                         self.apply_to(&id, change, cx);
                     }
                 }
             }
             TaskCommand::NewTask => cx.emit(TaskBoardEvent::NewTask),
-            TaskCommand::Select | TaskCommand::SelectAll | TaskCommand::Clear | TaskCommand::Filter => return,
+            TaskCommand::Select
+            | TaskCommand::SelectAll
+            | TaskCommand::Clear
+            | TaskCommand::Filter => return,
         }
         cx.stop_propagation();
     }
 
     /// A card dropped on the column `to`: it takes that status.
     pub fn drop_card(&mut self, id: &SharedString, to: TaskStatus, cx: &mut Context<Self>) {
-        let Some(change) = drop_on(&self.tasks, id, to) else { return };
+        let Some(change) = drop_on(&self.tasks, id, to) else {
+            return;
+        };
         let ids = vec![id.clone()];
         let by = self.me.to_string();
         if task_edit::apply(&mut self.tasks, &ids, &change, &by, self.now) > 0 {
@@ -287,7 +306,11 @@ impl TaskBoard {
     /// Scrolls every column so `top` pixels of cards are above the view. For measuring runs.
     pub fn set_scroll_top(&mut self, top: f32) {
         for scroll in &self.scrolls {
-            scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(-top)));
+            scroll
+                .0
+                .borrow()
+                .base_handle
+                .set_offset(gpui_kit::point(px(0.), px(-top)));
         }
     }
 
@@ -301,7 +324,12 @@ impl TaskBoard {
         cx.notify();
     }
 
-    fn column_element(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    fn column_element(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let theme = cx.theme().clone();
         let status = self.columns[index].status;
         let this = cx.entity();
@@ -309,31 +337,49 @@ impl TaskBoard {
         let count = self.columns[index].tasks.len();
         let step = CARD_HEIGHT + CARD_GAP;
         let cursor_row = self.cursor.filter(|(c, _)| *c == index).map(|(_, r)| r);
-        let landed = self.landed.as_ref().filter(|(_, c)| c.is_running()).map(|(id, c)| (id.clone(), c.value()));
+        let landed = self
+            .landed
+            .as_ref()
+            .filter(|(_, c)| c.is_running())
+            .map(|(id, c)| (id.clone(), c.value()));
         if landed.is_some() {
             window.request_animation_frame();
         }
         let tasks = self.shown.clone();
         let rows = self.shown_columns[index].clone();
-        let cards = uniform_list(("board-cards", index), count, move |range: Range<usize>, _, _| {
-            range
-                .map(|at| {
-                    let task = tasks[rows[at]].clone();
-                    let lift = landed.as_ref().filter(|(id, _)| *id == task.id).map_or(0., |(_, v)| *v);
-                    let id = task.id.clone();
-                    let open = open.clone();
-                    div()
-                        .h(px(step))
-                        .pb(px(CARD_GAP))
-                        .child(TaskCard::new(gpui_kit::ElementId::Name(format!("card-{id}").into()), task).lifted(lift).cursor(cursor_row == Some(at)))
-                        .on_mouse_up(gpui_kit::MouseButton::Left, move |_, _, cx| {
-                            let id = id.clone();
-                            open.update(cx, |_, cx| cx.emit(TaskBoardEvent::Open(id)))
-                        })
-                        .into_any_element()
-                })
-                .collect::<Vec<_>>()
-        })
+        let cards = uniform_list(
+            ("board-cards", index),
+            count,
+            move |range: Range<usize>, _, _| {
+                range
+                    .map(|at| {
+                        let task = tasks[rows[at]].clone();
+                        let lift = landed
+                            .as_ref()
+                            .filter(|(id, _)| *id == task.id)
+                            .map_or(0., |(_, v)| *v);
+                        let id = task.id.clone();
+                        let open = open.clone();
+                        div()
+                            .h(px(step))
+                            .pb(px(CARD_GAP))
+                            .child(
+                                TaskCard::new(
+                                    gpui_kit::ElementId::Name(format!("card-{id}").into()),
+                                    task,
+                                )
+                                .lifted(lift)
+                                .cursor(cursor_row == Some(at)),
+                            )
+                            .on_mouse_up(gpui_kit::MouseButton::Left, move |_, _, cx| {
+                                let id = id.clone();
+                                open.update(cx, |_, cx| cx.emit(TaskBoardEvent::Open(id)))
+                            })
+                            .into_any_element()
+                    })
+                    .collect::<Vec<_>>()
+            },
+        )
         .track_scroll(&self.scrolls[index])
         .w_full()
         .flex_1()
@@ -365,9 +411,22 @@ impl TaskBoard {
                     .text_size(TextSize::Sm.font_size())
                     .child(TaskStatusMark::new(status))
                     .child(status.words())
-                    .child(div().text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(count.to_string())),
+                    .child(
+                        div()
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(theme.muted_foreground)
+                            .child(count.to_string()),
+                    ),
             )
-            .child(div().flex_1().min_h_0().flex().flex_col().px(px(8.)).child(cards))
+            .child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .flex()
+                    .flex_col()
+                    .px(px(8.))
+                    .child(cards),
+            )
             .into_any_element()
     }
 }
@@ -378,17 +437,33 @@ impl Render for TaskBoard {
             self.landed = None;
         }
         let visible = self.geometry.visible(self.offset, self.viewport, MARGIN);
-        let elements: Vec<AnyElement> = visible.map(|i| self.column_element(i, window, cx)).collect();
+        let elements: Vec<AnyElement> = visible
+            .map(|i| self.column_element(i, window, cx))
+            .collect();
         let this = cx.entity();
-        let picker = self.picker.as_ref().zip(self.cursor).map(|(p, (column, _))| {
-            let left = (self.geometry.left(column) - self.offset + 96.).max(8.);
-            picker_popover("task-board-picker", p, &cx.theme().clone(), Hang::Left(left, 64.), cx.entity().downgrade(), |t: &mut Self| t.picker = None, Self::pick_row)
-        });
+        let picker = self
+            .picker
+            .as_ref()
+            .zip(self.cursor)
+            .map(|(p, (column, _))| {
+                let left = (self.geometry.left(column) - self.offset + 96.).max(8.);
+                picker_popover(
+                    "task-board-picker",
+                    p,
+                    &cx.theme().clone(),
+                    Hang::Left(left, 64.),
+                    cx.entity().downgrade(),
+                    |t: &mut Self| t.picker = None,
+                    Self::pick_row,
+                )
+            });
         div()
             .id("task-board")
             .key_context("TaskBoard")
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))
+            .on_key_down(
+                cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)),
+            )
             .on_mouse_down(
                 gpui_kit::MouseButton::Left,
                 cx.listener(|this, _, window, cx| {
@@ -405,7 +480,13 @@ impl Render for TaskBoard {
             .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _, cx| {
                 let delta = event.delta.pixel_delta(px(16.));
                 let (x, y) = (f32::from(delta.x), f32::from(delta.y));
-                let dx = if event.modifiers.shift { x + y } else if x.abs() > y.abs() { x } else { 0. };
+                let dx = if event.modifiers.shift {
+                    x + y
+                } else if x.abs() > y.abs() {
+                    x
+                } else {
+                    0.
+                };
                 if dx != 0. {
                     this.offset = this.geometry.clamp(this.offset - dx, this.viewport);
                     cx.stop_propagation();
@@ -421,7 +502,13 @@ impl Render for TaskBoard {
                     }
                 })
             }))
-            .child(div().relative().size_full().left(px(-self.offset)).children(elements))
+            .child(
+                div()
+                    .relative()
+                    .size_full()
+                    .left(px(-self.offset))
+                    .children(elements),
+            )
             .children(picker)
     }
 }

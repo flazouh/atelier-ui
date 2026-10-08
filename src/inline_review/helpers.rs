@@ -3,25 +3,13 @@ use super::{AcceptHunk, RejectHunk};
 use std::ops::Range;
 
 use gpui_kit::{
-    App,
-    ElementId,
-    Entity,
-    Hsla,
-    InteractiveElement,
-    IntoElement,
-    KeyBinding,
-    MouseButton,
-    ParentElement,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    Window,
-    base::input,
-    component::input::EditorState,
-    div,
-    prelude::FluentBuilder,
+    App, ElementId, Entity, Hsla, InteractiveElement, IntoElement, KeyBinding, MouseButton,
+    ParentElement, SharedString, StatefulInteractiveElement, Styled, Window, base::input,
+    component::input::EditorState, div, prelude::FluentBuilder,
 };
 
+use super::structs::InlineHunk;
+use super::types::{ACCEPT_KEYS, COMPACT_BELOW, DecideHandler, Decision, REJECT_KEYS, RowHandler};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
@@ -29,8 +17,6 @@ use crate::{
     theme::radius,
     tooltip::Tooltip,
 };
-use super::structs::InlineHunk;
-use super::types::{ACCEPT_KEYS, COMPACT_BELOW, DecideHandler, Decision, REJECT_KEYS, RowHandler};
 
 /// The keys the bar's hints name. They act on the hunk under the caret; with the caret outside every
 /// hunk they keep their usual editing meaning.
@@ -124,7 +110,11 @@ pub fn washes(hunks: &[InlineHunk]) -> Vec<(Range<usize>, bool)> {
 /// Deleting rows moves every row below them up, so a hunk below the deletion must slide up by the
 /// same height or its bands and its bar land on the wrong code. A hunk above it does not move, and
 /// the decided hunk itself is dropped.
-pub fn shift_after(hunks: &[InlineHunk], decided: &SharedString, closed: &Range<usize>) -> Vec<InlineHunk> {
+pub fn shift_after(
+    hunks: &[InlineHunk],
+    decided: &SharedString,
+    closed: &Range<usize>,
+) -> Vec<InlineHunk> {
     let height = closed.len();
     hunks
         .iter()
@@ -155,7 +145,13 @@ pub fn track_edit(hunks: &[InlineHunk], before: &str, after: &str) -> Vec<Inline
     let new: Vec<&str> = after.split('\n').collect();
     let top = old.iter().zip(&new).take_while(|(a, b)| a == b).count();
     let room = old.len().min(new.len()) - top;
-    let bottom = old.iter().rev().zip(new.iter().rev()).take(room).take_while(|(a, b)| a == b).count();
+    let bottom = old
+        .iter()
+        .rev()
+        .zip(new.iter().rev())
+        .take(room)
+        .take_while(|(a, b)| a == b)
+        .count();
     let (old_end, new_end) = (old.len() - bottom, new.len() - bottom);
     let inserted_here = top == old_end;
     // `pushed` is for a boundary that a line added right there moves down.
@@ -174,7 +170,11 @@ pub fn track_edit(hunks: &[InlineHunk], before: &str, after: &str) -> Vec<Inline
             let start = map(hunk.removed.start, true);
             let middle = map(hunk.removed.end, false).max(start);
             let end = map(hunk.added.end, false).max(middle);
-            (start < end).then(|| InlineHunk { id: hunk.id.clone(), removed: start..middle, added: middle..end })
+            (start < end).then(|| InlineHunk {
+                id: hunk.id.clone(),
+                removed: start..middle,
+                added: middle..end,
+            })
         })
         .collect()
 }
@@ -191,7 +191,10 @@ pub fn hunk_at_row(hunks: &[InlineHunk], row: usize) -> Option<&InlineHunk> {
 
 /// How many hunks still wait on the user.
 pub fn pending_count(hunks: &[InlineHunk], decided: &[SharedString]) -> usize {
-    hunks.iter().filter(|hunk| !decided.contains(&hunk.id)).count()
+    hunks
+        .iter()
+        .filter(|hunk| !decided.contains(&hunk.id))
+        .count()
 }
 
 // ---------------------------------------------------------------------------
@@ -200,7 +203,11 @@ pub fn pending_count(hunks: &[InlineHunk], decided: &[SharedString]) -> usize {
 
 /// The row a byte offset sits on, so the caret can be put back where it was.
 pub fn byte_to_row(text: &str, offset: usize) -> usize {
-    text.as_bytes().iter().take(offset).filter(|b| **b == b'\n').count()
+    text.as_bytes()
+        .iter()
+        .take(offset)
+        .filter(|b| **b == b'\n')
+        .count()
 }
 
 /// Applies the user's decisions to the buffer.
@@ -223,7 +230,10 @@ pub fn apply(
     state.update(cx, |state, cx| {
         let text = state.text().to_string();
         let caret_row = byte_to_row(&text, state.cursor());
-        let ranges: Vec<Range<usize>> = rows.iter().map(|range| rows_to_bytes(&text, range)).collect();
+        let ranges: Vec<Range<usize>> = rows
+            .iter()
+            .map(|range| rows_to_bytes(&text, range))
+            .collect();
         for range in ranges {
             state.set_selected_range(range, cx);
             state.replace("", window, cx);
@@ -248,18 +258,31 @@ pub(super) fn decide_at_caret(
     match (hunk_at_row(hunks, row), on_decide) {
         (Some(hunk), Some(decide)) => decide(&hunk.id, decision, window, cx),
         _ => match decision {
-            Decision::Accept => window.dispatch_action(Box::new(input::Enter { secondary: true, shift: false }), cx),
+            Decision::Accept => window.dispatch_action(
+                Box::new(input::Enter {
+                    secondary: true,
+                    shift: false,
+                }),
+                cx,
+            ),
             Decision::Reject if cfg!(target_os = "macos") => {
                 window.dispatch_action(Box::new(input::DeleteToBeginningOfLine), cx)
             }
-            Decision::Reject => window.dispatch_action(Box::new(input::DeleteToPreviousWordStart), cx),
+            Decision::Reject => {
+                window.dispatch_action(Box::new(input::DeleteToPreviousWordStart), cx)
+            }
         },
     }
 }
 
 /// The gutter's "+" on the row under the pointer. It takes the press, so the caret stays put; it does not
 /// block the pointer, so the editor still knows which row the pointer is over.
-pub(super) fn add_comment_button(row: usize, fill: Hsla, ink: Hsla, add: RowHandler) -> impl IntoElement {
+pub(super) fn add_comment_button(
+    row: usize,
+    fill: Hsla,
+    ink: Hsla,
+    add: RowHandler,
+) -> impl IntoElement {
     div()
         .id(("add-comment", row))
         .flex()
@@ -280,7 +303,13 @@ pub(super) fn add_comment_button(row: usize, fill: Hsla, ink: Hsla, add: RowHand
 }
 
 /// Accept and Reject for one hunk. The editor places it at the right end of the hunk's first row.
-pub(super) fn hunk_bar(hunk: InlineHunk, is_current: bool, compact: bool, bar_fill: Hsla, on_decide: Option<DecideHandler>) -> impl IntoElement {
+pub(super) fn hunk_bar(
+    hunk: InlineHunk,
+    is_current: bool,
+    compact: bool,
+    bar_fill: Hsla,
+    on_decide: Option<DecideHandler>,
+) -> impl IntoElement {
     let accept_id = hunk.id.clone();
     let reject_id = hunk.id.clone();
     let accept = on_decide.clone();
@@ -297,11 +326,16 @@ pub(super) fn hunk_bar(hunk: InlineHunk, is_current: bool, compact: bool, bar_fi
         .cursor_default()
         // Borderless: the bar reads as a raised fill, not a framed box.
         .debug_selector(|| "hunk-bar".into())
-        .when(!is_current, |d| d.invisible().group_hover("inline-hunk", |d| d.visible()))
+        .when(!is_current, |d| {
+            d.invisible().group_hover("inline-hunk", |d| d.visible())
+        })
         .child(
             Button::new(ElementId::Name(format!("accept-{}", hunk.id).into()))
                 .when(!compact, |b| b.label("Accept").cap(ACCEPT_KEYS))
-                .when(compact, |b| b.icon(IconName::Check).tooltip(format!("Accept  {ACCEPT_KEYS}")))
+                .when(compact, |b| {
+                    b.icon(IconName::Check)
+                        .tooltip(format!("Accept  {ACCEPT_KEYS}"))
+                })
                 .size(ButtonSize::Sm)
                 .variant(ButtonVariant::Primary)
                 .on_click(move |_, window, cx| {
@@ -313,7 +347,10 @@ pub(super) fn hunk_bar(hunk: InlineHunk, is_current: bool, compact: bool, bar_fi
         .child(
             Button::new(ElementId::Name(format!("reject-{}", hunk.id).into()))
                 .when(!compact, |b| b.label("Reject").cap(REJECT_KEYS))
-                .when(compact, |b| b.icon(IconName::Close).tooltip(format!("Reject  {REJECT_KEYS}")))
+                .when(compact, |b| {
+                    b.icon(IconName::Close)
+                        .tooltip(format!("Reject  {REJECT_KEYS}"))
+                })
                 .size(ButtonSize::Sm)
                 .variant(ButtonVariant::Secondary)
                 .on_click(move |_, window, cx| {

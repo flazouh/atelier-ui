@@ -18,9 +18,17 @@ pub enum Decision {
 }
 
 /// The keys the bar names, as each platform writes them.
-pub(super) const ACCEPT_KEYS: &str = if cfg!(target_os = "macos") { "⌘↵" } else { "⌃↵" };
+pub(super) const ACCEPT_KEYS: &str = if cfg!(target_os = "macos") {
+    "⌘↵"
+} else {
+    "⌃↵"
+};
 
-pub(super) const REJECT_KEYS: &str = if cfg!(target_os = "macos") { "⌘⌫" } else { "⌃⌫" };
+pub(super) const REJECT_KEYS: &str = if cfg!(target_os = "macos") {
+    "⌘⌫"
+} else {
+    "⌃⌫"
+};
 
 /// Below this width the hunk bar keeps its two icons and drops the words and the key caps, so it does not
 /// cover the code it decides. The words and keys move to the tooltips.

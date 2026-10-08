@@ -1,11 +1,18 @@
 use std::path::{Path, PathBuf};
 
 use gpui_kit::{
-    Context, ElementId, EventEmitter, ExternalPaths, FontWeight, InteractiveElement,
-    IntoElement, ParentElement, PathPromptOptions, Render, SharedString,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
+    Context, ElementId, EventEmitter, ExternalPaths, FontWeight, InteractiveElement, IntoElement,
+    ParentElement, PathPromptOptions, Render, SharedString, StatefulInteractiveElement, Styled,
+    Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::{
+    clamp_progress, format_bytes, icon_of, kind_of, round_button, status_mark, take_paths,
+};
+use super::types::{
+    BAR_TIME, FileUploadEvent, ROW_LEAVE, ROW_RISE, ROW_TIME, SWAP_SHIFT, SWAP_TIME, UPLOAD_CELLS,
+    UploadStatus, UploadVariant,
+};
 use crate::scale::px;
 use crate::{
     cell_bar::CellBar,
@@ -14,13 +21,6 @@ use crate::{
     motion::{Channel, Curve, Spring, duration, ease, now},
     theme::ActiveTheme,
     typography::TextSize,
-};
-use super::types::{
-    BAR_TIME, FileUploadEvent, ROW_LEAVE, ROW_RISE, ROW_TIME, SWAP_SHIFT, SWAP_TIME,
-    UPLOAD_CELLS, UploadStatus, UploadVariant,
-};
-use super::helpers::{
-    clamp_progress, format_bytes, icon_of, kind_of, round_button, status_mark, take_paths,
 };
 
 /// One file in the queue.
@@ -39,13 +39,24 @@ pub struct UploadItem {
 
 impl UploadItem {
     pub fn new(id: impl Into<SharedString>, name: impl Into<SharedString>, size: u64) -> Self {
-        Self { id: id.into(), name: name.into(), size, mime: None, progress: 0., status: UploadStatus::Queued, error: None }
+        Self {
+            id: id.into(),
+            name: name.into(),
+            size,
+            mime: None,
+            progress: 0.,
+            status: UploadStatus::Queued,
+            error: None,
+        }
     }
 
     /// The item for the file at `path`: its name and size, uploading at 0.
     pub fn from_path(path: &Path, index: usize) -> std::io::Result<Self> {
         let size = std::fs::metadata(path)?.len();
-        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
         Ok(Self {
             id: format!("{}-{index}-{name}", crate::motion::now_millis()).into(),
             name: name.into(),
@@ -130,13 +141,22 @@ impl FileUpload {
         cx.notify();
     }
 
-    pub fn words(mut self, title: impl Into<SharedString>, description: impl Into<SharedString>) -> Self {
+    pub fn words(
+        mut self,
+        title: impl Into<SharedString>,
+        description: impl Into<SharedString>,
+    ) -> Self {
         self.title = title.into();
         self.description = description.into();
         self
     }
 
-    pub fn set_words(&mut self, title: impl Into<SharedString>, description: impl Into<SharedString>, cx: &mut Context<Self>) {
+    pub fn set_words(
+        &mut self,
+        title: impl Into<SharedString>,
+        description: impl Into<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
         self.title = title.into();
         self.description = description.into();
         cx.notify();
@@ -170,7 +190,11 @@ impl FileUpload {
 
     /// The files now in the queue, in order (those that are leaving are not).
     pub fn items(&self) -> Vec<UploadItem> {
-        self.rows.iter().filter(|r| r.exit.is_none()).map(|r| r.item.clone()).collect()
+        self.rows
+            .iter()
+            .filter(|r| r.exit.is_none())
+            .map(|r| r.item.clone())
+            .collect()
     }
 
     fn live(&self) -> usize {
@@ -185,7 +209,13 @@ impl FileUpload {
         let mut enter = Channel::new(if reduce { 1. } else { 0. });
         enter.animate(1., Curve::Ease(ROW_TIME, ease::OUT), 0., reduce);
         let bar = Channel::new(clamp_progress(item.progress, item.status) / 100.);
-        Row { item, enter, exit: None, bar, swap: None }
+        Row {
+            item,
+            enter,
+            exit: None,
+            bar,
+            swap: None,
+        }
     }
 
     /// Makes the queue these files. A file that is not in the list leaves, and one that is new comes in; one that is in
@@ -195,12 +225,16 @@ impl FileUpload {
         let mut rows: Vec<Row> = Vec::new();
         let mut old = std::mem::take(&mut self.rows);
         for item in items {
-            match old.iter().position(|r| r.item.id == item.id && r.exit.is_none()) {
+            match old
+                .iter()
+                .position(|r| r.item.id == item.id && r.exit.is_none())
+            {
                 Some(at) => {
                     let mut row = old.remove(at);
                     let target = clamp_progress(item.progress, item.status) / 100.;
                     if (row.bar.target() - target).abs() > 1e-4 {
-                        row.bar.animate(target, Curve::Ease(BAR_TIME, ease::OUT), 0., reduce);
+                        row.bar
+                            .animate(target, Curve::Ease(BAR_TIME, ease::OUT), 0., reduce);
                     }
                     if row.item.status != item.status && !reduce {
                         let mut run = Channel::new(0.);
@@ -223,7 +257,11 @@ impl FileUpload {
                 run.animate(1., Curve::Ease(ROW_TIME, ease::OUT), 0., false);
                 gone.exit = Some(run);
             }
-            let at = rows.len().min(rows.iter().position(|r| r.item.id == gone.item.id).unwrap_or(rows.len()));
+            let at = rows.len().min(
+                rows.iter()
+                    .position(|r| r.item.id == gone.item.id)
+                    .unwrap_or(rows.len()),
+            );
             rows.insert(at, gone);
         }
         self.rows = rows;
@@ -231,7 +269,12 @@ impl FileUpload {
     }
 
     /// Changes one file in place, for progress and status as the owner sends it.
-    pub fn update(&mut self, id: &str, change: impl FnOnce(&mut UploadItem), cx: &mut Context<Self>) {
+    pub fn update(
+        &mut self,
+        id: &str,
+        change: impl FnOnce(&mut UploadItem),
+        cx: &mut Context<Self>,
+    ) {
         let mut items = self.items();
         if let Some(item) = items.iter_mut().find(|i| i.id == id) {
             change(item);
@@ -249,10 +292,15 @@ impl FileUpload {
             return;
         }
         let taken = take_paths(paths, &self.accept, room, self.multiple);
-        let added: Vec<UploadItem> = taken.iter().enumerate().filter_map(|(i, p)| UploadItem::from_path(p, i).ok()).map(|mut i| {
-            i.status = UploadStatus::Uploading;
-            i
-        }).collect();
+        let added: Vec<UploadItem> = taken
+            .iter()
+            .enumerate()
+            .filter_map(|(i, p)| UploadItem::from_path(p, i).ok())
+            .map(|mut i| {
+                i.status = UploadStatus::Uploading;
+                i
+            })
+            .collect();
         if added.is_empty() {
             return;
         }
@@ -287,7 +335,12 @@ impl FileUpload {
         if self.disabled || self.maxed() {
             return;
         }
-        let picked = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: self.multiple, prompt: Some("Add".into()) });
+        let picked = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: self.multiple,
+            prompt: Some("Add".into()),
+        });
         cx.spawn(async move |this, cx| {
             if let Ok(Ok(Some(paths))) = picked.await {
                 this.update(cx, |s, cx| s.add_paths(&paths, cx)).ok();
@@ -302,24 +355,37 @@ impl Render for FileUpload {
         let theme = cx.theme().clone();
         let this = cx.entity().downgrade();
         // Rows whose exit has run are gone.
-        self.rows.retain(|r| r.exit.as_ref().is_none_or(|run| run.is_running()));
+        self.rows
+            .retain(|r| r.exit.as_ref().is_none_or(|run| run.is_running()));
         for row in &mut self.rows {
             if row.swap.as_ref().is_some_and(|(_, run)| !run.is_running()) {
                 row.swap = None;
             }
         }
-        let uploading = self.rows.iter().any(|r| r.item.status == UploadStatus::Uploading);
-        let moving = self.rows.iter().any(|r| r.enter.is_running() || r.exit.is_some() || r.bar.is_running() || r.swap.is_some());
+        let uploading = self
+            .rows
+            .iter()
+            .any(|r| r.item.status == UploadStatus::Uploading);
+        let moving = self.rows.iter().any(|r| {
+            r.enter.is_running() || r.exit.is_some() || r.bar.is_running() || r.swap.is_some()
+        });
         if moving || uploading {
             window.request_animation_frame();
         }
-        let spin = (now().saturating_duration_since(crate::motion::epoch()).as_secs_f32() % duration::SPIN.as_secs_f32()) / duration::SPIN.as_secs_f32();
+        let spin = (now()
+            .saturating_duration_since(crate::motion::epoch())
+            .as_secs_f32()
+            % duration::SPIN.as_secs_f32())
+            / duration::SPIN.as_secs_f32();
         let centered = self.variant == UploadVariant::Centered;
         let maxed = self.maxed();
         let off = self.disabled || maxed;
         let live = self.live();
         let (title, description): (SharedString, SharedString) = if maxed {
-            ("Upload limit reached".into(), format!("{live} of {} files added", self.max_files.unwrap_or(live)).into())
+            (
+                "Upload limit reached".into(),
+                format!("{live} of {} files added", self.max_files.unwrap_or(live)).into(),
+            )
         } else {
             (self.title.clone(), self.description.clone())
         };
@@ -338,7 +404,15 @@ impl Render for FileUpload {
                 .border_dashed()
                 .border_color(border)
                 .bg(theme.background)
-                .when(centered, |d| d.min_h(px(224.)).flex_col().items_center().justify_center().gap(px(12.)).p(px(28.)).text_center())
+                .when(centered, |d| {
+                    d.min_h(px(224.))
+                        .flex_col()
+                        .items_center()
+                        .justify_center()
+                        .gap(px(12.))
+                        .p(px(28.))
+                        .text_center()
+                })
                 .when(!centered, |d| d.items_center().gap(px(16.)).p(px(20.)))
                 .when(off, |d| d.opacity(0.55))
                 .when(!off, |d| {
@@ -360,16 +434,36 @@ impl Render for FileUpload {
                         .justify_center()
                         .bg(theme.card_strong)
                         .text_color(theme.foreground)
-                        .when(centered, |d| d.size(px(64.)).rounded(px(21.6)).border_1().border_color(theme.foreground.opacity(0.08)))
+                        .when(centered, |d| {
+                            d.size(px(64.))
+                                .rounded(px(21.6))
+                                .border_1()
+                                .border_color(theme.foreground.opacity(0.08))
+                        })
                         .when(!centered, |d| d.size(px(56.)).rounded(px(20.)))
-                        .child(Icon::new(IconName::CloudUpload).size(px(if centered { 28. } else { 24. }))),
+                        .child(Icon::new(IconName::CloudUpload).size(px(if centered {
+                            28.
+                        } else {
+                            24.
+                        }))),
                 )
                 .child(
                     div()
                         .min_w_0()
                         .when(centered, |d| d.max_w(px(320.)))
                         .when(!centered, |d| d.flex_1())
-                        .child(div().font_weight(FontWeight::SEMIBOLD).text_color(theme.foreground).text_size(if centered { TextSize::Base.font_size() } else { TextSize::Sm.font_size() }).line_height(px(if centered { 24. } else { 20. })).child(title))
+                        .child(
+                            div()
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .text_color(theme.foreground)
+                                .text_size(if centered {
+                                    TextSize::Base.font_size()
+                                } else {
+                                    TextSize::Sm.font_size()
+                                })
+                                .line_height(px(if centered { 24. } else { 20. }))
+                                .child(title),
+                        )
                         .child(
                             div()
                                 .mt(px(if centered { 4. } else { 2. }))
@@ -397,7 +491,10 @@ impl Render for FileUpload {
 
         let rows = self.rows.iter().map(|row| {
             let item = &row.item;
-            let (enter, exit) = (row.enter.value().clamp(0., 1.), row.exit.as_ref().map(|r| r.value().clamp(0., 1.)));
+            let (enter, exit) = (
+                row.enter.value().clamp(0., 1.),
+                row.exit.as_ref().map(|r| r.value().clamp(0., 1.)),
+            );
             let opacity = enter * (1. - exit.unwrap_or(0.));
             let offset = ROW_RISE * (1. - enter) - ROW_LEAVE * exit.unwrap_or(0.);
             let status = item.status;
@@ -413,17 +510,29 @@ impl Render for FileUpload {
                     let s = run.value().clamp(0., 1.);
                     if s < 0.5 {
                         let t = s * 2.;
-                        div().relative().top(px(-SWAP_SHIFT * t)).opacity(1. - t).child(status_mark(&theme, *old, spin)).into_any_element()
+                        div()
+                            .relative()
+                            .top(px(-SWAP_SHIFT * t))
+                            .opacity(1. - t)
+                            .child(status_mark(&theme, *old, spin))
+                            .into_any_element()
                     } else {
                         let t = (s - 0.5) * 2.;
-                        div().relative().top(px(SWAP_SHIFT * (1. - t))).opacity(t).child(status_mark(&theme, status, spin)).into_any_element()
+                        div()
+                            .relative()
+                            .top(px(SWAP_SHIFT * (1. - t)))
+                            .opacity(t)
+                            .child(status_mark(&theme, status, spin))
+                            .into_any_element()
                     }
                 }
                 None => status_mark(&theme, status, spin).into_any_element(),
             };
             let meta = {
                 let mut m = format!("{} · {}", kind_of(item), format_bytes(item.size));
-                if status == UploadStatus::Error && let Some(error) = &item.error {
+                if status == UploadStatus::Error
+                    && let Some(error) = &item.error
+                {
                     m.push_str(" · ");
                     m.push_str(error);
                 }
@@ -476,8 +585,23 @@ impl Render for FileUpload {
                                             .child(
                                                 div()
                                                     .min_w_0()
-                                                    .child(div().truncate().text_size(TextSize::Sm.font_size()).line_height(px(20.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(item.name.clone()))
-                                                    .child(div().mt(px(2.)).text_size(TextSize::Xs.font_size()).line_height(px(16.)).text_color(theme.muted_foreground).child(SharedString::from(meta))),
+                                                    .child(
+                                                        div()
+                                                            .truncate()
+                                                            .text_size(TextSize::Sm.font_size())
+                                                            .line_height(px(20.))
+                                                            .font_weight(FontWeight::MEDIUM)
+                                                            .text_color(theme.foreground)
+                                                            .child(item.name.clone()),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .mt(px(2.))
+                                                            .text_size(TextSize::Xs.font_size())
+                                                            .line_height(px(16.))
+                                                            .text_color(theme.muted_foreground)
+                                                            .child(SharedString::from(meta)),
+                                                    ),
                                             )
                                             .child(
                                                 div()
@@ -485,20 +609,62 @@ impl Render for FileUpload {
                                                     .flex()
                                                     .items_center()
                                                     .gap(px(4.))
-                                                    .child(div().size(px(24.)).flex().items_center().justify_center().child(mark))
-                                                    .when(status == UploadStatus::Error && live_row, |d| {
-                                                        let retry_id = retry_id.clone();
-                                                        d.child(round_button(&theme, (self.id.clone(), format!("retry-{id}")).into(), IconName::RotateLeft, "upload-retry").on_click(move |_, _, cx| {
-                                                            cx.stop_propagation();
-                                                            retry_this.update(cx, |s, cx| s.retry(&retry_id, cx)).ok();
-                                                        }))
-                                                    })
+                                                    .child(
+                                                        div()
+                                                            .size(px(24.))
+                                                            .flex()
+                                                            .items_center()
+                                                            .justify_center()
+                                                            .child(mark),
+                                                    )
+                                                    .when(
+                                                        status == UploadStatus::Error && live_row,
+                                                        |d| {
+                                                            let retry_id = retry_id.clone();
+                                                            d.child(
+                                                                round_button(
+                                                                    &theme,
+                                                                    (
+                                                                        self.id.clone(),
+                                                                        format!("retry-{id}"),
+                                                                    )
+                                                                        .into(),
+                                                                    IconName::RotateLeft,
+                                                                    "upload-retry",
+                                                                )
+                                                                .on_click(move |_, _, cx| {
+                                                                    cx.stop_propagation();
+                                                                    retry_this
+                                                                        .update(cx, |s, cx| {
+                                                                            s.retry(&retry_id, cx)
+                                                                        })
+                                                                        .ok();
+                                                                }),
+                                                            )
+                                                        },
+                                                    )
                                                     .when(live_row, |d| {
                                                         let remove_id = remove_id.clone();
-                                                        d.child(round_button(&theme, (self.id.clone(), format!("remove-{id}")).into(), IconName::Close, "upload-remove").on_click(move |_, _, cx| {
-                                                            cx.stop_propagation();
-                                                            remove_this.update(cx, |s, cx| s.remove(&remove_id, cx)).ok();
-                                                        }))
+                                                        d.child(
+                                                            round_button(
+                                                                &theme,
+                                                                (
+                                                                    self.id.clone(),
+                                                                    format!("remove-{id}"),
+                                                                )
+                                                                    .into(),
+                                                                IconName::Close,
+                                                                "upload-remove",
+                                                            )
+                                                            .on_click(move |_, _, cx| {
+                                                                cx.stop_propagation();
+                                                                remove_this
+                                                                    .update(cx, |s, cx| {
+                                                                        s.remove(&remove_id, cx)
+                                                                    })
+                                                                    .ok();
+                                                            }),
+                                                        )
                                                     }),
                                             ),
                                     )
@@ -508,7 +674,11 @@ impl Render for FileUpload {
                                                 CellBar::new(Some(ratio))
                                                     .stretch(true)
                                                     .cells(UPLOAD_CELLS)
-                                                    .color(if status == UploadStatus::Success { theme.success } else { theme.foreground })
+                                                    .color(if status == UploadStatus::Success {
+                                                        theme.success
+                                                    } else {
+                                                        theme.foreground
+                                                    })
                                                     .debug_name(format!("upload-bar-{id}")),
                                             ),
                                         )

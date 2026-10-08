@@ -12,7 +12,12 @@ pub struct ModelRow {
 
 impl ModelRow {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), detail: None, hidden: false }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            detail: None,
+            hidden: false,
+        }
     }
 
     pub fn hidden(mut self, hidden: bool) -> Self {

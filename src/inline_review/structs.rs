@@ -3,27 +3,18 @@ use super::{AcceptHunk, RejectHunk};
 use std::{collections::HashMap, ops::Range, rc::Rc, sync::Arc, time::Instant};
 
 use gpui_kit::{
-    App,
-    ElementId,
-    Entity,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    Pixels,
-    RenderOnce,
-    SharedString,
-    Styled,
-    Window,
+    App, ElementId, Entity, InteractiveElement, IntoElement, ParentElement, Pixels, RenderOnce,
+    SharedString, Styled, Window,
     base::input::{self, RowBackground, RowBlock, RowGap, RowWidget},
     component::input::EditorState,
     div,
     prelude::FluentBuilder,
 };
 
-use crate::{code_editor::CodeEditor, theme::ActiveTheme};
+use super::helpers::{add_comment_button, compact_bar, decide_at_caret, hunk_bar, washes};
 pub use super::resolve::Resolve;
 use super::types::{DecideHandler, Decision, RowHandler};
-use super::helpers::{add_comment_button, compact_bar, decide_at_caret, hunk_bar, washes};
+use crate::{code_editor::CodeEditor, theme::ActiveTheme};
 
 /// One hunk as it sits in the buffer.
 ///
@@ -39,7 +30,11 @@ pub struct InlineHunk {
 
 impl InlineHunk {
     pub fn new(id: impl Into<SharedString>, removed: Range<usize>, added: Range<usize>) -> Self {
-        Self { id: id.into(), removed, added }
+        Self {
+            id: id.into(),
+            removed,
+            added,
+        }
     }
 
     /// Every row the hunk occupies, old and new together.
@@ -89,7 +84,12 @@ impl DecisionHistory {
     /// The hunks that belong to `text`, when it is the text from just before or just after a
     /// decision, the newest first. `None` for any other text.
     pub fn hunks_for(&self, text: &str) -> Option<Vec<InlineHunk>> {
-        self.decisions.iter().rev().flatten().find(|(known, _)| known == text).map(|(_, hunks)| hunks.clone())
+        self.decisions
+            .iter()
+            .rev()
+            .flatten()
+            .find(|(known, _)| known == text)
+            .map(|(_, hunks)| hunks.clone())
     }
 }
 
@@ -116,7 +116,11 @@ pub struct InlineReview {
 }
 
 impl InlineReview {
-    pub fn new(id: impl Into<ElementId>, state: &Entity<EditorState>, hunks: Vec<InlineHunk>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        state: &Entity<EditorState>,
+        hunks: Vec<InlineHunk>,
+    ) -> Self {
         Self {
             id: id.into(),
             state: state.clone(),
@@ -178,7 +182,10 @@ impl InlineReview {
 
     /// Called once a decided hunk has faded, which is when its text edit should run. The handler marks
     /// the hunk's [`Resolve`] with [`Resolve::edited`]; until it does, this may be called again.
-    pub fn on_resolved(mut self, f: impl Fn(&SharedString, Decision, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_resolved(
+        mut self,
+        f: impl Fn(&SharedString, Decision, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_resolved = Some(Arc::new(f));
         self
     }
@@ -243,7 +250,11 @@ impl RenderOnce for InlineReview {
             .iter()
             .filter_map(|hunk| {
                 let (fade, decision) = fades.get(&hunk.id).copied()?;
-                Some(RowBackground { rows: hunk.closing(decision), color: fill.opacity(1. - fade), marker: None })
+                Some(RowBackground {
+                    rows: hunk.closing(decision),
+                    color: fill.opacity(1. - fade),
+                    marker: None,
+                })
             })
             .collect();
         // The editor paints the washes and places the bars from its own layout, so they sit exactly
@@ -253,7 +264,9 @@ impl RenderOnce for InlineReview {
             .iter()
             .flat_map(|hunk| {
                 let fade = fades.get(&hunk.id).map_or(1., |(fade, _)| *fade);
-                washes(std::slice::from_ref(hunk)).into_iter().map(move |(rows, added)| (rows, added, fade))
+                washes(std::slice::from_ref(hunk))
+                    .into_iter()
+                    .map(move |(rows, added)| (rows, added, fade))
             })
             .map(|(rows, added, fade)| RowBackground {
                 rows,
@@ -263,7 +276,11 @@ impl RenderOnce for InlineReview {
             .collect();
         let bar_fill = theme.card_strong;
         // The review's own width in the last frame; the first frame draws the full bar.
-        let width = window.use_keyed_state(ElementId::NamedChild(Arc::new(self.id.clone()), "width".into()), cx, |_, _| f32::MAX);
+        let width = window.use_keyed_state(
+            ElementId::NamedChild(Arc::new(self.id.clone()), "width".into()),
+            cx,
+            |_, _| f32::MAX,
+        );
         let compact = compact_bar(*width.read(cx));
         let measure = {
             let width = width.clone();
@@ -292,15 +309,27 @@ impl RenderOnce for InlineReview {
                 RowWidget {
                     row: hunk.rows().start,
                     render: Rc::new(move |_, _| {
-                        hunk_bar(hunk.clone(), is_current, compact, bar_fill, on_decide.clone()).into_any_element()
+                        hunk_bar(
+                            hunk.clone(),
+                            is_current,
+                            compact,
+                            bar_fill,
+                            on_decide.clone(),
+                        )
+                        .into_any_element()
                     }),
                 }
             })
             .collect();
-        let add = self.on_add_comment.clone().map(|add| -> input::GutterWidget {
-            let (fill, ink) = (theme.primary, theme.primary_foreground);
-            Rc::new(move |row, _, _| add_comment_button(row, fill, ink, add.clone()).into_any_element())
-        });
+        let add = self
+            .on_add_comment
+            .clone()
+            .map(|add| -> input::GutterWidget {
+                let (fill, ink) = (theme.primary, theme.primary_foreground);
+                Rc::new(move |row, _, _| {
+                    add_comment_button(row, fill, ink, add.clone()).into_any_element()
+                })
+            });
         self.state.update(cx, |state, cx| {
             state.set_row_backgrounds(backgrounds, cx);
             state.set_row_covers(covers, cx);
@@ -310,7 +339,12 @@ impl RenderOnce for InlineReview {
             state.set_gutter_widget(add);
         });
         // A hunk on its way out is no longer the keyboard's to decide.
-        let open: Vec<InlineHunk> = self.hunks.iter().filter(|h| self.decisions && !deciding(h)).cloned().collect();
+        let open: Vec<InlineHunk> = self
+            .hunks
+            .iter()
+            .filter(|h| self.decisions && !deciding(h))
+            .cloned()
+            .collect();
         let keys = (self.state.clone(), open, self.on_decide.clone());
         let accept_keys = keys.clone();
 

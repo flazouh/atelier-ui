@@ -9,6 +9,8 @@ pub fn words(agent: &str, account: Option<&str>, state: &SignInState) -> String 
         },
         SignInState::Waiting => format!("Finish signing in to {agent} in your browser."),
         SignInState::Failed(why) => format!("{agent} is not signed in. {why}"),
-        SignInState::Elsewhere(host) => format!("{agent} is not signed in on {host}. Sign in there, then send your message again."),
+        SignInState::Elsewhere(host) => format!(
+            "{agent} is not signed in on {host}. Sign in there, then send your message again."
+        ),
     }
 }

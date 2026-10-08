@@ -16,13 +16,25 @@ pub struct PopFrame {
 
 pub fn frame(elapsed: f32, reduce_motion: bool) -> PopFrame {
     if reduce_motion {
-        return PopFrame { opacity: 1., y: 0., settled: true };
+        return PopFrame {
+            opacity: 1.,
+            y: 0.,
+            settled: true,
+        };
     }
     let x = Spring::MESSAGE_POP.position(elapsed.max(0.));
     if elapsed > 0.05 && (1. - x).abs() < 0.0005 {
-        return PopFrame { opacity: 1., y: 0., settled: true };
+        return PopFrame {
+            opacity: 1.,
+            y: 0.,
+            settled: true,
+        };
     }
-    PopFrame { opacity: x.clamp(0., 1.), y: RISE * (1. - x), settled: false }
+    PopFrame {
+        opacity: x.clamp(0., 1.),
+        y: RISE * (1. - x),
+        settled: false,
+    }
 }
 
 #[cfg(test)]

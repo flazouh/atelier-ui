@@ -1,8 +1,12 @@
 use gpui_kit::{AnyElement, ElementId, IntoElement, ParentElement, Styled, div};
 
-use crate::scale::px;
-use crate::{task_marks::label_tone_color, task_model::{Assignee, Label}, theme::Theme};
 use super::types::MAX_LABELS;
+use crate::scale::px;
+use crate::{
+    task_marks::label_tone_color,
+    task_model::{Assignee, Label},
+    theme::Theme,
+};
 
 /// The labels a row shows, and how many more there are.
 pub fn shown_labels(labels: &[Label]) -> (&[Label], usize) {
@@ -23,13 +27,23 @@ pub fn label_chip(label: &Label, theme: &Theme) -> AnyElement {
         .bg(theme.card_strong)
         .text_size(px(11.))
         .text_color(theme.muted_foreground)
-        .child(div().size(px(6.)).rounded_full().bg(label_tone_color(label, theme)))
+        .child(
+            div()
+                .size(px(6.))
+                .rounded_full()
+                .bg(label_tone_color(label, theme)),
+        )
         .child(label.name.clone())
         .into_any_element()
 }
 
 /// The assignee's mark: a person's initial in a circle, or the agent's own mark.
-pub fn assignee_mark(id: impl Into<ElementId>, assignee: &Assignee, size: f32, theme: &Theme) -> AnyElement {
+pub fn assignee_mark(
+    id: impl Into<ElementId>,
+    assignee: &Assignee,
+    size: f32,
+    theme: &Theme,
+) -> AnyElement {
     match assignee {
         Assignee::Person { .. } => div()
             .flex()
@@ -51,7 +65,12 @@ pub fn assignee_mark(id: impl Into<ElementId>, assignee: &Assignee, size: f32, t
             .size(px(size))
             .rounded_full()
             .bg(theme.card_strong)
-            .child(look.mark.sprite(id, look.mark.working).size(px(size * 0.7)).playing(false))
+            .child(
+                look.mark
+                    .sprite(id, look.mark.working)
+                    .size(px(size * 0.7))
+                    .playing(false),
+            )
             .into_any_element(),
     }
 }

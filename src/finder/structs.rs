@@ -1,23 +1,12 @@
 use gpui_kit::{
-    AppContext,
-    Context,
-    Entity,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    ParentElement,
-    Render,
-    SharedString,
-    Styled,
-    Subscription,
-    Window,
+    AppContext, Context, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement,
+    IntoElement, KeyDownEvent, ParentElement, Render, SharedString, Styled, Subscription, Window,
     component::input::{Input, InputEvent, InputState},
     div,
 };
 
+use super::helpers::pick_hover;
+use super::types::{ENTER, Filter, FinderEvent, ROW_HEIGHT, ROWS, WIDTH};
 use crate::scale::px;
 use crate::{
     combobox::{ComboEntry, ComboList, ComboRow, ComboStyle},
@@ -30,8 +19,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{ENTER, Filter, FinderEvent, ROWS, ROW_HEIGHT, WIDTH};
-use super::helpers::pick_hover;
 
 /// One row: what it is, where it is, and the file whose icon leads it.
 #[derive(Clone, Debug, PartialEq)]
@@ -44,7 +31,11 @@ pub struct FinderItem {
 
 impl FinderItem {
     pub fn new(label: impl Into<SharedString>, detail: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), detail: detail.into(), icon: None }
+        Self {
+            label: label.into(),
+            detail: detail.into(),
+            icon: None,
+        }
     }
 
     /// Leads the row with the file icon for `path`.
@@ -79,7 +70,13 @@ impl Focusable for Finder {
 }
 
 impl Finder {
-    pub fn new(title: impl Into<SharedString>, placeholder: impl Into<SharedString>, filter: Filter, window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        title: impl Into<SharedString>,
+        placeholder: impl Into<SharedString>,
+        filter: Filter,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let placeholder: SharedString = placeholder.into();
         let input = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
         let _input = cx.subscribe(&input, |this: &mut Self, input, event: &InputEvent, cx| {
@@ -143,7 +140,11 @@ impl Finder {
             // No words: the rows in the owner's order.
             Filter::Here if query.trim().is_empty() => (0..self.items.len().min(ROWS)).collect(),
             Filter::Here => {
-                let texts: Vec<String> = self.items.iter().map(|i| format!("{} {}", i.label, i.detail)).collect();
+                let texts: Vec<String> = self
+                    .items
+                    .iter()
+                    .map(|i| format!("{} {}", i.label, i.detail))
+                    .collect();
                 fuzzy::rank(query, texts.iter().map(String::as_str), ROWS)
             }
             Filter::Owner => (0..self.items.len().min(ROWS)).collect(),
@@ -192,7 +193,8 @@ impl Render for Finder {
             self.clock.rest();
         }
         let enter = self.enter.value();
-        let count = (!self.items.is_empty()).then(|| format!("{} of {}", self.shown.len(), self.items.len()));
+        let count = (!self.items.is_empty())
+            .then(|| format!("{} of {}", self.shown.len(), self.items.len()));
         let search = div()
             .flex()
             .items_center()
@@ -201,8 +203,26 @@ impl Render for Finder {
             .border_b_1()
             .border_color(crate::text_input::edge(&theme, theme.card))
             .child(Icon::new(IconName::Search).size(px(16.)).color(muted))
-            .child(div().flex_1().h(px(48.)).flex().items_center().text_size(TextSize::Sm.font_size()).child(Input::new(&self.input).appearance(false).bordered(false).px(px(0.))))
-            .children(count.map(|c| div().text_size(TextSize::Xs.font_size()).text_color(muted).child(c)))
+            .child(
+                div()
+                    .flex_1()
+                    .h(px(48.))
+                    .flex()
+                    .items_center()
+                    .text_size(TextSize::Sm.font_size())
+                    .child(
+                        Input::new(&self.input)
+                            .appearance(false)
+                            .bordered(false)
+                            .px(px(0.)),
+                    ),
+            )
+            .children(count.map(|c| {
+                div()
+                    .text_size(TextSize::Xs.font_size())
+                    .text_color(muted)
+                    .child(c)
+            }))
             .child(Kbd::new("Esc"));
         let mut entries = vec![ComboEntry::Group(self.title.clone())];
         entries.extend(self.shown.iter().map(|&item| {
@@ -221,8 +241,17 @@ impl Render for Finder {
             h.finish()
         };
         let empty = self.shown.is_empty().then(|| {
-            let note = if self.note.is_empty() { SharedString::from("Nothing matches") } else { self.note.clone() };
-            div().p(px(32.)).text_center().text_size(TextSize::Sm.font_size()).text_color(muted).child(note)
+            let note = if self.note.is_empty() {
+                SharedString::from("Nothing matches")
+            } else {
+                self.note.clone()
+            };
+            div()
+                .p(px(32.))
+                .text_center()
+                .text_size(TextSize::Sm.font_size())
+                .text_color(muted)
+                .child(note)
         });
         let list = ComboList::new("finder-list", entries)
             .debug_name("finder-list")
@@ -235,7 +264,8 @@ impl Render for Finder {
                 pick_hover(&hover, i, cx);
             })
             .on_pick(move |i, _, cx| {
-                pick.update(cx, |this, cx| this.pick(i.saturating_sub(1), cx)).ok();
+                pick.update(cx, |this, cx| this.pick(i.saturating_sub(1), cx))
+                    .ok();
             })
             .footer(div().children(empty));
         div()
@@ -255,7 +285,10 @@ impl Render for Finder {
             .border_color(crate::text_input::edge(&theme, theme.card))
             .bg(theme.card)
             .shadow(vec![gpui_kit::BoxShadow {
-                color: gpui_kit::Hsla { a: 0.25, ..theme.shadow },
+                color: gpui_kit::Hsla {
+                    a: 0.25,
+                    ..theme.shadow
+                },
                 offset: gpui_kit::point(px(0.), px(25.)),
                 blur_radius: px(50.),
                 spread_radius: px(-12.),

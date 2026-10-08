@@ -8,7 +8,13 @@ use crate::{
 fn enter_chooses_the_candidate_under_the_cursor_and_closes_the_picker() {
     let mut picker = Picker::status(Some(TaskStatus::Todo));
     assert_eq!(handle_key(&mut picker, "down", None), Outcome::Open);
-    assert_eq!(handle_key(&mut picker, "enter", None), Outcome::Chosen { change: Change::Status(TaskStatus::InProgress), stays_open: false });
+    assert_eq!(
+        handle_key(&mut picker, "enter", None),
+        Outcome::Chosen {
+            change: Change::Status(TaskStatus::InProgress),
+            stays_open: false
+        }
+    );
 }
 
 #[test]
@@ -17,7 +23,13 @@ fn escape_closes_and_typing_filters_and_backspace_widens_again() {
     assert_eq!(handle_key(&mut picker, "escape", None), Outcome::Close);
     assert_eq!(handle_key(&mut picker, "h", Some("h")), Outcome::Open);
     assert_eq!(picker.shown().len(), 1, "only High has an h");
-    assert_eq!(handle_key(&mut picker, "enter", None), Outcome::Chosen { change: Change::Priority(Priority::High), stays_open: false });
+    assert_eq!(
+        handle_key(&mut picker, "enter", None),
+        Outcome::Chosen {
+            change: Change::Priority(Priority::High),
+            stays_open: false
+        }
+    );
     assert_eq!(handle_key(&mut picker, "backspace", None), Outcome::Open);
     assert_eq!(picker.shown().len(), 5);
 }
@@ -25,7 +37,12 @@ fn escape_closes_and_typing_filters_and_backspace_widens_again() {
 #[test]
 fn keys_that_type_nothing_are_ignored() {
     let mut picker = Picker::priority(None);
-    for (key, text) in [("shift", None), ("tab", Some("\t")), ("left", Some("")), ("f1", None)] {
+    for (key, text) in [
+        ("shift", None),
+        ("tab", Some("\t")),
+        ("left", Some("")),
+        ("f1", None),
+    ] {
         assert_eq!(handle_key(&mut picker, key, text), Outcome::Open);
     }
     assert_eq!(picker.query(), "", "nothing was typed");
@@ -44,10 +61,19 @@ fn a_label_choice_keeps_the_picker_open_and_flips_its_mark() {
     let all = [Label::new("bug", 1), Label::new("ui", 2)];
     let mut picker = Picker::labels(&all, &[]);
     let chosen = handle_key(&mut picker, "enter", None);
-    assert_eq!(chosen, Outcome::Chosen { change: Change::ToggleLabel(all[0].clone()), stays_open: true });
+    assert_eq!(
+        chosen,
+        Outcome::Chosen {
+            change: Change::ToggleLabel(all[0].clone()),
+            stays_open: true
+        }
+    );
     assert!(picker.candidates()[0].chosen, "the label shows as on");
     handle_key(&mut picker, "enter", None);
-    assert!(!picker.candidates()[0].chosen, "the same choice again takes it off");
+    assert!(
+        !picker.candidates()[0].chosen,
+        "the same choice again takes it off"
+    );
 }
 
 #[test]
@@ -102,7 +128,11 @@ mod morph {
         let all = picker.shown().len() as f32;
         assert_eq!(list_height(&picker), 8. + all * 28. + (all - 1.) * 2.);
         picker.type_text("zzzz");
-        assert_eq!(list_height(&picker), 8. + 28., "nothing shown is still one row tall");
+        assert_eq!(
+            list_height(&picker),
+            8. + 28.,
+            "nothing shown is still one row tall"
+        );
         let many = Picker::priority(Some(Priority::None));
         assert!(list_height(&many) <= 8. + crate::combobox::MAX_HEIGHT);
     }
@@ -120,7 +150,13 @@ mod morph {
     fn a_field_with_no_chip_cannot_morph() {
         let mut m = PickerMorph::default();
         assert!(!m.can_morph(Field::Status));
-        m.set_anchor(Field::Status, gpui_kit::Bounds::new(gpui_kit::point(gpui_kit::px(1.), gpui_kit::px(2.)), gpui_kit::size(gpui_kit::px(80.), gpui_kit::px(28.))));
+        m.set_anchor(
+            Field::Status,
+            gpui_kit::Bounds::new(
+                gpui_kit::point(gpui_kit::px(1.), gpui_kit::px(2.)),
+                gpui_kit::size(gpui_kit::px(80.), gpui_kit::px(28.)),
+            ),
+        );
         assert!(m.can_morph(Field::Status) && !m.can_morph(Field::Labels));
     }
 }

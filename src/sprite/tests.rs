@@ -1,11 +1,29 @@
 use super::*;
 
 /// A looping strip of 9 frames at 90ms, like an agent's thinking mark.
-const LOOP: Strip = Strip { path: "test/loop.svg", bytes: b"", frames: 9, frame_ms: 90, loops: true };
+const LOOP: Strip = Strip {
+    path: "test/loop.svg",
+    bytes: b"",
+    frames: 9,
+    frame_ms: 90,
+    loops: true,
+};
 /// A slow loop: 16 frames at 600ms.
-const SLOW: Strip = Strip { path: "test/slow.svg", bytes: b"", frames: 16, frame_ms: 600, loops: true };
+const SLOW: Strip = Strip {
+    path: "test/slow.svg",
+    bytes: b"",
+    frames: 16,
+    frame_ms: 600,
+    loops: true,
+};
 /// A one-shot strip of 6 frames at 70ms, like an entrance.
-const ONCE: Strip = Strip { path: "test/once.svg", bytes: b"", frames: 6, frame_ms: 70, loops: false };
+const ONCE: Strip = Strip {
+    path: "test/once.svg",
+    bytes: b"",
+    frames: 6,
+    frame_ms: 70,
+    loops: false,
+};
 
 #[test]
 fn frame_zero_shows_at_the_start() {
@@ -99,6 +117,14 @@ fn a_frame_is_not_scaled_by_the_zoom_a_second_time() {
     crate::scale::set_zoom(1.2);
     let (size, frame) = frame_box(crate::scale::px(18.), (100., 900.), 9);
     crate::scale::set_zoom(1.);
-    assert_eq!(f32::from(size), 22., "18 design pixels at 1.2 are 21.6, kept whole");
-    assert_eq!(f32::from(frame), 22., "a square frame is as tall as the box, not 1.2 times taller");
+    assert_eq!(
+        f32::from(size),
+        22.,
+        "18 design pixels at 1.2 are 21.6, kept whole"
+    );
+    assert_eq!(
+        f32::from(frame),
+        22.,
+        "a square frame is as tall as the box, not 1.2 times taller"
+    );
 }

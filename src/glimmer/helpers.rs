@@ -2,11 +2,15 @@ use std::ops::Range;
 
 use gpui_kit::{HighlightStyle, Hsla};
 
-use crate::{motion::glimmer as tuning, theme::mix};
 use super::types::ZWJ;
+use crate::{motion::glimmer as tuning, theme::mix};
 
 pub(crate) fn step_ms(requesting: bool) -> u64 {
-    if requesting { tuning::REQUESTING_STEP_MS } else { tuning::STEP_MS }
+    if requesting {
+        tuning::REQUESTING_STEP_MS
+    } else {
+        tuning::STEP_MS
+    }
 }
 
 /// Cursor's text shimmer (its StyleX `ui-c079w9` with keyframes `ui-f4slbi-B`): a gradient twice the text's width,
@@ -33,14 +37,22 @@ pub(super) fn cycle(text_width: i32) -> i32 {
 pub fn glimmer_index(elapsed_ms: u64, text_width: i32, requesting: bool) -> i32 {
     let step = (elapsed_ms / step_ms(requesting)) as i32;
     let pad = tuning::PAD;
-    if requesting { step % cycle(text_width) - pad } else { text_width + pad - step % cycle(text_width) }
+    if requesting {
+        step % cycle(text_width) - pad
+    } else {
+        text_width + pad - step % cycle(text_width)
+    }
 }
 
 /// [`glimmer_index`] without the steps, for the smooth band. It equals the index on every step.
 pub fn glimmer_center(elapsed_ms: u64, text_width: i32, requesting: bool) -> f32 {
     let steps = (elapsed_ms as f64 / step_ms(requesting) as f64) % cycle(text_width) as f64;
     let pad = tuning::PAD as f64;
-    (if requesting { steps - pad } else { text_width as f64 + pad - steps }) as f32
+    (if requesting {
+        steps - pad
+    } else {
+        text_width as f64 + pad - steps
+    }) as f32
 }
 
 /// How much the smooth band lights `cluster`: 1 at the center, 0 at [`tuning::BAND_REACH`] clusters.
@@ -123,7 +135,13 @@ pub fn glimmer_highlights(
         .enumerate()
         .map(|(i, range)| {
             let color = mix(message, glimmer, weight(i).clamp(0., 1.));
-            (range, HighlightStyle { color: Some(color), ..Default::default() })
+            (
+                range,
+                HighlightStyle {
+                    color: Some(color),
+                    ..Default::default()
+                },
+            )
         })
         .collect()
 }

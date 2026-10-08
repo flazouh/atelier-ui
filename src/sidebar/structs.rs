@@ -2,29 +2,31 @@ use std::{collections::HashMap, ops::Range, time::Instant};
 
 use gpui_kit::{
     AnyElement, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    KeyDownEvent, ParentElement, Render, ScrollStrategy, SharedString,
-    StatefulInteractiveElement, Styled, UniformListScrollHandle, Window, div,
-    prelude::FluentBuilder, uniform_list,
+    KeyDownEvent, ParentElement, Render, ScrollStrategy, SharedString, StatefulInteractiveElement,
+    Styled, UniformListScrollHandle, Window, div, prelude::FluentBuilder, uniform_list,
 };
 
+use super::helpers::{handoff_entry, name};
+use super::types::{ENTERING, SidebarEvent};
 use crate::scale::px;
 use crate::{
     entrance::Entrance,
     focus::PressStop,
-    menu::Branch,
     icon::{Icon, IconName},
     keys::{self, Command, Press},
+    menu::Branch,
     motion::{Channel, Curve, Spring},
     project_section::{MenuChoice, ProjectSection},
     session_row::{ROW_HEIGHT, SessionRow},
     sidebar_filter::narrow,
     sidebar_layout::SidebarLayout,
-    sidebar_model::{self, Activation, Folds, ListMode, Nav, ProjectData, Row, RowKey, key_of, position_of, rows_held},
+    sidebar_model::{
+        self, Activation, Folds, ListMode, Nav, ProjectData, Row, RowKey, key_of, position_of,
+        rows_held,
+    },
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{ENTERING, SidebarEvent};
-use super::helpers::{handoff_entry, name};
 
 pub struct Sidebar {
     /// Every project with every session, as the app gave them.
@@ -93,7 +95,12 @@ impl Sidebar {
 
     /// Where a session of `project` can be handed off to. The app gives a tree: an agent that has a choice of
     /// provider is a branch, one that has none a leaf.
-    pub fn set_handoff(&mut self, project: SharedString, targets: Vec<Branch>, cx: &mut Context<Self>) {
+    pub fn set_handoff(
+        &mut self,
+        project: SharedString,
+        targets: Vec<Branch>,
+        cx: &mut Context<Self>,
+    ) {
         if self.handoff.get(&project) != Some(&targets) {
             self.handoff.insert(project, targets);
             cx.notify();
@@ -129,7 +136,10 @@ impl Sidebar {
         for row in &self.rows {
             if let Row::Session { project, session } = *row {
                 let p = &self.projects[project];
-                order.entry(p.id.clone()).or_default().push(p.sessions[session].id.clone());
+                order
+                    .entry(p.id.clone())
+                    .or_default()
+                    .push(p.sessions[session].id.clone());
             }
         }
         order
@@ -138,8 +148,17 @@ impl Sidebar {
     /// The rows from the projects and the folds, in the held order while the pointer holds the list.
     fn build_rows(&mut self) {
         self.rows = match self.layout.mode {
-            ListMode::Projects => rows_held(&self.projects, &self.folds, self.held.as_ref(), self.layout.fold_after),
-            ListMode::Priority => sidebar_model::priority_rows(&self.projects, self.earlier_open, self.layout.earlier_shown),
+            ListMode::Projects => rows_held(
+                &self.projects,
+                &self.folds,
+                self.held.as_ref(),
+                self.layout.fold_after,
+            ),
+            ListMode::Priority => sidebar_model::priority_rows(
+                &self.projects,
+                self.earlier_open,
+                self.layout.earlier_shown,
+            ),
         };
         if self.held.is_some() {
             self.held = Some(self.shown_order());
@@ -150,20 +169,36 @@ impl Sidebar {
     pub fn set_projects(&mut self, all: Vec<ProjectData>, now: u64, cx: &mut Context<Self>) {
         let projects = narrow(&all, self.layout.filter);
         let reduce = cx.reduce_motion();
-        let before: HashMap<RowKey, usize> = self.rows.iter().enumerate().map(|(i, r)| (key_of(&self.projects, *r), i)).collect();
-        let known: std::collections::HashSet<&SharedString> = self.projects.iter().flat_map(|p| p.sessions.iter().map(|s| &s.id)).collect();
+        let before: HashMap<RowKey, usize> = self
+            .rows
+            .iter()
+            .enumerate()
+            .map(|(i, r)| (key_of(&self.projects, *r), i))
+            .collect();
+        let known: std::collections::HashSet<&SharedString> = self
+            .projects
+            .iter()
+            .flat_map(|p| p.sessions.iter().map(|s| &s.id))
+            .collect();
         let fresh: Vec<SharedString> = if before.is_empty() {
             Vec::new()
         } else {
-            projects.iter().flat_map(|p| p.sessions.iter()).filter(|s| !known.contains(&s.id)).map(|s| s.id.clone()).collect()
+            projects
+                .iter()
+                .flat_map(|p| p.sessions.iter())
+                .filter(|s| !known.contains(&s.id))
+                .map(|s| s.id.clone())
+                .collect()
         };
         self.projects = projects;
         self.all = all;
         self.now = now;
         self.build_rows();
         let stamp = Instant::now();
-        self.entering.retain(|_, at| stamp.duration_since(*at) < ENTERING);
-        self.entering.extend(fresh.into_iter().map(|id| (id, stamp)));
+        self.entering
+            .retain(|_, at| stamp.duration_since(*at) < ENTERING);
+        self.entering
+            .extend(fresh.into_iter().map(|id| (id, stamp)));
         self.moving.retain(|_, channel| channel.is_running());
         for (at, row) in self.rows.iter().enumerate() {
             if !matches!(row, Row::Session { .. }) {
@@ -238,7 +273,11 @@ impl Sidebar {
 
     /// Scrolls the list so `top` pixels of rows are above the view. For measuring runs.
     pub fn set_scroll_top(&mut self, top: f32) {
-        self.scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(-top)));
+        self.scroll
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(gpui_kit::point(px(0.), px(-top)));
     }
 
     pub fn projects(&self) -> &[ProjectData] {
@@ -250,7 +289,9 @@ impl Sidebar {
     }
 
     pub fn selected_row(&self) -> Option<usize> {
-        self.selected.as_ref().and_then(|k| position_of(&self.projects, &self.rows, k))
+        self.selected
+            .as_ref()
+            .and_then(|k| position_of(&self.projects, &self.rows, k))
     }
 
     /// Selects a session's row and scrolls to it. Does nothing when the session is not shown.
@@ -286,7 +327,12 @@ impl Sidebar {
     fn navigate(&mut self, nav: Nav, cx: &mut Context<Self>) {
         let folds = self.folds.clone();
         let projects = self.projects.clone();
-        let moved = sidebar_model::step(&self.rows, |p| folds.is_collapsed(&projects[p].id), self.selected_row(), nav);
+        let moved = sidebar_model::step(
+            &self.rows,
+            |p| folds.is_collapsed(&projects[p].id),
+            self.selected_row(),
+            nav,
+        );
         if let Some((project, collapse)) = moved.fold {
             let id = self.projects[project].id.clone();
             self.folds.set_collapsed(&id, collapse);
@@ -350,7 +396,10 @@ impl Sidebar {
                 return;
             }
             "enter" | "space" => {
-                if let Some(row) = self.selected_row().and_then(|at| self.rows.get(at).copied()) {
+                if let Some(row) = self
+                    .selected_row()
+                    .and_then(|at| self.rows.get(at).copied())
+                {
                     self.activate(row, cx);
                     cx.stop_propagation();
                 }
@@ -368,7 +417,12 @@ impl Sidebar {
         }
     }
 
-    fn row_element(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    fn row_element(
+        &mut self,
+        at: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let theme = cx.theme().clone();
         let this = cx.entity();
         let row = self.rows[at];
@@ -379,7 +433,13 @@ impl Sidebar {
                 let data = self.projects[project].clone();
                 let id = data.id.clone();
                 let menu_open = self.menu.as_ref() == Some(&id);
-                let (t, n, r, m, c) = (this.clone(), this.clone(), this.clone(), this.clone(), this.clone());
+                let (t, n, r, m, c) = (
+                    this.clone(),
+                    this.clone(),
+                    this.clone(),
+                    this.clone(),
+                    this.clone(),
+                );
                 ProjectSection::new(name("project", &id.clone()), data)
                     .expanded(!self.folds.is_collapsed(&id))
                     .selected(selected)
@@ -390,12 +450,28 @@ impl Sidebar {
                             s.toggle_project(project, cx)
                         })
                     })
-                    .on_new_session(move |_, cx| n.update(cx, |s, cx| cx.emit(SidebarEvent::NewSession { project: s.projects[project].id.clone() })))
-                    .on_retry(move |_, cx| r.update(cx, |s, cx| cx.emit(SidebarEvent::Retry { project: s.projects[project].id.clone() })))
+                    .on_new_session(move |_, cx| {
+                        n.update(cx, |s, cx| {
+                            cx.emit(SidebarEvent::NewSession {
+                                project: s.projects[project].id.clone(),
+                            })
+                        })
+                    })
+                    .on_retry(move |_, cx| {
+                        r.update(cx, |s, cx| {
+                            cx.emit(SidebarEvent::Retry {
+                                project: s.projects[project].id.clone(),
+                            })
+                        })
+                    })
                     .on_menu(move |_, cx| {
                         m.update(cx, |s, cx| {
                             let id = s.projects[project].id.clone();
-                            s.menu = if s.menu.as_ref() == Some(&id) { None } else { Some(id) };
+                            s.menu = if s.menu.as_ref() == Some(&id) {
+                                None
+                            } else {
+                                Some(id)
+                            };
                             cx.notify();
                         })
                     })
@@ -408,7 +484,9 @@ impl Sidebar {
                             });
                         }
                     })
-                    .on_choose(move |choice, _, cx| c.update(cx, |s, cx| s.choose(project, choice, cx)))
+                    .on_choose(move |choice, _, cx| {
+                        c.update(cx, |s, cx| s.choose(project, choice, cx))
+                    })
                     .into_any_element()
             }
             Row::Session { project, session } => {
@@ -416,7 +494,10 @@ impl Sidebar {
                 let id = data.id.clone();
                 let row_id = name("session", &id.clone());
                 let open = this.clone();
-                let sessions_entering = self.entering.get(&id).is_some_and(|at| at.elapsed() < ENTERING);
+                let sessions_entering = self
+                    .entering
+                    .get(&id)
+                    .is_some_and(|at| at.elapsed() < ENTERING);
                 let is_open = self.open.as_ref() == Some(&id);
                 let archived = data.archived;
                 let in_panel = data.in_panel;
@@ -428,27 +509,60 @@ impl Sidebar {
                         popover::{Hang, Popover},
                     };
                     // A choice shuts the menu, then asks the app for its work.
-                    let ask = |label: &'static str, icon: IconName, debug: &'static str, event: SidebarEvent| {
+                    let ask = |label: &'static str,
+                               icon: IconName,
+                               debug: &'static str,
+                               event: SidebarEvent| {
                         let sidebar = this.clone();
-                        Entry::from(MenuItem::new(label).icon(icon).debug_name(debug).on_select(move |_, cx| {
-                            sidebar.update(cx, |s, cx| {
-                                s.session_menu = None;
-                                cx.emit(event.clone());
-                                cx.notify();
-                            })
-                        }))
+                        Entry::from(MenuItem::new(label).icon(icon).debug_name(debug).on_select(
+                            move |_, cx| {
+                                sidebar.update(cx, |s, cx| {
+                                    s.session_menu = None;
+                                    cx.emit(event.clone());
+                                    cx.notify();
+                                })
+                            },
+                        ))
                     };
-                    let target = |event: fn(SharedString, SharedString) -> SidebarEvent| event(project_id.clone(), session_id.clone());
+                    let target = |event: fn(SharedString, SharedString) -> SidebarEvent| {
+                        event(project_id.clone(), session_id.clone())
+                    };
                     let mut entries = vec![ask(
                         if archived { "Unarchive" } else { "Archive" },
-                        if archived { IconName::Unarchive } else { IconName::Archive },
+                        if archived {
+                            IconName::Unarchive
+                        } else {
+                            IconName::Archive
+                        },
                         "session-menu-archive",
-                        SidebarEvent::Archive { project: project_id.clone(), session: session_id.clone(), archive: !archived },
+                        SidebarEvent::Archive {
+                            project: project_id.clone(),
+                            session: session_id.clone(),
+                            archive: !archived,
+                        },
                     )];
-                    entries.push(handoff_entry(&this, &project_id, &session_id, self.handoff.get(&project_id)));
-                    entries.push(ask("Copy session id", IconName::Copy, "session-menu-copy-id", target(|project, session| SidebarEvent::CopySessionId { project, session })));
+                    entries.push(handoff_entry(
+                        &this,
+                        &project_id,
+                        &session_id,
+                        self.handoff.get(&project_id),
+                    ));
+                    entries.push(ask(
+                        "Copy session id",
+                        IconName::Copy,
+                        "session-menu-copy-id",
+                        target(|project, session| SidebarEvent::CopySessionId { project, session }),
+                    ));
                     if in_panel {
-                        entries.push(ask("Close panel", IconName::Close, "session-menu-close", target(|project, session| SidebarEvent::CloseSession { project, session })));
+                        entries.push(ask(
+                            "Close panel",
+                            IconName::Close,
+                            "session-menu-close",
+                            target(|project, session| SidebarEvent::CloseSession {
+                                project,
+                                session,
+                            }),
+                        ));
                     }
                     let rows = entries.len();
                     let close = this.clone();
@@ -463,24 +577,41 @@ impl Sidebar {
                                 cx.notify();
                             })
                         })
-                        .child(Menu::new(name("session-menu-panel", &id), entries).look(MenuLook::PROJECT).origin(Origin::TopRight))
+                        .child(
+                            Menu::new(name("session-menu-panel", &id), entries)
+                                .look(MenuLook::PROJECT)
+                                .origin(Origin::TopRight),
+                        )
                         .into_any_element()
                 });
                 let toggling = this.clone();
                 let toggled = id.clone();
                 let archiving = this.clone();
-                let archive_event = SidebarEvent::Archive { project: project_id.clone(), session: id.clone(), archive: !archived };
+                let archive_event = SidebarEvent::Archive {
+                    project: project_id.clone(),
+                    session: id.clone(),
+                    archive: !archived,
+                };
                 let mut element = SessionRow::new(row_id.clone(), data, self.now)
                     .selected(selected)
                     .open(is_open)
-                    .on_open(move |_, cx| open.update(cx, |s, cx| s.activate(Row::Session { project, session }, cx)))
-                    .archive(archived, move |_, cx| archiving.update(cx, |_, cx| cx.emit(archive_event.clone())))
-
+                    .on_open(move |_, cx| {
+                        open.update(cx, |s, cx| {
+                            s.activate(Row::Session { project, session }, cx)
+                        })
+                    })
+                    .archive(archived, move |_, cx| {
+                        archiving.update(cx, |_, cx| cx.emit(archive_event.clone()))
+                    })
                     .more(
                         menu_open,
                         move |_, cx| {
                             toggling.update(cx, |s, cx| {
-                                s.session_menu = if s.session_menu.as_ref() == Some(&toggled) { None } else { Some(toggled.clone()) };
+                                s.session_menu = if s.session_menu.as_ref() == Some(&toggled) {
+                                    None
+                                } else {
+                                    Some(toggled.clone())
+                                };
                                 cx.notify();
                             })
                         },
@@ -489,10 +620,15 @@ impl Sidebar {
                 // The layout decides what the row shows and whether the project's badge is on it.
                 element = element.layout(&self.layout);
                 if self.layout.badge_on_rows() {
-                    element = element.project(self.projects[project].badge.clone(), self.projects[project].name.clone());
+                    element = element.project(
+                        self.projects[project].badge.clone(),
+                        self.projects[project].name.clone(),
+                    );
                 }
                 let element = if sessions_entering {
-                    Entrance::new(name("entering", &id), element).skip_initial(false).into_any_element()
+                    Entrance::new(name("entering", &id), element)
+                        .skip_initial(false)
+                        .into_any_element()
                 } else {
                     element.into_any_element()
                 };
@@ -500,7 +636,11 @@ impl Sidebar {
                 if self.moving.get(&key).is_some_and(Channel::is_running) {
                     window.request_animation_frame();
                 }
-                div().relative().top(px(slide)).child(element).into_any_element()
+                div()
+                    .relative()
+                    .top(px(slide))
+                    .child(element)
+                    .into_any_element()
             }
             Row::Section { section, count } => {
                 let tone = match section {
@@ -525,7 +665,11 @@ impl Sidebar {
             }
             Row::MoreEarlier { hidden, open } => {
                 let t = this.clone();
-                let words: SharedString = if open { "Show fewer".into() } else { format!("Show {hidden} more").into() };
+                let words: SharedString = if open {
+                    "Show fewer".into()
+                } else {
+                    format!("Show {hidden} more").into()
+                };
                 div()
                     .id("more-earlier")
                     .debug_selector(|| "more-earlier".into())
@@ -542,13 +686,28 @@ impl Sidebar {
                     .text_color(theme.muted_foreground)
                     .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
                     .on_click(move |_, _, cx| t.update(cx, |s, cx| s.activate(row, cx)))
-                    .child(Icon::new(if open { IconName::ChevronUp } else { IconName::ChevronDown }).size(px(14.)))
+                    .child(
+                        Icon::new(if open {
+                            IconName::ChevronUp
+                        } else {
+                            IconName::ChevronDown
+                        })
+                        .size(px(14.)),
+                    )
                     .child(words)
                     .into_any_element()
             }
-            Row::Older { project, hidden, open } => {
+            Row::Older {
+                project,
+                hidden,
+                open,
+            } => {
                 let t = this.clone();
-                let words: SharedString = if open { "Show fewer".into() } else { format!("Show {hidden} older").into() };
+                let words: SharedString = if open {
+                    "Show fewer".into()
+                } else {
+                    format!("Show {hidden} older").into()
+                };
                 div()
                     .id(name("older", &self.projects[project].id.clone()))
                     .flex()
@@ -564,14 +723,26 @@ impl Sidebar {
                     .text_color(theme.muted_foreground)
                     .when(selected, |d| d.bg(theme.card_strong))
                     .hover(|s| s.bg(theme.card_strong.opacity(0.6)))
-                    .press_stop(name("older-focus", &self.projects[project].id.clone()), radius::md(), window, cx)
+                    .press_stop(
+                        name("older-focus", &self.projects[project].id.clone()),
+                        radius::md(),
+                        window,
+                        cx,
+                    )
                     .on_click(move |_, _, cx| {
                         t.update(cx, |s, cx| {
                             s.select_row(at, cx);
                             s.activate(row, cx)
                         })
                     })
-                    .child(Icon::new(if open { IconName::ChevronUp } else { IconName::ChevronDown }).size(px(14.)))
+                    .child(
+                        Icon::new(if open {
+                            IconName::ChevronUp
+                        } else {
+                            IconName::ChevronDown
+                        })
+                        .size(px(14.)),
+                    )
                     .child(words)
                     .into_any_element()
             }
@@ -582,9 +753,15 @@ impl Sidebar {
 impl Render for Sidebar {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let count = self.rows.len();
-        let list = uniform_list("sidebar-rows", count, cx.processor(|this: &mut Self, range: Range<usize>, window, cx| {
-            range.map(|at| this.row_element(at, window, cx)).collect::<Vec<_>>()
-        }))
+        let list = uniform_list(
+            "sidebar-rows",
+            count,
+            cx.processor(|this: &mut Self, range: Range<usize>, window, cx| {
+                range
+                    .map(|at| this.row_element(at, window, cx))
+                    .collect::<Vec<_>>()
+            }),
+        )
         .track_scroll(&self.scroll)
         .size_full();
         div()
@@ -592,7 +769,9 @@ impl Render for Sidebar {
             .debug_selector(|| "sidebar".into())
             .key_context("Sidebar")
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))
+            .on_key_down(
+                cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)),
+            )
             .on_hover(cx.listener(|this, hovered: &bool, _, cx| this.hold(*hovered, cx)))
             .on_mouse_down(
                 gpui_kit::MouseButton::Left,

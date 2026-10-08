@@ -3,6 +3,7 @@ use gpui_kit::{
     Styled, Window, div, prelude::FluentBuilder,
 };
 
+use super::types::MARK_BOX;
 use crate::scale::px;
 use crate::{
     agent_look::AgentLook,
@@ -12,12 +13,17 @@ use crate::{
     sidebar_model::since,
     theme::{ActiveTheme, Theme},
 };
-use super::types::MARK_BOX;
 
 /// The mark for a status: the agent's own, or a tone, or the amber dot. When the status changes the old mark rolls
 /// up out of its box and the new one rolls up into it ([`Roll`]); the roll is keyed by `id`, so it belongs to one row
 /// or tab.
-pub fn status_mark(id: impl Into<ElementId>, look: &AgentLook, status: &SessionStatus, _window: &mut Window, cx: &mut App) -> AnyElement {
+pub fn status_mark(
+    id: impl Into<ElementId>,
+    look: &AgentLook,
+    status: &SessionStatus,
+    _window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     let id = id.into();
     let theme = cx.theme().clone();
     let look = look.clone();
@@ -49,15 +55,35 @@ pub fn status_mark(id: impl Into<ElementId>, look: &AgentLook, status: &SessionS
                 .bg(theme.accent)
                 .into_any_element(),
         };
-        div().flex().flex_none().size(px(MARK_BOX)).items_center().justify_center().child(drawn).into_any_element()
+        div()
+            .flex()
+            .flex_none()
+            .size(px(MARK_BOX))
+            .items_center()
+            .justify_center()
+            .child(drawn)
+            .into_any_element()
     };
-    Roll::new((id, "roll"), status.mark(), RollKind::Icon, px(MARK_BOX), drawn).into_any_element()
+    Roll::new(
+        (id, "roll"),
+        status.mark(),
+        RollKind::Icon,
+        px(MARK_BOX),
+        drawn,
+    )
+    .into_any_element()
 }
 
 /// The agent's mark for a row: still in the muted tone, and playing in the agent's own colour while it works. A dot in
 /// its corner says what the reader owes or has: amber for a finished turn not yet seen, the warning tone for a
 /// question or an approval, the danger tone for a stop.
-pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionStatus, theme: &Theme, with_icon: bool) -> AnyElement {
+pub fn agent_icon(
+    id: impl Into<ElementId>,
+    look: &AgentLook,
+    status: &SessionStatus,
+    theme: &Theme,
+    with_icon: bool,
+) -> AnyElement {
     let working = matches!(status, SessionStatus::Working);
     let color = if working {
         look.mark.color
@@ -85,13 +111,27 @@ pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionSt
         .items_center()
         .justify_center()
         .when(with_icon, |d| d.child(icon))
-        .children(dot.map(|dot| div().absolute().right(px(-1.)).bottom(px(-1.)).size(px(7.)).rounded_full().bg(dot).debug_selector(|| "session-dot".into())))
+        .children(dot.map(|dot| {
+            div()
+                .absolute()
+                .right(px(-1.))
+                .bottom(px(-1.))
+                .size(px(7.))
+                .rounded_full()
+                .bg(dot)
+                .debug_selector(|| "session-dot".into())
+        }))
         .into_any_element()
 }
 
 /// The words on the right of a row: what is owed, or the time since it last did anything. A stop shows the time like a
 /// session at rest: its red dot says it stopped, and the reason is not printed in a list.
-pub fn trailing(status: &SessionStatus, now: u64, active_at: u64, theme: &Theme) -> (SharedString, gpui_kit::Hsla) {
+pub fn trailing(
+    status: &SessionStatus,
+    now: u64,
+    active_at: u64,
+    theme: &Theme,
+) -> (SharedString, gpui_kit::Hsla) {
     match status {
         SessionStatus::NeedsYou(_) => (status.words(), theme.warning),
         _ => (since(now, active_at).into(), theme.muted_foreground),

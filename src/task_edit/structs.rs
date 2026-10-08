@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
-use crate::task_model::{Assignee, Label, Priority, TaskStatus};
 use super::types::{Change, Field, Step};
+use crate::task_model::{Assignee, Label, Priority, TaskStatus};
 
 /// One line of a picker.
 #[derive(Clone, Debug, PartialEq)]
@@ -26,7 +26,11 @@ impl Picker {
     pub fn status(current: Option<TaskStatus>) -> Self {
         let candidates = TaskStatus::BOARD_ORDER
             .into_iter()
-            .map(|s| Candidate { change: Change::Status(s), words: s.words().into(), chosen: current == Some(s) })
+            .map(|s| Candidate {
+                change: Change::Status(s),
+                words: s.words().into(),
+                chosen: current == Some(s),
+            })
             .collect();
         Self::new(Field::Status, candidates)
     }
@@ -34,14 +38,22 @@ impl Picker {
     pub fn priority(current: Option<Priority>) -> Self {
         let candidates = Priority::ALL
             .into_iter()
-            .map(|p| Candidate { change: Change::Priority(p), words: p.words().into(), chosen: current == Some(p) })
+            .map(|p| Candidate {
+                change: Change::Priority(p),
+                words: p.words().into(),
+                chosen: current == Some(p),
+            })
             .collect();
         Self::new(Field::Priority, candidates)
     }
 
     /// `people` are the people and agents a task can go to; "Unassigned" is always offered first.
     pub fn assignee(people: &[Assignee], current: Option<&SharedString>) -> Self {
-        let mut candidates = vec![Candidate { change: Change::Assignee(None), words: "Unassigned".into(), chosen: current.is_none() }];
+        let mut candidates = vec![Candidate {
+            change: Change::Assignee(None),
+            words: "Unassigned".into(),
+            chosen: current.is_none(),
+        }];
         candidates.extend(people.iter().map(|a| Candidate {
             change: Change::Assignee(Some(a.clone())),
             words: a.name().clone(),
@@ -54,16 +66,29 @@ impl Picker {
     pub fn labels(all: &[Label], on_all: &[Label]) -> Self {
         let candidates = all
             .iter()
-            .map(|l| Candidate { change: Change::ToggleLabel(l.clone()), words: l.name.clone(), chosen: on_all.contains(l) })
+            .map(|l| Candidate {
+                change: Change::ToggleLabel(l.clone()),
+                words: l.name.clone(),
+                chosen: on_all.contains(l),
+            })
             .collect();
         Self::new(Field::Labels, candidates)
     }
 
     pub(super) fn new(field: Field, candidates: Vec<Candidate>) -> Self {
         let cursor = 0;
-        let mut picker = Self { field, candidates, query: String::new(), cursor };
+        let mut picker = Self {
+            field,
+            candidates,
+            query: String::new(),
+            cursor,
+        };
         // The cursor starts on the value in force, so Enter changes nothing by accident.
-        picker.cursor = picker.shown().iter().position(|&i| picker.candidates[i].chosen).unwrap_or(0);
+        picker.cursor = picker
+            .shown()
+            .iter()
+            .position(|&i| picker.candidates[i].chosen)
+            .unwrap_or(0);
         picker
     }
 
@@ -82,7 +107,9 @@ impl Picker {
     /// The candidates that match the text typed, as indices into [`Picker::candidates`], in order.
     pub fn shown(&self) -> Vec<usize> {
         let needle = self.query.to_lowercase();
-        (0..self.candidates.len()).filter(|&i| self.candidates[i].words.to_lowercase().contains(&needle)).collect()
+        (0..self.candidates.len())
+            .filter(|&i| self.candidates[i].words.to_lowercase().contains(&needle))
+            .collect()
     }
 
     pub fn cursor(&self) -> usize {
@@ -119,7 +146,9 @@ impl Picker {
 
     /// The change the cursor stands on, or `None` when nothing matches.
     pub fn choose(&self) -> Option<Change> {
-        self.shown().get(self.cursor).map(|&i| self.candidates[i].change.clone())
+        self.shown()
+            .get(self.cursor)
+            .map(|&i| self.candidates[i].change.clone())
     }
 
     /// A label picker stays open after a choice, so several labels go on in one visit.

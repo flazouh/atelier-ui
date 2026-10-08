@@ -37,7 +37,9 @@ impl CopyFeedback {
         });
         let weak = entity.downgrade();
         let reset = cx.spawn(async move |cx| {
-            cx.background_executor().timer(duration::COPY_FEEDBACK).await;
+            cx.background_executor()
+                .timer(duration::COPY_FEEDBACK)
+                .await;
             weak.update(cx, |state, cx| {
                 field(state).copied = false;
                 cx.notify();

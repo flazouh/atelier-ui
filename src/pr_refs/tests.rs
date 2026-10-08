@@ -36,7 +36,9 @@ fn finds_refs_in_prose() {
 
 #[test]
 fn needs_a_word_boundary_before_the_hash_and_after_the_digits() {
-    let cases: &[&str] = &["abc#12", "x_#12", "#12abc", "#12_x", "C#9", "&#39;", "\\#12", "##12 ok"];
+    let cases: &[&str] = &[
+        "abc#12", "x_#12", "#12abc", "#12_x", "C#9", "&#39;", "\\#12", "##12 ok",
+    ];
     for text in cases {
         assert_eq!(found(text), Vec::<u64>::new(), "{text:?}");
     }

@@ -37,7 +37,9 @@ fn a_finished_call_that_asked_to_start_open_does_not_reopen_every_frame() {
 }
 
 mod folding {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -50,9 +52,20 @@ mod folding {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let call = ToolCall::new("call", "Ran tests").tool("cargo test").status(self.status).output("3 passed");
-            let call = if self.keep_open { call.collapse_on_complete(false) } else { call };
-            div().w(px(600.)).child(if self.starts_open { call.default_open(true) } else { call })
+            let call = ToolCall::new("call", "Ran tests")
+                .tool("cargo test")
+                .status(self.status)
+                .output("3 passed");
+            let call = if self.keep_open {
+                call.collapse_on_complete(false)
+            } else {
+                call
+            };
+            div().w(px(600.)).child(if self.starts_open {
+                call.default_open(true)
+            } else {
+                call
+            })
         }
     }
 
@@ -64,13 +77,22 @@ mod folding {
         cx.run_until_parked();
     }
 
-    fn open(status: ToolStatus, keep_open: bool, starts_open: bool, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext) {
+    fn open(
+        status: ToolStatus,
+        keep_open: bool,
+        starts_open: bool,
+        cx: &mut TestAppContext,
+    ) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
             cx.set_reduce_motion(true);
         });
-        let (host, cx) = cx.add_window_view(move |_, _| Host { status, keep_open, starts_open });
+        let (host, cx) = cx.add_window_view(move |_, _| Host {
+            status,
+            keep_open,
+            starts_open,
+        });
         cx.simulate_resize(size(px(700.), px(500.)));
         settle(&host, cx);
         (host, cx)
@@ -87,7 +109,10 @@ mod folding {
     #[gpui_kit::test]
     fn a_call_closes_itself_when_it_finishes_by_default(cx: &mut TestAppContext) {
         let (host, cx) = open(ToolStatus::Running, false, false, cx);
-        assert!(cx.debug_bounds("tool-output").is_some(), "it is open while it runs");
+        assert!(
+            cx.debug_bounds("tool-output").is_some(),
+            "it is open while it runs"
+        );
         finish(&host, cx);
         assert!(cx.debug_bounds("tool-output").is_none());
     }
@@ -109,7 +134,10 @@ mod folding {
 mod clipped {
     use std::{cell::Cell, rc::Rc};
 
-    use gpui_kit::{Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window,
+        div, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -121,7 +149,10 @@ mod clipped {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let log = (0..self.lines).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            let log = (0..self.lines)
+                .map(|n| format!("line {n}"))
+                .collect::<Vec<_>>()
+                .join("\n");
             let opened = self.opened.clone();
             div().w(px(600.)).child(
                 ToolCall::new("call", "Ran tests")
@@ -135,7 +166,14 @@ mod clipped {
         }
     }
 
-    fn open(lines: usize, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, Rc<Cell<usize>>) {
+    fn open(
+        lines: usize,
+        cx: &mut TestAppContext,
+    ) -> (
+        gpui_kit::Entity<Host>,
+        &mut gpui_kit::VisualTestContext,
+        Rc<Cell<usize>>,
+    ) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
@@ -186,7 +224,11 @@ mod clipped {
         press(cx);
         settle(&host, cx);
         assert_eq!(opened.get(), 0);
-        assert!(height(cx) > clipped + 100., "it grew: {} from {clipped}", height(cx));
+        assert!(
+            height(cx) > clipped + 100.,
+            "it grew: {} from {clipped}",
+            height(cx)
+        );
         press(cx);
         settle(&host, cx);
         assert_eq!(opened.get(), 0, "neither press tells the owner");
@@ -197,7 +239,10 @@ mod clipped {
 mod motion {
     use std::time::Duration;
 
-    use gpui_kit::{Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, point, px, size};
+    use gpui_kit::{
+        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, Styled,
+        TestAppContext, Window, div, point, px, size,
+    };
 
     use super::super::*;
     use crate::theme::{Appearance, set_appearance};
@@ -206,18 +251,30 @@ mod motion {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let log = (0..6).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            let log = (0..6)
+                .map(|n| format!("line {n}"))
+                .collect::<Vec<_>>()
+                .join("\n");
             div()
                 .w(px(600.))
                 .flex()
                 .flex_col()
-                .child(ToolCall::new("call", "Ran tests").status(ToolStatus::Done).output(log).default_open(true).collapse_on_complete(false))
+                .child(
+                    ToolCall::new("call", "Ran tests")
+                        .status(ToolStatus::Done)
+                        .output(log)
+                        .default_open(true)
+                        .collapse_on_complete(false),
+                )
                 .child(div().debug_selector(|| "below".into()).h(px(10.)))
         }
     }
 
     /// Where the row under the call sits, frame by frame, while the call opens or closes.
-    fn below_over_time(cx: &mut gpui_kit::VisualTestContext, host: &gpui_kit::Entity<Host>) -> Vec<f32> {
+    fn below_over_time(
+        cx: &mut gpui_kit::VisualTestContext,
+        host: &gpui_kit::Entity<Host>,
+    ) -> Vec<f32> {
         (0..30)
             .map(|_| {
                 crate::motion::clock::advance(Duration::from_millis(16));
@@ -241,15 +298,37 @@ mod motion {
         cx.simulate_click(point(px(300.), px(10.)), Modifiers::none());
         let closing = below_over_time(cx, &host);
         let closed_at = *closing.last().unwrap();
-        assert!(closed_at < open_at - 50., "it closed: {open_at} to {closed_at}");
-        let between = |path: &[f32], from: f32, to: f32| path.iter().filter(|y| **y < from.max(to) - 1. && **y > from.min(to) + 1.).count();
-        assert!(between(&closing, open_at, closed_at) >= 4, "the row under it moves through the close, not at its end: {closing:?}");
-        assert!(closing.windows(2).all(|w| w[1] <= w[0] + 0.5), "and only up: {closing:?}");
+        assert!(
+            closed_at < open_at - 50.,
+            "it closed: {open_at} to {closed_at}"
+        );
+        let between = |path: &[f32], from: f32, to: f32| {
+            path.iter()
+                .filter(|y| **y < from.max(to) - 1. && **y > from.min(to) + 1.)
+                .count()
+        };
+        assert!(
+            between(&closing, open_at, closed_at) >= 4,
+            "the row under it moves through the close, not at its end: {closing:?}"
+        );
+        assert!(
+            closing.windows(2).all(|w| w[1] <= w[0] + 0.5),
+            "and only up: {closing:?}"
+        );
         cx.simulate_click(point(px(300.), px(10.)), Modifiers::none());
         let opening = below_over_time(cx, &host);
-        assert!((opening.last().unwrap() - open_at).abs() < 0.5, "it opened back to where it was: {opening:?}");
-        assert!(between(&opening, closed_at, open_at) >= 4, "the row under it moves through the open, not at its start: {opening:?}");
-        assert!(opening.windows(2).all(|w| w[1] >= w[0] - 0.5), "and only down: {opening:?}");
+        assert!(
+            (opening.last().unwrap() - open_at).abs() < 0.5,
+            "it opened back to where it was: {opening:?}"
+        );
+        assert!(
+            between(&opening, closed_at, open_at) >= 4,
+            "the row under it moves through the open, not at its start: {opening:?}"
+        );
+        assert!(
+            opening.windows(2).all(|w| w[1] >= w[0] - 0.5),
+            "and only down: {opening:?}"
+        );
     }
 }
 
@@ -257,8 +336,9 @@ mod motion {
 /// first, and a running one follows its end until the reader scrolls up.
 mod wheel {
     use gpui_kit::{
-        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta, ScrollHandle, ScrollWheelEvent,
-        StatefulInteractiveElement, Styled, TestAppContext, TouchPhase, Window, div, point, px, size,
+        Context, InteractiveElement, IntoElement, Modifiers, ParentElement, Render, ScrollDelta,
+        ScrollHandle, ScrollWheelEvent, StatefulInteractiveElement, Styled, TestAppContext,
+        TouchPhase, Window, div, point, px, size,
     };
 
     use super::super::*;
@@ -272,7 +352,10 @@ mod wheel {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let log = (0..self.lines).map(|n| format!("line {n}")).collect::<Vec<_>>().join("\n");
+            let log = (0..self.lines)
+                .map(|n| format!("line {n}"))
+                .collect::<Vec<_>>()
+                .join("\n");
             div()
                 .id("panel")
                 .w(px(600.))
@@ -280,12 +363,26 @@ mod wheel {
                 .overflow_y_scroll()
                 .track_scroll(&self.panel)
                 .child(div().h(px(100.)))
-                .child(ToolCall::new("call", "Ran tests").status(self.status).output(log).default_open(true).collapse_on_complete(false).preview_rows(6))
+                .child(
+                    ToolCall::new("call", "Ran tests")
+                        .status(self.status)
+                        .output(log)
+                        .default_open(true)
+                        .collapse_on_complete(false)
+                        .preview_rows(6),
+                )
                 .child(div().h(px(1500.)))
         }
     }
 
-    fn open(status: ToolStatus, cx: &mut TestAppContext) -> (gpui_kit::Entity<Host>, &mut gpui_kit::VisualTestContext, ScrollHandle) {
+    fn open(
+        status: ToolStatus,
+        cx: &mut TestAppContext,
+    ) -> (
+        gpui_kit::Entity<Host>,
+        &mut gpui_kit::VisualTestContext,
+        ScrollHandle,
+    ) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
@@ -293,7 +390,11 @@ mod wheel {
         });
         let panel = ScrollHandle::new();
         let handle = panel.clone();
-        let (host, cx) = cx.add_window_view(move |_, _| Host { panel, lines: 60, status });
+        let (host, cx) = cx.add_window_view(move |_, _| Host {
+            panel,
+            lines: 60,
+            status,
+        });
         cx.simulate_resize(size(px(700.), px(500.)));
         settle(&host, cx);
         (host, cx, handle)
@@ -308,7 +409,10 @@ mod wheel {
     }
 
     fn wheel(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext, dy: f32) {
-        let at = cx.debug_bounds("tool-output").expect("the output is drawn").center();
+        let at = cx
+            .debug_bounds("tool-output")
+            .expect("the output is drawn")
+            .center();
         cx.simulate_event(ScrollWheelEvent {
             position: at,
             delta: ScrollDelta::Pixels(point(px(0.), px(dy))),
@@ -319,7 +423,11 @@ mod wheel {
     }
 
     fn press(host: &gpui_kit::Entity<Host>, cx: &mut gpui_kit::VisualTestContext) {
-        let at = cx.debug_bounds("tool-output").expect("the output is drawn").origin + point(px(40.), px(10.));
+        let at = cx
+            .debug_bounds("tool-output")
+            .expect("the output is drawn")
+            .origin
+            + point(px(40.), px(10.));
         cx.simulate_click(at, Modifiers::none());
         settle(host, cx);
     }
@@ -330,13 +438,19 @@ mod wheel {
 
     /// How far the text has scrolled up inside its box, in px: its own padding is not scroll.
     fn text_top(cx: &mut gpui_kit::VisualTestContext) -> f32 {
-        let (text, frame) = (cx.debug_bounds("tool-output-text").unwrap(), cx.debug_bounds("tool-output").unwrap());
+        let (text, frame) = (
+            cx.debug_bounds("tool-output-text").unwrap(),
+            cx.debug_bounds("tool-output").unwrap(),
+        );
         f32::from(frame.top() - text.top()) + 12.
     }
 
     /// How far the text's end is below its box's bottom, in px.
     fn below(cx: &mut gpui_kit::VisualTestContext) -> f32 {
-        let (text, frame) = (cx.debug_bounds("tool-output-text").unwrap(), cx.debug_bounds("tool-output").unwrap());
+        let (text, frame) = (
+            cx.debug_bounds("tool-output-text").unwrap(),
+            cx.debug_bounds("tool-output").unwrap(),
+        );
         f32::from(text.bottom() - frame.bottom())
     }
 
@@ -352,7 +466,11 @@ mod wheel {
         let (host, cx, panel) = open(ToolStatus::Done, cx);
         press(&host, cx);
         wheel(&host, cx, -60.);
-        assert!(top(&panel) < 1., "the lines took the wheel: {}", top(&panel));
+        assert!(
+            top(&panel) < 1.,
+            "the lines took the wheel: {}",
+            top(&panel)
+        );
         assert!(text_top(cx) > 50., "and moved: {}", text_top(cx));
     }
 
@@ -374,7 +492,11 @@ mod wheel {
         assert!(text_top(cx) > 50.);
         press(&host, cx);
         press(&host, cx);
-        assert!(text_top(cx).abs() < 1., "not where it was left: {}", text_top(cx));
+        assert!(
+            text_top(cx).abs() < 1.,
+            "not where it was left: {}",
+            text_top(cx)
+        );
     }
 
     #[gpui_kit::test]
@@ -387,7 +509,11 @@ mod wheel {
             cx.notify();
         });
         settle(&host, cx);
-        assert!(below(cx).abs() < 14., "it follows the new lines: {}", below(cx));
+        assert!(
+            below(cx).abs() < 14.,
+            "it follows the new lines: {}",
+            below(cx)
+        );
         wheel(&host, cx, 300.);
         let away = below(cx);
         assert!(away > 200., "the reader scrolled up: {away}");
@@ -396,6 +522,10 @@ mod wheel {
             cx.notify();
         });
         settle(&host, cx);
-        assert!(below(cx) >= away, "it does not pull them back: {} from {away}", below(cx));
+        assert!(
+            below(cx) >= away,
+            "it does not pull them back: {} from {away}",
+            below(cx)
+        );
     }
 }

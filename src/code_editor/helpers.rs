@@ -6,23 +6,26 @@ use super::{
 use std::sync::Arc;
 
 use gpui_kit::{
-    App,
-    Entity,
-    KeyBinding,
-    Window,
+    App, Entity, KeyBinding, Window,
     base::input::{DiagnosticSeverity, InputEditorStyle},
     component::{highlighter::HighlightTheme, input::EditorState},
 };
 
 use super::commands::Edit;
-use crate::theme::{Appearance, StatusTone, Theme};
 use super::types::CONTEXT;
+use crate::theme::{Appearance, StatusTone, Theme};
 
 /// Binds the line commands. [`crate::init`] calls it after gpui-kit's own keys, so ours win where
 /// both bind a key.
 pub(crate) fn bind_keys(cx: &mut App) {
     let mac = cfg!(target_os = "macos");
-    let secondary = |key: &str| if mac { format!("cmd-{key}") } else { format!("ctrl-{key}") };
+    let secondary = |key: &str| {
+        if mac {
+            format!("cmd-{key}")
+        } else {
+            format!("ctrl-{key}")
+        }
+    };
     cx.bind_keys([
         KeyBinding::new(&secondary("/"), ToggleComment, Some(CONTEXT)),
         KeyBinding::new("alt-up", MoveLineUp, Some(CONTEXT)),
@@ -38,7 +41,12 @@ pub(crate) fn bind_keys(cx: &mut App) {
 }
 
 /// Applies `edit` as one undo step and puts every selection back. `None` changes nothing.
-pub(super) fn apply(state: &Entity<EditorState>, edit: Option<Edit>, window: &mut Window, cx: &mut App) {
+pub(super) fn apply(
+    state: &Entity<EditorState>,
+    edit: Option<Edit>,
+    window: &mut Window,
+    cx: &mut App,
+) {
     let Some(edit) = edit else { return };
     state.update(cx, |state, cx| {
         state.set_selected_range(edit.range, cx);
@@ -57,7 +65,10 @@ pub(super) fn on<A: gpui_kit::Action>(
 }
 
 /// The buffer and every selection, the input to every command.
-pub(super) fn snapshot(state: &Entity<EditorState>, cx: &App) -> (String, Vec<std::ops::Range<usize>>) {
+pub(super) fn snapshot(
+    state: &Entity<EditorState>,
+    cx: &App,
+) -> (String, Vec<std::ops::Range<usize>>) {
     let state = state.read(cx);
     (state.value().to_string(), state.selected_ranges())
 }
@@ -79,11 +90,19 @@ pub fn install_syntax_theme(theme: &Theme, cx: &mut App) {
 
 /// The fill an editor sits on: the page, or a card, and the current line's wash on it.
 pub(crate) fn surface(theme: &Theme, on_card: bool) -> (gpui_kit::Hsla, gpui_kit::Hsla) {
-    if on_card { (theme.card, theme.card_strong) } else { (theme.background, theme.card) }
+    if on_card {
+        (theme.card, theme.card_strong)
+    } else {
+        (theme.background, theme.card)
+    }
 }
 
 /// The editor's own colors, from the theme.
-pub(super) fn editor_style(theme: &Theme, appearance: Appearance, on_card: bool) -> InputEditorStyle {
+pub(super) fn editor_style(
+    theme: &Theme,
+    appearance: Appearance,
+    on_card: bool,
+) -> InputEditorStyle {
     let muted = theme.muted_foreground;
     let syntax = theme.syntax.clone();
     let (fill, active_line) = surface(theme, on_card);
@@ -131,7 +150,11 @@ pub fn severity_tone(severity: DiagnosticSeverity) -> StatusTone {
 /// Replaces what the editor shows as wrong with `diagnostics`, straight from a language server.
 /// gpui-base converts each one, so nothing is reinterpreted on the way in. An empty list clears them,
 /// which is what a server sends when a file becomes clean.
-pub fn set_diagnostics(state: &Entity<EditorState>, diagnostics: Vec<lsp_types::Diagnostic>, cx: &mut App) {
+pub fn set_diagnostics(
+    state: &Entity<EditorState>,
+    diagnostics: Vec<lsp_types::Diagnostic>,
+    cx: &mut App,
+) {
     state.update(cx, |state, cx| {
         let text = state.text().clone();
         // A single-line input has no diagnostics to hold; there is nothing to show them on.

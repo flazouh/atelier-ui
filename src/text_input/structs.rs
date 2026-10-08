@@ -1,22 +1,16 @@
 use gpui_kit::{
-    AnyElement,
-    App,
-    ElementId,
-    Entity,
-    Focusable,
-    Hsla,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    RenderOnce,
-    SharedString,
-    Styled,
-    Window,
+    AnyElement, App, ElementId, Entity, Focusable, Hsla, InteractiveElement, IntoElement,
+    ParentElement, RenderOnce, SharedString, Styled, Window,
     component::input::{Input, InputState},
     div,
     prelude::FluentBuilder,
 };
 
+use super::helpers::{fill, shake_offset};
+use super::types::{
+    CORNER, GAP, HEIGHT, LINEAR, MESSAGE_LINE, MESSAGE_SECONDS, SHAKE_SECONDS, TEXT_INSET,
+    TEXT_INSET_ICON,
+};
 use crate::scale::px;
 use crate::{
     focus::ring_shadow,
@@ -25,11 +19,6 @@ use crate::{
     theme::ActiveTheme,
     typography::{FONT_FAMILY, TextSize},
 };
-use super::types::{
-    CORNER, GAP, HEIGHT, LINEAR, MESSAGE_LINE, MESSAGE_SECONDS, SHAKE_SECONDS, TEXT_INSET,
-    TEXT_INSET_ICON,
-};
-use super::helpers::{fill, shake_offset};
 
 pub(super) struct Motion {
     had_error: bool,
@@ -135,7 +124,11 @@ impl RenderOnce for TextInput {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
         let surface = self.surface.unwrap_or(theme.card);
-        let focused = self.state.read(cx).focus_handle(cx).contains_focused(window, cx);
+        let focused = self
+            .state
+            .read(cx)
+            .focus_handle(cx)
+            .contains_focused(window, cx);
         let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion {
             had_error: false,
             shake: Channel::new(1.),
@@ -145,9 +138,11 @@ impl RenderOnce for TextInput {
         let (offset, rise, moving) = motion.update(cx, |m, _| {
             if self.invalid && !m.had_error {
                 m.shake = Channel::new(0.);
-                m.shake.animate(1., Curve::Ease(SHAKE_SECONDS, LINEAR), 0., reduce);
+                m.shake
+                    .animate(1., Curve::Ease(SHAKE_SECONDS, LINEAR), 0., reduce);
                 m.message = Channel::new(0.);
-                m.message.animate(1., Curve::Ease(MESSAGE_SECONDS, LINEAR), 0., reduce);
+                m.message
+                    .animate(1., Curve::Ease(MESSAGE_SECONDS, LINEAR), 0., reduce);
             }
             m.had_error = self.invalid;
             m.clock.tick();
@@ -155,7 +150,11 @@ impl RenderOnce for TextInput {
             if !moving {
                 m.clock.rest();
             }
-            (shake_offset(m.shake.value() * SHAKE_SECONDS), m.message.value(), moving)
+            (
+                shake_offset(m.shake.value() * SHAKE_SECONDS),
+                m.message.value(),
+                moving,
+            )
         });
         if moving {
             window.request_animation_frame();
@@ -174,8 +173,16 @@ impl RenderOnce for TextInput {
         } else {
             None
         };
-        let pad_left = if self.left.is_some() { TEXT_INSET_ICON } else { TEXT_INSET };
-        let pad_right = if self.success || self.right.is_some() { TEXT_INSET_ICON } else { TEXT_INSET };
+        let pad_left = if self.left.is_some() {
+            TEXT_INSET_ICON
+        } else {
+            TEXT_INSET
+        };
+        let pad_right = if self.success || self.right.is_some() {
+            TEXT_INSET_ICON
+        } else {
+            TEXT_INSET
+        };
         let field = div()
             .relative()
             .h(px(HEIGHT))
@@ -186,7 +193,9 @@ impl RenderOnce for TextInput {
             .bg(fill(&theme, surface))
             .when(self.disabled, |d| d.opacity(0.6))
             .when_some(ring, |d, ring| d.shadow(ring))
-            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
+            .when_some(self.selector, |d, name| {
+                d.debug_selector(move || name.into())
+            })
             .children(self.left.map(|icon| {
                 div()
                     .absolute()
@@ -205,7 +214,13 @@ impl RenderOnce for TextInput {
                     .pl(px(pad_left))
                     .pr(px(pad_right))
                     .text_color(theme.foreground)
-                    .child(Input::new(&self.state).appearance(false).px(px(0.)).text_size(TextSize::Sm.font_size()).disabled(self.disabled)),
+                    .child(
+                        Input::new(&self.state)
+                            .appearance(false)
+                            .px(px(0.))
+                            .text_size(TextSize::Sm.font_size())
+                            .disabled(self.disabled),
+                    ),
             )
             .child(if self.success {
                 div()
@@ -215,10 +230,23 @@ impl RenderOnce for TextInput {
                     .h_full()
                     .flex()
                     .items_center()
-                    .child(Icon::new(IconName::Check).size(px(16.)).color(theme.success))
+                    .child(
+                        Icon::new(IconName::Check)
+                            .size(px(16.))
+                            .color(theme.success),
+                    )
                     .into_any_element()
             } else if let Some(right) = self.right {
-                div().absolute().right_0().top_0().h_full().flex().items_center().text_color(theme.muted_foreground).child(right).into_any_element()
+                div()
+                    .absolute()
+                    .right_0()
+                    .top_0()
+                    .h_full()
+                    .flex()
+                    .items_center()
+                    .text_color(theme.muted_foreground)
+                    .child(right)
+                    .into_any_element()
             } else {
                 div().into_any_element()
             });
@@ -247,6 +275,10 @@ impl RenderOnce for TextInput {
                     .child(label)
             }))
             .child(field)
-            .children(if self.reserve { Some(div().min_h(px(MESSAGE_LINE)).children(message)) } else { message })
+            .children(if self.reserve {
+                Some(div().min_h(px(MESSAGE_LINE)).children(message))
+            } else {
+                message
+            })
     }
 }

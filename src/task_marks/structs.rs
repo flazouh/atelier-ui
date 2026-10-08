@@ -1,8 +1,11 @@
 use gpui_kit::{App, IntoElement, Pixels, RenderOnce, Styled, Window, canvas};
 
-use crate::scale::px;
-use crate::{task_model::{Priority, TaskStatus}, theme::ActiveTheme};
 use super::helpers::{paint_priority, paint_status};
+use crate::scale::px;
+use crate::{
+    task_model::{Priority, TaskStatus},
+    theme::ActiveTheme,
+};
 
 /// A task's status as a mark.
 #[derive(IntoElement)]
@@ -13,7 +16,10 @@ pub struct TaskStatusMark {
 
 impl TaskStatusMark {
     pub fn new(status: TaskStatus) -> Self {
-        Self { status, size: px(16.) }
+        Self {
+            status,
+            size: px(16.),
+        }
     }
 
     pub fn size(mut self, size: Pixels) -> Self {
@@ -25,7 +31,12 @@ impl TaskStatusMark {
 impl RenderOnce for TaskStatusMark {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let (status, theme) = (self.status, cx.theme().clone());
-        canvas(|_, _, _| {}, move |bounds, _, window, _| paint_status(bounds, status, &theme, window)).size(self.size).flex_none()
+        canvas(
+            |_, _, _| {},
+            move |bounds, _, window, _| paint_status(bounds, status, &theme, window),
+        )
+        .size(self.size)
+        .flex_none()
     }
 }
 
@@ -38,7 +49,10 @@ pub struct PriorityMark {
 
 impl PriorityMark {
     pub fn new(priority: Priority) -> Self {
-        Self { priority, size: px(16.) }
+        Self {
+            priority,
+            size: px(16.),
+        }
     }
 
     pub fn size(mut self, size: Pixels) -> Self {
@@ -50,6 +64,11 @@ impl PriorityMark {
 impl RenderOnce for PriorityMark {
     fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let (priority, theme) = (self.priority, cx.theme().clone());
-        canvas(|_, _, _| {}, move |bounds, _, window, _| paint_priority(bounds, priority, &theme, window)).size(self.size).flex_none()
+        canvas(
+            |_, _, _| {},
+            move |bounds, _, window, _| paint_priority(bounds, priority, &theme, window),
+        )
+        .size(self.size)
+        .flex_none()
     }
 }

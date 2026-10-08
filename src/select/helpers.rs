@@ -1,26 +1,22 @@
 use gpui_kit::{
-    App,
-    Bounds,
-    InteractiveElement,
-    IntoElement,
-    KeyBinding,
-    ParentElement,
-    Pixels,
-    SharedString,
+    App, Bounds, InteractiveElement, IntoElement, KeyBinding, ParentElement, Pixels, SharedString,
     Styled,
     base::actions::{Confirm, SelectFirst, SelectLast},
     div,
 };
 
+use super::types::{
+    HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_STEP, OPTION_INSET, PANEL_PAD, ROW_GAP,
+};
 use crate::scale::px;
 use crate::theme::mix;
-use super::types::{
-    HEADING_HEIGHT, ITEM_DELAY, ITEM_FADE, ITEM_HEIGHT, ITEM_STEP, OPTION_INSET, PANEL_PAD,
-    ROW_GAP,
-};
 
 /// A trigger's fill at `tint` (0 at rest, 1 hovered or open): the Ghost button's hover tone over `rest`.
-pub(crate) fn trigger_tone(theme: &crate::Theme, rest: gpui_kit::Hsla, tint: f32) -> gpui_kit::Hsla {
+pub(crate) fn trigger_tone(
+    theme: &crate::Theme,
+    rest: gpui_kit::Hsla,
+    tint: f32,
+) -> gpui_kit::Hsla {
     if rest.a == 0. {
         mix(rest, theme.muted_hover(), tint)
     } else {
@@ -32,7 +28,11 @@ pub(crate) fn trigger_tone(theme: &crate::Theme, rest: gpui_kit::Hsla, tint: f32
 /// and the 1px edge.
 pub fn panel_height_of(options: usize, heading_rows: usize) -> f32 {
     let rows = options + heading_rows;
-    PANEL_PAD * 2. + ITEM_HEIGHT * options as f32 + HEADING_HEIGHT * heading_rows as f32 + ROW_GAP * rows.saturating_sub(1) as f32 + 2.
+    PANEL_PAD * 2.
+        + ITEM_HEIGHT * options as f32
+        + HEADING_HEIGHT * heading_rows as f32
+        + ROW_GAP * rows.saturating_sub(1) as f32
+        + 2.
 }
 
 /// The option list's height: the padding, the rows with 2px between them. The surface is the trigger's height
@@ -73,7 +73,10 @@ pub fn header_inset(from: f32, p: f32) -> f32 {
 /// The surface at morph progress `p` (0 the trigger, 1 the panel): its width and height.
 pub fn surface_at(trigger: (f32, f32), panel_width: f32, list: f32, p: f32) -> (f32, f32) {
     let (tw, th) = trigger;
-    ((tw + (panel_width - tw) * p).max(0.), (th + list * p).max(0.))
+    (
+        (tw + (panel_width - tw) * p).max(0.),
+        (th + list * p).max(0.),
+    )
 }
 
 /// The keys the list adds to the base's Up, Down, Enter and Escape: Space opens and picks like Enter, Home
@@ -88,7 +91,12 @@ pub fn bind_keys(cx: &mut App) {
 
 /// Whether the trigger should light for a pointer that has not moved: nothing covers it (the list is shut and its
 /// motion is over), it is not lit, and the pointer is inside it.
-pub(super) fn should_light(covered: bool, hovered: bool, anchor: Option<Bounds<Pixels>>, pointer: gpui_kit::Point<Pixels>) -> bool {
+pub(super) fn should_light(
+    covered: bool,
+    hovered: bool,
+    anchor: Option<Bounds<Pixels>>,
+    pointer: gpui_kit::Point<Pixels>,
+) -> bool {
     !covered && !hovered && anchor.is_some_and(|a| a.contains(&pointer))
 }
 
@@ -110,21 +118,38 @@ pub(super) fn step_active(active: Option<usize>, delta: i32, len: usize) -> Opti
 /// The option type-ahead lands on: the first, from `current` on and wrapping, whose label starts with
 /// what was typed, case aside. One letter typed again and again (`c`, `c`) goes through the options that
 /// start with it, as a native list does. Pure.
-pub(super) fn type_ahead(labels: &[SharedString], current: Option<usize>, typed: &str) -> Option<usize> {
+pub(super) fn type_ahead(
+    labels: &[SharedString],
+    current: Option<usize>,
+    typed: &str,
+) -> Option<usize> {
     let want = typed.to_lowercase();
     if want.is_empty() || labels.is_empty() {
         return None;
     }
     let first = want.chars().next();
     let repeated = want.chars().count() > 1 && want.chars().all(|c| Some(c) == first);
-    let (needle, from) = if repeated { (want.chars().take(1).collect::<String>(), current.map_or(0, |c| c + 1)) } else { (want, current.unwrap_or(0)) };
+    let (needle, from) = if repeated {
+        (
+            want.chars().take(1).collect::<String>(),
+            current.map_or(0, |c| c + 1),
+        )
+    } else {
+        (want, current.unwrap_or(0))
+    };
     let starts = |i: usize| labels[i].to_lowercase().starts_with(&needle);
     // A growing word stays on the current option when it still matches; a repeated letter moves on.
-    (0..labels.len()).map(|k| (from + k) % labels.len()).find(|&i| starts(i))
+    (0..labels.len())
+        .map(|k| (from + k) % labels.len())
+        .find(|&i| starts(i))
 }
 
 /// The first letter of a label in a round of `size`, where a mark would go: the model badge's monogram.
-pub(crate) fn monogram(label: &SharedString, size: f32, theme: &crate::theme::Theme) -> impl IntoElement {
+pub(crate) fn monogram(
+    label: &SharedString,
+    size: f32,
+    theme: &crate::theme::Theme,
+) -> impl IntoElement {
     let letter = crate::model_badge::monogram_letter(label);
     div()
         .debug_selector({
@@ -146,10 +171,23 @@ pub(crate) fn monogram(label: &SharedString, size: f32, theme: &crate::theme::Th
 
 /// The corners the open panel rounds. It grows from the trigger, down or up, so the two corners on the trigger's side
 /// follow the trigger's own (square beside a neighbour in a button group) and the far two are round.
-pub(crate) fn panel_corners(trigger: gpui_kit::Corners<bool>, upward: bool) -> gpui_kit::Corners<bool> {
+pub(crate) fn panel_corners(
+    trigger: gpui_kit::Corners<bool>,
+    upward: bool,
+) -> gpui_kit::Corners<bool> {
     if upward {
-        gpui_kit::Corners { top_left: true, top_right: true, bottom_left: trigger.bottom_left, bottom_right: trigger.bottom_right }
+        gpui_kit::Corners {
+            top_left: true,
+            top_right: true,
+            bottom_left: trigger.bottom_left,
+            bottom_right: trigger.bottom_right,
+        }
     } else {
-        gpui_kit::Corners { top_left: trigger.top_left, top_right: trigger.top_right, bottom_left: true, bottom_right: true }
+        gpui_kit::Corners {
+            top_left: trigger.top_left,
+            top_right: trigger.top_right,
+            bottom_left: true,
+            bottom_right: true,
+        }
     }
 }

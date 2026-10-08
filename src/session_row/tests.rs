@@ -18,22 +18,43 @@ fn a_session_that_owes_the_reader_shows_its_words_in_the_warning_tone() {
 #[test]
 fn a_failure_prints_no_reason_in_the_row_and_leaves_it_to_its_red_dot() {
     let theme = theme();
-    let (words, tone) = trailing(&SessionStatus::Failed("exit code 3".into()), 1000 + 120, 1000, &theme);
-    assert_eq!((words.as_ref(), tone), ("2m", theme.muted_foreground), "the time, as for any session at rest");
-    assert!(!SessionStatus::Failed("exit code 3".into()).has_note(), "and nothing under the title");
-    assert_eq!(SessionStatus::Failed("x".into()).mark(), crate::session_status::Mark::Danger);
+    let (words, tone) = trailing(
+        &SessionStatus::Failed("exit code 3".into()),
+        1000 + 120,
+        1000,
+        &theme,
+    );
+    assert_eq!(
+        (words.as_ref(), tone),
+        ("2m", theme.muted_foreground),
+        "the time, as for any session at rest"
+    );
+    assert!(
+        !SessionStatus::Failed("exit code 3".into()).has_note(),
+        "and nothing under the title"
+    );
+    assert_eq!(
+        SessionStatus::Failed("x".into()).mark(),
+        crate::session_status::Mark::Danger
+    );
 }
 
 #[test]
 fn every_other_session_shows_the_time_since_it_last_did_anything() {
     let theme = theme();
-    for status in [SessionStatus::Working, SessionStatus::Finished, SessionStatus::Idle] {
+    for status in [
+        SessionStatus::Working,
+        SessionStatus::Finished,
+        SessionStatus::Idle,
+    ] {
         assert_eq!(trailing(&status, 1000 + 120, 1000, &theme).0.as_ref(), "2m");
     }
 }
 
 mod open {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
+    };
 
     use crate::{
         agent_look::AgentLook,
@@ -49,14 +70,19 @@ mod open {
 
     impl Render for Host {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let data = SessionData { archived: false, in_panel: false, provider: None,
+            let data = SessionData {
+                archived: false,
+                in_panel: false,
+                provider: None,
                 id: "s1".into(),
                 title: "Add a subtract function".into(),
                 look: AgentLook::neutral(&crate::theme::Theme::light()),
                 status: SessionStatus::Idle,
                 active_at: 0,
             };
-            div().w(px(300.)).child(SessionRow::new("row", data, 10).open(self.open))
+            div()
+                .w(px(300.))
+                .child(SessionRow::new("row", data, 10).open(self.open))
         }
     }
 
@@ -77,15 +103,22 @@ mod open {
         });
         cx.run_until_parked();
         cx.run_until_parked();
-        let bar = cx.debug_bounds("session-row-open").expect("the open row has a bar");
-        assert_eq!((f32::from(bar.size.width), f32::from(bar.size.height)), (3., 16.));
+        let bar = cx
+            .debug_bounds("session-row-open")
+            .expect("the open row has a bar");
+        assert_eq!(
+            (f32::from(bar.size.width), f32::from(bar.size.height)),
+            (3., 16.)
+        );
     }
 }
 
 mod archive {
     use std::{cell::Cell, rc::Rc};
 
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
+    };
 
     use crate::{
         agent_look::AgentLook,
@@ -130,10 +163,15 @@ mod archive {
             cx.set_reduce_motion(true);
         });
         let (archived, opened) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(0)));
-        let (_host, cx) = cx.add_window_view(|_, _| Host { archived: archived.clone(), opened: opened.clone() });
+        let (_host, cx) = cx.add_window_view(|_, _| Host {
+            archived: archived.clone(),
+            opened: opened.clone(),
+        });
         cx.simulate_resize(size(px(400.), px(100.)));
         cx.run_until_parked();
-        let row = cx.debug_bounds("row-title:Add a subtract function").expect("the row is drawn");
+        let row = cx
+            .debug_bounds("row-title:Add a subtract function")
+            .expect("the row is drawn");
         cx.simulate_mouse_move(row.center(), None, Default::default());
         cx.run_until_parked();
         let archive = cx
@@ -146,10 +184,20 @@ mod archive {
             archive.right() <= more.left(),
             "archive ({archive:?}) sits left of more ({more:?})"
         );
-        let time = cx.debug_bounds("row-time").expect("the time stays while the pointer is on the row");
-        assert!(more.right() <= time.left(), "the buttons stand left of the time, as in Cursor: {more:?} {time:?}");
-        let title = cx.debug_bounds("row-title:Add a subtract function").unwrap();
-        assert!(title.right() <= archive.left() + px(0.5), "and the title gives them room: {title:?} {archive:?}");
+        let time = cx
+            .debug_bounds("row-time")
+            .expect("the time stays while the pointer is on the row");
+        assert!(
+            more.right() <= time.left(),
+            "the buttons stand left of the time, as in Cursor: {more:?} {time:?}"
+        );
+        let title = cx
+            .debug_bounds("row-title:Add a subtract function")
+            .unwrap();
+        assert!(
+            title.right() <= archive.left() + px(0.5),
+            "and the title gives them room: {title:?} {archive:?}"
+        );
         cx.simulate_click(archive.center(), Default::default());
         cx.run_until_parked();
         assert_eq!((archived.get(), opened.get()), (1, 0));
@@ -157,7 +205,9 @@ mod archive {
 }
 
 mod provider {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
+    };
 
     use crate::{
         agent_look::AgentLook,
@@ -189,7 +239,10 @@ mod provider {
         }
     }
 
-    fn draw<'a>(provider: Option<&'static str>, cx: &'a mut TestAppContext) -> &'a mut gpui_kit::VisualTestContext {
+    fn draw<'a>(
+        provider: Option<&'static str>,
+        cx: &'a mut TestAppContext,
+    ) -> &'a mut gpui_kit::VisualTestContext {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);

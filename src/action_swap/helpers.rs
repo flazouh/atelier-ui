@@ -1,7 +1,7 @@
 use gpui_kit::Hsla;
 
-use crate::theme::Theme;
 use super::types::SwapVariant;
+use crate::theme::Theme;
 
 /// The fill and the words of a variant, at hover progress `hover` (0 to 1).
 pub fn colors(variant: SwapVariant, theme: &Theme, hover: f32) -> (Hsla, Hsla) {

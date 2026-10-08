@@ -1,5 +1,6 @@
 use gpui_kit::{
-    App, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, Styled, Window, div, linear_color_stop, linear_gradient, svg,
+    App, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, Styled, Window, div,
+    linear_color_stop, linear_gradient, svg,
 };
 
 use crate::scale::px;
@@ -41,7 +42,11 @@ impl RenderOnce for AtelierMark {
             .size(px(size))
             .rounded(px(corner))
             .overflow_hidden()
-            .bg(linear_gradient(180., linear_color_stop(tile.top, 0.), linear_color_stop(tile.bottom, 1.)))
+            .bg(linear_gradient(
+                180.,
+                linear_color_stop(tile.top, 0.),
+                linear_color_stop(tile.bottom, 1.),
+            ))
             .child(
                 div()
                     .debug_selector(|| "atelier-mark-a".into())

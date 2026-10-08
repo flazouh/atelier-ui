@@ -1,7 +1,7 @@
 use gpui_kit::{ElementId, Hsla, SharedString};
 
-use crate::sprite::{Sprite, Strip};
 use super::types::NEUTRAL_STRIP;
+use crate::sprite::{Sprite, Strip};
 
 /// An agent's animated mark: the strips each moment plays, and the colour they draw in.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -78,7 +78,12 @@ impl AgentLook {
     pub fn neutral(theme: &crate::theme::Theme) -> Self {
         let muted = theme.muted_foreground;
         Self {
-            mark: Mark { working: NEUTRAL_STRIP, orbiting: NEUTRAL_STRIP, color: muted, icon_frame: 0 },
+            mark: Mark {
+                working: NEUTRAL_STRIP,
+                orbiting: NEUTRAL_STRIP,
+                color: muted,
+                icon_frame: 0,
+            },
             message: muted,
             glimmer: crate::theme::mix(muted, theme.foreground, 0.5),
             labels: PhaseLabels::default(),

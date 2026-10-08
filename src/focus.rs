@@ -16,9 +16,9 @@ pub use traits::PressStop;
 pub use types::RING_WIDTH;
 
 #[cfg(test)]
-use gpui_kit::FocusHandle;
-#[cfg(test)]
 use crate::theme::{MARK_CONTRAST, contrast};
+#[cfg(test)]
+use gpui_kit::FocusHandle;
 
 #[cfg(test)]
 mod tests;

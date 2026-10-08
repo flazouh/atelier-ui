@@ -1,24 +1,13 @@
 use std::panic::Location;
 
 use gpui_kit::{
-    AnyElement,
-    App,
-    Bounds,
-    Element,
-    ElementId,
-    GlobalElementId,
-    InspectorElementId,
-    IntoElement,
-    LayoutId,
-    Pixels,
-    Point,
-    Window,
-    point,
+    AnyElement, App, Bounds, Element, ElementId, GlobalElementId, InspectorElementId, IntoElement,
+    LayoutId, Pixels, Point, Window, point,
 };
 
-use crate::scale::px;
-use crate::motion::{Channel, Curve, Spring};
 use super::helpers::{moved, start_offset};
+use crate::motion::{Channel, Curve, Spring};
+use crate::scale::px;
 
 /// What the wrapper remembers between frames.
 struct Slot {
@@ -30,7 +19,11 @@ struct Slot {
 
 impl Default for Slot {
     fn default() -> Self {
-        Self { last: None, x: Channel::new(0.), y: Channel::new(0.) }
+        Self {
+            last: None,
+            x: Channel::new(0.),
+            y: Channel::new(0.),
+        }
     }
 }
 
@@ -68,11 +61,25 @@ impl Element for Shifted {
         None
     }
 
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
         (self.child.request_layout(window, cx), ())
     }
 
-    fn prepaint(&mut self, id: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) {
+    fn prepaint(
+        &mut self,
+        id: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let reduce = cx.reduce_motion();
         let spring = self.spring;
         let offset = window.with_optional_element_state::<Slot, _>(id, |slot, window| {
@@ -98,7 +105,16 @@ impl Element for Shifted {
         window.with_element_offset(offset, |window| self.child.prepaint(window, cx));
     }
 
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, _: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         self.child.paint(window, cx);
     }
 }

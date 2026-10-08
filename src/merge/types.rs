@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
-use super::structs::Queue;
 use super::helpers::{checks, names};
+use super::structs::Queue;
 
 /// The three ways a forge puts a branch into another.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -12,7 +12,8 @@ pub enum MergeMethod {
 }
 
 impl MergeMethod {
-    pub const ALL: [MergeMethod; 3] = [MergeMethod::Merge, MergeMethod::Squash, MergeMethod::Rebase];
+    pub const ALL: [MergeMethod; 3] =
+        [MergeMethod::Merge, MergeMethod::Squash, MergeMethod::Rebase];
 
     /// On the button.
     pub fn word(self) -> &'static str {
@@ -120,7 +121,9 @@ impl Blocker {
             Blocker::ChecksFailing(_) => "Fix the failing checks, or run them again.".into(),
             Blocker::ChecksRunning(_) => "It can merge once they pass.".into(),
             Blocker::ReviewMissing => "At least one approving review is required.".into(),
-            Blocker::ChangesAsked(_) => "The changes asked for must be made and the review given again.".into(),
+            Blocker::ChangesAsked(_) => {
+                "The changes asked for must be made and the review given again.".into()
+            }
             Blocker::Queue(q) if q.queued => match q.position {
                 Some(n) => format!("It is number {n} in line, and merges when its turn comes."),
                 None => "It is in line, and merges when its turn comes.".into(),
@@ -134,21 +137,33 @@ impl Blocker {
     pub fn action(&self) -> Option<Action> {
         match self {
             Blocker::Draft => Some(Action::ReadyForReview),
-            Blocker::Behind(ways) => Some(Action::UpdateBranch(ways.first().copied().unwrap_or(UpdateWay::Merge))),
+            Blocker::Behind(ways) => Some(Action::UpdateBranch(
+                ways.first().copied().unwrap_or(UpdateWay::Merge),
+            )),
             _ => None,
         }
     }
 
     /// Whether merge when ready can wait it out: checks and reviews pass by themselves in time.
     pub fn can_wait(&self) -> bool {
-        matches!(self, Blocker::ChecksFailing(_) | Blocker::ChecksRunning(_) | Blocker::ReviewMissing | Blocker::ChangesAsked(_))
+        matches!(
+            self,
+            Blocker::ChecksFailing(_)
+                | Blocker::ChecksRunning(_)
+                | Blocker::ReviewMissing
+                | Blocker::ChangesAsked(_)
+        )
     }
 
     /// Whether an administrator may merge past it: the repository's rules, not a conflict or a draft.
     pub fn bypassable(&self) -> bool {
         matches!(
             self,
-            Blocker::Behind(_) | Blocker::ChecksFailing(_) | Blocker::ChecksRunning(_) | Blocker::ReviewMissing | Blocker::ChangesAsked(_)
+            Blocker::Behind(_)
+                | Blocker::ChecksFailing(_)
+                | Blocker::ChecksRunning(_)
+                | Blocker::ReviewMissing
+                | Blocker::ChangesAsked(_)
         )
     }
 
@@ -158,8 +173,13 @@ impl Blocker {
             Blocker::Draft => "still a draft".into(),
             Blocker::Conflicts(_) => "conflicts".into(),
             Blocker::Behind(_) => "out of date".into(),
-            Blocker::ChecksFailing(n) => format!("{n} {} failing", if *n == 1 { "check" } else { "checks" }),
-            Blocker::ChecksRunning(n) => format!("{n} {} still running", if *n == 1 { "check" } else { "checks" }),
+            Blocker::ChecksFailing(n) => {
+                format!("{n} {} failing", if *n == 1 { "check" } else { "checks" })
+            }
+            Blocker::ChecksRunning(n) => format!(
+                "{n} {} still running",
+                if *n == 1 { "check" } else { "checks" }
+            ),
             Blocker::ReviewMissing => "review required".into(),
             Blocker::ChangesAsked(people) => format!("changes asked by {}", names(people)),
             Blocker::Queue(_) => "the queue".into(),

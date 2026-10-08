@@ -14,17 +14,53 @@ fn the_header_counts_files_and_lines() {
 
 #[test]
 fn a_long_list_folds_after_five_rows() {
-    assert_eq!(fold(12, false), Fold { shown: 5, hidden: 7 });
-    assert_eq!(fold(7, false), Fold { shown: 5, hidden: 2 });
-    assert_eq!(fold(12, true), Fold { shown: 12, hidden: 0 });
+    assert_eq!(
+        fold(12, false),
+        Fold {
+            shown: 5,
+            hidden: 7
+        }
+    );
+    assert_eq!(
+        fold(7, false),
+        Fold {
+            shown: 5,
+            hidden: 2
+        }
+    );
+    assert_eq!(
+        fold(12, true),
+        Fold {
+            shown: 12,
+            hidden: 0
+        }
+    );
 }
 
 #[test]
 fn a_fold_never_hides_a_single_row() {
     // "Show 1 more" takes the same room as the row it hides.
-    assert_eq!(fold(6, false), Fold { shown: 6, hidden: 0 });
-    assert_eq!(fold(5, false), Fold { shown: 5, hidden: 0 });
-    assert_eq!(fold(0, false), Fold { shown: 0, hidden: 0 });
+    assert_eq!(
+        fold(6, false),
+        Fold {
+            shown: 6,
+            hidden: 0
+        }
+    );
+    assert_eq!(
+        fold(5, false),
+        Fold {
+            shown: 5,
+            hidden: 0
+        }
+    );
+    assert_eq!(
+        fold(0, false),
+        Fold {
+            shown: 0,
+            hidden: 0
+        }
+    );
 }
 
 #[test]
@@ -37,7 +73,10 @@ fn the_fold_button_says_how_many_rows_it_holds() {
 
 #[test]
 fn a_path_splits_into_its_folder_and_its_name() {
-    assert_eq!(split_path("crates/beui/src/theme.rs"), ("crates/beui/src/", "theme.rs"));
+    assert_eq!(
+        split_path("crates/beui/src/theme.rs"),
+        ("crates/beui/src/", "theme.rs")
+    );
     assert_eq!(split_path("Cargo.toml"), ("", "Cargo.toml"));
     assert_eq!(split_path("docs/"), ("docs/", ""));
 }
@@ -47,20 +86,31 @@ fn only_added_deleted_and_renamed_files_carry_a_word() {
     assert_eq!(FileChange::Modified.word(), None);
     assert_eq!(FileChange::Added.word(), Some("Added"));
     assert_eq!(FileChange::Deleted.word(), Some("Deleted"));
-    assert_eq!(FileChange::Renamed { from: "old.rs".into() }.word(), Some("Renamed"));
+    assert_eq!(
+        FileChange::Renamed {
+            from: "old.rs".into()
+        }
+        .word(),
+        Some("Renamed")
+    );
 }
 
 #[test]
 fn review_starts_at_the_first_file() {
     let files = [file("a.rs", 1, 0), file("b.rs", 1, 0)];
-    assert_eq!(first_path(&files).map(|p| p.to_string()), Some("a.rs".into()));
+    assert_eq!(
+        first_path(&files).map(|p| p.to_string()),
+        Some("a.rs".into())
+    );
     assert_eq!(first_path(&[]), None);
 }
 
 mod collapsible {
     use std::{cell::Cell, rc::Rc};
 
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size,
+    };
 
     use super::file;
     use crate::{
@@ -91,20 +141,38 @@ mod collapsible {
             cx.set_reduce_motion(true);
         });
         let reviews = Rc::new(Cell::new(0));
-        let (_host, cx) = cx.add_window_view(|_, _| Host { reviews: reviews.clone() });
+        let (_host, cx) = cx.add_window_view(|_, _| Host {
+            reviews: reviews.clone(),
+        });
         cx.simulate_resize(size(px(500.), px(400.)));
         cx.run_until_parked();
-        assert!(cx.debug_bounds("changed-file-src/a.rs").is_none(), "folded: no rows");
-        let review = cx.debug_bounds("changed-files-review").expect("Review is in the header");
+        assert!(
+            cx.debug_bounds("changed-file-src/a.rs").is_none(),
+            "folded: no rows"
+        );
+        let review = cx
+            .debug_bounds("changed-files-review")
+            .expect("Review is in the header");
         cx.simulate_click(review.center(), gpui_kit::Modifiers::default());
         cx.run_until_parked();
         assert_eq!(reviews.get(), 1);
-        assert!(cx.debug_bounds("changed-file-src/a.rs").is_none(), "Review does not unfold the list");
-        let toggle = cx.debug_bounds("changed-files-toggle").expect("the header folds and unfolds");
-        cx.simulate_click(toggle.origin + gpui_kit::point(px(8.), px(8.)), gpui_kit::Modifiers::default());
+        assert!(
+            cx.debug_bounds("changed-file-src/a.rs").is_none(),
+            "Review does not unfold the list"
+        );
+        let toggle = cx
+            .debug_bounds("changed-files-toggle")
+            .expect("the header folds and unfolds");
+        cx.simulate_click(
+            toggle.origin + gpui_kit::point(px(8.), px(8.)),
+            gpui_kit::Modifiers::default(),
+        );
         cx.run_until_parked();
         cx.run_until_parked();
-        assert!(cx.debug_bounds("changed-file-src/a.rs").is_some(), "open: the rows show");
+        assert!(
+            cx.debug_bounds("changed-file-src/a.rs").is_some(),
+            "open: the rows show"
+        );
     }
     /// Folding takes the rows' height with it as it goes: the card passes through heights between open and folded, so what
     /// stands below it moves with it and does not jump when the fade ends.
@@ -115,28 +183,54 @@ mod collapsible {
             set_appearance(Appearance::Dark, cx);
             cx.set_reduce_motion(true);
         });
-        let (_host, cx) = cx.add_window_view(|_, _| Host { reviews: Rc::new(Cell::new(0)) });
+        let (_host, cx) = cx.add_window_view(|_, _| Host {
+            reviews: Rc::new(Cell::new(0)),
+        });
         cx.simulate_resize(size(px(500.), px(400.)));
         cx.run_until_parked();
         let toggle = cx.debug_bounds("changed-files-toggle").expect("the header");
         let press = toggle.origin + gpui_kit::point(px(8.), px(8.));
-        let folded = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
+        let folded = f32::from(
+            cx.debug_bounds("changed-files-card")
+                .expect("the card")
+                .size
+                .height,
+        );
         cx.simulate_click(press, gpui_kit::Modifiers::default());
         cx.run_until_parked();
         cx.run_until_parked();
-        let open = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
-        assert!(open > folded + 20., "open is taller: {open} against {folded}");
+        let open = f32::from(
+            cx.debug_bounds("changed-files-card")
+                .expect("the card")
+                .size
+                .height,
+        );
+        assert!(
+            open > folded + 20.,
+            "open is taller: {open} against {folded}"
+        );
         cx.update(|_, cx| cx.set_reduce_motion(false));
         cx.simulate_click(press, gpui_kit::Modifiers::default());
         let mut between = false;
         for _ in 0..60 {
             cx.run_until_parked();
             cx.update(|window, _| window.refresh());
-            let height = f32::from(cx.debug_bounds("changed-files-card").expect("the card").size.height);
-            assert!(height <= open + 0.5 && height >= folded - 0.5, "{height} stays within {folded} and {open}");
+            let height = f32::from(
+                cx.debug_bounds("changed-files-card")
+                    .expect("the card")
+                    .size
+                    .height,
+            );
+            assert!(
+                height <= open + 0.5 && height >= folded - 0.5,
+                "{height} stays within {folded} and {open}"
+            );
             between |= height > folded + 2. && height < open - 2.;
             std::thread::sleep(std::time::Duration::from_millis(8));
         }
-        assert!(between, "the card never passed between open and folded: it jumped");
+        assert!(
+            between,
+            "the card never passed between open and folded: it jumped"
+        );
     }
 }

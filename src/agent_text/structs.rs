@@ -1,18 +1,8 @@
 use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
-    App,
-    ClickEvent,
-    ElementId,
-    FontWeight,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    RenderOnce,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    Window,
+    App, ClickEvent, ElementId, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window,
     base::text::MarkdownExtensions,
     component::text::{TextView, TextViewStyle},
     div,
@@ -20,6 +10,7 @@ use gpui_kit::{
     rems,
 };
 
+use super::types::AgentTextStatus;
 use crate::scale::px;
 use crate::{
     ClickHandler,
@@ -33,7 +24,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::AgentTextStatus;
 
 /// One entry in the source summary.
 #[derive(Clone, Debug, PartialEq)]
@@ -44,7 +34,10 @@ pub struct AgentTextSource {
 
 impl AgentTextSource {
     pub fn new(title: impl Into<SharedString>, domain: impl Into<SharedString>) -> Self {
-        Self { title: title.into(), domain: domain.into() }
+        Self {
+            title: title.into(),
+            domain: domain.into(),
+        }
     }
 }
 
@@ -95,7 +88,10 @@ impl AgentText {
     }
 
     /// Receives a pressed chip.
-    pub fn on_open_pr(mut self, handler: impl Fn(&PrChipData, &mut Window, &mut App) + Send + Sync + 'static) -> Self {
+    pub fn on_open_pr(
+        mut self,
+        handler: impl Fn(&PrChipData, &mut Window, &mut App) + Send + Sync + 'static,
+    ) -> Self {
         self.on_open_pr = Some(Arc::new(handler));
         self
     }
@@ -111,7 +107,10 @@ impl AgentText {
         self
     }
 
-    pub fn on_retry(mut self, handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_retry(
+        mut self,
+        handler: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_retry = Some(Rc::new(handler));
         self
     }
@@ -147,7 +146,8 @@ impl RenderOnce for AgentText {
         motion.update(cx, |m, _| {
             let want = if should_show_actions { 1. } else { 0. };
             if (m.reveal.target() - want).abs() > 0.001 {
-                m.reveal.animate(want, Curve::Ease(0.22, ease::OUT), 0., reduce);
+                m.reveal
+                    .animate(want, Curve::Ease(0.22, ease::OUT), 0., reduce);
             }
         });
 
@@ -158,17 +158,35 @@ impl RenderOnce for AgentText {
         if m.reveal.is_running() || m.sources.is_moving() {
             window.request_animation_frame();
         }
-        let (reveal, chevron, sources_reveal) = (m.reveal.value(), m.sources.chevron.value(), m.sources.reveal.value());
+        let (reveal, chevron, sources_reveal) = (
+            m.reveal.value(),
+            m.sources.chevron.value(),
+            m.sources.reveal.value(),
+        );
         let sources_height = m.sources.height.clone();
 
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
-        let child_id = |name: &'static str| ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), name.into());
+        let child_id = |name: &'static str| {
+            ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), name.into())
+        };
 
-        let action = |name: &'static str, icon: IconName, active: bool, window: &mut Window, cx: &mut App| {
+        let action = |name: &'static str,
+                      icon: IconName,
+                      active: bool,
+                      window: &mut Window,
+                      cx: &mut App| {
             div()
                 .id(child_id(name))
-                .press_stop(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), format!("{name}-focus").into()), radius::md(), window, cx)
+                .press_stop(
+                    ElementId::NamedChild(
+                        std::sync::Arc::new(self.id.clone()),
+                        format!("{name}-focus").into(),
+                    ),
+                    radius::md(),
+                    window,
+                    cx,
+                )
                 .flex()
                 .size(px(28.))
                 .items_center()
@@ -184,11 +202,27 @@ impl RenderOnce for AgentText {
         let mut row = div().flex().items_center().gap(px(2.));
         if let Some(text) = self.copy_text.clone() {
             let copy_state = motion.clone();
-            row = row.child(action("copy", if copied { IconName::Check } else { IconName::Copy }, false, window, cx).on_click(
-                move |_, _, cx| {
-                    CopyFeedback::click(&copy_state, |m: &mut ResponseMotion| &mut m.copy, text.to_string(), cx);
-                },
-            ));
+            row = row.child(
+                action(
+                    "copy",
+                    if copied {
+                        IconName::Check
+                    } else {
+                        IconName::Copy
+                    },
+                    false,
+                    window,
+                    cx,
+                )
+                .on_click(move |_, _, cx| {
+                    CopyFeedback::click(
+                        &copy_state,
+                        |m: &mut ResponseMotion| &mut m.copy,
+                        text.to_string(),
+                        cx,
+                    );
+                }),
+            );
         }
         if let Some(handler) = self.on_retry.clone() {
             row = row.child(
@@ -198,24 +232,45 @@ impl RenderOnce for AgentText {
         }
         let source_count = self.sources.len();
         if has_sources {
-            let chips = div().flex().items_center().children(self.sources.iter().take(3).enumerate().map(
-                |(index, source)| {
-                    div()
-                        .when(index > 0, |d| d.ml(px(-6.)))
-                        .flex()
-                        .size(px(18.))
-                        .items_center()
-                        .justify_center()
-                        .rounded_full()
-                        .bg(theme.card_strong)
-                        .text_size(px(9.))
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(muted)
-                        .child(source.domain.chars().next().map(|c| c.to_ascii_uppercase().to_string()).unwrap_or_default())
-                },
-            ));
-            let count_label =
-                format!("{source_count} {}", if source_count == 1 { "source" } else { "sources" });
+            let chips =
+                div()
+                    .flex()
+                    .items_center()
+                    .children(
+                        self.sources
+                            .iter()
+                            .take(3)
+                            .enumerate()
+                            .map(|(index, source)| {
+                                div()
+                                    .when(index > 0, |d| d.ml(px(-6.)))
+                                    .flex()
+                                    .size(px(18.))
+                                    .items_center()
+                                    .justify_center()
+                                    .rounded_full()
+                                    .bg(theme.card_strong)
+                                    .text_size(px(9.))
+                                    .font_weight(FontWeight::MEDIUM)
+                                    .text_color(muted)
+                                    .child(
+                                        source
+                                            .domain
+                                            .chars()
+                                            .next()
+                                            .map(|c| c.to_ascii_uppercase().to_string())
+                                            .unwrap_or_default(),
+                                    )
+                            }),
+                    );
+            let count_label = format!(
+                "{source_count} {}",
+                if source_count == 1 {
+                    "source"
+                } else {
+                    "sources"
+                }
+            );
             let sources_toggle = motion.clone();
             row = row.child(
                 div()
@@ -276,7 +331,11 @@ impl RenderOnce for AgentText {
                                 .child(source.domain),
                         )
                 }));
-            crate::reveal::body(div().pt(px(8.)).child(panel), sources_reveal, &sources_height)
+            crate::reveal::body(
+                div().pt(px(8.)).child(panel),
+                sources_reveal,
+                &sources_height,
+            )
         });
 
         let actions = (reveal > 0.001).then(|| {
@@ -302,14 +361,20 @@ impl RenderOnce for AgentText {
         let style = TextViewStyle::default()
             .paragraph_gap(rems(0.75))
             .table(table_frame)
-            .table_tiles(gpui_kit::component::text::TableTiles { head: ink.opacity(0.10), cell: ink.opacity(0.055), hover: ink.opacity(0.085) })
+            .table_tiles(gpui_kit::component::text::TableTiles {
+                head: ink.opacity(0.10),
+                cell: ink.opacity(0.055),
+                hover: ink.opacity(0.085),
+            })
             .table_cell(cell_text)
             .code_block(super::helpers::code_block_style(&theme));
         // The paragraph still growing draws in runs that fade in; what is finished stays Markdown.
         let mut tail: Option<(String, Vec<crate::stream_text::Piece>)> = None;
         let mut body = self.markdown.clone();
         if streaming && self.fade_tail && !reduce {
-            let flow = window.use_keyed_state(child_id("flow"), cx, |_, _| crate::stream_text::Flow::default());
+            let flow = window.use_keyed_state(child_id("flow"), cx, |_, _| {
+                crate::stream_text::Flow::default()
+            });
             let now = std::time::Instant::now();
             flow.update(cx, |f, _| f.observe(&self.markdown, now));
             let cut = crate::stream_text::split_tail(&self.markdown);
@@ -319,7 +384,11 @@ impl RenderOnce for AgentText {
                 if flow.is_fading(now) {
                     window.request_animation_frame();
                 }
-                let runs = flow.alphas(&self.markdown, cut, now).into_iter().map(|(r, a)| (r.start - cut..r.end - cut, a)).collect();
+                let runs = flow
+                    .alphas(&self.markdown, cut, now)
+                    .into_iter()
+                    .map(|(r, a)| (r.start - cut..r.end - cut, a))
+                    .collect();
                 tail = Some((rest.to_string(), runs));
                 body = SharedString::from(self.markdown[..cut].trim_end_matches('\n').to_string());
             }
@@ -330,8 +399,15 @@ impl RenderOnce for AgentText {
         let (markdown, chips) = match &self.pr_resolver {
             Some(resolve) => {
                 let (markdown, chips) = link_prs(&body, |n| resolve(n));
-                let plugin = PrChips { id: self.id.clone(), chips: Arc::new(chips), on_open: self.on_open_pr.clone() };
-                (SharedString::from(markdown), Some(MarkdownExtensions::default().plugin(plugin)))
+                let plugin = PrChips {
+                    id: self.id.clone(),
+                    chips: Arc::new(chips),
+                    on_open: self.on_open_pr.clone(),
+                };
+                (
+                    SharedString::from(markdown),
+                    Some(MarkdownExtensions::default().plugin(plugin)),
+                )
             }
             None => (body.clone(), None),
         };
@@ -340,7 +416,13 @@ impl RenderOnce for AgentText {
         let was_plain = window.use_keyed_state(child_id("was-plain"), cx, |_, _| false);
         let joining_now = *was_plain.read(cx);
         was_plain.update(cx, |w, _| *w = tail.is_some());
-        let fade_body = super::helpers::fades_markdown(streaming, self.fade_tail, reduce, tail.is_some(), joining_now);
+        let fade_body = super::helpers::fades_markdown(
+            streaming,
+            self.fade_tail,
+            reduce,
+            tail.is_some(),
+            joining_now,
+        );
         let motion = if fade_body {
             gpui_kit::component::text::TextViewMotion::default()
                 .with_stream_fade(crate::stream_text::FADE)
@@ -348,7 +430,10 @@ impl RenderOnce for AgentText {
         } else {
             gpui_kit::component::text::TextViewMotion::default()
         };
-        let mut text = TextView::markdown(self.id.clone(), markdown).style(style).selectable(true).motion(motion);
+        let mut text = TextView::markdown(self.id.clone(), markdown)
+            .style(style)
+            .selectable(true)
+            .motion(motion);
         if let Some(chips) = chips {
             text = text.markdown_extensions(chips);
         }
@@ -363,7 +448,13 @@ impl RenderOnce for AgentText {
                 // strength it has left to go. A GlyphText, so a fading piece keeps the kerning it will have once it settles.
                 let surface = self.fade_into.unwrap_or(theme.card);
                 let highlights = runs.into_iter().map(|(range, alpha)| {
-                    (range, gpui_kit::HighlightStyle { color: Some(surface.opacity(1. - alpha)), ..Default::default() })
+                    (
+                        range,
+                        gpui_kit::HighlightStyle {
+                            color: Some(surface.opacity(1. - alpha)),
+                            ..Default::default()
+                        },
+                    )
                 });
                 // The gap a paragraph has, so the tail lays out as one more paragraph of the same text.
                 d.child(
@@ -373,6 +464,11 @@ impl RenderOnce for AgentText {
                         .child(crate::glyph_text::GlyphText::new(rest).highlights(highlights)),
                 )
             });
-        div().flex().flex_col().w_full().child(content).when_some(actions, |d, a| d.child(a))
+        div()
+            .flex()
+            .flex_col()
+            .w_full()
+            .child(content)
+            .when_some(actions, |d, a| d.child(a))
     }
 }

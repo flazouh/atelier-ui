@@ -5,6 +5,7 @@ use gpui_kit::{
     SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::lead_text;
 use crate::scale::px;
 use crate::{
     agent_look::AgentLook,
@@ -20,7 +21,6 @@ use crate::{
     tool_call::ToolCall,
     typography::TextSize,
 };
-use super::helpers::lead_text;
 
 #[derive(IntoElement)]
 pub struct SubagentCard {
@@ -116,7 +116,11 @@ impl RenderOnce for SubagentCard {
         let done = self.finished.is_some();
         let has_calls = !self.calls.is_empty();
         let disclosure = window.use_keyed_state(self.id.clone(), cx, |_, _| Reveal::new(false));
-        let header_hover = window.use_keyed_state(ElementId::NamedChild(Arc::new(self.id.clone()), "hover".into()), cx, |_, _| false);
+        let header_hover = window.use_keyed_state(
+            ElementId::NamedChild(Arc::new(self.id.clone()), "hover".into()),
+            cx,
+            |_, _| false,
+        );
         let lit = *header_hover.read(cx);
         if disclosure.read(cx).is_moving() {
             window.request_animation_frame();
@@ -125,25 +129,36 @@ impl RenderOnce for SubagentCard {
             let d = disclosure.read(cx);
             (d.reveal.value(), d.chevron.value(), d.height.clone())
         };
-        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child =
+            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
         let mark = &self.look.mark;
-        let text = |text: SharedString| move |_: &mut Window, _: &mut App| div().truncate().child(text.clone()).into_any_element();
+        let text = |text: SharedString| {
+            move |_: &mut Window, _: &mut App| {
+                div().truncate().child(text.clone()).into_any_element()
+            }
+        };
 
         // Done, the mark says it; running, the time it has run.
         let right = if done {
             div().into_any_element()
         } else {
-            div().text_size(TextSize::Xs.font_size()).text_color(muted).children(self.elapsed.clone()).into_any_element()
+            div()
+                .text_size(TextSize::Xs.font_size())
+                .text_color(muted)
+                .children(self.elapsed.clone())
+                .into_any_element()
         };
         let toggle = disclosure.clone();
         let header = div()
             .id(child("header"))
             .on_hover({
                 let hover = header_hover.clone();
-                move |on, _, cx| hover.update(cx, |h, cx| {
-                    *h = *on;
-                    cx.notify();
-                })
+                move |on, _, cx| {
+                    hover.update(cx, |h, cx| {
+                        *h = *on;
+                        cx.notify();
+                    })
+                }
             })
             .group("subagent-header")
             .flex()
@@ -153,14 +168,21 @@ impl RenderOnce for SubagentCard {
             .py(px(8.))
             .rounded(radius::card())
             .when(has_calls, |d| {
-                d.cursor_pointer().press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx).on_click(move |_, _, cx| {
-                    let reduce = cx.reduce_motion();
-                    toggle.update(cx, |d, cx| {
-                        let open = !d.open;
-                        d.set_open(open, reduce);
-                        cx.notify();
+                d.cursor_pointer()
+                    .press_stop(
+                        (self.id.clone(), "head-focus"),
+                        crate::theme::radius::md(),
+                        window,
+                        cx,
+                    )
+                    .on_click(move |_, _, cx| {
+                        let reduce = cx.reduce_motion();
+                        toggle.update(cx, |d, cx| {
+                            let open = !d.open;
+                            d.set_open(open, reduce);
+                            cx.notify();
+                        })
                     })
-                })
             })
             .child(
                 div()
@@ -173,24 +195,42 @@ impl RenderOnce for SubagentCard {
                         // in the same colour. While it runs the logo plays, or an arc turns.
                         let color = self.tint.unwrap_or(mark.color);
                         let drawn = match (mark.is_own(), done) {
-                            (true, false) => Sprite::new(child("mark"), mark.orbiting, color).rest(mark.working).size(px(16.)).playing(true).into_any_element(),
+                            (true, false) => Sprite::new(child("mark"), mark.orbiting, color)
+                                .rest(mark.working)
+                                .size(px(16.))
+                                .playing(true)
+                                .into_any_element(),
                             (true, true) => Sprite::new(child("mark"), mark.working, color)
                                 .rest(mark.working)
                                 .still_frame(mark.icon_frame)
                                 .size(px(16.))
                                 .playing(false)
                                 .into_any_element(),
-                            (false, false) => crate::spinner::Spinner::new(child("mark")).size(px(16.)).color(color).into_any_element(),
-                            (false, true) => StatusMark::new(Mark::filled(color, theme.background).check(1.), px(16.)).into_any_element(),
+                            (false, false) => crate::spinner::Spinner::new(child("mark"))
+                                .size(px(16.))
+                                .color(color)
+                                .into_any_element(),
+                            (false, true) => StatusMark::new(
+                                Mark::filled(color, theme.background).check(1.),
+                                px(16.),
+                            )
+                            .into_any_element(),
                         };
-                        div().debug_selector(|| "subagent-mark".into()).flex_none().child(drawn)
+                        div()
+                            .debug_selector(|| "subagent-mark".into())
+                            .flex_none()
+                            .child(drawn)
                     })
                     .child(
                         div()
                             .flex_none()
                             .text_size(TextSize::Sm.font_size())
                             .font_weight(FontWeight::MEDIUM)
-                            .text_color(if done { theme.foreground.opacity(0.9) } else { self.look.message })
+                            .text_color(if done {
+                                theme.foreground.opacity(0.9)
+                            } else {
+                                self.look.message
+                            })
                             .child(self.name),
                     )
                     .child(
@@ -216,30 +256,54 @@ impl RenderOnce for SubagentCard {
                                 .flex_none()
                                 .text_color(theme.faint())
                                 .group_hover("subagent-header", |s| s.text_color(muted))
-                                .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
+                                .child(
+                                    Icon::new(IconName::ChevronDown)
+                                        .size(px(14.))
+                                        .turn(chevron / 360.),
+                                ),
                         )
                     }),
             )
-            .when(done || self.tool_calls > 0 || self.live_tool.is_some(), |d| d.child(
-                // Under the header, flush with the mark on the left edge, not with the name. Before the first
-                // tool call there is nothing to count, so the header stands alone.
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(12.))
-                    .h(px(20.))
-                    .text_size(TextSize::Xs.font_size())
-                    .text_color(muted)
-                    .child(
-                        div().flex_1().min_w_0().overflow_hidden().whitespace_nowrap().text_color(if done { muted } else { theme.foreground.opacity(0.75) }).children(
-                            lead_text(self.finished, self.live_tool).map(|lead| Morph::new(child("live"), lead.clone(), text(lead))),
-                        ),
+            .when(
+                done || self.tool_calls > 0 || self.live_tool.is_some(),
+                |d| {
+                    d.child(
+                        // Under the header, flush with the mark on the left edge, not with the name. Before the first
+                        // tool call there is nothing to count, so the header stands alone.
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap(px(12.))
+                            .h(px(20.))
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(muted)
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .overflow_hidden()
+                                    .whitespace_nowrap()
+                                    .text_color(if done {
+                                        muted
+                                    } else {
+                                        theme.foreground.opacity(0.75)
+                                    })
+                                    .children(lead_text(self.finished, self.live_tool).map(
+                                        |lead| Morph::new(child("live"), lead.clone(), text(lead)),
+                                    )),
+                            )
+                            .child(div().flex_none().child({
+                                let count = tool_calls_text(self.tool_calls);
+                                Morph::new(child("count"), count.clone(), move |_, _| {
+                                    div()
+                                        .whitespace_nowrap()
+                                        .child(count.clone())
+                                        .into_any_element()
+                                })
+                            })),
                     )
-                    .child(div().flex_none().child({
-                        let count = tool_calls_text(self.tool_calls);
-                        Morph::new(child("count"), count.clone(), move |_, _| div().whitespace_nowrap().child(count.clone()).into_any_element())
-                    })),
-            ));
+                },
+            );
 
         div()
             .flex()
@@ -250,7 +314,12 @@ impl RenderOnce for SubagentCard {
             .child(header)
             .when(has_calls && reveal > 0.001, |d| {
                 d.child(crate::reveal::body(
-                    div().flex().flex_col().px(px(14.)).pb(px(8.)).children(self.calls.into_iter().map(ToolCall::flat)),
+                    div()
+                        .flex()
+                        .flex_col()
+                        .px(px(14.))
+                        .pb(px(8.))
+                        .children(self.calls.into_iter().map(ToolCall::flat)),
                     reveal,
                     &height,
                 ))

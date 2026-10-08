@@ -1,15 +1,20 @@
 use gpui_kit::Hsla;
 
-use crate::{motion::keyframes, theme::{Theme, mix}};
 use super::structs::Dims;
 use super::types::{EASE_IN_OUT, SHAKE, SHAKE_DELAY, SHAKE_SECONDS, STRETCH};
+use crate::{
+    motion::keyframes,
+    theme::{Theme, mix},
+};
 
 /// The thumb's sideways offset `t` seconds after a press on a disabled switch.
 pub fn shake_offset(t: f32) -> f32 {
     if t <= SHAKE_DELAY {
         return 0.;
     }
-    let times: Vec<f32> = (0..SHAKE.len()).map(|i| i as f32 / (SHAKE.len() - 1) as f32).collect();
+    let times: Vec<f32> = (0..SHAKE.len())
+        .map(|i| i as f32 / (SHAKE.len() - 1) as f32)
+        .collect();
     keyframes(&SHAKE, &times, SHAKE_SECONDS, EASE_IN_OUT, t - SHAKE_DELAY)
 }
 

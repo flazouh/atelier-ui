@@ -37,18 +37,65 @@ impl ButtonSize {
     pub(super) fn metrics(self) -> Metrics {
         match self {
             // One step below Medium, in the same ratio Medium keeps to Large.
-            Self::Sm => Metrics { height: 28., pad_x: 10., gap: 6., text: 11., icon: 14., chip_inset: 4. },
-            Self::Md => Metrics { height: 32., pad_x: 12., gap: 8., text: 12., icon: 14., chip_inset: 5. },
-            Self::Lg => Metrics { height: 36., pad_x: 16., gap: 10., text: 13., icon: 14., chip_inset: 6. },
-            Self::Xl => Metrics { height: 40., pad_x: 18., gap: 10., text: 14., icon: 16., chip_inset: 6. },
-            Self::Icon => Metrics { height: 28., pad_x: 0., gap: 0., text: 13., icon: 14., chip_inset: 0. },
-            Self::IconSm => Metrics { height: 24., pad_x: 0., gap: 0., text: 13., icon: 14., chip_inset: 0. },
+            Self::Sm => Metrics {
+                height: 28.,
+                pad_x: 10.,
+                gap: 6.,
+                text: 11.,
+                icon: 14.,
+                chip_inset: 4.,
+            },
+            Self::Md => Metrics {
+                height: 32.,
+                pad_x: 12.,
+                gap: 8.,
+                text: 12.,
+                icon: 14.,
+                chip_inset: 5.,
+            },
+            Self::Lg => Metrics {
+                height: 36.,
+                pad_x: 16.,
+                gap: 10.,
+                text: 13.,
+                icon: 14.,
+                chip_inset: 6.,
+            },
+            Self::Xl => Metrics {
+                height: 40.,
+                pad_x: 18.,
+                gap: 10.,
+                text: 14.,
+                icon: 16.,
+                chip_inset: 6.,
+            },
+            Self::Icon => Metrics {
+                height: 28.,
+                pad_x: 0.,
+                gap: 0.,
+                text: 13.,
+                icon: 14.,
+                chip_inset: 0.,
+            },
+            Self::IconSm => Metrics {
+                height: 24.,
+                pad_x: 0.,
+                gap: 0.,
+                text: 13.,
+                icon: 14.,
+                chip_inset: 0.,
+            },
         }
     }
 }
 
 /// Every corner rounded, as a button alone has them.
-pub const ROUND: Corners<bool> = Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true };
+pub const ROUND: Corners<bool> = Corners {
+    top_left: true,
+    top_right: true,
+    bottom_left: true,
+    bottom_right: true,
+};
 
 pub(super) type KeyHandler = Rc<dyn Fn(&KeyDownEvent, &mut Window, &mut App)>;
 

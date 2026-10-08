@@ -45,7 +45,9 @@ pub fn amplitude(ribbon: Ribbon, x: f32, level: f32, phase: f32) -> f32 {
 /// How tall the bar at `x` (0 to 1 across the row) stands, as a fraction of the row's height: the four ribbons
 /// read at one spot and averaged, then lifted so a loud voice fills the row.
 pub fn bar(x: f32, level: f32, phase: f32) -> f32 {
-    let (sum, gains) = RIBBONS.iter().fold((0., 0.), |(sum, gains), r| (sum + amplitude(*r, x, level, phase), gains + r.gain));
+    let (sum, gains) = RIBBONS.iter().fold((0., 0.), |(sum, gains), r| {
+        (sum + amplitude(*r, x, level, phase), gains + r.gain)
+    });
     (sum / gains * BAR_LIFT).clamp(0., 1.)
 }
 

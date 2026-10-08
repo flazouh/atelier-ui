@@ -3,6 +3,8 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
+use super::structs::Mic;
+use super::types::{BUTTON, RING_REACH, RING_SECONDS, VoiceMode};
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::{Icon, IconName},
@@ -11,8 +13,6 @@ use crate::{
     typography::TextSize,
     voice_waves::{VoiceWaves, amber_for, on_amber},
 };
-use super::structs::Mic;
-use super::types::{BUTTON, RING_REACH, RING_SECONDS, VoiceMode};
 
 /// `m:ss` for a recording that has run `seconds`.
 pub fn clock(seconds: u64) -> String {
@@ -49,8 +49,21 @@ pub(crate) fn failed_row(message: SharedString, theme: &Theme) -> AnyElement {
         .gap(px(6.))
         .text_size(TextSize::Xs.font_size())
         .text_color(theme.warning)
-        .child(div().flex_none().child(Icon::new(IconName::Warning).size(px(14.)).color(theme.warning)))
-        .child(div().min_w_0().overflow_hidden().text_ellipsis().whitespace_nowrap().child(message))
+        .child(
+            div().flex_none().child(
+                Icon::new(IconName::Warning)
+                    .size(px(14.))
+                    .color(theme.warning),
+            ),
+        )
+        .child(
+            div()
+                .min_w_0()
+                .overflow_hidden()
+                .text_ellipsis()
+                .whitespace_nowrap()
+                .child(message),
+        )
         .into_any_element()
 }
 
@@ -61,7 +74,14 @@ pub(crate) fn listening_row(level: f32, seconds: f32, muted: Hsla) -> AnyElement
         .flex()
         .items_center()
         .gap(px(12.))
-        .child(div().flex_1().min_w_0().child(VoiceWaves::new("voice-input-waves").level(level).height(px(26.)).bars(44)))
+        .child(
+            div().flex_1().min_w_0().child(
+                VoiceWaves::new("voice-input-waves")
+                    .level(level)
+                    .height(px(26.))
+                    .bars(44),
+            ),
+        )
         .child(
             div()
                 .flex_none()
@@ -73,8 +93,19 @@ pub(crate) fn listening_row(level: f32, seconds: f32, muted: Hsla) -> AnyElement
         .into_any_element()
 }
 
-pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static) -> Div {
-    let Mic { id, mode, swap, seconds, blocked, theme, reduce } = mic;
+pub(crate) fn mic_slot(
+    mic: Mic,
+    on_click: impl Fn(&gpui_kit::ClickEvent, &mut Window, &mut App) + 'static,
+) -> Div {
+    let Mic {
+        id,
+        mode,
+        swap,
+        seconds,
+        blocked,
+        theme,
+        reduce,
+    } = mic;
     let (tone, foreground) = (amber_for(&theme), theme.foreground);
     // The microphone and the stop square share one slot, blended by `swap` so neither ever pops.
     let ink = on_amber(&theme);
@@ -103,21 +134,35 @@ pub(crate) fn mic_slot(mic: Mic, on_click: impl Fn(&gpui_kit::ClickEvent, &mut W
                 .opacity(swap)
                 .child(Icon::new(IconName::Stop).size(px(24.)).color(ink)),
         );
-    let (ring_opacity, ring_reach) = if reduce { (0., 0.) } else { ring_at(ring_phase(seconds), swap) };
+    let (ring_opacity, ring_reach) = if reduce {
+        (0., 0.)
+    } else {
+        ring_at(ring_phase(seconds), swap)
+    };
     let button = Button::new(id)
         .content(glyphs)
         .pill(true)
         .variant(ButtonVariant::Ghost)
         .size(ButtonSize::Icon)
         .disabled(blocked || mode == VoiceMode::Setup)
-        .tooltip(if mode == VoiceMode::Listening { "Stop" } else { "Dictate" })
+        .tooltip(if mode == VoiceMode::Listening {
+            "Stop"
+        } else {
+            "Dictate"
+        })
         .on_click(on_click);
     div()
         .relative()
         .flex_none()
         .size(px(BUTTON))
         // The disc fills with amber as the square comes in.
-        .child(div().absolute().inset_0().rounded_full().bg(tone.opacity(swap)))
+        .child(
+            div()
+                .absolute()
+                .inset_0()
+                .rounded_full()
+                .bg(tone.opacity(swap)),
+        )
         .when(ring_opacity > 0.01, |d| {
             d.child(
                 div()

@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
-use crate::task_model::{Assignee, Label, Priority, TaskStatus};
 use super::types::Submit;
+use crate::task_model::{Assignee, Label, Priority, TaskStatus};
 
 /// What the reader has filled in. A draft with an empty title cannot be created.
 #[derive(Clone, Debug, PartialEq)]
@@ -39,7 +39,11 @@ impl Draft {
 
     /// The button's words and what pressing it does.
     pub fn submit(&self) -> Submit {
-        if self.assignee.as_ref().is_some_and(Assignee::is_agent) { Submit::CreateAndStart } else { Submit::Create }
+        if self.assignee.as_ref().is_some_and(Assignee::is_agent) {
+            Submit::CreateAndStart
+        } else {
+            Submit::Create
+        }
     }
 
     pub fn submit_words(&self) -> &'static str {

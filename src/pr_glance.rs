@@ -15,9 +15,11 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{key_of, pr_cards, top_files};
 pub(crate) use helpers::size_text;
-pub use structs::{PrCardStore, PrFailing, PrFile, PrGlance, PrGlanceCard, PrKey, PrParts, PrSession};
+pub use helpers::{key_of, pr_cards, top_files};
+pub use structs::{
+    PrCardStore, PrFailing, PrFile, PrGlance, PrGlanceCard, PrKey, PrParts, PrSession,
+};
 pub use types::{PrAction, PrDoing, PrPart, TOP_FILES};
 
 #[cfg(test)]

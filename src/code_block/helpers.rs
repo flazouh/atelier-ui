@@ -16,11 +16,17 @@ pub(super) fn gutter_numbers(count: usize) -> SharedString {
 }
 
 /// The per-line runs of `code` as runs over the whole text, each range moved by its line's start.
-pub(super) fn whole_text_runs(code: &str, lines: &[crate::syntax::LineRuns]) -> Vec<(Range<usize>, HighlightStyle)> {
+pub(super) fn whole_text_runs(
+    code: &str,
+    lines: &[crate::syntax::LineRuns],
+) -> Vec<(Range<usize>, HighlightStyle)> {
     let mut out = Vec::with_capacity(lines.iter().map(Vec::len).sum());
     let mut start = 0;
     for (line, runs) in code.split('\n').zip(lines) {
-        out.extend(runs.iter().map(|(range, style)| (start + range.start..start + range.end, *style)));
+        out.extend(
+            runs.iter()
+                .map(|(range, style)| (start + range.start..start + range.end, *style)),
+        );
         start += line.len() + 1;
     }
     out

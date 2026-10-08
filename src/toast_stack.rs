@@ -22,11 +22,11 @@ pub use types::{DEFAULT_DURATION, ToastEvent, ToastPosition, ToastStatus};
 use types::{EDGE_BOTTOM, EDGE_TOP, EDGE_X, GAP};
 
 #[cfg(test)]
-use std::time::Duration;
+use crate::scale::px;
 #[cfg(test)]
 use gpui_kit::{Context, IntoElement, Pixels, SharedString, Window, div};
 #[cfg(test)]
-use crate::scale::px;
+use std::time::Duration;
 
 #[cfg(test)]
 mod tests;

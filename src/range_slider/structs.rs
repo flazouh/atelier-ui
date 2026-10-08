@@ -1,35 +1,23 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App,
-    ElementId,
-    FocusHandle,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    MouseButton,
-    MouseMoveEvent,
-    MouseUpEvent,
-    ParentElement,
-    RenderOnce,
-    Styled,
-    Window,
-    canvas,
-    div,
+    App, ElementId, FocusHandle, InteractiveElement, IntoElement, KeyDownEvent, MouseButton,
+    MouseMoveEvent, MouseUpEvent, ParentElement, RenderOnce, Styled, Window, canvas, div,
     prelude::FluentBuilder,
 };
 
+use super::helpers::{compact_geometry, geometry, key_value, percent, snap, ticks};
+use super::types::{
+    COMPACT_HEIGHT, ChangeHandler, DISABLED, FILL_ALPHA, FILL_INSET, FIRST_WIDTH, FOCUS_ALPHA,
+    GRAB_SCALE, HANDLE_HEIGHT, HANDLE_WIDTH, KNOB, RAIL, RAIL_ALPHA, TICK, TICK_ALPHA, TICK_INSET,
+    TRACK_HEIGHT,
+};
 use crate::scale::px;
 use crate::{
     motion::{Channel, Curve, Spring},
     placement::measure,
     theme::{ActiveTheme, radius},
 };
-use super::types::{
-    COMPACT_HEIGHT, ChangeHandler, DISABLED, FILL_ALPHA, FILL_INSET, FIRST_WIDTH, FOCUS_ALPHA, GRAB_SCALE,
-    HANDLE_HEIGHT, HANDLE_WIDTH, KNOB, RAIL, RAIL_ALPHA, TICK, TICK_ALPHA, TICK_INSET, TRACK_HEIGHT,
-};
-use super::helpers::{compact_geometry, geometry, key_value, percent, snap, ticks};
 
 #[derive(IntoElement)]
 pub struct RangeSlider {
@@ -47,7 +35,18 @@ pub struct RangeSlider {
 
 impl RangeSlider {
     pub fn new(id: impl Into<ElementId>, value: f32) -> Self {
-        Self { id: id.into(), value, min: 0., max: 100., step: 1., ticks: true, disabled: false, compact: false, on_change: None, on_end: None }
+        Self {
+            id: id.into(),
+            value,
+            min: 0.,
+            max: 100.,
+            step: 1.,
+            ticks: true,
+            disabled: false,
+            compact: false,
+            on_change: None,
+            on_end: None,
+        }
     }
 
     pub fn range(mut self, min: f32, max: f32) -> Self {
@@ -109,7 +108,14 @@ impl RenderOnce for RangeSlider {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
-        let (min, max) = (self.min, if self.max > self.min { self.max } else { self.min });
+        let (min, max) = (
+            self.min,
+            if self.max > self.min {
+                self.max
+            } else {
+                self.min
+            },
+        );
         let step = if self.step > 0. { self.step } else { 1. };
         let value = self.value.clamp(min, max);
         let target = percent(value, min, max);
@@ -125,11 +131,13 @@ impl RenderOnce for RangeSlider {
         });
         motion.update(cx, |m, _| {
             if (m.pos.target() - target).abs() > 1e-4 {
-                m.pos.animate(target, Curve::Spring(Spring::GLIDE), 0., reduce);
+                m.pos
+                    .animate(target, Curve::Spring(Spring::GLIDE), 0., reduce);
             }
             let want = if m.dragging { GRAB_SCALE } else { 1. };
             if (m.grab.target() - want).abs() > 1e-4 {
-                m.grab.animate(want, Curve::Spring(Spring::GRAB), 0., reduce);
+                m.grab
+                    .animate(want, Curve::Spring(Spring::GRAB), 0., reduce);
             }
             if m.pos.is_running() || m.grab.is_running() {
                 window.request_animation_frame();
@@ -137,13 +145,29 @@ impl RenderOnce for RangeSlider {
         });
         let m = motion.read(cx);
         if crate::trace::on() && (m.pos.is_running() || m.grab.is_running()) {
-            crate::trace::motion("range-slider", &format!("render while the handle moves: {:.1} of {:.1}", m.pos.value(), m.pos.target()));
+            crate::trace::motion(
+                "range-slider",
+                &format!(
+                    "render while the handle moves: {:.1} of {:.1}",
+                    m.pos.value(),
+                    m.pos.target()
+                ),
+            );
         }
-        let (focus, width, pos, grab) = (m.focus.clone(), m.width / crate::scale::zoom(), m.pos.value(), m.grab.value());
+        let (focus, width, pos, grab) = (
+            m.focus.clone(),
+            m.width / crate::scale::zoom(),
+            m.pos.value(),
+            m.grab.value(),
+        );
         let (dragging, keyboard) = (m.dragging, m.keyboard);
         let (handle_x, fill_x) = geometry(width, pos);
         let clip = width - 2. * FILL_INSET;
-        let dots = if self.ticks && !self.compact { ticks(min, max, step) } else { Vec::new() };
+        let dots = if self.ticks && !self.compact {
+            ticks(min, max, step)
+        } else {
+            Vec::new()
+        };
         let compact = self.compact;
         let off = self.disabled;
         let on_change = self.on_change.clone();
@@ -213,7 +237,8 @@ impl RenderOnce for RangeSlider {
             .size_0()
         };
 
-        let (down_motion, down_commit, down_focus) = (motion.clone(), commit_at.clone(), focus.clone());
+        let (down_motion, down_commit, down_focus) =
+            (motion.clone(), commit_at.clone(), focus.clone());
         let (key_motion, key_change, key_end) = (motion.clone(), on_change.clone(), on_end.clone());
         let key_focus = focus.clone();
         let ring = keyboard && key_focus.is_focused(window) && !off;
@@ -221,25 +246,34 @@ impl RenderOnce for RangeSlider {
         // The handle, in either look, takes the focus and the keys.
         let ring_color = theme.foreground.opacity(FOCUS_ALPHA);
         let keys = move |handle: gpui_kit::Stateful<gpui_kit::Div>| {
-            handle.track_focus(&focus.tab_stop(!off)).when(ring, |d| d.border(px(4.)).border_color(ring_color)).when(!off, |d| {
-                d.on_key_down(move |event: &KeyDownEvent, window, cx| {
-                    let current = {
-                        let m = key_motion.read(cx);
-                        min + m.pos.target() / 100. * (max - min)
-                    };
-                    if let Some(next) = key_value(event.keystroke.key.as_str(), snap(current, min, max, step), min, max, step) {
-                        let next = snap(next, min, max, step);
-                        cx.stop_propagation();
-                        key_motion.update(cx, |m, _| m.keyboard = true);
-                        if let Some(f) = &key_change {
-                            f(next, window, cx);
+            handle
+                .track_focus(&focus.tab_stop(!off))
+                .when(ring, |d| d.border(px(4.)).border_color(ring_color))
+                .when(!off, |d| {
+                    d.on_key_down(move |event: &KeyDownEvent, window, cx| {
+                        let current = {
+                            let m = key_motion.read(cx);
+                            min + m.pos.target() / 100. * (max - min)
+                        };
+                        if let Some(next) = key_value(
+                            event.keystroke.key.as_str(),
+                            snap(current, min, max, step),
+                            min,
+                            max,
+                            step,
+                        ) {
+                            let next = snap(next, min, max, step);
+                            cx.stop_propagation();
+                            key_motion.update(cx, |m, _| m.keyboard = true);
+                            if let Some(f) = &key_change {
+                                f(next, window, cx);
+                            }
+                            if let Some(f) = &key_end {
+                                f(next, window, cx);
+                            }
                         }
-                        if let Some(f) = &key_end {
-                            f(next, window, cx);
-                        }
-                    }
+                    })
                 })
-            })
         };
 
         let base = div()
@@ -247,20 +281,25 @@ impl RenderOnce for RangeSlider {
             .debug_selector(|| "range-track".into())
             .relative()
             .flex()
-            .h(px(if compact { COMPACT_HEIGHT } else { TRACK_HEIGHT }))
+            .h(px(if compact {
+                COMPACT_HEIGHT
+            } else {
+                TRACK_HEIGHT
+            }))
             .w_full()
             .items_center()
             .when(off, |d| d.opacity(DISABLED))
             .when(!off, |d| {
-                d.cursor_grab().on_mouse_down(MouseButton::Left, move |event, window, cx| {
-                    down_motion.update(cx, |m, cx| {
-                        m.dragging = true;
-                        m.keyboard = false;
-                        cx.notify();
-                    });
-                    down_focus.focus(window, cx);
-                    down_commit(f32::from(event.position.x), window, cx);
-                })
+                d.cursor_grab()
+                    .on_mouse_down(MouseButton::Left, move |event, window, cx| {
+                        down_motion.update(cx, |m, cx| {
+                            m.dragging = true;
+                            m.keyboard = false;
+                            cx.notify();
+                        });
+                        down_focus.focus(window, cx);
+                        down_commit(f32::from(event.position.x), window, cx);
+                    })
             })
             .child(track_measure)
             .child(follow);
@@ -268,49 +307,82 @@ impl RenderOnce for RangeSlider {
             let (knob_left, fill) = compact_geometry(width, pos);
             let knob = KNOB * (1. + (grab - 1.) / 2.);
             let rail_top = (COMPACT_HEIGHT - RAIL) / 2.;
-            base.child(div().absolute().left_0().right_0().top(px(rail_top)).h(px(RAIL)).rounded_full().bg(theme.foreground.opacity(RAIL_ALPHA)))
-                .child(div().debug_selector(|| "range-fill".into()).absolute().left_0().top(px(rail_top)).w(px(fill)).h(px(RAIL)).rounded_full().bg(theme.foreground))
-                .child(keys(
-                    div()
-                        .id("range-handle")
-                        .debug_selector(|| "range-handle".into())
-                        .absolute()
-                        .left(px(knob_left + (KNOB - knob) / 2.))
-                        .top(px((COMPACT_HEIGHT - knob) / 2.))
-                        .size(px(knob))
-                        .rounded_full()
-                        .bg(theme.foreground),
-                ))
+            base.child(
+                div()
+                    .absolute()
+                    .left_0()
+                    .right_0()
+                    .top(px(rail_top))
+                    .h(px(RAIL))
+                    .rounded_full()
+                    .bg(theme.foreground.opacity(RAIL_ALPHA)),
+            )
+            .child(
+                div()
+                    .debug_selector(|| "range-fill".into())
+                    .absolute()
+                    .left_0()
+                    .top(px(rail_top))
+                    .w(px(fill))
+                    .h(px(RAIL))
+                    .rounded_full()
+                    .bg(theme.foreground),
+            )
+            .child(keys(
+                div()
+                    .id("range-handle")
+                    .debug_selector(|| "range-handle".into())
+                    .absolute()
+                    .left(px(knob_left + (KNOB - knob) / 2.))
+                    .top(px((COMPACT_HEIGHT - knob) / 2.))
+                    .size(px(knob))
+                    .rounded_full()
+                    .bg(theme.foreground),
+            ))
         } else {
             base.overflow_hidden()
                 .rounded(radius::lg())
                 .bg(theme.card)
                 .child(
                     // The fill: a full-size block that slides in behind the rounded clip.
-                    div().absolute().left(px(FILL_INSET)).right(px(FILL_INSET)).top_0().bottom_0().overflow_hidden().rounded(radius::lg()).child(
-                        div()
-                            .debug_selector(|| "range-fill".into())
-                            .absolute()
-                            .top_0()
-                            .bottom_0()
-                            .left(px(fill_x))
-                            .w(px(clip))
-                            .rounded(radius::lg())
-                            .bg(theme.foreground.opacity(FILL_ALPHA)),
-                    ),
+                    div()
+                        .absolute()
+                        .left(px(FILL_INSET))
+                        .right(px(FILL_INSET))
+                        .top_0()
+                        .bottom_0()
+                        .overflow_hidden()
+                        .rounded(radius::lg())
+                        .child(
+                            div()
+                                .debug_selector(|| "range-fill".into())
+                                .absolute()
+                                .top_0()
+                                .bottom_0()
+                                .left(px(fill_x))
+                                .w(px(clip))
+                                .rounded(radius::lg())
+                                .bg(theme.foreground.opacity(FILL_ALPHA)),
+                        ),
                 )
                 .child(
                     // Tick centres follow the handle's inset path.
-                    div().absolute().left(px(TICK_INSET)).right(px(TICK_INSET)).top_0().bottom_0().children(dots.iter().map(|t| {
-                        let at = percent(*t, min, max) / 100. * (width - 2. * TICK_INSET);
-                        div()
-                            .absolute()
-                            .top(px((TRACK_HEIGHT - TICK) / 2.))
-                            .left(px(at - TICK / 2.))
-                            .size(px(TICK))
-                            .rounded_full()
-                            .bg(theme.foreground.opacity(TICK_ALPHA))
-                    })),
+                    div()
+                        .absolute()
+                        .left(px(TICK_INSET))
+                        .right(px(TICK_INSET))
+                        .top_0()
+                        .bottom_0()
+                        .children(dots.iter().map(|t| {
+                            let at = percent(*t, min, max) / 100. * (width - 2. * TICK_INSET);
+                            div()
+                                .absolute()
+                                .top(px((TRACK_HEIGHT - TICK) / 2.))
+                                .left(px(at - TICK / 2.))
+                                .size(px(TICK))
+                                .rounded_full()
+                                .bg(theme.foreground.opacity(TICK_ALPHA))
+                        })),
                 )
                 .child({
                     let height = HANDLE_HEIGHT * grab;

@@ -1,12 +1,14 @@
-use gpui_kit::{Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled, Window, div};
+use gpui_kit::{
+    Context, Entity, IntoElement, ParentElement, Render, SharedString, Styled, Window, div,
+};
 
+use super::types::TAB_HEIGHT;
+use crate::agent_panels::AgentPanels;
 use crate::scale::px;
 use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::TAB_HEIGHT;
-use crate::agent_panels::AgentPanels;
 
 /// What a tab being dragged shows beside the pointer: its title.
 pub(crate) struct TabGhost(pub SharedString);
@@ -42,6 +44,7 @@ impl TabStrip {
 
 impl Render for TabStrip {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        self.panels.update(cx, |panels, cx| panels.tab_strip(window, cx))
+        self.panels
+            .update(cx, |panels, cx| panels.tab_strip(window, cx))
     }
 }

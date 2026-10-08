@@ -1,26 +1,15 @@
 use gpui_kit::{
-    AppContext,
-    Context,
-    Entity,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    FontWeight,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    ParentElement,
-    Render,
-    SharedString,
-    Styled,
-    Subscription,
-    Window,
+    AppContext, Context, Entity, EventEmitter, FocusHandle, Focusable, FontWeight,
+    InteractiveElement, IntoElement, KeyDownEvent, ParentElement, Render, SharedString, Styled,
+    Subscription, Window,
     base::input::{IndentInline, MoveDown, MoveRight, MoveUp},
     component::input::{Input, InputEvent, InputState},
     div,
     prelude::FluentBuilder,
 };
 
+use super::helpers::{error_words, folder_of, matches, split_path, tab_complete};
+use super::types::{FolderError, FolderPickerEvent, ROW};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
@@ -30,8 +19,6 @@ use crate::{
     theme::ActiveTheme,
     typography::TextSize,
 };
-use super::types::{FolderError, FolderPickerEvent, ROW};
-use super::helpers::{error_words, folder_of, matches, split_path, tab_complete};
 
 /// What the owner sent for a directory.
 pub(super) struct Listing {
@@ -80,17 +67,34 @@ impl FolderPicker {
             input.set_value(start.to_string(), window, cx);
             input.select_all(window, cx);
         });
-        let subscription = cx.subscribe_in(&input, window, |this: &mut Self, _, event: &InputEvent, _, cx| {
-            if matches!(event, InputEvent::Change) {
-                this.active = 0;
-                this.arrowed = false;
-                this.hover = None;
-                this.refused = None;
-                this.ask(cx);
-                cx.notify();
-            }
-        });
-        Self { input, listing: None, active: 0, asked: None, arrowed: false, hover: None, tab_waits: false, recent: Vec::new(), working: None, start: start.to_string(), refused: None, _subscription: subscription }
+        let subscription = cx.subscribe_in(
+            &input,
+            window,
+            |this: &mut Self, _, event: &InputEvent, _, cx| {
+                if matches!(event, InputEvent::Change) {
+                    this.active = 0;
+                    this.arrowed = false;
+                    this.hover = None;
+                    this.refused = None;
+                    this.ask(cx);
+                    cx.notify();
+                }
+            },
+        );
+        Self {
+            input,
+            listing: None,
+            active: 0,
+            asked: None,
+            arrowed: false,
+            hover: None,
+            tab_waits: false,
+            recent: Vec::new(),
+            working: None,
+            start: start.to_string(),
+            refused: None,
+            _subscription: subscription,
+        }
     }
 
     /// Asks the owner for the folders of the directory in the field, if they are not the ones shown. The owner calls this
@@ -105,12 +109,26 @@ impl FolderPicker {
     }
 
     /// The owner's answer for `dir`: its folders (files are left out here), or why they could not be read.
-    pub fn show(&mut self, dir: &str, entries: Result<Vec<(SharedString, bool)>, FolderError>, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn show(
+        &mut self,
+        dir: &str,
+        entries: Result<Vec<(SharedString, bool)>, FolderError>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         if self.asked.as_deref() == Some(dir) {
             self.asked = None;
         }
-        let folders = entries.map(|all| all.into_iter().filter(|(_, is_dir)| *is_dir).map(|(name, _)| name).collect());
-        self.listing = Some(Listing { dir: dir.to_string(), folders });
+        let folders = entries.map(|all| {
+            all.into_iter()
+                .filter(|(_, is_dir)| *is_dir)
+                .map(|(name, _)| name)
+                .collect()
+        });
+        self.listing = Some(Listing {
+            dir: dir.to_string(),
+            folders,
+        });
         self.active = 0;
         self.arrowed = false;
         self.hover = None;
@@ -146,7 +164,8 @@ impl FolderPicker {
     }
 
     pub(super) fn set_text(&mut self, text: String, window: &mut Window, cx: &mut Context<Self>) {
-        self.input.update(cx, |input, cx| input.set_value(text, window, cx));
+        self.input
+            .update(cx, |input, cx| input.set_value(text, window, cx));
         self.active = 0;
         self.arrowed = false;
         self.hover = None;
@@ -159,7 +178,10 @@ impl FolderPicker {
     pub(super) fn found(&self, cx: &gpui_kit::App) -> Vec<SharedString> {
         let (dir, prefix) = split_path(&self.text(cx));
         match &self.listing {
-            Some(Listing { dir: listed, folders: Ok(folders) }) if *listed == dir => matches(folders, &prefix).into_iter().cloned().collect(),
+            Some(Listing {
+                dir: listed,
+                folders: Ok(folders),
+            }) if *listed == dir => matches(folders, &prefix).into_iter().cloned().collect(),
             _ => Vec::new(),
         }
     }
@@ -188,7 +210,11 @@ impl FolderPicker {
     /// Up and Down: choose a row.
     fn step(&mut self, down: bool, cx: &mut Context<Self>) {
         let count = self.found(cx).len();
-        self.active = if down { (self.active + 1).min(count.saturating_sub(1)) } else { self.active.saturating_sub(1) };
+        self.active = if down {
+            (self.active + 1).min(count.saturating_sub(1))
+        } else {
+            self.active.saturating_sub(1)
+        };
         self.arrowed = true;
         self.hover = None;
         cx.notify();
@@ -211,12 +237,13 @@ impl FolderPicker {
             && let Some(name) = self.found(cx).get(self.active)
         {
             let (dir, _) = split_path(&self.text(cx));
-            cx.emit(FolderPickerEvent::Choose(folder_of(&format!("{dir}{name}")).into()));
+            cx.emit(FolderPickerEvent::Choose(
+                folder_of(&format!("{dir}{name}")).into(),
+            ));
             return;
         }
         cx.emit(FolderPickerEvent::Choose(folder_of(&self.text(cx)).into()));
     }
-
 
     fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         match event.keystroke.key.as_str() {
@@ -248,28 +275,52 @@ impl Render for FolderPicker {
         // What sits under the field: why an open was refused, why the folder cannot be listed, or that it is being read.
         let (status, quiet): (Option<SharedString>, bool) = match (&self.refused, &self.listing) {
             (Some(error), _) => (Some(error_words(&typed, error).into()), error.is_quiet()),
-            (None, Some(Listing { dir: listed, folders: Err(error) })) if *listed == dir => (Some(error_words(&dir, error).into()), error.is_quiet()),
+            (
+                None,
+                Some(Listing {
+                    dir: listed,
+                    folders: Err(error),
+                }),
+            ) if *listed == dir => (Some(error_words(&dir, error).into()), error.is_quiet()),
             (None, Some(Listing { dir: listed, .. })) if *listed == dir => (None, true),
             _ => (Some("Reading the folder…".into()), true),
         };
         let empty = status.is_none() && found.is_empty();
         let at_start = typed == self.start;
-        let recent: Vec<SharedString> = if at_start { self.recent.clone() } else { Vec::new() };
+        let recent: Vec<SharedString> = if at_start {
+            self.recent.clone()
+        } else {
+            Vec::new()
+        };
         // The heading and the recent folders come first, then the folders here.
-        let offset = if recent.is_empty() { 0 } else { 1 + recent.len() };
+        let offset = if recent.is_empty() {
+            0
+        } else {
+            1 + recent.len()
+        };
         let mut entries: Vec<ComboEntry> = Vec::new();
         if !recent.is_empty() {
             entries.push(ComboEntry::Group("Recent".into()));
             entries.extend(recent.iter().enumerate().map(|(i, path)| {
                 ComboEntry::from(
-                    ComboRow::new(path.clone()).leading(Icon::new(IconName::Folder).size(px(16.)).color(muted)).debug_name(format!("folder-recent-{i}")),
+                    ComboRow::new(path.clone())
+                        .leading(Icon::new(IconName::Folder).size(px(16.)).color(muted))
+                        .debug_name(format!("folder-recent-{i}")),
                 )
             }));
         }
         entries.extend(found.iter().enumerate().map(|(i, name)| {
-            ComboEntry::from(ComboRow::new(name.clone()).leading(Icon::new(IconName::Folder).size(px(16.)).color(muted)).debug_name(format!("folder-row-{i}")))
+            ComboEntry::from(
+                ComboRow::new(name.clone())
+                    .leading(Icon::new(IconName::Folder).size(px(16.)).color(muted))
+                    .debug_name(format!("folder-row-{i}")),
+            )
         }));
-        let pill = if self.arrowed { Some(offset + self.active) } else { self.hover.map(|i| offset + i) };
+        let pill = if self.arrowed {
+            Some(offset + self.active)
+        } else {
+            self.hover.map(|i| offset + i)
+        };
         let (click, hover) = (this.clone(), this.clone());
         let recent_pick = recent.clone();
         let picked = found.clone();
@@ -283,10 +334,17 @@ impl Render for FolderPicker {
             .flex_col()
             .gap(px(12.))
             .w_full()
-            .child(div().text_size(TextSize::Sm.font_size()).font_weight(FontWeight::MEDIUM).child("Open a folder"))
             .child(
                 div()
-                    .capture_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))
+                    .text_size(TextSize::Sm.font_size())
+                    .font_weight(FontWeight::MEDIUM)
+                    .child("Open a folder"),
+            )
+            .child(
+                div()
+                    .capture_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| {
+                        this.key(event, window, cx)
+                    }))
                     // The field binds these keys to its own actions, and an action runs before a key listener: take the
                     // actions first, so Tab completes and the arrows choose a row.
                     .capture_action(cx.listener(|this, _: &IndentInline, window, cx| {
@@ -306,21 +364,29 @@ impl Render for FolderPicker {
                             cx.stop_propagation();
                         }
                     }))
-                    .child(Field::new(focus, Input::new(&self.input).appearance(false).px(px(10.)).text_size(TextSize::Sm.font_size()))),
+                    .child(Field::new(
+                        focus,
+                        Input::new(&self.input)
+                            .appearance(false)
+                            .px(px(10.))
+                            .text_size(TextSize::Sm.font_size()),
+                    )),
             )
             .child(
                 div().min_h(px(ROW * 3.)).child(
-                    ComboList::new("folder-list", entries).style(crate::combobox::ComboStyle::Folder)
+                    ComboList::new("folder-list", entries)
+                        .style(crate::combobox::ComboStyle::Folder)
                         .padded(false)
                         .active(pill)
                         .debug_name("folder-list")
                         .on_hover(move |entry, _, cx| {
                             if entry >= offset {
-                                hover.update(cx, |p, cx| {
-                                    p.hover = Some(entry - offset);
-                                    cx.notify();
-                                })
-                                .ok();
+                                hover
+                                    .update(cx, |p, cx| {
+                                        p.hover = Some(entry - offset);
+                                        cx.notify();
+                                    })
+                                    .ok();
                             }
                         })
                         .on_pick(move |entry, window, cx| {
@@ -331,14 +397,37 @@ impl Render for FolderPicker {
                                 }
                             } else if let Some(path) = recent_pick.get(entry - 1) {
                                 let path = path.clone();
-                                click.update(cx, |_, cx| cx.emit(FolderPickerEvent::Choose(path))).ok();
+                                click
+                                    .update(cx, |_, cx| cx.emit(FolderPickerEvent::Choose(path)))
+                                    .ok();
                             }
                         })
-                        .footer(div().children(working.map(|words| div().px(px(10.)).py(px(8.)).text_size(TextSize::Xs.font_size()).text_color(muted).child(words))))
-                        .footer(div().children(status.map(|words| {
-                            div().px(px(10.)).py(px(8.)).text_size(TextSize::Xs.font_size()).text_color(if quiet { muted } else { theme.warning }).child(words)
+                        .footer(div().children(working.map(|words| {
+                            div()
+                                .px(px(10.))
+                                .py(px(8.))
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(muted)
+                                .child(words)
                         })))
-                        .footer(div().when(empty, |d| d.child(div().px(px(10.)).py(px(8.)).text_size(TextSize::Xs.font_size()).text_color(muted).child("No folder here starts with that.")))),
+                        .footer(div().children(status.map(|words| {
+                            div()
+                                .px(px(10.))
+                                .py(px(8.))
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(if quiet { muted } else { theme.warning })
+                                .child(words)
+                        })))
+                        .footer(div().when(empty, |d| {
+                            d.child(
+                                div()
+                                    .px(px(10.))
+                                    .py(px(8.))
+                                    .text_size(TextSize::Xs.font_size())
+                                    .text_color(muted)
+                                    .child("No folder here starts with that."),
+                            )
+                        })),
                 ),
             )
             .child(
@@ -346,13 +435,34 @@ impl Render for FolderPicker {
                     .flex()
                     .items_center()
                     .gap(px(8.))
-                    .child(div().flex_1().text_size(TextSize::Xs.font_size()).text_color(muted).child("Tab completes the name. Enter opens the folder."))
-                    .child(Button::new("folder-cancel").label("Cancel").variant(ButtonVariant::Ghost).cap("Esc").on_click(move |_, _, cx| {
-                        cancel.update(cx, |_, cx| cx.emit(FolderPickerEvent::Cancel)).ok();
-                    }))
-                    .child(Button::new("folder-open").label("Open").size(ButtonSize::Md).variant(ButtonVariant::Primary).cap("↵").on_click(move |_, _, cx| {
-                        open.update(cx, |p, cx| p.open(cx)).ok();
-                    })),
+                    .child(
+                        div()
+                            .flex_1()
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(muted)
+                            .child("Tab completes the name. Enter opens the folder."),
+                    )
+                    .child(
+                        Button::new("folder-cancel")
+                            .label("Cancel")
+                            .variant(ButtonVariant::Ghost)
+                            .cap("Esc")
+                            .on_click(move |_, _, cx| {
+                                cancel
+                                    .update(cx, |_, cx| cx.emit(FolderPickerEvent::Cancel))
+                                    .ok();
+                            }),
+                    )
+                    .child(
+                        Button::new("folder-open")
+                            .label("Open")
+                            .size(ButtonSize::Md)
+                            .variant(ButtonVariant::Primary)
+                            .cap("↵")
+                            .on_click(move |_, _, cx| {
+                                open.update(cx, |p, cx| p.open(cx)).ok();
+                            }),
+                    ),
             )
     }
 }

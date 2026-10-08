@@ -25,9 +25,9 @@ pub use structs::{Key, SideText, SyntaxCache};
 pub use types::{LANGUAGES, LineRuns, MAX_ENTRIES, Side};
 
 #[cfg(test)]
-use std::sync::Arc;
-#[cfg(test)]
 use gpui_kit::{ElementId, component::highlighter::SyntaxHighlighter};
+#[cfg(test)]
+use std::sync::Arc;
 
 #[cfg(test)]
 mod tests;

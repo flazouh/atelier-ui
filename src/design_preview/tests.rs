@@ -46,25 +46,65 @@ fn a_border_keeps_the_old_panel_and_the_tones_drop_the_border() {
             spread_radius: gpui_kit::px(0.),
             inset: false,
         }];
-        assert_eq!(panel_fill(theme, 0, theme.popover), theme.popover, "{}: A keeps the fill", theme.name);
+        assert_eq!(
+            panel_fill(theme, 0, theme.popover),
+            theme.popover,
+            "{}: A keeps the fill",
+            theme.name
+        );
         assert!(panel_edge(theme, 0).a > 0., "{}: A has an edge", theme.name);
-        assert_eq!(panel_shadows(theme, 0, base.clone()).len(), 1, "{}: A keeps the shadow it had", theme.name);
+        assert_eq!(
+            panel_shadows(theme, 0, base.clone()).len(),
+            1,
+            "{}: A keeps the shadow it had",
+            theme.name
+        );
         for design in 1..4 {
-            assert_eq!(panel_edge(theme, design).a, 0., "{} {design}: no border", theme.name);
+            assert_eq!(
+                panel_edge(theme, design).a,
+                0.,
+                "{} {design}: no border",
+                theme.name
+            );
             let (raised, rest) = (panel_fill(theme, design, theme.popover), theme.popover);
             let step = raised.l - rest.l;
-            assert!(step > 0., "{} {design}: one step lighter ({} vs {})", theme.name, raised.l, rest.l);
+            assert!(
+                step > 0.,
+                "{} {design}: one step lighter ({} vs {})",
+                theme.name,
+                raised.l,
+                rest.l
+            );
         }
-        assert!(panel_shadows(theme, 1, base.clone()).is_empty(), "{}: B has no shadow", theme.name);
+        assert!(
+            panel_shadows(theme, 1, base.clone()).is_empty(),
+            "{}: B has no shadow",
+            theme.name
+        );
         let c = panel_shadows(theme, 2, base.clone());
-        assert_eq!(c.len(), 2, "{}: C is a contact and a soft shadow", theme.name);
-        assert_eq!((f32::from(c[0].offset.y), f32::from(c[0].blur_radius)), (1., 2.));
-        assert_eq!((f32::from(c[1].offset.y), f32::from(c[1].blur_radius)), (8., 24.));
+        assert_eq!(
+            c.len(),
+            2,
+            "{}: C is a contact and a soft shadow",
+            theme.name
+        );
+        assert_eq!(
+            (f32::from(c[0].offset.y), f32::from(c[0].blur_radius)),
+            (1., 2.)
+        );
+        assert_eq!(
+            (f32::from(c[1].offset.y), f32::from(c[1].blur_radius)),
+            (8., 24.)
+        );
         assert!(c.iter().all(|s| !s.inset));
         let d = panel_shadows(theme, 3, base.clone());
         assert_eq!(d.len(), 3, "{}: D adds the top light", theme.name);
         assert!(d[2].inset && (d[2].color.a - 0.06).abs() < 1e-4 && f32::from(d[2].offset.y) == 1.);
-        assert!(panel_shadows(theme, 2, Vec::new()).is_empty(), "{}: a panel with no shadow stays without", theme.name);
+        assert!(
+            panel_shadows(theme, 2, Vec::new()).is_empty(),
+            "{}: a panel with no shadow stays without",
+            theme.name
+        );
     }
 }
 
@@ -72,9 +112,32 @@ fn a_border_keeps_the_old_panel_and_the_tones_drop_the_border() {
 fn the_shadow_is_stronger_in_dark_than_in_light() {
     set_strength(100);
     let themes = crate::themes::all();
-    let light = themes.iter().find(|t| t.appearance == crate::theme::Appearance::Light).unwrap();
-    let dark = themes.iter().find(|t| t.appearance == crate::theme::Appearance::Dark).unwrap();
-    let alpha = |t: &crate::Theme| panel_shadows(t, 2, vec![panel_shadows(t, 1, Vec::new()).into_iter().next().unwrap_or(gpui_kit::BoxShadow { color: t.shadow, offset: Default::default(), blur_radius: Default::default(), spread_radius: Default::default(), inset: false })]);
+    let light = themes
+        .iter()
+        .find(|t| t.appearance == crate::theme::Appearance::Light)
+        .unwrap();
+    let dark = themes
+        .iter()
+        .find(|t| t.appearance == crate::theme::Appearance::Dark)
+        .unwrap();
+    let alpha = |t: &crate::Theme| {
+        panel_shadows(
+            t,
+            2,
+            vec![
+                panel_shadows(t, 1, Vec::new())
+                    .into_iter()
+                    .next()
+                    .unwrap_or(gpui_kit::BoxShadow {
+                        color: t.shadow,
+                        offset: Default::default(),
+                        blur_radius: Default::default(),
+                        spread_radius: Default::default(),
+                        inset: false,
+                    }),
+            ],
+        )
+    };
     let (l, d) = (alpha(light), alpha(dark));
     assert!((l[0].color.a - 0.12).abs() < 1e-4 && (l[1].color.a - 0.10).abs() < 1e-4);
     assert!((d[0].color.a - 0.40).abs() < 1e-4 && (d[1].color.a - 0.35).abs() < 1e-4);
@@ -95,8 +158,14 @@ fn the_strength_starts_at_50_and_a_choice_applies_at_once() {
 #[test]
 fn the_default_strength_is_soft() {
     let themes = crate::themes::all();
-    let light = themes.iter().find(|t| t.appearance == crate::theme::Appearance::Light).unwrap();
-    let dark = themes.iter().find(|t| t.appearance == crate::theme::Appearance::Dark).unwrap();
+    let light = themes
+        .iter()
+        .find(|t| t.appearance == crate::theme::Appearance::Light)
+        .unwrap();
+    let dark = themes
+        .iter()
+        .find(|t| t.appearance == crate::theme::Appearance::Dark)
+        .unwrap();
     let white = gpui_kit::hsla(0., 0., 1., 1.);
     let near = |a: f32, b: f32| (a - b).abs() < 1e-4;
     let lifted = panel_fill(light, 2, light.popover);
@@ -105,7 +174,13 @@ fn the_default_strength_is_soft() {
     let lifted = panel_fill(dark, 2, dark.popover);
     let want = crate::theme::mix(dark.popover, white, 0.03);
     assert!(near(lifted.l, want.l));
-    let base = vec![gpui_kit::BoxShadow { color: dark.shadow, offset: Default::default(), blur_radius: Default::default(), spread_radius: Default::default(), inset: false }];
+    let base = vec![gpui_kit::BoxShadow {
+        color: dark.shadow,
+        offset: Default::default(),
+        blur_radius: Default::default(),
+        spread_radius: Default::default(),
+        inset: false,
+    }];
     let c = panel_shadows(dark, 2, base);
     assert!(near(c[0].color.a, 0.20) && near(c[1].color.a, 0.175));
 }
@@ -116,8 +191,20 @@ fn a_strength_of_zero_is_no_lift_and_no_shadow() {
     for theme in crate::themes::all() {
         let lifted = panel_fill(theme, 2, theme.popover);
         assert!((lifted.l - theme.popover.l).abs() < 1e-4, "{}", theme.name);
-        let base = vec![gpui_kit::BoxShadow { color: theme.shadow, offset: Default::default(), blur_radius: Default::default(), spread_radius: Default::default(), inset: false }];
-        assert!(panel_shadows(theme, 2, base).iter().all(|s| s.color.a == 0.), "{}", theme.name);
+        let base = vec![gpui_kit::BoxShadow {
+            color: theme.shadow,
+            offset: Default::default(),
+            blur_radius: Default::default(),
+            spread_radius: Default::default(),
+            inset: false,
+        }];
+        assert!(
+            panel_shadows(theme, 2, base)
+                .iter()
+                .all(|s| s.color.a == 0.),
+            "{}",
+            theme.name
+        );
     }
     set_strength(50);
 }
@@ -134,7 +221,11 @@ fn the_row_pill_keeps_its_contrast_at_every_lift() {
                 let panel = panel_fill(theme, design, theme.popover);
                 let pill = row_tone(theme, panel);
                 let now = crate::theme::contrast(pill, panel);
-                assert!(now >= today - 1e-3, "{} s{strength} d{design}: {now:.4} vs {today:.4}", theme.name);
+                assert!(
+                    now >= today - 1e-3,
+                    "{} s{strength} d{design}: {now:.4} vs {today:.4}",
+                    theme.name
+                );
             }
         }
     }

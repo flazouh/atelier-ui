@@ -14,9 +14,18 @@ impl Press {
     /// in place: the owner does not hear of it.
     pub(crate) fn on(expanded: bool, clipped: bool) -> Self {
         match (clipped, expanded) {
-            (false, _) => Self { expanded: false, open: true },
-            (true, false) => Self { expanded: true, open: false },
-            (true, true) => Self { expanded: false, open: false },
+            (false, _) => Self {
+                expanded: false,
+                open: true,
+            },
+            (true, false) => Self {
+                expanded: true,
+                open: false,
+            },
+            (true, true) => Self {
+                expanded: false,
+                open: false,
+            },
         }
     }
 }

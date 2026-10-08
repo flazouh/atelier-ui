@@ -6,6 +6,8 @@ use gpui_kit::{
     Styled, Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::{covered, list_fill};
+use super::types::{EDITOR_HEIGHT, GLIDE, Select, TabsVariant, UNDERLINE_HEIGHT};
 use crate::scale::px;
 use crate::{
     focus::row_ring,
@@ -15,8 +17,6 @@ use crate::{
     tooltip::Tooltip,
     typography::FONT_FAMILY,
 };
-use super::types::{EDITOR_HEIGHT, GLIDE, Select, TabsVariant, UNDERLINE_HEIGHT};
-use super::helpers::{covered, list_fill};
 
 pub struct Tab {
     label: SharedString,
@@ -30,7 +30,15 @@ pub struct Tab {
 
 impl Tab {
     pub fn new(label: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), leading: None, trailing: None, tooltip: None, group: None, pending: false, selector: None }
+        Self {
+            label: label.into(),
+            leading: None,
+            trailing: None,
+            tooltip: None,
+            group: None,
+            pending: false,
+            selector: None,
+        }
     }
 
     pub fn leading(mut self, element: impl IntoElement) -> Self {
@@ -86,8 +94,19 @@ pub struct Tabs {
 }
 
 impl Tabs {
-    pub fn new(id: impl Into<ElementId>, variant: TabsVariant, tabs: impl IntoIterator<Item = Tab>, selected: Option<usize>) -> Self {
-        Self { id: id.into(), variant, tabs: tabs.into_iter().collect(), selected, on_select: None }
+    pub fn new(
+        id: impl Into<ElementId>,
+        variant: TabsVariant,
+        tabs: impl IntoIterator<Item = Tab>,
+        selected: Option<usize>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            variant,
+            tabs: tabs.into_iter().collect(),
+            selected,
+            on_select: None,
+        }
     }
 
     pub fn on_select(mut self, f: impl Fn(usize, &mut Window, &mut App) + 'static) -> Self {
@@ -119,9 +138,11 @@ impl RenderOnce for Tabs {
             s.focus[..count].to_vec()
         });
         let (glide, moving) = state.update(cx, |s, _| {
-            let target = self.selected.and_then(|i| s.rects.get(i).copied().flatten()).zip(s.list).map(|(r, l)| {
-                (f32::from(r.origin.x - l.origin.x), f32::from(r.size.width))
-            });
+            let target = self
+                .selected
+                .and_then(|i| s.rects.get(i).copied().flatten())
+                .zip(s.list)
+                .map(|(r, l)| (f32::from(r.origin.x - l.origin.x), f32::from(r.size.width)));
             let mut moving = false;
             match target {
                 Some((x, w)) => {
@@ -154,10 +175,16 @@ impl RenderOnce for Tabs {
             window.request_animation_frame();
         }
 
-        let selected_pending = self.selected.is_some_and(|i| self.tabs.get(i).is_none_or(|t| t.pending));
+        let selected_pending = self
+            .selected
+            .is_some_and(|i| self.tabs.get(i).is_none_or(|t| t.pending));
         let (pad_x, pad_y) = variant.tab_pad();
         let keyboard = window.last_input_was_keyboard();
-        let list_left = state.read(cx).list.map(|l| f32::from(l.origin.x)).unwrap_or(0.);
+        let list_left = state
+            .read(cx)
+            .list
+            .map(|l| f32::from(l.origin.x))
+            .unwrap_or(0.);
         let select = self.on_select.clone();
         let tabs: Vec<AnyElement> = self
             .tabs
@@ -166,23 +193,39 @@ impl RenderOnce for Tabs {
             .map(|(i, tab)| {
                 let chosen = self.selected == Some(i) && !tab.pending;
                 let covering = match (glide, state.read(cx).rects.get(i).copied().flatten()) {
-                    (Some((l, w)), Some(r)) => covered(f32::from(r.origin.x) - list_left, f32::from(r.size.width), l, w),
+                    (Some((l, w)), Some(r)) => covered(
+                        f32::from(r.origin.x) - list_left,
+                        f32::from(r.size.width),
+                        l,
+                        w,
+                    ),
                     _ => 0.,
                 };
                 let ink = match variant {
                     v if v == TabsVariant::Underline || v.is_editor() => {
-                        if chosen { theme.foreground } else { theme.muted_foreground }
+                        if chosen {
+                            theme.foreground
+                        } else {
+                            theme.muted_foreground
+                        }
                     }
                     _ => mix(theme.muted_foreground, theme.primary_foreground, covering),
                 };
                 let handle = focus[i].clone();
                 let report = {
                     let state = state.clone();
-                    move |b: Bounds<Pixels>, cx: &mut App| state.update(cx, |s, _| s.rects[i] = Some(b))
+                    move |b: Bounds<Pixels>, cx: &mut App| {
+                        state.update(cx, |s, _| s.rects[i] = Some(b))
+                    }
                 };
                 let pick = select.clone().filter(|_| !tab.pending);
                 let focused = handle.is_focused(window) && keyboard;
-                let hover_ink = if variant == TabsVariant::Underline || variant.is_editor() || covering < 0.5 { theme.foreground } else { ink };
+                let hover_ink =
+                    if variant == TabsVariant::Underline || variant.is_editor() || covering < 0.5 {
+                        theme.foreground
+                    } else {
+                        ink
+                    };
                 div()
                     .id(ElementId::NamedInteger("tab".into(), i as u64))
                     .relative()
@@ -193,8 +236,12 @@ impl RenderOnce for Tabs {
                     .gap(px(6.))
                     .px(px(pad_x))
                     .py(px(pad_y))
-                    .when(variant == TabsVariant::Underline, |d| d.min_h(px(UNDERLINE_HEIGHT)).pb(px(10.)).pt(px(4.)))
-                    .when(variant.is_editor(), |d| d.h(px(EDITOR_HEIGHT)).text_size(px(14.)))
+                    .when(variant == TabsVariant::Underline, |d| {
+                        d.min_h(px(UNDERLINE_HEIGHT)).pb(px(10.)).pt(px(4.))
+                    })
+                    .when(variant.is_editor(), |d| {
+                        d.h(px(EDITOR_HEIGHT)).text_size(px(14.))
+                    })
                     .when(variant == TabsVariant::Pill, |d| d.rounded_full())
                     .when(variant == TabsVariant::Segment, |d| d.rounded(radius::md()))
                     .when_some(tab.group, |d, name| d.group(name))
@@ -204,14 +251,22 @@ impl RenderOnce for Tabs {
                     .line_height(px(20.))
                     .whitespace_nowrap()
                     .text_color(ink)
-                    .when(!tab.pending, |d| d.cursor_pointer().hover(move |s| s.text_color(hover_ink)).track_focus(&handle.tab_stop(true)))
+                    .when(!tab.pending, |d| {
+                        d.cursor_pointer()
+                            .hover(move |s| s.text_color(hover_ink))
+                            .track_focus(&handle.tab_stop(true))
+                    })
                     .when_some(tab.tooltip, |d, words| d.tooltip(Tooltip::text(words)))
-                    .when_some(tab.selector, |d, name| d.debug_selector(move || name.clone()))
+                    .when_some(tab.selector, |d, name| {
+                        d.debug_selector(move || name.clone())
+                    })
                     .child(measure(report))
                     .children(tab.leading)
                     .child(div().relative().child(tab.label))
                     .children(tab.trailing)
-                    .when(focused, |d| d.child(row_ring(&theme, theme.card, radius::md())))
+                    .when(focused, |d| {
+                        d.child(row_ring(&theme, theme.card, radius::md()))
+                    })
                     .when_some(pick, |d, pick| {
                         let key_pick = pick.clone();
                         d.on_key_down(move |event, window, cx| {
@@ -226,28 +281,83 @@ impl RenderOnce for Tabs {
             })
             .collect();
 
-        let indicator = glide.filter(|_| self.selected.is_some() && !selected_pending).map(|(left, width)| match variant {
-            TabsVariant::Underline => div().absolute().left(px(left)).bottom_0().w(px(width)).h(px(1.)).bg(theme.primary).debug_selector(|| "tabs-indicator".into()),
-            TabsVariant::Pill => div().absolute().left(px(left)).top(px(variant.pad())).bottom(px(variant.pad())).w(px(width)).rounded_full().bg(theme.primary).debug_selector(|| "tabs-indicator".into()),
-            TabsVariant::Chip => div().absolute().left(px(left)).top_0().h(px(EDITOR_HEIGHT)).w(px(width)).rounded(radius::md()).bg(theme.card_strong),
-            TabsVariant::ChipLine => div()
-                .absolute()
-                .left(px(left))
-                .top_0()
-                .h(px(EDITOR_HEIGHT))
-                .w(px(width))
-                .rounded(radius::md())
-                .bg(theme.card_strong)
-                .child(div().absolute().left(px(10.)).right(px(10.)).bottom_0().h(px(2.)).rounded_full().bg(theme.foreground)),
-            TabsVariant::Dot => div().absolute().top(px(EDITOR_HEIGHT + 3.)).left(px(left + width / 2. - 2.)).size(px(4.)).rounded_full().bg(theme.foreground),
-            TabsVariant::Tick => div().absolute().top(px(7.)).left(px(left + 2.)).w(px(2.)).h(px(14.)).rounded_full().bg(theme.primary),
-            TabsVariant::Segment => {
-                div().absolute().left(px(left)).top(px(variant.pad())).bottom(px(variant.pad())).w(px(width)).rounded(radius::md()).bg(theme.primary).debug_selector(|| "tabs-indicator".into())
-            }
-        });
+        let indicator = glide
+            .filter(|_| self.selected.is_some() && !selected_pending)
+            .map(|(left, width)| match variant {
+                TabsVariant::Underline => div()
+                    .absolute()
+                    .left(px(left))
+                    .bottom_0()
+                    .w(px(width))
+                    .h(px(1.))
+                    .bg(theme.primary)
+                    .debug_selector(|| "tabs-indicator".into()),
+                TabsVariant::Pill => div()
+                    .absolute()
+                    .left(px(left))
+                    .top(px(variant.pad()))
+                    .bottom(px(variant.pad()))
+                    .w(px(width))
+                    .rounded_full()
+                    .bg(theme.primary)
+                    .debug_selector(|| "tabs-indicator".into()),
+                TabsVariant::Chip => div()
+                    .absolute()
+                    .left(px(left))
+                    .top_0()
+                    .h(px(EDITOR_HEIGHT))
+                    .w(px(width))
+                    .rounded(radius::md())
+                    .bg(theme.card_strong),
+                TabsVariant::ChipLine => div()
+                    .absolute()
+                    .left(px(left))
+                    .top_0()
+                    .h(px(EDITOR_HEIGHT))
+                    .w(px(width))
+                    .rounded(radius::md())
+                    .bg(theme.card_strong)
+                    .child(
+                        div()
+                            .absolute()
+                            .left(px(10.))
+                            .right(px(10.))
+                            .bottom_0()
+                            .h(px(2.))
+                            .rounded_full()
+                            .bg(theme.foreground),
+                    ),
+                TabsVariant::Dot => div()
+                    .absolute()
+                    .top(px(EDITOR_HEIGHT + 3.))
+                    .left(px(left + width / 2. - 2.))
+                    .size(px(4.))
+                    .rounded_full()
+                    .bg(theme.foreground),
+                TabsVariant::Tick => div()
+                    .absolute()
+                    .top(px(7.))
+                    .left(px(left + 2.))
+                    .w(px(2.))
+                    .h(px(14.))
+                    .rounded_full()
+                    .bg(theme.primary),
+                TabsVariant::Segment => div()
+                    .absolute()
+                    .left(px(left))
+                    .top(px(variant.pad()))
+                    .bottom(px(variant.pad()))
+                    .w(px(width))
+                    .rounded(radius::md())
+                    .bg(theme.primary)
+                    .debug_selector(|| "tabs-indicator".into()),
+            });
         let list_state = state.clone();
         div()
-            .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "list".into()))
+            .id(ElementId::NamedChild(
+                std::sync::Arc::new(self.id.clone()),
+                "list".into(),
+            ))
             .relative()
             .flex()
             .flex_none()
@@ -260,9 +370,19 @@ impl RenderOnce for Tabs {
             .when(variant == TabsVariant::Segment, |d| d.rounded(radius::lg()))
             .when_some(list_fill(&theme, variant), |d, fill| d.bg(fill))
             .when(variant == TabsVariant::Underline, |d| {
-                d.child(div().absolute().left_0().right_0().bottom_0().h(px(1.)).bg(crate::text_input::edge(&theme, theme.background)))
+                d.child(
+                    div()
+                        .absolute()
+                        .left_0()
+                        .right_0()
+                        .bottom_0()
+                        .h(px(1.))
+                        .bg(crate::text_input::edge(&theme, theme.background)),
+                )
             })
-            .child(measure(move |b, cx| list_state.update(cx, |s, _| s.list = Some(b))))
+            .child(measure(move |b, cx| {
+                list_state.update(cx, |s, _| s.list = Some(b))
+            }))
             .children(indicator)
             .children(tabs)
     }

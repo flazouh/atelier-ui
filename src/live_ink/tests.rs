@@ -20,7 +20,11 @@ fn a_new_word_starts_unseen_and_fades_in() {
     let half = alphas(&ink);
     assert!(half.iter().all(|a| *a > 0.3 && *a < 0.9), "{half:?}");
     ink.step(at(t0, 400));
-    assert_eq!(alphas(&ink), [1., 1.], "settled, and no frame is wanted any more");
+    assert_eq!(
+        alphas(&ink),
+        [1., 1.],
+        "settled, and no frame is wanted any more"
+    );
     assert!(!ink.moving());
 }
 
@@ -75,7 +79,11 @@ fn the_words_know_where_they_sit_in_the_text() {
     let t0 = Instant::now();
     let mut ink = Ink::new(t0);
     ink.observe("Look at  the");
-    let spans: Vec<&str> = ink.words().iter().map(|w| &"Look at  the"[w.range.clone()]).collect();
+    let spans: Vec<&str> = ink
+        .words()
+        .iter()
+        .map(|w| &"Look at  the"[w.range.clone()])
+        .collect();
     assert_eq!(spans, ["Look", "at", "the"]);
 }
 

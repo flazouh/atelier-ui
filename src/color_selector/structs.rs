@@ -1,29 +1,16 @@
 use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
-    App,
-    Bounds,
-    ElementId,
-    FocusHandle,
-    FontWeight,
-    Hsla,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    MouseButton,
-    ParentElement,
-    Pixels,
-    Point,
-    RenderOnce,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    Window,
-    div,
-    prelude::FluentBuilder,
-    transparent_black,
+    App, Bounds, ElementId, FocusHandle, FontWeight, Hsla, InteractiveElement, IntoElement,
+    KeyDownEvent, MouseButton, ParentElement, Pixels, Point, RenderOnce, SharedString,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, transparent_black,
 };
 
+use super::helpers::{sizes, step, tab_stop};
+use super::types::{
+    ChangeHandler, DISC, DISC_EDGE, DISC_FILL, DOT_EDGE, GAP, OUTLINE_OFFSET, OUTLINE_WIDTH, PAD,
+    PRESS_SCALE, RING_ALPHA, RING_WIDTH, UNAVAILABLE,
+};
 use crate::scale::px;
 use crate::{
     motion::{Channel, Curve, Spring},
@@ -31,11 +18,6 @@ use crate::{
     theme::{ActiveTheme, mix},
     typography::TextSize,
 };
-use super::types::{
-    ChangeHandler, DISC, DISC_EDGE, DISC_FILL, DOT_EDGE, GAP, OUTLINE_OFFSET, OUTLINE_WIDTH,
-    PAD, PRESS_SCALE, RING_ALPHA, RING_WIDTH, UNAVAILABLE,
-};
-use super::helpers::{sizes, step, tab_stop};
 
 /// One choice: what it is called in the group, the colour it shows, and the words a screen reader says.
 #[derive(Clone, Debug)]
@@ -47,8 +29,17 @@ pub struct Swatch {
 }
 
 impl Swatch {
-    pub fn new(value: impl Into<SharedString>, color: impl Into<Hsla>, label: impl Into<SharedString>) -> Self {
-        Self { value: value.into(), color: color.into(), label: label.into(), disabled: false }
+    pub fn new(
+        value: impl Into<SharedString>,
+        color: impl Into<Hsla>,
+        label: impl Into<SharedString>,
+    ) -> Self {
+        Self {
+            value: value.into(),
+            color: color.into(),
+            label: label.into(),
+            disabled: false,
+        }
     }
 
     /// A swatch that cannot be chosen: at 40%, and the keys pass over it.
@@ -70,7 +61,14 @@ pub struct ColorSelector {
 
 impl ColorSelector {
     pub fn new(id: impl Into<ElementId>, swatches: impl IntoIterator<Item = Swatch>) -> Self {
-        Self { id: id.into(), label: None, swatches: swatches.into_iter().collect(), value: None, disabled: false, on_change: None }
+        Self {
+            id: id.into(),
+            label: None,
+            swatches: swatches.into_iter().collect(),
+            value: None,
+            disabled: false,
+            on_change: None,
+        }
     }
 
     /// The group's label above the swatches: `text-sm font-medium text-muted-foreground`, `mb-3`.
@@ -140,7 +138,10 @@ impl RenderOnce for ColorSelector {
         let reduce = cx.reduce_motion();
         let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion::new());
         let count = self.swatches.len();
-        let chosen = self.value.as_ref().and_then(|v| self.swatches.iter().position(|s| &s.value == v));
+        let chosen = self
+            .value
+            .as_ref()
+            .and_then(|v| self.swatches.iter().position(|s| &s.value == v));
         let stop = tab_stop(&self.swatches, self.value.as_ref());
         let group_off = self.disabled;
 
@@ -152,7 +153,10 @@ impl RenderOnce for ColorSelector {
             if let (Some(i), Some(origin)) = (chosen, m.origin) {
                 let target = m.bounds[i].map(|b| b.center() - origin);
                 if let Some(target) = target {
-                    let (tx, ty) = (crate::scale::design(target.x), crate::scale::design(target.y));
+                    let (tx, ty) = (
+                        crate::scale::design(target.x),
+                        crate::scale::design(target.y),
+                    );
                     let color = self.swatches[i].color;
                     if m.at.is_none() {
                         // The first time the ring is drawn it is simply there.
@@ -162,21 +166,32 @@ impl RenderOnce for ColorSelector {
                         m.from_color = color;
                         m.blend = Channel::new(1.);
                         m.at = Some(i);
-                    } else if m.at != Some(i) || (m.x.target() - tx).abs() > 0.5 || (m.y.target() - ty).abs() > 0.5 {
+                    } else if m.at != Some(i)
+                        || (m.x.target() - tx).abs() > 0.5
+                        || (m.y.target() - ty).abs() > 0.5
+                    {
                         if m.at != Some(i) {
-                            m.from_color = mix(m.from_color, m.color, m.blend.value().clamp(0., 1.));
+                            m.from_color =
+                                mix(m.from_color, m.color, m.blend.value().clamp(0., 1.));
                             m.color = color;
                             m.blend = Channel::new(0.);
-                            m.blend.animate(1., Curve::Spring(Spring::LAYOUT), 0., reduce);
+                            m.blend
+                                .animate(1., Curve::Spring(Spring::LAYOUT), 0., reduce);
                         }
-                        crate::trace::motion("color-selector", "ring told to move (first render with the new choice)");
+                        crate::trace::motion(
+                            "color-selector",
+                            "ring told to move (first render with the new choice)",
+                        );
                         m.x.animate(tx, Curve::Spring(Spring::LAYOUT), 0., reduce);
                         m.y.animate(ty, Curve::Spring(Spring::LAYOUT), 0., reduce);
                         m.at = Some(i);
                     }
                 }
             }
-            let running = m.x.is_running() || m.y.is_running() || m.blend.is_running() || m.scale.iter().any(|c| c.is_running());
+            let running = m.x.is_running()
+                || m.y.is_running()
+                || m.blend.is_running()
+                || m.scale.iter().any(|c| c.is_running());
             if running {
                 window.request_animation_frame();
             }
@@ -185,7 +200,14 @@ impl RenderOnce for ColorSelector {
 
         let m = motion.read(cx);
         if crate::trace::on() && m.x.is_running() {
-            crate::trace::motion("color-selector", &format!("render while the ring moves: x={:.1} of {:.1}", m.x.value(), m.x.target()));
+            crate::trace::motion(
+                "color-selector",
+                &format!(
+                    "render while the ring moves: x={:.1} of {:.1}",
+                    m.x.value(),
+                    m.x.target()
+                ),
+            );
         }
         let ring = chosen.and_then(|i| {
             m.origin?;
@@ -196,7 +218,8 @@ impl RenderOnce for ColorSelector {
         });
         let scales: Vec<f32> = m.scale.iter().map(Channel::value).collect();
 
-        let child = |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
+        let child =
+            |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
         let list_measure = {
             let motion = motion.clone();
             measure(move |b, cx| {
@@ -211,7 +234,12 @@ impl RenderOnce for ColorSelector {
         };
 
         // `border-black/5`: black has no place in the theme; the darkest of its two ends is the nearest.
-        let dot_edge = if theme.appearance == crate::theme::Appearance::Dark { theme.background } else { theme.foreground }.opacity(DOT_EDGE);
+        let dot_edge = if theme.appearance == crate::theme::Appearance::Dark {
+            theme.background
+        } else {
+            theme.foreground
+        }
+        .opacity(DOT_EDGE);
         let swatches = self.swatches.clone();
         let items = self.swatches.iter().enumerate().map(|(i, swatch)| {
             let off = swatch.disabled || group_off;
@@ -236,7 +264,8 @@ impl RenderOnce for ColorSelector {
             let select = self.on_change.clone();
             let value = swatch.value.clone();
             let (press, release, leave) = (motion.clone(), motion.clone(), motion.clone());
-            let (key_motion, key_swatches, key_change) = (motion.clone(), swatches.clone(), self.on_change.clone());
+            let (key_motion, key_swatches, key_change) =
+                (motion.clone(), swatches.clone(), self.on_change.clone());
             let (click_motion, click_handle) = (motion.clone(), handle.clone());
             let outline = focused_visible && handle.is_focused(window) && !off;
             div()

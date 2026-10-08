@@ -1,11 +1,16 @@
 use std::path::PathBuf;
 
-use gpui_kit::{ElementId, InteractiveElement, IntoElement, MouseButton, ParentElement, Styled, div};
+use gpui_kit::{
+    ElementId, InteractiveElement, IntoElement, MouseButton, ParentElement, Styled, div,
+};
 
-use crate::scale::px;
-use crate::{icon::{Icon, IconName}, theme::Theme};
 use super::structs::UploadItem;
 use super::types::UploadStatus;
+use crate::scale::px;
+use crate::{
+    icon::{Icon, IconName},
+    theme::Theme,
+};
 
 /// The progress shown: 100 for a file that arrived, 0 for one with no number, else the number within 0 to 100.
 pub fn clamp_progress(progress: f32, status: UploadStatus) -> f32 {
@@ -26,20 +31,36 @@ pub fn format_bytes(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let exponent = ((bytes as f64).ln() / 1024f64.ln()).floor().clamp(0., 4.) as usize;
     let value = bytes as f64 / 1024f64.powi(exponent as i32);
-    if value >= 10. || exponent == 0 { format!("{value:.0} {}", UNITS[exponent]) } else { format!("{value:.1} {}", UNITS[exponent]) }
+    if value >= 10. || exponent == 0 {
+        format!("{value:.0} {}", UNITS[exponent])
+    } else {
+        format!("{value:.1} {}", UNITS[exponent])
+    }
 }
 
 /// The kind, in capitals: the extension, else the media type's subtype, else "FILE".
 pub fn kind_of(item: &UploadItem) -> String {
-    if let Some((_, extension)) = item.name.rsplit_once('.').filter(|(_, ext)| !ext.is_empty()) {
+    if let Some((_, extension)) = item
+        .name
+        .rsplit_once('.')
+        .filter(|(_, ext)| !ext.is_empty())
+    {
         return extension.to_uppercase();
     }
-    item.mime.as_deref().and_then(|m| m.rsplit('/').next()).filter(|s| !s.is_empty()).map_or_else(|| "FILE".into(), str::to_uppercase)
+    item.mime
+        .as_deref()
+        .and_then(|m| m.rsplit('/').next())
+        .filter(|s| !s.is_empty())
+        .map_or_else(|| "FILE".into(), str::to_uppercase)
 }
 
 /// The icon for a file: by media type, else by extension.
 pub fn icon_of(item: &UploadItem) -> IconName {
-    let extension = item.name.rsplit_once('.').map(|(_, e)| e.to_lowercase()).unwrap_or_default();
+    let extension = item
+        .name
+        .rsplit_once('.')
+        .map(|(_, e)| e.to_lowercase())
+        .unwrap_or_default();
     let mime = item.mime.as_deref().unwrap_or("");
     let has = |list: &[&str]| list.contains(&extension.as_str());
     if mime.starts_with("image/") {
@@ -48,13 +69,23 @@ pub fn icon_of(item: &UploadItem) -> IconName {
         IconName::Movie
     } else if mime.starts_with("audio/") {
         IconName::AudioFile
-    } else if mime.contains("zip") || mime.contains("compressed") || has(&["zip", "rar", "7z", "tar", "gz"]) {
+    } else if mime.contains("zip")
+        || mime.contains("compressed")
+        || has(&["zip", "rar", "7z", "tar", "gz"])
+    {
         IconName::FolderZip
-    } else if mime.contains("spreadsheet") || mime.contains("excel") || has(&["csv", "xls", "xlsx"]) {
+    } else if mime.contains("spreadsheet") || mime.contains("excel") || has(&["csv", "xls", "xlsx"])
+    {
         IconName::TableChart
-    } else if mime.contains("pdf") || mime.starts_with("text/") || has(&["pdf", "doc", "docx", "md", "txt"]) {
+    } else if mime.contains("pdf")
+        || mime.starts_with("text/")
+        || has(&["pdf", "doc", "docx", "md", "txt"])
+    {
         IconName::Description
-    } else if has(&["css", "html", "js", "jsx", "json", "mdx", "ts", "tsx", "xml", "yaml", "yml", "rs", "py", "go"]) {
+    } else if has(&[
+        "css", "html", "js", "jsx", "json", "mdx", "ts", "tsx", "xml", "yaml", "yml", "rs", "py",
+        "go",
+    ]) {
         IconName::Code
     } else if has(&["png", "jpg", "jpeg", "gif", "webp", "svg"]) {
         IconName::Image
@@ -69,11 +100,23 @@ pub fn icon_of(item: &UploadItem) -> IconName {
 
 /// Which of `paths` the queue takes: those with an accepted extension (any, when `accept` is empty), no more than the
 /// room left, and only one when several are not allowed.
-pub fn take_paths(paths: &[PathBuf], accept: &[String], room: Option<usize>, multiple: bool) -> Vec<PathBuf> {
+pub fn take_paths(
+    paths: &[PathBuf],
+    accept: &[String],
+    room: Option<usize>,
+    multiple: bool,
+) -> Vec<PathBuf> {
     let allowed = |p: &PathBuf| {
-        accept.is_empty() || p.extension().and_then(|e| e.to_str()).is_some_and(|e| accept.iter().any(|a| a.eq_ignore_ascii_case(e)))
+        accept.is_empty()
+            || p.extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| accept.iter().any(|a| a.eq_ignore_ascii_case(e)))
     };
-    let mut taken: Vec<PathBuf> = paths.iter().filter(|p| allowed(p) && p.is_file()).cloned().collect();
+    let mut taken: Vec<PathBuf> = paths
+        .iter()
+        .filter(|p| allowed(p) && p.is_file())
+        .cloned()
+        .collect();
     let limit = match (room, multiple) {
         (Some(room), true) => room,
         (Some(room), false) => room.min(1),
@@ -92,10 +135,19 @@ pub(super) fn status_mark(theme: &Theme, status: UploadStatus, spin: f32) -> imp
         UploadStatus::Queued => (IconName::Draft, theme.muted_foreground),
     };
     let icon = Icon::new(icon).size(px(16.)).color(color);
-    if status == UploadStatus::Uploading { icon.turn(spin) } else { icon }
+    if status == UploadStatus::Uploading {
+        icon.turn(spin)
+    } else {
+        icon
+    }
 }
 
-pub(super) fn round_button(theme: &Theme, id: ElementId, icon: IconName, selector: &'static str) -> gpui_kit::Stateful<gpui_kit::Div> {
+pub(super) fn round_button(
+    theme: &Theme,
+    id: ElementId,
+    icon: IconName,
+    selector: &'static str,
+) -> gpui_kit::Stateful<gpui_kit::Div> {
     div()
         .id(id)
         .debug_selector(move || selector.into())
@@ -107,7 +159,10 @@ pub(super) fn round_button(theme: &Theme, id: ElementId, icon: IconName, selecto
         .rounded_full()
         .text_color(theme.muted_foreground)
         .cursor_pointer()
-        .hover(|s| s.bg(theme.foreground.opacity(0.08)).text_color(theme.foreground))
+        .hover(|s| {
+            s.bg(theme.foreground.opacity(0.08))
+                .text_color(theme.foreground)
+        })
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
         .child(Icon::new(icon).size(px(14.)))
 }

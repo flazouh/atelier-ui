@@ -50,9 +50,34 @@ impl Tokens {
                 or()
             })
         };
-        let (light_page, dark_page) = (Hsla { h: 0., s: 0., l: 0.97, a: 1. }, Hsla { h: 0., s: 0., l: 0.08, a: 1. });
-        let page = take(self.page, "page", &|| if appearance == Appearance::Light { light_page } else { dark_page });
-        let ink = take(self.ink, "ink", &|| if appearance == Appearance::Light { dark_page } else { light_page });
+        let (light_page, dark_page) = (
+            Hsla {
+                h: 0.,
+                s: 0.,
+                l: 0.97,
+                a: 1.,
+            },
+            Hsla {
+                h: 0.,
+                s: 0.,
+                l: 0.08,
+                a: 1.,
+            },
+        );
+        let page = take(self.page, "page", &|| {
+            if appearance == Appearance::Light {
+                light_page
+            } else {
+                dark_page
+            }
+        });
+        let ink = take(self.ink, "ink", &|| {
+            if appearance == Appearance::Light {
+                dark_page
+            } else {
+                light_page
+            }
+        });
         let card = take(self.card, "card", &|| mix(page, ink, 0.04));
         let card_strong = take(self.card_strong, "card_strong", &|| mix(card, ink, 0.06));
         let muted = take(self.muted, "muted", &|| mix(ink, page, 0.45));
@@ -70,7 +95,11 @@ impl Tokens {
         let diff_added = take(self.diff_added, "diff_added", &|| success.opacity(0.18));
         let diff_removed = take(self.diff_removed, "diff_removed", &|| danger.opacity(0.18));
         // mem0's chip: the darker of page and ink at rest, the lighter when hovered.
-        let (darker, lighter) = if page.l < ink.l { (page, ink) } else { (ink, page) };
+        let (darker, lighter) = if page.l < ink.l {
+            (page, ink)
+        } else {
+            (ink, page)
+        };
         let chip_rest = take(self.chip_rest, "chip_rest", &|| darker);
         let chip_hover = take(self.chip_hover, "chip_hover", &|| lighter);
         let chip_arrow = take(self.chip_arrow, "chip_arrow", &|| lighter);

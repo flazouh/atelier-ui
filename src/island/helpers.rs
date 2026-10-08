@@ -1,10 +1,10 @@
 use gpui_kit::SharedString;
 
+use super::structs::IslandCounts;
 use crate::{
     session_status::{Need, SessionStatus},
     sidebar_model::ProjectData,
 };
-use super::structs::IslandCounts;
 
 /// The chip's fill and the words on it.
 pub fn colors(theme: &crate::theme::Theme) -> (gpui_kit::Hsla, gpui_kit::Hsla) {

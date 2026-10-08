@@ -4,6 +4,12 @@ use gpui_kit::{
     StatefulInteractiveElement, Styled, Task, Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::{card_words, lerp, stack_height_from};
+use super::types::{
+    BACKGROUND, BADGE, CARD_PAD_X, CARD_RADIUS, CARDS, FOOTER, FOOTER_GAP, GAP, INSET, LABEL_EXIT,
+    LABEL_LINE, LEAVE_GRACE, MAX_WIDTH, NotificationEvent, PAD, PEEK, REST_PAD, ROLL, STACK_RADIUS,
+    TrailingTone,
+};
 use crate::scale::px;
 use crate::{
     icon::{Icon, IconName},
@@ -12,12 +18,6 @@ use crate::{
     theme::ActiveTheme,
     typography::TextSize,
 };
-use super::types::{
-    BACKGROUND, BADGE, CARDS, CARD_PAD_X, CARD_RADIUS, FOOTER, FOOTER_GAP, GAP, INSET,
-    LABEL_EXIT, LABEL_LINE, LEAVE_GRACE, MAX_WIDTH, NotificationEvent, PAD, PEEK, REST_PAD,
-    ROLL, STACK_RADIUS, TrailingTone,
-};
-use super::helpers::{card_words, lerp, stack_height_from};
 
 /// The small text at a card's right edge: an optional icon and words, such as a retry count.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -37,7 +37,12 @@ pub struct NotificationItem {
 
 impl NotificationItem {
     pub fn new(id: impl Into<SharedString>, title: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), title: title.into(), description: None, trailing: None }
+        Self {
+            id: id.into(),
+            title: title.into(),
+            description: None,
+            trailing: None,
+        }
     }
 
     pub fn description(mut self, words: impl Into<SharedString>) -> Self {
@@ -45,8 +50,17 @@ impl NotificationItem {
         self
     }
 
-    pub fn trailing(mut self, icon: Option<IconName>, text: impl Into<SharedString>, tone: TrailingTone) -> Self {
-        self.trailing = Some(Trailing { icon, text: text.into(), tone });
+    pub fn trailing(
+        mut self,
+        icon: Option<IconName>,
+        text: impl Into<SharedString>,
+        tone: TrailingTone,
+    ) -> Self {
+        self.trailing = Some(Trailing {
+            icon,
+            text: text.into(),
+            tone,
+        });
         self
     }
 }
@@ -75,7 +89,11 @@ impl Geometry {
 
     /// The whole stack's height, collapsed (`0.`) and open (`1.`).
     pub fn height(&self, open: bool) -> f32 {
-        let grid = if open { self.list() } else { self.cell() + REST_PAD };
+        let grid = if open {
+            self.list()
+        } else {
+            self.cell() + REST_PAD
+        };
         PAD + grid + FOOTER_GAP + FOOTER + PAD
     }
 
@@ -87,13 +105,21 @@ impl Geometry {
     /// The top of card `i` above the bottom edge, in the collapsed state and in the open one.
     fn top_from_bottom(&self, i: usize, open: bool) -> f32 {
         let stack = self.height(open);
-        let within = if open { self.heights[..i].iter().sum::<f32>() + GAP * i as f32 } else { PEEK * i as f32 };
+        let within = if open {
+            self.heights[..i].iter().sum::<f32>() + GAP * i as f32
+        } else {
+            PEEK * i as f32
+        };
         stack - PAD - within
     }
 
     /// The top edge of card `i` above the bottom edge, `progress` of the way from collapsed to open, and its height.
     pub fn card(&self, i: usize, progress: f32) -> (f32, f32) {
-        let top = lerp(self.top_from_bottom(i, false), self.top_from_bottom(i, true), progress);
+        let top = lerp(
+            self.top_from_bottom(i, false),
+            self.top_from_bottom(i, true),
+            progress,
+        );
         let height = lerp(self.cell(), self.heights[i], progress);
         (top, height)
     }
@@ -143,7 +169,11 @@ impl Focusable for NotificationStack {
 }
 
 impl NotificationStack {
-    pub fn new(id: impl Into<ElementId>, items: Vec<NotificationItem>, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        items: Vec<NotificationItem>,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let focus = cx.focus_handle();
         Self {
             id: id.into(),
@@ -173,7 +203,12 @@ impl NotificationStack {
         self
     }
 
-    pub fn labels(mut self, collapsed: impl Into<SharedString>, expanded: impl Into<SharedString>, empty: impl Into<SharedString>) -> Self {
+    pub fn labels(
+        mut self,
+        collapsed: impl Into<SharedString>,
+        expanded: impl Into<SharedString>,
+        empty: impl Into<SharedString>,
+    ) -> Self {
         self.collapsed_label = collapsed.into();
         self.expanded_label = expanded.into();
         self.empty_label = empty.into();
@@ -196,7 +231,11 @@ impl NotificationStack {
     }
 
     pub(super) fn label(&self, expanded: bool) -> SharedString {
-        if expanded { self.expanded_label.clone() } else { self.collapsed_label.clone() }
+        if expanded {
+            self.expanded_label.clone()
+        } else {
+            self.collapsed_label.clone()
+        }
     }
 
     pub fn set_expanded(&mut self, expanded: bool, cx: &mut Context<Self>) {
@@ -208,14 +247,18 @@ impl NotificationStack {
         self.expanded = expanded;
         let reduce = cx.reduce_motion();
         let target = if expanded { 1. } else { 0. };
-        self.cards.animate(target, Curve::Ease(CARDS, ease::OUT), 0., reduce);
-        self.background.animate(target, Curve::Ease(BACKGROUND, ease::OUT), 0., reduce);
+        self.cards
+            .animate(target, Curve::Ease(CARDS, ease::OUT), 0., reduce);
+        self.background
+            .animate(target, Curve::Ease(BACKGROUND, ease::OUT), 0., reduce);
         // The label rolls: the old words up and out, the new ones up from below.
         self.old_label = Some(self.label(was));
         self.leaving = Channel::new(0.);
-        self.leaving.animate(1., Curve::Ease(LABEL_EXIT, ease::OUT), 0., reduce);
+        self.leaving
+            .animate(1., Curve::Ease(LABEL_EXIT, ease::OUT), 0., reduce);
         self.roll = Channel::new(0.);
-        self.roll.animate(1., Curve::Spring(Spring::SWAP), 0., reduce);
+        self.roll
+            .animate(1., Curve::Spring(Spring::SWAP), 0., reduce);
         cx.emit(NotificationEvent::Expanded(expanded));
         cx.notify();
     }
@@ -281,7 +324,8 @@ impl Render for NotificationStack {
             }
         }
         let this = cx.entity().downgrade();
-        let shown: Vec<NotificationItem> = self.items.iter().take(self.max_visible).cloned().collect();
+        let shown: Vec<NotificationItem> =
+            self.items.iter().take(self.max_visible).cloned().collect();
         let Some(first) = shown.first().cloned() else {
             return div()
                 .flex()
@@ -297,12 +341,19 @@ impl Render for NotificationStack {
                 .text_size(TextSize::Sm.font_size())
                 .font_weight(FontWeight::MEDIUM)
                 .text_color(theme.muted_foreground)
-                .child(Icon::new(IconName::NotificationsOff).size(px(16.)).color(theme.muted_foreground))
+                .child(
+                    Icon::new(IconName::NotificationsOff)
+                        .size(px(16.))
+                        .color(theme.muted_foreground),
+                )
                 .child(self.empty_label.clone())
                 .debug_selector(|| "notification-empty".into())
                 .into_any_element();
         };
-        let moving = self.cards.is_running() || self.background.is_running() || self.roll.is_running() || self.leaving.is_running();
+        let moving = self.cards.is_running()
+            || self.background.is_running()
+            || self.roll.is_running()
+            || self.leaving.is_running();
         if moving {
             window.request_animation_frame();
         }
@@ -312,7 +363,10 @@ impl Render for NotificationStack {
         }
         let geometry = Geometry::new(self.heights.clone());
         let inner = (self.width - 2. * PAD).max(0.);
-        let (open_cards, open_bg) = (self.cards.value().clamp(0., 1.), self.background.value().clamp(0., 1.));
+        let (open_cards, open_bg) = (
+            self.cards.value().clamp(0., 1.),
+            self.background.value().clamp(0., 1.),
+        );
         let ready = self.heights.iter().all(|h| *h > 0.);
         let footprint = if ready { geometry.footprint() } else { 0. };
         let stack_height = if ready { geometry.stack(open_bg) } else { 0. };
@@ -328,19 +382,30 @@ impl Render for NotificationStack {
                 .child(card_words(item, &theme))
         };
         // The hidden column: nothing to see, and the cards' heights come from it.
-        let hidden = div().absolute().left(px(PAD)).bottom_0().opacity(0.).flex().flex_col().gap(px(GAP)).children(shown.iter().enumerate().map(|(i, item)| {
-            let this = this.clone();
-            div().relative().child(card_face(item)).child(measure(move |b, cx| {
-                this.update(cx, |s, cx| {
-                    let h = f32::from(b.size.height);
-                    if s.heights.get(i).is_some_and(|old| (old - h).abs() > 0.4) {
-                        s.heights[i] = h;
-                        cx.notify();
-                    }
-                })
-                .ok();
-            }))
-        }));
+        let hidden = div()
+            .absolute()
+            .left(px(PAD))
+            .bottom_0()
+            .opacity(0.)
+            .flex()
+            .flex_col()
+            .gap(px(GAP))
+            .children(shown.iter().enumerate().map(|(i, item)| {
+                let this = this.clone();
+                div()
+                    .relative()
+                    .child(card_face(item))
+                    .child(measure(move |b, cx| {
+                        this.update(cx, |s, cx| {
+                            let h = f32::from(b.size.height);
+                            if s.heights.get(i).is_some_and(|old| (old - h).abs() > 0.4) {
+                                s.heights[i] = h;
+                                cx.notify();
+                            }
+                        })
+                        .ok();
+                    }))
+            }));
 
         // What is drawn: the stack's background, and the cards, last one first so the first is on top.
         let cards = (0..shown.len()).rev().filter(|_| ready).map(|i| {
@@ -359,21 +424,48 @@ impl Render for NotificationStack {
                 .border_color(theme.foreground.opacity(0.06))
                 .bg(theme.background)
                 .overflow_hidden()
-                .child(div().w(px(inner)).ml(px(-cut)).px(px(CARD_PAD_X)).when(!words_shown, |d| d.opacity(0.)).child(card_words(&shown[i], &theme)))
+                .child(
+                    div()
+                        .w(px(inner))
+                        .ml(px(-cut))
+                        .px(px(CARD_PAD_X))
+                        .when(!words_shown, |d| d.opacity(0.))
+                        .child(card_words(&shown[i], &theme)),
+                )
         });
         let background = ready.then(|| {
-            div().absolute().left_0().right_0().bottom_0().h(px(stack_height)).rounded(px(STACK_RADIUS)).bg(theme.card_strong)
+            div()
+                .absolute()
+                .left_0()
+                .right_0()
+                .bottom_0()
+                .h(px(stack_height))
+                .rounded(px(STACK_RADIUS))
+                .bg(theme.card_strong)
         });
 
         // The footer: the count of all the notifications, and the label that rolls.
         let badge_fill = theme.warning_fill;
         // The words on the badge read at 4.5:1: the ink on a light fill, the page on a dark one.
-        let badge_text = if crate::theme::contrast(theme.foreground, badge_fill) >= crate::theme::contrast(theme.background, badge_fill) { theme.foreground } else { theme.background };
+        let badge_text = if crate::theme::contrast(theme.foreground, badge_fill)
+            >= crate::theme::contrast(theme.background, badge_fill)
+        {
+            theme.foreground
+        } else {
+            theme.background
+        };
         let roll = self.roll.value().clamp(0., 1.);
         let leaving = self.leaving.value().clamp(0., 1.);
         let current = self.label(self.expanded);
         let label_line = |words: SharedString, arrow: bool| {
-            div().flex().items_center().gap(px(4.)).child(words).when(arrow, |d| d.child(Icon::new(IconName::ArrowOutward).size(px(16.))))
+            div()
+                .flex()
+                .items_center()
+                .gap(px(4.))
+                .child(words)
+                .when(arrow, |d| {
+                    d.child(Icon::new(IconName::ArrowOutward).size(px(16.)))
+                })
         };
         let footer = div()
             .absolute()
@@ -409,9 +501,19 @@ impl Render for NotificationStack {
                     .font_weight(FontWeight::MEDIUM)
                     .text_color(theme.foreground)
                     .children(self.old_label.clone().filter(|_| leaving < 1.).map(|old| {
-                        div().absolute().top(px(-ROLL * LABEL_LINE * leaving)).opacity(1. - leaving).child(label_line(old.clone(), old == self.expanded_label))
+                        div()
+                            .absolute()
+                            .top(px(-ROLL * LABEL_LINE * leaving))
+                            .opacity(1. - leaving)
+                            .child(label_line(old.clone(), old == self.expanded_label))
                     }))
-                    .child(div().absolute().top(px(ROLL * LABEL_LINE * (1. - roll))).opacity(roll.min(1.)).child(label_line(current.clone(), self.expanded))),
+                    .child(
+                        div()
+                            .absolute()
+                            .top(px(ROLL * LABEL_LINE * (1. - roll)))
+                            .opacity(roll.min(1.))
+                            .child(label_line(current.clone(), self.expanded)),
+                    ),
             );
 
         let (enter, leave_) = (this.clone(), this.clone());
@@ -434,7 +536,8 @@ impl Render for NotificationStack {
         let above = this.clone();
         // The part of the open stack that rises above the footprint is a piece of the stack too: the pointer over it
         // keeps it open. It has no size when the stack is shut.
-        let rise = ((stack_height - footprint).max(0.) * if self.expanded { 1. } else { 0. }).max(0.);
+        let rise =
+            ((stack_height - footprint).max(0.) * if self.expanded { 1. } else { 0. }).max(0.);
         let rise_zone = (rise > 0.5).then(|| {
             div()
                 .absolute()

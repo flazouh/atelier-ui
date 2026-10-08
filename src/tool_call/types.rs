@@ -1,4 +1,7 @@
-use crate::{status_mark::Mark, theme::{StatusTone, Theme}};
+use crate::{
+    status_mark::Mark,
+    theme::{StatusTone, Theme},
+};
 
 /// A card's header, as compact as a row of the strip above the composer: [`crate::subagent_row::ROW_HEIGHT`] tall, `px-3`.
 pub(crate) const CARD_HEADER_HEIGHT: f32 = crate::subagent_row::ROW_HEIGHT;

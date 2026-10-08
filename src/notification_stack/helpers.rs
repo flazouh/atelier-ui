@@ -1,9 +1,9 @@
 use gpui_kit::{FontWeight, Hsla, IntoElement, ParentElement, Styled, div};
 
-use crate::scale::px;
-use crate::{icon::Icon, theme::Theme, typography::TextSize};
 use super::structs::{Geometry, NotificationItem};
 use super::types::{CARD_PAD_Y, TrailingTone};
+use crate::scale::px;
+use crate::{icon::Icon, theme::Theme, typography::TextSize};
 
 pub(super) fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
@@ -31,7 +31,15 @@ pub(super) fn card_words(item: &NotificationItem, theme: &Theme) -> impl IntoEle
                 .items_start()
                 .justify_between()
                 .gap(px(12.))
-                .child(div().min_w_0().text_size(TextSize::Sm.font_size()).line_height(px(19.25)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(item.title.clone()))
+                .child(
+                    div()
+                        .min_w_0()
+                        .text_size(TextSize::Sm.font_size())
+                        .line_height(px(19.25))
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(theme.foreground)
+                        .child(item.title.clone()),
+                )
                 .children(item.trailing.clone().map(|t| {
                     let color = trailing_color(theme, t.tone);
                     div()
@@ -42,12 +50,19 @@ pub(super) fn card_words(item: &NotificationItem, theme: &Theme) -> impl IntoEle
                         .text_size(TextSize::Xs.font_size())
                         .line_height(px(16.))
                         .text_color(color)
-                        .children(t.icon.map(|icon| Icon::new(icon).size(px(14.)).color(color)))
+                        .children(
+                            t.icon
+                                .map(|icon| Icon::new(icon).size(px(14.)).color(color)),
+                        )
                         .child(t.text)
                 })),
         )
         .children(item.description.clone().map(|d| {
-            div().text_size(TextSize::Xs.font_size()).line_height(px(19.5)).text_color(theme.muted_foreground).child(d)
+            div()
+                .text_size(TextSize::Xs.font_size())
+                .line_height(px(19.5))
+                .text_color(theme.muted_foreground)
+                .child(d)
         }))
 }
 

@@ -10,7 +10,10 @@ impl Node {
     pub(super) fn sums(&self) -> (usize, usize) {
         match self {
             Node::File { file, .. } => (file.added, file.removed),
-            Node::Folder { children, .. } => children.iter().map(Node::sums).fold((0, 0), |(a, r), (x, y)| (a + x, r + y)),
+            Node::Folder { children, .. } => children
+                .iter()
+                .map(Node::sums)
+                .fold((0, 0), |(a, r), (x, y)| (a + x, r + y)),
         }
     }
 }

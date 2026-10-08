@@ -1,9 +1,13 @@
 use gpui_kit::{App, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div};
 
-use crate::scale::px;
-use crate::{icon::Icon, theme::{ActiveTheme, radius}, typography::MONO_FONT_FAMILY};
-use super::types::KeyPart;
 use super::helpers::parts;
+use super::types::KeyPart;
+use crate::scale::px;
+use crate::{
+    icon::Icon,
+    theme::{ActiveTheme, radius},
+    typography::MONO_FONT_FAMILY,
+};
 
 #[derive(IntoElement)]
 pub struct Kbd {
@@ -18,7 +22,11 @@ impl Kbd {
     /// `keys` as the user reads them, such as "⌘↵", "⇧Tab" or "Ctrl ⌫". A chord as it is written ("⌘⇧g")
     /// goes through [`crate::keys::cap`], so off the Mac it draws Control whoever passes it.
     pub fn new(keys: impl Into<SharedString>) -> Self {
-        Self { keys: crate::keys::cap(&keys.into()), ink: None, on: None }
+        Self {
+            keys: crate::keys::cap(&keys.into()),
+            ink: None,
+            on: None,
+        }
     }
 
     /// For a cap inside a button: a wash of the button's `ink` instead of the page's card fill, so it
@@ -59,10 +67,15 @@ impl RenderOnce for Kbd {
             .font_family(MONO_FONT_FAMILY)
             .text_size(px(11.))
             .line_height(px(16.))
-            .children(parts(&self.keys).into_iter().map(|part| match part {
-                // 11px sits with the 11px letters: the icon's box matches their cap height closely.
-                KeyPart::Symbol(icon) => Icon::new(icon).size(px(11.)).color(color).into_any_element(),
-                KeyPart::Text(text) => div().child(text).into_any_element(),
+            .children(parts(&self.keys).into_iter().map(|part| {
+                match part {
+                    // 11px sits with the 11px letters: the icon's box matches their cap height closely.
+                    KeyPart::Symbol(icon) => Icon::new(icon)
+                        .size(px(11.))
+                        .color(color)
+                        .into_any_element(),
+                    KeyPart::Text(text) => div().child(text).into_any_element(),
+                }
             }))
     }
 }

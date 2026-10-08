@@ -5,6 +5,8 @@ use gpui_kit::{
     SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::{fault, groups, mark, standing, tolerated_text};
+use super::types::{CheckState, Standing};
 use crate::scale::px;
 use crate::{
     focus::PressStop,
@@ -14,8 +16,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use super::types::{CheckState, Standing};
-use super::helpers::{fault, groups, mark, standing, tolerated_text};
 
 /// One step of a check's job.
 #[derive(Clone, Debug, PartialEq)]
@@ -47,7 +47,11 @@ pub struct Groups<'a> {
 impl Groups<'_> {
     /// The folded line over the rest: "12 passed", or "10 passed, 2 other".
     pub fn rest_text(&self) -> SharedString {
-        let passed = self.rest.iter().filter(|c| c.state == CheckState::Passed).count();
+        let passed = self
+            .rest
+            .iter()
+            .filter(|c| c.state == CheckState::Passed)
+            .count();
         if passed == self.rest.len() {
             format!("{passed} passed").into()
         } else {
@@ -72,7 +76,10 @@ pub struct ChecksPanel {
 
 impl ChecksPanel {
     pub fn new(id: impl Into<ElementId>, checks: Vec<CheckRun>) -> Self {
-        Self { id: id.into(), checks }
+        Self {
+            id: id.into(),
+            checks,
+        }
     }
 }
 
@@ -106,10 +113,34 @@ impl RenderOnce for ChecksPanel {
                         .items_center()
                         .gap(px(8.))
                         .text_size(TextSize::Xs.font_size())
-                        .child(mark(check.state, child(format!("mark-{}", check.name)), &theme))
-                        .child(div().flex_none().font_weight(FontWeight::SEMIBOLD).text_color(theme.foreground.opacity(0.9)).child(check.name.clone()))
-                        .child(div().flex_1().min_w_0().truncate().text_color(muted).child(check.summary.clone()))
-                        .when(check.state == CheckState::Tolerated, |d| d.child(div().flex_none().text_color(theme.warning).child("Allowed to fail"))),
+                        .child(mark(
+                            check.state,
+                            child(format!("mark-{}", check.name)),
+                            &theme,
+                        ))
+                        .child(
+                            div()
+                                .flex_none()
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .text_color(theme.foreground.opacity(0.9))
+                                .child(check.name.clone()),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .truncate()
+                                .text_color(muted)
+                                .child(check.summary.clone()),
+                        )
+                        .when(check.state == CheckState::Tolerated, |d| {
+                            d.child(
+                                div()
+                                    .flex_none()
+                                    .text_color(theme.warning)
+                                    .child("Allowed to fail"),
+                            )
+                        }),
                 )
                 .when_some(fault, |d, fault| {
                     // The Fault, with no click: which step, and the line that names why.
@@ -125,7 +156,13 @@ impl RenderOnce for ChecksPanel {
                             .text_size(TextSize::Xs.font_size())
                             .child(div().text_color(muted).child(fault.step))
                             .when(!fault.line.is_empty(), |d| {
-                                d.child(div().font_family(MONO_FONT_FAMILY).text_size(px(11.)).text_color(theme.foreground.opacity(0.9)).child(fault.line))
+                                d.child(
+                                    div()
+                                        .font_family(MONO_FONT_FAMILY)
+                                        .text_size(px(11.))
+                                        .text_color(theme.foreground.opacity(0.9))
+                                        .child(fault.line),
+                                )
                             }),
                     )
                 })
@@ -144,12 +181,26 @@ impl RenderOnce for ChecksPanel {
                 .text_size(TextSize::Xs.font_size())
                 .text_color(muted)
                 .hover(|s| s.bg(theme.muted_hover()))
-                .press_stop((self.id.clone(), "rest-focus"), crate::theme::radius::md(), window, cx)
-                .on_click(move |_, _, cx| toggle.update(cx, |o, cx| {
-                    *o = !*o;
-                    cx.notify();
-                }))
-                .child(Icon::new(if rest_open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(12.)))
+                .press_stop(
+                    (self.id.clone(), "rest-focus"),
+                    crate::theme::radius::md(),
+                    window,
+                    cx,
+                )
+                .on_click(move |_, _, cx| {
+                    toggle.update(cx, |o, cx| {
+                        *o = !*o;
+                        cx.notify();
+                    })
+                })
+                .child(
+                    Icon::new(if rest_open {
+                        IconName::ChevronDown
+                    } else {
+                        IconName::ChevronRight
+                    })
+                    .size(px(12.)),
+                )
                 .child(g.rest_text())
         });
 
@@ -157,7 +208,13 @@ impl RenderOnce for ChecksPanel {
             .flex()
             .items_center()
             .gap(px(6.))
-            .when(running, |d| d.child(Spinner::new(child("standing".into())).size(px(12.)).color(theme.warning)))
+            .when(running, |d| {
+                d.child(
+                    Spinner::new(child("standing".into()))
+                        .size(px(12.))
+                        .color(theme.warning),
+                )
+            })
             .child(standing.text());
         RailSection::new("Checks")
             .icon(IconName::Checklist)
@@ -165,7 +222,14 @@ impl RenderOnce for ChecksPanel {
             .tone(tone)
             .children(g.failing.iter().map(|c| row(c)))
             .when(!g.tolerated.is_empty(), |d| {
-                d.child(div().px(px(12.)).pt(px(4.)).text_size(TextSize::Xs.font_size()).text_color(muted).child(tolerated_text(g.tolerated.len())))
+                d.child(
+                    div()
+                        .px(px(12.))
+                        .pt(px(4.))
+                        .text_size(TextSize::Xs.font_size())
+                        .text_color(muted)
+                        .child(tolerated_text(g.tolerated.len())),
+                )
             })
             .children(g.tolerated.iter().map(|c| row(c)))
             .children(rest_line)

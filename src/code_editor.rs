@@ -50,15 +50,15 @@ mod types;
 
 pub use crate::syntax::{LANGUAGES, language_for};
 
-pub use helpers::{install_syntax_theme, set_diagnostics, severity_tone, syntax_theme};
 pub(crate) use helpers::{bind_keys, surface};
+pub use helpers::{install_syntax_theme, set_diagnostics, severity_tone, syntax_theme};
 pub use structs::CodeEditor;
 pub use types::ROW_HEIGHT;
 
 #[cfg(test)]
-use gpui_kit::base::input::DiagnosticSeverity;
-#[cfg(test)]
 use crate::theme::Appearance;
+#[cfg(test)]
+use gpui_kit::base::input::DiagnosticSeverity;
 
 #[cfg(test)]
 mod tests;

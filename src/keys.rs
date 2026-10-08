@@ -17,8 +17,8 @@ mod structs;
 mod types;
 
 pub use helpers::{
-    cap, cap_on, chord_for, chords, gist, held_down, profile, read, read_now, set_profile,
-    typing, word,
+    cap, cap_on, chord_for, chords, gist, held_down, profile, read, read_now, set_profile, typing,
+    word,
 };
 pub use structs::{Keys, Press};
 pub use types::{Command, KEYBOARD, PATIENCE, Profile, Waiting};

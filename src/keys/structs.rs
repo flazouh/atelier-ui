@@ -33,6 +33,11 @@ impl Press {
             (_, Some(ch)) if !secondary && !m.alt && ch.chars().count() == 1 => ch.clone(),
             (key, _) => key.to_string(),
         };
-        Self { key, secondary, alt: m.alt, shift: m.shift }
+        Self {
+            key,
+            secondary,
+            alt: m.alt,
+            shift: m.shift,
+        }
     }
 }

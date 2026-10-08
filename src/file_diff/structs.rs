@@ -2,10 +2,14 @@ use std::{rc::Rc, sync::Arc};
 
 use gpui_kit::{
     App, ElementId, InteractiveElement, IntoElement, ListHorizontalSizingBehavior,
-    ListSizingBehavior, ParentElement, RenderOnce, ScrollStrategy, SharedString, StatefulInteractiveElement,
-    Styled, UniformListScrollHandle, Window, div, prelude::FluentBuilder, uniform_list,
+    ListSizingBehavior, ParentElement, RenderOnce, ScrollStrategy, SharedString,
+    StatefulInteractiveElement, Styled, UniformListScrollHandle, Window, div,
+    prelude::FluentBuilder, uniform_list,
 };
 
+use super::helpers::{bottom_row, diff_row, diff_stats, fill, follow_status, hunk_starts};
+use super::types::{DiffLineKind, FileDiffStatus, MAX_HEIGHT, ROW_HEIGHT};
+use crate::preview_clamp::{self, EXPANDED_ROWS, Press};
 use crate::scale::px;
 use crate::{
     copy_feedback::CopyFeedback,
@@ -18,9 +22,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use crate::preview_clamp::{self, EXPANDED_ROWS, Press};
-use super::types::{DiffLineKind, FileDiffStatus, MAX_HEIGHT, ROW_HEIGHT};
-use super::helpers::{bottom_row, diff_row, diff_stats, fill, follow_status, hunk_starts};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiffLine {
@@ -67,7 +68,12 @@ impl DiffLine {
                 DiffLineKind::Hunk => raw,
                 _ => raw.get(1..).unwrap_or(""),
             };
-            lines.push(DiffLine { kind, old_line, new_line, text: text.to_string().into() });
+            lines.push(DiffLine {
+                kind,
+                old_line,
+                new_line,
+                text: text.to_string().into(),
+            });
         }
         lines
     }
@@ -92,7 +98,11 @@ pub struct FileDiff {
 type OpenHandler = Rc<dyn Fn(&mut Window, &mut App)>;
 
 impl FileDiff {
-    pub fn new(id: impl Into<ElementId>, path: impl Into<SharedString>, lines: Vec<DiffLine>) -> Self {
+    pub fn new(
+        id: impl Into<ElementId>,
+        path: impl Into<SharedString>,
+        lines: Vec<DiffLine>,
+    ) -> Self {
         Self {
             id: id.into(),
             path: path.into(),
@@ -193,13 +203,21 @@ impl RenderOnce for FileDiff {
         if m.disclosure.is_moving() || (streaming && !reduce) {
             window.request_animation_frame();
         }
-        let (reveal, chevron, copied) = (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.copy.copied());
+        let (reveal, chevron, copied) = (
+            m.disclosure.reveal.value(),
+            m.disclosure.chevron.value(),
+            m.copy.copied(),
+        );
         let height = m.disclosure.height.clone();
-        let (expanded, scroll) = (m.expanded, self.scroll.clone().unwrap_or_else(|| m.scroll.clone()));
+        let (expanded, scroll) = (
+            m.expanded,
+            self.scroll.clone().unwrap_or_else(|| m.scroll.clone()),
+        );
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
         let (added, removed) = diff_stats(&self.lines);
-        let child = |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
+        let child =
+            |name: &'static str| ElementId::NamedChild(Arc::new(self.id.clone()), name.into());
         // Each side as one text, so a comment or a string across rows keeps its colour.
         let row_sides = crate::syntax::row_sides(&self.lines);
         let side_runs = crate::syntax::language_for(&self.path).map(|language| {
@@ -212,7 +230,12 @@ impl RenderOnce for FileDiff {
         // lucide's `animate-spin`.
         let spin_ms = duration::SPIN.as_millis();
         let spin = if streaming && !reduce {
-            (std::time::UNIX_EPOCH.elapsed().unwrap_or_default().as_millis() % spin_ms) as f32 / spin_ms as f32
+            (std::time::UNIX_EPOCH
+                .elapsed()
+                .unwrap_or_default()
+                .as_millis()
+                % spin_ms) as f32
+                / spin_ms as f32
         } else {
             0.
         };
@@ -283,7 +306,10 @@ impl RenderOnce for FileDiff {
                     .size(px(16.))
                     .text_color(theme.faint())
                     .child(if streaming {
-                        Icon::new(IconName::Progress).size(px(14.)).turn(spin).into_any_element()
+                        Icon::new(IconName::Progress)
+                            .size(px(14.))
+                            .turn(spin)
+                            .into_any_element()
                     } else {
                         Icon::new(IconName::Check).size(px(14.)).into_any_element()
                     }),
@@ -293,7 +319,11 @@ impl RenderOnce for FileDiff {
                     .flex_none()
                     .text_color(theme.faint())
                     .group_hover("file-diff-header", |s| s.text_color(muted))
-                    .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
+                    .child(
+                        Icon::new(IconName::ChevronDown)
+                            .size(px(14.))
+                            .turn(chevron / 360.),
+                    ),
             );
 
         // A clipped diff shows a few rows that do not scroll, until it is pressed open to a taller view.
@@ -315,24 +345,34 @@ impl RenderOnce for FileDiff {
         let lines: Rc<[DiffLine]> = self.lines.into();
         let row_sides: Rc<[Option<(Side, usize)>]> = row_sides.into();
         // The widest row sets the list's width, so long lines scroll sideways.
-        let widest = lines.iter().enumerate().max_by_key(|(_, l)| l.text.len()).map(|(i, _)| i);
+        let widest = lines
+            .iter()
+            .enumerate()
+            .max_by_key(|(_, l)| l.text.len())
+            .map(|(i, _)| i);
         let row_theme = theme.clone();
         let faint = theme.faint();
-        let viewport_of = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
+        let viewport_of = self
+            .preview_rows
+            .map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
         let hinted = self.preview_rows.is_some_and(|limit| total > limit);
         let scrolls = clip.is_none() && total as f32 * ROW_HEIGHT > viewport_of;
         let bottom = bottom_row(total, hinted, self.copy_text.is_some(), scrolls);
         let make_row = move |i: usize| {
-            let runs = row_sides[i].zip(side_runs.as_ref()).and_then(|((side, at), (old, new))| {
-                let lines = match side {
-                    Side::Old => old.as_ref(),
-                    Side::New => new.as_ref(),
-                }?;
-                lines.get(at).cloned()
-            });
+            let runs = row_sides[i]
+                .zip(side_runs.as_ref())
+                .and_then(|((side, at), (old, new))| {
+                    let lines = match side {
+                        Side::Old => old.as_ref(),
+                        Side::New => new.as_ref(),
+                    }?;
+                    lines.get(at).cloned()
+                });
             diff_row(&lines[i], runs, &row_theme, faint, bottom == Some(i))
         };
-        let viewport = self.preview_rows.map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
+        let viewport = self
+            .preview_rows
+            .map_or(self.max_height, |_| EXPANDED_ROWS as f32 * ROW_HEIGHT);
         let rows = match clip {
             Some(rows) => div()
                 .id(child("rows"))
@@ -345,18 +385,20 @@ impl RenderOnce for FileDiff {
                 .line_height(px(ROW_HEIGHT))
                 .children(preview_clamp::window(total, rows, streaming).map(make_row))
                 .into_any_element(),
-            None => uniform_list(child("rows"), total, move |range, _, _| range.map(&make_row).collect())
-                .track_scroll(&scroll)
-                .with_sizing_behavior(ListSizingBehavior::Infer)
-                .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
-                .with_width_from_item(widest)
-                // A height, not a cap: in a column the list is measured at its content's height, which `max_h` does
-                // not bound, and every row would be laid out.
-                .h(px(viewport.min(total as f32 * ROW_HEIGHT)))
-                .font_family(MONO_FONT_FAMILY)
-                .text_size(TextSize::Xs.font_size())
-                .line_height(px(ROW_HEIGHT))
-                .into_any_element(),
+            None => uniform_list(child("rows"), total, move |range, _, _| {
+                range.map(&make_row).collect()
+            })
+            .track_scroll(&scroll)
+            .with_sizing_behavior(ListSizingBehavior::Infer)
+            .with_horizontal_sizing_behavior(ListHorizontalSizingBehavior::Unconstrained)
+            .with_width_from_item(widest)
+            // A height, not a cap: in a column the list is measured at its content's height, which `max_h` does
+            // not bound, and every row would be laid out.
+            .h(px(viewport.min(total as f32 * ROW_HEIGHT)))
+            .font_family(MONO_FONT_FAMILY)
+            .text_size(TextSize::Xs.font_size())
+            .line_height(px(ROW_HEIGHT))
+            .into_any_element(),
         };
         // With a clip set, the rows are one press target: they open, and tell the owner.
         let rows = match self.preview_rows {
@@ -375,7 +417,11 @@ impl RenderOnce for FileDiff {
                             m.expanded = pressed.expanded;
                             // Either way the rows start over: from their top, and pinned to the newest row while they stream.
                             m.following = true;
-                            rows_scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(0.)));
+                            rows_scroll
+                                .0
+                                .borrow()
+                                .base_handle
+                                .set_offset(gpui_kit::point(px(0.), px(0.)));
                             cx.notify();
                             pressed
                         });
@@ -384,7 +430,9 @@ impl RenderOnce for FileDiff {
                         }
                     })
                     .child(rows)
-                    .when(clipped, |d| d.child(preview_clamp::hint(total - limit, expanded, &theme)))
+                    .when(clipped, |d| {
+                        d.child(preview_clamp::hint(total - limit, expanded, &theme))
+                    })
                     .into_any_element()
             }
             None => rows,
@@ -392,23 +440,49 @@ impl RenderOnce for FileDiff {
 
         let footer = self.copy_text.map(|text| {
             let copy_state = motion.clone();
-            div().flex().justify_end().px(px(8.)).pb(px(6.)).pt(px(4.)).child(
-                div()
-                    .id(child("copy"))
-                    .flex()
-                    .size(px(28.))
-                    .items_center()
-                    .justify_center()
-                    .rounded(radius::md())
-                    .cursor_pointer()
-                    .text_color(muted)
-                    .hover(|s| s.bg(theme.background.opacity(0.7)).text_color(theme.foreground))
-                    .press_stop((self.id.clone(), "copy-focus"), crate::theme::radius::md(), window, cx)
-                    .on_click(move |_, _, cx| {
-                        CopyFeedback::click(&copy_state, |m: &mut DiffMotion| &mut m.copy, text.to_string(), cx);
-                    })
-                    .child(Icon::new(if copied { IconName::Check } else { IconName::Copy }).size(px(14.))),
-            )
+            div()
+                .flex()
+                .justify_end()
+                .px(px(8.))
+                .pb(px(6.))
+                .pt(px(4.))
+                .child(
+                    div()
+                        .id(child("copy"))
+                        .flex()
+                        .size(px(28.))
+                        .items_center()
+                        .justify_center()
+                        .rounded(radius::md())
+                        .cursor_pointer()
+                        .text_color(muted)
+                        .hover(|s| {
+                            s.bg(theme.background.opacity(0.7))
+                                .text_color(theme.foreground)
+                        })
+                        .press_stop(
+                            (self.id.clone(), "copy-focus"),
+                            crate::theme::radius::md(),
+                            window,
+                            cx,
+                        )
+                        .on_click(move |_, _, cx| {
+                            CopyFeedback::click(
+                                &copy_state,
+                                |m: &mut DiffMotion| &mut m.copy,
+                                text.to_string(),
+                                cx,
+                            );
+                        })
+                        .child(
+                            Icon::new(if copied {
+                                IconName::Check
+                            } else {
+                                IconName::Copy
+                            })
+                            .size(px(14.)),
+                        ),
+                )
         });
 
         let card = div()
@@ -418,7 +492,9 @@ impl RenderOnce for FileDiff {
             .bg(theme.background.opacity(0.5))
             // The diff keeps the wheel while it scrolls; at its ends the wheel goes on to the panel. A clipped one does not
             // scroll, and leaves the wheel to the panel.
-            .when(clip.is_none(), |d| d.on_scroll_wheel(crate::scroll_chain::keep_inside(tracked)))
+            .when(clip.is_none(), |d| {
+                d.on_scroll_wheel(crate::scroll_chain::keep_inside(tracked))
+            })
             .child(rows)
             .when_some(footer, |d, footer| d.child(footer));
 

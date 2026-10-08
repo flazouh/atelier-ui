@@ -69,11 +69,17 @@ pub fn chord_for(profile: Profile, command: Command) -> Option<&'static str> {
 }
 
 pub fn word(command: Command) -> &'static str {
-    KEYBOARD.iter().find(|(c, _, _)| *c == command).map_or("", |(_, w, _)| w)
+    KEYBOARD
+        .iter()
+        .find(|(c, _, _)| *c == command)
+        .map_or("", |(_, w, _)| w)
 }
 
 pub fn gist(command: Command) -> &'static str {
-    KEYBOARD.iter().find(|(c, _, _)| *c == command).map_or("", |(_, _, g)| g)
+    KEYBOARD
+        .iter()
+        .find(|(c, _, _)| *c == command)
+        .map_or("", |(_, _, g)| g)
 }
 
 /// Only moving between files repeats while the key is held, as GitQuiet's `heldDown`: a held `x` must
@@ -83,11 +89,15 @@ pub fn held_down(command: Command) -> bool {
 }
 
 pub fn profile(cx: &App) -> Profile {
-    cx.try_global::<Keys>().map_or(Profile::default(), |k| k.profile)
+    cx.try_global::<Keys>()
+        .map_or(Profile::default(), |k| k.profile)
 }
 
 pub fn set_profile(profile: Profile, cx: &mut App) {
-    cx.set_global(Keys { profile, waiting: None });
+    cx.set_global(Keys {
+        profile,
+        waiting: None,
+    });
 }
 
 /// [`read`] with the app's profile and its half-pressed sequence, now.
@@ -115,7 +125,11 @@ pub fn cap_on(chord: &str, mac: bool) -> SharedString {
     let (secondary, shift) = (chord.contains('⌘'), chord.contains('⇧'));
     let key = chord.trim_start_matches(['⌘', '⇧']);
     // A letter shows as a capital; a named key ("Tab") keeps its case.
-    let key = if key.chars().count() == 1 { key.to_uppercase() } else { key.to_string() };
+    let key = if key.chars().count() == 1 {
+        key.to_uppercase()
+    } else {
+        key.to_string()
+    };
     let mut cap = String::new();
     if secondary {
         cap.push(if mac { '⌘' } else { '⌃' });
@@ -128,7 +142,10 @@ pub fn cap_on(chord: &str, mac: bool) -> SharedString {
 }
 
 fn commands_for(profile: Profile, wanted: impl Fn(&str) -> bool) -> Option<Command> {
-    Command::ALL.iter().copied().find(|c| chords(profile, *c).iter().any(|chord| wanted(chord)))
+    Command::ALL
+        .iter()
+        .copied()
+        .find(|c| chords(profile, *c).iter().any(|chord| wanted(chord)))
 }
 
 /// Whether a chord held with a modifier (`⌘b`, `⌘⇧b`) is this press.
@@ -138,13 +155,21 @@ fn combo_matches(chord: &str, press: &Press) -> bool {
     }
     let (secondary, shift) = (chord.contains('⌘'), chord.contains('⇧'));
     let key = chord.trim_start_matches(['⌘', '⇧']);
-    secondary == press.secondary && shift == press.shift && !press.alt && key.eq_ignore_ascii_case(&press.key)
+    secondary == press.secondary
+        && shift == press.shift
+        && !press.alt
+        && key.eq_ignore_ascii_case(&press.key)
 }
 
 /// The command `press` asks for, as GitQuiet's `read`: a press held with Command, Control or Alt only
 /// reaches a chord that names that modifier; a key that opens a sequence waits up to [`PATIENCE`] for
 /// its second one.
-pub fn read(press: &Press, profile: Profile, waiting: &mut Waiting, now: Instant) -> Option<Command> {
+pub fn read(
+    press: &Press,
+    profile: Profile,
+    waiting: &mut Waiting,
+    now: Instant,
+) -> Option<Command> {
     if press.secondary || press.alt {
         *waiting = None;
         return commands_for(profile, |chord| combo_matches(chord, press));
@@ -155,7 +180,9 @@ pub fn read(press: &Press, profile: Profile, waiting: &mut Waiting, now: Instant
         let wanted = format!("{leader} {}", press.key);
         return commands_for(profile, |chord| chord == wanted);
     }
-    if let Some(alone) = commands_for(profile, |chord| !chord.starts_with(['⌘', '⇧']) && !chord.contains(' ') && chord == press.key) {
+    if let Some(alone) = commands_for(profile, |chord| {
+        !chord.starts_with(['⌘', '⇧']) && !chord.contains(' ') && chord == press.key
+    }) {
         return Some(alone);
     }
     let opens = format!("{} ", press.key);
@@ -170,5 +197,9 @@ pub fn read(press: &Press, profile: Profile, waiting: &mut Waiting, now: Instant
 /// decides, so a reply box inside a read-only diff still types.
 pub fn typing(window: &Window) -> bool {
     let stack = window.context_stack();
-    stack.iter().rev().find(|context| context.contains("Input")).is_some_and(|input| !input.contains("readonly"))
+    stack
+        .iter()
+        .rev()
+        .find(|context| context.contains("Input"))
+        .is_some_and(|input| !input.contains("readonly"))
 }

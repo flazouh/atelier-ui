@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use gpui_kit::{Hsla, Rgba, component::highlighter::HighlightTheme};
 
-use crate::theme::{Appearance, Theme};
 use super::structs::{File, Tokens};
+use crate::theme::{Appearance, Theme};
 
 /// A colour from `#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`.
 pub fn hex(text: &str) -> Option<Hsla> {
@@ -12,13 +12,31 @@ pub fn hex(text: &str) -> Option<Hsla> {
     let (r, g, b, a) = match digits.len() {
         3 | 4 => {
             let short = |i: usize| value(i..i + 1).map(|v| v * 17);
-            (short(0)?, short(1)?, short(2)?, if digits.len() == 4 { short(3)? } else { 255 })
+            (
+                short(0)?,
+                short(1)?,
+                short(2)?,
+                if digits.len() == 4 { short(3)? } else { 255 },
+            )
         }
-        6 | 8 => (value(0..2)?, value(2..4)?, value(4..6)?, if digits.len() == 8 { value(6..8)? } else { 255 }),
+        6 | 8 => (
+            value(0..2)?,
+            value(2..4)?,
+            value(4..6)?,
+            if digits.len() == 8 { value(6..8)? } else { 255 },
+        ),
         _ => return None,
     };
     let unit = |v: u8| v as f32 / 255.;
-    Some(Rgba { r: unit(r), g: unit(g), b: unit(b), a: unit(a) }.into())
+    Some(
+        Rgba {
+            r: unit(r),
+            g: unit(g),
+            b: unit(b),
+            a: unit(a),
+        }
+        .into(),
+    )
 }
 
 pub fn appearance(text: &str) -> Result<Appearance, String> {
@@ -39,7 +57,10 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
             let mut tones = [Hsla::default(); 5];
             for (tone, text) in tones.iter_mut().zip(list) {
                 let c = colour(text)?;
-                *tone = Hsla { l: c.l * file.status_lightness.unwrap_or(1.), ..c };
+                *tone = Hsla {
+                    l: c.l * file.status_lightness.unwrap_or(1.),
+                    ..c
+                };
             }
             Some(tones)
         }
@@ -64,8 +85,14 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
         status,
         ..Tokens::default()
     };
-    let syntax: HighlightTheme = serde_json::from_value(file.syntax).map_err(|e| format!("syntax: {e}"))?;
-    let (mut theme, derived) = tokens.resolve(file.name.into(), file.family.into(), appearance(&file.appearance)?, Arc::new(syntax));
+    let syntax: HighlightTheme =
+        serde_json::from_value(file.syntax).map_err(|e| format!("syntax: {e}"))?;
+    let (mut theme, derived) = tokens.resolve(
+        file.name.into(),
+        file.family.into(),
+        appearance(&file.appearance)?,
+        Arc::new(syntax),
+    );
     crate::theme::raise_marks(&mut theme);
     Ok((theme, derived))
 }

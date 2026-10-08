@@ -20,9 +20,9 @@ pub use structs::{FileUpload, UploadItem};
 pub use types::{FileUploadEvent, UploadStatus, UploadVariant};
 
 #[cfg(test)]
-use std::path::PathBuf;
-#[cfg(test)]
 use crate::icon::IconName;
+#[cfg(test)]
+use std::path::PathBuf;
 
 #[cfg(test)]
 mod tests;

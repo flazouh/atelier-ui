@@ -5,9 +5,9 @@ use gpui_kit::{
     Window, div, prelude::FluentBuilder,
 };
 
-use crate::scale::px;
-use super::types::SIZE;
 use super::helpers::{fill, ink_on};
+use super::types::SIZE;
+use crate::scale::px;
 
 /// One colour of the palette: its name and its red, green and blue bytes.
 pub struct Swatch {
@@ -25,7 +25,11 @@ pub struct ProjectBadge {
 
 impl ProjectBadge {
     pub fn new(label: impl Into<SharedString>, color: usize) -> Self {
-        Self { label: label.into(), color, icon: None }
+        Self {
+            label: label.into(),
+            color,
+            icon: None,
+        }
     }
     /// An image file that stands in for the letter.
     pub fn icon(mut self, icon: Option<PathBuf>) -> Self {
@@ -46,7 +50,13 @@ impl RenderOnce for ProjectBadge {
             .size(px(SIZE))
             .rounded(px(4.))
             .overflow_hidden()
-            .when_some(self.icon.clone(), |d, icon| d.child(gpui_kit::img(icon).size(px(SIZE)).object_fit(ObjectFit::Contain)))
+            .when_some(self.icon.clone(), |d, icon| {
+                d.child(
+                    gpui_kit::img(icon)
+                        .size(px(SIZE))
+                        .object_fit(ObjectFit::Contain),
+                )
+            })
             .when(self.icon.is_none(), |d| {
                 d.bg(fill)
                     .text_color(ink_on(fill))

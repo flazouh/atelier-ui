@@ -1,7 +1,10 @@
-use gpui_kit::{AnyElement, Context, IntoElement, ParentElement, Styled, Window, div, prelude::FluentBuilder};
+use gpui_kit::{
+    AnyElement, Context, IntoElement, ParentElement, Styled, Window, div, prelude::FluentBuilder,
+};
 
-use crate::scale::px;
 use super::super::{Sidebar, SidebarEvent};
+use super::structs::HeadButton;
+use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
     icon::IconName,
@@ -12,12 +15,17 @@ use crate::{
     sidebar_layout::SidebarLayout,
     sidebar_model::ListMode,
 };
-use super::structs::HeadButton;
 
 impl Sidebar {
     /// Lists the sessions by project, or in one list by priority. Emits `SidebarEvent::OptionsChanged`.
     pub fn choose_mode(&mut self, mode: ListMode, cx: &mut Context<Self>) {
-        self.set_layout(SidebarLayout { mode, ..self.layout }, cx);
+        self.set_layout(
+            SidebarLayout {
+                mode,
+                ..self.layout
+            },
+            cx,
+        );
         cx.emit(SidebarEvent::LayoutChanged(self.layout));
     }
 
@@ -41,15 +49,29 @@ impl Sidebar {
         cx.notify();
     }
 
-    fn head_button(look: HeadButton, press: impl Fn(&mut Window, &mut gpui_kit::App) + 'static) -> AnyElement {
-        let HeadButton { id, icon, tip, lit, open, menu } = look;
+    fn head_button(
+        look: HeadButton,
+        press: impl Fn(&mut Window, &mut gpui_kit::App) + 'static,
+    ) -> AnyElement {
+        let HeadButton {
+            id,
+            icon,
+            tip,
+            lit,
+            open,
+            menu,
+        } = look;
         div()
             .relative()
             .child(
                 Button::new(id)
                     .debug_name(id)
                     .icon(icon)
-                    .variant(if lit { ButtonVariant::Secondary } else { ButtonVariant::Ghost })
+                    .variant(if lit {
+                        ButtonVariant::Secondary
+                    } else {
+                        ButtonVariant::Ghost
+                    })
                     .size(ButtonSize::IconSm)
                     .tooltip(tip)
                     .open(open)
@@ -65,23 +87,25 @@ impl Sidebar {
     fn options_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity().downgrade();
         let hidden = hidden_by(&self.all, SessionFilter::Active);
-        let modes = [ListMode::Projects, ListMode::Priority].into_iter().map(|mode| {
-            let pick = this.clone();
-            Entry::from(
-                MenuItem::new(mode.words())
-                    .debug_name(match mode {
-                        ListMode::Projects => "list-mode-projects",
-                        ListMode::Priority => "list-mode-priority",
-                    })
-                    .choice(Choice::Radio(mode == self.layout.mode))
-                    .on_select(move |_, cx| {
-                        drop(pick.update(cx, |s, cx| {
-                            s.options_menu = false;
-                            s.choose_mode(mode, cx)
-                        }))
-                    }),
-            )
-        });
+        let modes = [ListMode::Projects, ListMode::Priority]
+            .into_iter()
+            .map(|mode| {
+                let pick = this.clone();
+                Entry::from(
+                    MenuItem::new(mode.words())
+                        .debug_name(match mode {
+                            ListMode::Projects => "list-mode-projects",
+                            ListMode::Priority => "list-mode-priority",
+                        })
+                        .choice(Choice::Radio(mode == self.layout.mode))
+                        .on_select(move |_, cx| {
+                            drop(pick.update(cx, |s, cx| {
+                                s.options_menu = false;
+                                s.choose_mode(mode, cx)
+                            }))
+                        }),
+                )
+            });
         let filters = SessionFilter::ALL.into_iter().map(|choice| {
             let pick = this.clone();
             let words = if choice == SessionFilter::Archived && hidden > 0 {
@@ -125,19 +149,41 @@ impl Sidebar {
 
     fn add_menu_panel(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity().downgrade();
-        let ask = |label: &'static str, icon: IconName, debug: &'static str, cap: &'static str, event: SidebarEvent| {
+        let ask = |label: &'static str,
+                   icon: IconName,
+                   debug: &'static str,
+                   cap: &'static str,
+                   event: SidebarEvent| {
             let sidebar = this.clone();
-            Entry::from(MenuItem::new(label).icon(icon).debug_name(debug).cap(keys::cap(cap)).on_select(move |_, cx| {
-                drop(sidebar.update(cx, |s, cx| {
-                    s.add_menu = false;
-                    cx.emit(event.clone());
-                    cx.notify();
-                }))
-            }))
+            Entry::from(
+                MenuItem::new(label)
+                    .icon(icon)
+                    .debug_name(debug)
+                    .cap(keys::cap(cap))
+                    .on_select(move |_, cx| {
+                        drop(sidebar.update(cx, |s, cx| {
+                            s.add_menu = false;
+                            cx.emit(event.clone());
+                            cx.notify();
+                        }))
+                    }),
+            )
         };
         let entries = vec![
-            ask("Open folder…", IconName::Folder, "add-folder", "⌘o", SidebarEvent::AddFolder),
-            ask("Open over SSH…", IconName::Dns, "add-ssh", "⌘⇧o", SidebarEvent::AddRemote),
+            ask(
+                "Open folder…",
+                IconName::Folder,
+                "add-folder",
+                "⌘o",
+                SidebarEvent::AddFolder,
+            ),
+            ask(
+                "Open over SSH…",
+                IconName::Dns,
+                "add-ssh",
+                "⌘⇧o",
+                SidebarEvent::AddRemote,
+            ),
         ];
         let close = this.clone();
         Popover::new("add-menu-popover")
@@ -145,11 +191,17 @@ impl Sidebar {
             .hang(Hang::Right(0., 30.))
             .keep_focus()
             .height(menu::height_in(MenuLook::PROJECT, 2))
-            .on_close(move |_, cx| drop(close.update(cx, |s, cx| {
-                s.add_menu = false;
-                cx.notify();
-            })))
-            .child(Menu::new("add-menu-panel", entries).look(MenuLook::PROJECT).origin(Origin::TopRight))
+            .on_close(move |_, cx| {
+                drop(close.update(cx, |s, cx| {
+                    s.add_menu = false;
+                    cx.notify();
+                }))
+            })
+            .child(
+                Menu::new("add-menu-panel", entries)
+                    .look(MenuLook::PROJECT)
+                    .origin(Origin::TopRight),
+            )
             .into_any_element()
     }
 
@@ -166,17 +218,30 @@ impl Sidebar {
                 HeadButton {
                     id: "sidebar-options",
                     icon: IconName::MoreHoriz,
-                    tip: if filter.is_default() { "Sidebar options".into() } else { describe(filter) },
+                    tip: if filter.is_default() {
+                        "Sidebar options".into()
+                    } else {
+                        describe(filter)
+                    },
                     lit: !filter.is_default(),
                     open: self.options_menu,
                     menu: self.options_menu.then(|| self.options_menu_panel(cx)),
                 },
                 move |_, cx| drop(toggle_options.update(cx, |s, cx| s.open_head_menu(true, cx))),
             ))
-            .when(self.add_button, |d| d.child(Self::head_button(
-                HeadButton { id: "add-project", icon: IconName::Add, tip: "Add a project".into(), lit: false, open: self.add_menu, menu: self.add_menu.then(|| self.add_menu_panel(cx)) },
-                move |_, cx| drop(toggle_add.update(cx, |s, cx| s.open_head_menu(false, cx))),
-            )));
+            .when(self.add_button, |d| {
+                d.child(Self::head_button(
+                    HeadButton {
+                        id: "add-project",
+                        icon: IconName::Add,
+                        tip: "Add a project".into(),
+                        lit: false,
+                        open: self.add_menu,
+                        menu: self.add_menu.then(|| self.add_menu_panel(cx)),
+                    },
+                    move |_, cx| drop(toggle_add.update(cx, |s, cx| s.open_head_menu(false, cx))),
+                ))
+            });
         div()
             .flex_none()
             .flex()

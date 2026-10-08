@@ -9,13 +9,13 @@
 use std::{collections::HashMap, time::Instant};
 
 use gpui_kit::{
-    App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement, KeyBinding, ParentElement, Render,
-    ScrollHandle, SharedString, Styled, Window, div,
+    App, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
+    KeyBinding, ParentElement, Render, ScrollHandle, SharedString, Styled, Window, div,
 };
 
 use crate::{
     motion::{Channel, Curve, Spring},
-    panel_layout::{self, Geometry, Group, DEFAULT_WIDTH},
+    panel_layout::{self, DEFAULT_WIDTH, Geometry, Group},
     panel_types::{Layout, PanelData, PanelsEvent, PanelsState},
     tab_order::TabOrder,
     theme::ActiveTheme,
@@ -198,7 +198,12 @@ impl AgentPanels {
 
     /// The open panels, in the sidebar's order of projects (`project_order`). A panel that is new opens at
     /// the end and becomes the active one; one that is missing is closed.
-    pub fn set_panels(&mut self, panels: Vec<PanelData>, project_order: Vec<SharedString>, cx: &mut Context<Self>) {
+    pub fn set_panels(
+        &mut self,
+        panels: Vec<PanelData>,
+        project_order: Vec<SharedString>,
+        cx: &mut Context<Self>,
+    ) {
         let reduce = cx.reduce_motion();
         let known: Vec<SharedString> = self.panels.iter().map(|p| p.id.clone()).collect();
         for panel in &panels {
@@ -210,7 +215,15 @@ impl AgentPanels {
                 if slides_in {
                     appear.animate(1., Curve::Ease(0.2, crate::motion::ease::OUT), 0., reduce);
                 }
-                self.slots.insert(panel.id.clone(), Slot { x: Channel::new(0.), appear, slides_in, placed: false });
+                self.slots.insert(
+                    panel.id.clone(),
+                    Slot {
+                        x: Channel::new(0.),
+                        appear,
+                        slides_in,
+                        placed: false,
+                    },
+                );
             }
         }
         let open: Vec<SharedString> = panels.iter().map(|p| p.id.clone()).collect();
@@ -255,20 +268,32 @@ impl AgentPanels {
     /// The geometry again, after panels, widths or the grouping changed. Columns glide to their places.
     pub(crate) fn relayout(&mut self, cx: &mut Context<Self>) {
         let reduce = cx.reduce_motion();
-        let projects: Vec<SharedString> = self.panels.iter().map(|p| p.project.id.clone()).collect();
+        let projects: Vec<SharedString> =
+            self.panels.iter().map(|p| p.project.id.clone()).collect();
         self.arrangement = panel_layout::arrange(&projects, &self.project_order, self.grouped);
         self.shown = panel_layout::flat(&self.arrangement);
-        let widths: Vec<f32> = self.panels.iter().map(|p| panel_layout::fitted(self.width_of(p), self.viewport)).collect();
-        self.geometry = Geometry::new(panel_layout::columns(&self.arrangement, |panel| widths[panel]));
+        let widths: Vec<f32> = self
+            .panels
+            .iter()
+            .map(|p| panel_layout::fitted(self.width_of(p), self.viewport))
+            .collect();
+        self.geometry = Geometry::new(panel_layout::columns(&self.arrangement, |panel| {
+            widths[panel]
+        }));
         for (column, &panel) in self.shown.iter().enumerate() {
             let target = self.geometry.left(column);
             let id = self.panels[panel].id.clone();
             if let Some(slot) = self.slots.get_mut(&id) {
                 if !slot.placed {
                     slot.placed = true;
-                    slot.x = Channel::new(if slot.slides_in { target + SLIDE_IN } else { target });
+                    slot.x = Channel::new(if slot.slides_in {
+                        target + SLIDE_IN
+                    } else {
+                        target
+                    });
                 }
-                slot.x.animate(target, Curve::Spring(Spring::LAYOUT), 0., reduce);
+                slot.x
+                    .animate(target, Curve::Spring(Spring::LAYOUT), 0., reduce);
             }
         }
         self.offset = self.geometry.clamp(self.offset, self.viewport);
@@ -293,7 +318,14 @@ impl AgentPanels {
     }
 
     pub fn toggle_layout(&mut self, cx: &mut Context<Self>) {
-        self.set_layout(if self.layout == Layout::SideBySide { Layout::Single } else { Layout::SideBySide }, cx);
+        self.set_layout(
+            if self.layout == Layout::SideBySide {
+                Layout::Single
+            } else {
+                Layout::SideBySide
+            },
+            cx,
+        );
     }
 
     /// Makes a panel the active one, and brings it into view in the strip.
@@ -308,8 +340,16 @@ impl AgentPanels {
     }
 
     pub(crate) fn reveal_active(&mut self, cx: &mut Context<Self>) {
-        let Some(active) = self.tabs.active() else { return };
-        let Some(column) = self.shown.iter().position(|&p| self.panels[p].id == *active) else { return };
+        let Some(active) = self.tabs.active() else {
+            return;
+        };
+        let Some(column) = self
+            .shown
+            .iter()
+            .position(|&p| self.panels[p].id == *active)
+        else {
+            return;
+        };
         let target = self.geometry.reveal(self.offset, self.viewport, column);
         self.glide_to(target, cx);
     }
@@ -320,7 +360,12 @@ impl AgentPanels {
             return;
         }
         let mut glide = Channel::new(self.offset);
-        glide.animate(target, Curve::Spring(Spring::LAYOUT), 0., cx.reduce_motion());
+        glide.animate(
+            target,
+            Curve::Spring(Spring::LAYOUT),
+            0.,
+            cx.reduce_motion(),
+        );
         self.glide = Some(glide);
         cx.notify();
     }
@@ -333,7 +378,10 @@ impl AgentPanels {
 
     fn move_focus(&mut self, forward: bool, cx: &mut Context<Self>) {
         let order: Vec<SharedString> = if self.layout == Layout::SideBySide {
-            self.shown.iter().map(|&p| self.panels[p].id.clone()).collect()
+            self.shown
+                .iter()
+                .map(|&p| self.panels[p].id.clone())
+                .collect()
         } else {
             self.visual_tabs()
         };
@@ -382,7 +430,9 @@ impl Render for AgentPanels {
                 }
             }))
             .on_action(cx.listener(|this, _: &ToggleLayout, _, cx| this.toggle_layout(cx)))
-            .on_action(cx.listener(|this, _: &ToggleGrouping, _, cx| this.set_grouped(!this.grouped, cx)))
+            .on_action(
+                cx.listener(|this, _: &ToggleGrouping, _, cx| this.set_grouped(!this.grouped, cx)),
+            )
             .size_full()
             .flex()
             .flex_col()

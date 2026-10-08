@@ -1,27 +1,12 @@
 use std::ops::Range;
 
 use gpui_kit::{
-    AnyElement,
-    Context,
-    EventEmitter,
-    FocusHandle,
-    Focusable,
-    InteractiveElement,
-    IntoElement,
-    KeyDownEvent,
-    ParentElement,
-    Render,
-    ScrollStrategy,
-    SharedString,
-    StatefulInteractiveElement,
-    Styled,
-    UniformListScrollHandle,
-    Window,
-    div,
-    prelude::FluentBuilder,
-    uniform_list,
+    AnyElement, Context, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
+    KeyDownEvent, ParentElement, Render, ScrollStrategy, SharedString, StatefulInteractiveElement,
+    Styled, UniformListScrollHandle, Window, div, prelude::FluentBuilder, uniform_list,
 };
 
+use super::types::{ChipAction, TaskListEvent};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonSize, ButtonVariant},
@@ -38,7 +23,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{ChipAction, TaskListEvent};
 
 pub struct TaskList {
     pub(super) tasks: Vec<TaskData>,
@@ -91,8 +75,17 @@ impl TaskList {
     }
 
     /// The tasks, the time to count from, and the people and agents a task can be assigned to.
-    pub fn set_tasks(&mut self, tasks: Vec<TaskData>, people: Vec<Assignee>, now: u64, cx: &mut Context<Self>) {
-        let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+    pub fn set_tasks(
+        &mut self,
+        tasks: Vec<TaskData>,
+        people: Vec<Assignee>,
+        now: u64,
+        cx: &mut Context<Self>,
+    ) {
+        let under = self
+            .cursor
+            .task(&self.rows)
+            .map(|i| self.tasks[i].id.clone());
         self.tasks = tasks;
         self.people = people;
         self.now = now;
@@ -116,13 +109,19 @@ impl TaskList {
     }
 
     pub fn set_filters(&mut self, filters: Filters, cx: &mut Context<Self>) {
-        let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+        let under = self
+            .cursor
+            .task(&self.rows)
+            .map(|i| self.tasks[i].id.clone());
         self.filters = filters;
         self.recompute(under.as_ref(), cx);
     }
 
     pub fn set_sort(&mut self, sort: Sort, cx: &mut Context<Self>) {
-        let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+        let under = self
+            .cursor
+            .task(&self.rows)
+            .map(|i| self.tasks[i].id.clone());
         self.sort = sort;
         self.recompute(under.as_ref(), cx);
     }
@@ -130,7 +129,10 @@ impl TaskList {
     /// Puts the cursor on the task `id`, or on the first task when there is none named. A key then acts on it.
     pub fn put_cursor_on(&mut self, id: Option<&SharedString>, cx: &mut Context<Self>) {
         let row = match id {
-            Some(id) => self.rows.iter().position(|r| matches!(r, Row::Task { index } if self.tasks[*index].id == *id)),
+            Some(id) => self
+                .rows
+                .iter()
+                .position(|r| matches!(r, Row::Task { index } if self.tasks[*index].id == *id)),
             None => self.rows.iter().position(|r| matches!(r, Row::Task { .. })),
         };
         if let Some(row) = row {
@@ -141,11 +143,22 @@ impl TaskList {
     }
     /// Scrolls the list so `top` pixels of rows are above the view. For measuring runs.
     pub fn set_scroll_top(&mut self, top: f32) {
-        self.scroll.0.borrow().base_handle.set_offset(gpui_kit::point(px(0.), px(-top)));
+        self.scroll
+            .0
+            .borrow()
+            .base_handle
+            .set_offset(gpui_kit::point(px(0.), px(-top)));
     }
 
     fn recompute(&mut self, follow: Option<&SharedString>, cx: &mut Context<Self>) {
-        self.groups = group(&self.tasks, &self.filters, &self.me, self.sort, &TaskStatus::LIST_ORDER, false);
+        self.groups = group(
+            &self.tasks,
+            &self.filters,
+            &self.me,
+            self.sort,
+            &TaskStatus::LIST_ORDER,
+            false,
+        );
         self.rows = rows(&self.groups, &self.folds);
         self.cursor.follow(&self.rows, &self.tasks, follow);
         cx.notify();
@@ -172,8 +185,13 @@ impl TaskList {
             Field::Status => Picker::status(task_edit::shared_status(&acted)),
             Field::Priority => Picker::priority(task_edit::shared_priority(&acted)),
             Field::Assignee => {
-                let first = acted.first().and_then(|t| t.assignee.as_ref()).map(|a| a.name());
-                let shared = acted.iter().all(|t| t.assignee.as_ref().map(|a| a.name()) == first);
+                let first = acted
+                    .first()
+                    .and_then(|t| t.assignee.as_ref())
+                    .map(|a| a.name());
+                let shared = acted
+                    .iter()
+                    .all(|t| t.assignee.as_ref().map(|a| a.name()) == first);
                 Picker::assignee(&self.people, if shared { first } else { None })
             }
             Field::Labels => Picker::labels(&self.labels(), &task_edit::shared_labels(&acted)),
@@ -196,7 +214,11 @@ impl TaskList {
             Field::Assignee => Picker::assignee(&self.people, f.assignee.as_ref()),
             Field::Labels => {
                 let all = self.labels();
-                let on: Vec<Label> = all.iter().filter(|l| f.label.as_ref() == Some(&l.name)).cloned().collect();
+                let on: Vec<Label> = all
+                    .iter()
+                    .filter(|l| f.label.as_ref() == Some(&l.name))
+                    .cloned()
+                    .collect();
                 Picker::labels(&all, &on)
             }
             Field::Status => return,
@@ -212,14 +234,26 @@ impl TaskList {
         if shifts.is_empty() {
             return;
         }
-        let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+        let under = self
+            .cursor
+            .task(&self.rows)
+            .map(|i| self.tasks[i].id.clone());
         let by = self.me.to_string();
         for (id, change) in &shifts {
-            task_edit::apply(&mut self.tasks, std::slice::from_ref(id), change, &by, self.now);
+            task_edit::apply(
+                &mut self.tasks,
+                std::slice::from_ref(id),
+                change,
+                &by,
+                self.now,
+            );
         }
         self.recompute(under.as_ref(), cx);
         for (id, change) in shifts {
-            cx.emit(TaskListEvent::Changed { ids: vec![id], change });
+            cx.emit(TaskListEvent::Changed {
+                ids: vec![id],
+                change,
+            });
         }
     }
 
@@ -229,7 +263,10 @@ impl TaskList {
         if ids.is_empty() {
             return;
         }
-        let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+        let under = self
+            .cursor
+            .task(&self.rows)
+            .map(|i| self.tasks[i].id.clone());
         let by = self.me.to_string();
         if task_edit::apply(&mut self.tasks, &ids, &change, &by, self.now) > 0 {
             self.recompute(under.as_ref(), cx);
@@ -263,7 +300,9 @@ impl TaskList {
                 }
             }
             TaskCommand::Open => match self.cursor.row.and_then(|r| self.rows.get(r)).copied() {
-                Some(Row::Task { index }) => cx.emit(TaskListEvent::Open(self.tasks[index].id.clone())),
+                Some(Row::Task { index }) => {
+                    cx.emit(TaskListEvent::Open(self.tasks[index].id.clone()))
+                }
                 Some(Row::Header { status, .. }) => {
                     self.folds.toggle(status);
                     self.recompute(None, cx);
@@ -271,7 +310,9 @@ impl TaskList {
                 None => {}
             },
             TaskCommand::Fold | TaskCommand::Unfold => {
-                if let Some(Row::Header { status, .. }) = self.cursor.row.and_then(|r| self.rows.get(r)).copied() {
+                if let Some(Row::Header { status, .. }) =
+                    self.cursor.row.and_then(|r| self.rows.get(r)).copied()
+                {
                     self.folds.set(status, command == TaskCommand::Fold);
                     self.recompute(None, cx);
                 }
@@ -287,7 +328,10 @@ impl TaskList {
             TaskCommand::Filter => {
                 // The Mine filter is the quickest one; the chips do the rest.
                 self.filters.mine = !self.filters.mine;
-                let under = self.cursor.task(&self.rows).map(|i| self.tasks[i].id.clone());
+                let under = self
+                    .cursor
+                    .task(&self.rows)
+                    .map(|i| self.tasks[i].id.clone());
                 self.recompute(under.as_ref(), cx);
             }
         }
@@ -310,8 +354,14 @@ impl TaskList {
     }
     /// The keys while a picker is open.
     fn picker_key(&mut self, event: &KeyDownEvent, cx: &mut Context<Self>) {
-        let Some(picker) = self.picker.as_mut() else { return };
-        match handle_key(picker, event.keystroke.key.as_str(), event.keystroke.key_char.as_deref()) {
+        let Some(picker) = self.picker.as_mut() else {
+            return;
+        };
+        match handle_key(
+            picker,
+            event.keystroke.key.as_str(),
+            event.keystroke.key_char.as_deref(),
+        ) {
             Outcome::Open => {}
             Outcome::Close => {
                 self.picker = None;
@@ -351,9 +401,17 @@ impl TaskList {
     fn chip_label(&self, field: Field) -> String {
         let f = &self.filters;
         match field {
-            Field::Assignee => f.assignee.as_ref().map_or("Assignee".to_string(), |a| format!("Assignee: {a}")),
-            Field::Labels => f.label.as_ref().map_or("Label".to_string(), |l| format!("Label: {l}")),
-            Field::Priority => f.priority.map_or("Priority".to_string(), |p| format!("Priority: {}", p.words())),
+            Field::Assignee => f
+                .assignee
+                .as_ref()
+                .map_or("Assignee".to_string(), |a| format!("Assignee: {a}")),
+            Field::Labels => f
+                .label
+                .as_ref()
+                .map_or("Label".to_string(), |l| format!("Label: {l}")),
+            Field::Priority => f.priority.map_or("Priority".to_string(), |p| {
+                format!("Priority: {}", p.words())
+            }),
             Field::Status => "Status".to_string(),
         }
     }
@@ -370,7 +428,11 @@ impl TaskList {
     pub(super) fn chips(&self, cx: &mut Context<Self>) -> AnyElement {
         let this = cx.entity();
         let f = self.filters.clone();
-        let picking = self.picker.as_ref().filter(|_| self.picking_filter).map(|p| p.field());
+        let picking = self
+            .picker
+            .as_ref()
+            .filter(|_| self.picking_filter)
+            .map(|p| p.field());
         let chip = |id: &'static str, label: String, active: bool, on: ChipAction| {
             let this = this.clone();
             let owner = this.clone();
@@ -383,7 +445,11 @@ impl TaskList {
             let button = Button::new(id)
                 .open(field.is_some() && field == picking)
                 .label(label)
-                .variant(if active { ButtonVariant::Secondary } else { ButtonVariant::Ghost })
+                .variant(if active {
+                    ButtonVariant::Secondary
+                } else {
+                    ButtonVariant::Ghost
+                })
                 .size(ButtonSize::Sm)
                 .on_click(move |_, _, cx| this.update(cx, |s, cx| on(s, cx)));
             match field {
@@ -408,39 +474,63 @@ impl TaskList {
             .gap(px(4.))
             .px(px(8.))
             .h(px(36.))
-            .child(chip("mine", "Mine".into(), f.mine, Box::new(|s, cx| {
-                s.filters.mine = !s.filters.mine;
-                s.recompute(None, cx);
-            })))
+            .child(chip(
+                "mine",
+                "Mine".into(),
+                f.mine,
+                Box::new(|s, cx| {
+                    s.filters.mine = !s.filters.mine;
+                    s.recompute(None, cx);
+                }),
+            ))
             .child(chip(
                 "assignee",
-                f.assignee.as_ref().map_or("Assignee".to_string(), |a| format!("Assignee: {a}")),
+                f.assignee
+                    .as_ref()
+                    .map_or("Assignee".to_string(), |a| format!("Assignee: {a}")),
                 f.assignee.is_some(),
                 Box::new(|s, cx| s.open_filter(Field::Assignee, cx)),
             ))
             .child(chip(
                 "label",
-                f.label.as_ref().map_or("Label".to_string(), |l| format!("Label: {l}")),
+                f.label
+                    .as_ref()
+                    .map_or("Label".to_string(), |l| format!("Label: {l}")),
                 f.label.is_some(),
                 Box::new(|s, cx| s.open_filter(Field::Labels, cx)),
             ))
             .child(chip(
                 "priority",
-                f.priority.map_or("Priority".to_string(), |p| format!("Priority: {}", p.words())),
+                f.priority.map_or("Priority".to_string(), |p| {
+                    format!("Priority: {}", p.words())
+                }),
                 f.priority.is_some(),
                 Box::new(|s, cx| s.open_filter(Field::Priority, cx)),
             ))
             .child(div().flex_1())
             .child(chip(
                 "sort",
-                format!("Sort: {}{}", self.sort.key.words(), if self.sort.reversed { " ↑" } else { "" }),
+                format!(
+                    "Sort: {}{}",
+                    self.sort.key.words(),
+                    if self.sort.reversed { " ↑" } else { "" }
+                ),
                 false,
                 Box::new(|s, cx| {
-                    let at = SortKey::ALL.iter().position(|k| *k == s.sort.key).unwrap_or(0);
+                    let at = SortKey::ALL
+                        .iter()
+                        .position(|k| *k == s.sort.key)
+                        .unwrap_or(0);
                     s.sort = if s.sort.reversed || at + 1 == SortKey::ALL.len() {
-                        Sort { key: SortKey::ALL[(at + 1) % SortKey::ALL.len()], reversed: false }
+                        Sort {
+                            key: SortKey::ALL[(at + 1) % SortKey::ALL.len()],
+                            reversed: false,
+                        }
                     } else {
-                        Sort { key: s.sort.key, reversed: true }
+                        Sort {
+                            key: s.sort.key,
+                            reversed: true,
+                        }
                     };
                     s.recompute(None, cx);
                 }),
@@ -453,7 +543,11 @@ impl TaskList {
         let this = cx.entity();
         let cursor = self.cursor.row == Some(at);
         match self.rows[at] {
-            Row::Header { status, count, open } => {
+            Row::Header {
+                status,
+                count,
+                open,
+            } => {
                 let this = this.clone();
                 div()
                     .id(("task-group", status as usize))
@@ -476,10 +570,23 @@ impl TaskList {
                             s.recompute(None, cx);
                         })
                     })
-                    .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(14.)).color(theme.muted_foreground))
+                    .child(
+                        Icon::new(if open {
+                            IconName::ChevronDown
+                        } else {
+                            IconName::ChevronRight
+                        })
+                        .size(px(14.))
+                        .color(theme.muted_foreground),
+                    )
                     .child(TaskStatusMark::new(status))
                     .child(status.words())
-                    .child(div().text_size(TextSize::Xs.font_size()).text_color(theme.muted_foreground).child(count.to_string()))
+                    .child(
+                        div()
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(theme.muted_foreground)
+                            .child(count.to_string()),
+                    )
                     .into_any_element()
             }
             Row::Task { index } => {
@@ -512,14 +619,19 @@ impl Render for TaskList {
         let theme = cx.theme().clone();
         let reduce = cx.reduce_motion();
         // Only a filter's picker grows out of a chip; one opened on a row hangs from the list.
-        self.morph.sync(self.picker.as_ref().filter(|_| self.picking_filter), reduce);
+        self.morph
+            .sync(self.picker.as_ref().filter(|_| self.picking_filter), reduce);
         if self.morph.is_moving() {
             window.request_animation_frame();
         }
         let count = self.rows.len();
-        let list = uniform_list("task-rows", count, cx.processor(|this: &mut Self, range: Range<usize>, _, cx| {
-            range.map(|at| this.row_element(at, cx)).collect::<Vec<_>>()
-        }))
+        let list = uniform_list(
+            "task-rows",
+            count,
+            cx.processor(|this: &mut Self, range: Range<usize>, _, cx| {
+                range.map(|at| this.row_element(at, cx)).collect::<Vec<_>>()
+            }),
+        )
         .track_scroll(&self.scroll)
         .w_full()
         .flex_1()
@@ -531,11 +643,19 @@ impl Render for TaskList {
             .field()
             .and_then(|field| {
                 let (variant, label) = (
-                    if self.chip_active(field) { ButtonVariant::Secondary } else { ButtonVariant::Ghost },
+                    if self.chip_active(field) {
+                        ButtonVariant::Secondary
+                    } else {
+                        ButtonVariant::Ghost
+                    },
                     self.chip_label(field),
                 );
                 let (fill, ink) = crate::button::colors(variant, &theme, 1., false);
-                let chip = crate::task_picker::Chip { fill, radius: f32::from(radius::lg()), inset: 10. };
+                let chip = crate::task_picker::Chip {
+                    fill,
+                    radius: f32::from(radius::lg()),
+                    inset: 10.,
+                };
                 let face = div()
                     .font_family(crate::typography::FONT_FAMILY)
                     .text_size(px(11.))
@@ -560,15 +680,28 @@ impl Render for TaskList {
                 )
             })
             .or_else(|| {
-                self.picker.as_ref().filter(|_| !self.picking_filter).map(|p| {
-                    picker_popover("task-list-picker", p, &theme, Hang::Left(120., 40.), cx.entity().downgrade(), |t: &mut Self| t.picker = None, Self::pick_row)
-                })
+                self.picker
+                    .as_ref()
+                    .filter(|_| !self.picking_filter)
+                    .map(|p| {
+                        picker_popover(
+                            "task-list-picker",
+                            p,
+                            &theme,
+                            Hang::Left(120., 40.),
+                            cx.entity().downgrade(),
+                            |t: &mut Self| t.picker = None,
+                            Self::pick_row,
+                        )
+                    })
             });
         div()
             .id("task-list")
             .key_context("TaskList")
             .track_focus(&self.focus)
-            .on_key_down(cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)))
+            .on_key_down(
+                cx.listener(|this, event: &KeyDownEvent, window, cx| this.key(event, window, cx)),
+            )
             .on_mouse_down(
                 gpui_kit::MouseButton::Left,
                 cx.listener(|this, _, window, cx| {
@@ -607,7 +740,14 @@ impl Render for TaskList {
                     )
                     .into_any_element()
             } else {
-                div().flex_1().min_h_0().flex().flex_col().px(px(8.)).child(list).into_any_element()
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .flex()
+                    .flex_col()
+                    .px(px(8.))
+                    .child(list)
+                    .into_any_element()
             })
             // Out of the flow: a surface over its chip adds nothing to the column.
             .children(picker.map(|p| div().absolute().child(p)))

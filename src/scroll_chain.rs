@@ -19,7 +19,11 @@ use gpui_kit::{App, Pixels, Point, ScrollHandle, ScrollWheelEvent, Window};
 
 /// Whether a box with scroll `offset` (zero at the start, negative as it moves on) and room to move `max` used a
 /// wheel `delta`, which has already been added to `offset`.
-pub(crate) fn used_the_wheel(offset: Point<Pixels>, max: Point<Pixels>, delta: Point<Pixels>) -> bool {
+pub(crate) fn used_the_wheel(
+    offset: Point<Pixels>,
+    max: Point<Pixels>,
+    delta: Point<Pixels>,
+) -> bool {
     let inside = |offset: Pixels, max: Pixels| offset <= Pixels::ZERO && offset >= -max;
     let moved_y = delta.y != Pixels::ZERO && max.y > Pixels::ZERO && inside(offset.y, max.y);
     let moved_x = delta.x != Pixels::ZERO && max.x > Pixels::ZERO && inside(offset.x, max.x);
@@ -46,7 +50,9 @@ pub(crate) fn from_end(handle: &ScrollHandle) -> f32 {
 }
 
 /// The wheel handler for the wrapper of a box tracked by `handle`: it stops the event while the box used it.
-pub(crate) fn keep_inside(handle: ScrollHandle) -> impl Fn(&ScrollWheelEvent, &mut Window, &mut App) + 'static {
+pub(crate) fn keep_inside(
+    handle: ScrollHandle,
+) -> impl Fn(&ScrollWheelEvent, &mut Window, &mut App) + 'static {
     move |event, window, cx| {
         let delta = event.delta.pixel_delta(window.line_height());
         if used_the_wheel(handle.offset(), handle.max_offset(), delta) {

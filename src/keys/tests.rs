@@ -66,7 +66,10 @@ fn every_command_has_gitquiets_word_and_gist() {
     assert_eq!(KEYBOARD.len(), Command::ALL.len());
     assert_eq!(word(Command::NextFile), "Next file");
     assert_eq!(word(Command::MarkFile), "Mark file");
-    assert_eq!(gist(Command::ReviewMode), "The files on the whole screen, and back");
+    assert_eq!(
+        gist(Command::ReviewMode),
+        "The files on the whole screen, and back"
+    );
     assert_eq!(word(Command::Dismiss), "Close");
 }
 
@@ -77,7 +80,10 @@ fn only_next_and_previous_repeat_while_held() {
 }
 
 fn press(key: &str) -> Press {
-    Press { key: key.into(), ..Default::default() }
+    Press {
+        key: key.into(),
+        ..Default::default()
+    }
 }
 
 #[test]
@@ -85,10 +91,22 @@ fn a_bare_key_reads_as_its_command() {
     let p = Profile::Standard;
     let mut waiting = None;
     let at = Instant::now();
-    assert_eq!(read(&press("s"), p, &mut waiting, at), Some(Command::NextFile));
-    assert_eq!(read(&press("T"), p, &mut waiting, at), Some(Command::GoToName));
-    assert_eq!(read(&press("/"), p, &mut waiting, at), Some(Command::Search));
-    assert_eq!(read(&press("Escape"), p, &mut waiting, at), Some(Command::Dismiss));
+    assert_eq!(
+        read(&press("s"), p, &mut waiting, at),
+        Some(Command::NextFile)
+    );
+    assert_eq!(
+        read(&press("T"), p, &mut waiting, at),
+        Some(Command::GoToName)
+    );
+    assert_eq!(
+        read(&press("/"), p, &mut waiting, at),
+        Some(Command::Search)
+    );
+    assert_eq!(
+        read(&press("Escape"), p, &mut waiting, at),
+        Some(Command::Dismiss)
+    );
     assert_eq!(read(&press("q"), p, &mut waiting, at), None);
 }
 
@@ -97,10 +115,24 @@ fn a_press_held_with_command_or_control_is_the_readers_own_unless_a_chord_names_
     let p = Profile::Standard;
     let mut waiting = None;
     let at = Instant::now();
-    let with = |key: &str, secondary, shift| Press { key: key.into(), secondary, shift, ..Default::default() };
-    assert_eq!(read(&with("b", true, false), p, &mut waiting, at), Some(Command::ToggleDetails));
-    assert_eq!(read(&with("b", true, true), p, &mut waiting, at), Some(Command::ToggleFiles));
-    assert_eq!(read(&with("B", true, true), p, &mut waiting, at), Some(Command::ToggleFiles));
+    let with = |key: &str, secondary, shift| Press {
+        key: key.into(),
+        secondary,
+        shift,
+        ..Default::default()
+    };
+    assert_eq!(
+        read(&with("b", true, false), p, &mut waiting, at),
+        Some(Command::ToggleDetails)
+    );
+    assert_eq!(
+        read(&with("b", true, true), p, &mut waiting, at),
+        Some(Command::ToggleFiles)
+    );
+    assert_eq!(
+        read(&with("B", true, true), p, &mut waiting, at),
+        Some(Command::ToggleFiles)
+    );
     // Cmd-S is the reader's save, not the next file.
     assert_eq!(read(&with("s", true, false), p, &mut waiting, at), None);
 }
@@ -112,7 +144,10 @@ fn a_sequence_waits_for_its_second_key_but_not_forever() {
     let at = Instant::now();
     assert_eq!(read(&press("g"), p, &mut waiting, at), None);
     assert!(waiting.is_some(), "g opens a sequence");
-    assert_eq!(read(&press("d"), p, &mut waiting, at), Some(Command::WorkingSet));
+    assert_eq!(
+        read(&press("d"), p, &mut waiting, at),
+        Some(Command::WorkingSet)
+    );
     assert!(waiting.is_none());
     read(&press("g"), p, &mut waiting, at);
     let late = at + PATIENCE + std::time::Duration::from_millis(1);
@@ -128,7 +163,11 @@ fn a_cap_shows_the_chord_as_the_reader_presses_it() {
     assert_eq!(cap("s"), "s");
     assert_eq!(cap("Escape"), "Esc");
     assert_eq!(cap("g d"), "g d");
-    let cmd = if cfg!(target_os = "macos") { "⌘" } else { "⌃" };
+    let cmd = if cfg!(target_os = "macos") {
+        "⌘"
+    } else {
+        "⌃"
+    };
     assert_eq!(cap("⌘b"), format!("{cmd}B"));
     assert_eq!(cap("⌘⇧b"), format!("{cmd}⇧B"));
 }
@@ -166,7 +205,12 @@ fn undo_of_a_decision_has_its_own_key() {
 fn g_t_goes_to_the_tasks_in_both_profiles() {
     for profile in [Profile::Standard, Profile::Vim] {
         assert_eq!(chords(profile, Command::GoToTasks), ["g t"], "{profile:?}");
-        assert!(KEYBOARD.iter().any(|(c, w, _)| *c == Command::GoToTasks && *w == "Tasks"), "on the keyboard sheet");
+        assert!(
+            KEYBOARD
+                .iter()
+                .any(|(c, w, _)| *c == Command::GoToTasks && *w == "Tasks"),
+            "on the keyboard sheet"
+        );
     }
 }
 
@@ -175,13 +219,33 @@ fn g_t_goes_to_the_tasks_in_both_profiles() {
 #[test]
 fn no_cap_holds_the_other_platforms_modifier() {
     use crate::agent_panels::chord;
-    let mut all: Vec<&str> =
-        PROFILES.iter().flat_map(|p| Command::ALL.iter().flat_map(move |c| chords(*p, *c).iter().copied())).collect();
-    all.extend([chord::NEXT_PANEL, chord::PREVIOUS_PANEL, chord::CLOSE_TAB, chord::TOGGLE_LAYOUT, chord::TOGGLE_GROUPING]);
+    let mut all: Vec<&str> = PROFILES
+        .iter()
+        .flat_map(|p| {
+            Command::ALL
+                .iter()
+                .flat_map(move |c| chords(*p, *c).iter().copied())
+        })
+        .collect();
+    all.extend([
+        chord::NEXT_PANEL,
+        chord::PREVIOUS_PANEL,
+        chord::CLOSE_TAB,
+        chord::TOGGLE_LAYOUT,
+        chord::TOGGLE_GROUPING,
+    ]);
     all.extend(["⌘o", "⌘⇧o", "⌘,", "⌘n", "⌘b", "⌘⇧p", "⌘⇧l", "⌘↵"]);
     for chord in all {
-        assert!(!cap_on(chord, false).contains('⌘'), "{chord} off the Mac: {}", cap_on(chord, false));
-        assert!(!cap_on(chord, true).contains('⌃'), "{chord} on the Mac: {}", cap_on(chord, true));
+        assert!(
+            !cap_on(chord, false).contains('⌘'),
+            "{chord} off the Mac: {}",
+            cap_on(chord, false)
+        );
+        assert!(
+            !cap_on(chord, true).contains('⌃'),
+            "{chord} on the Mac: {}",
+            cap_on(chord, true)
+        );
     }
     assert_eq!(cap_on("⌘⇧g", false), "⌃⇧G");
     assert_eq!(cap_on("⌘⇧g", true), "⌘⇧G");

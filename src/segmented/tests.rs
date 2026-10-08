@@ -1,6 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
-use gpui_kit::{Hsla, Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+use gpui_kit::{
+    Entity, Hsla, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext,
+    VisualTestContext, Window, div, px,
+};
 
 use super::*;
 use crate::{
@@ -10,29 +13,66 @@ use crate::{
 
 #[test]
 fn a_segment_is_a_sm_button_with_no_track_round_it() {
-    assert_eq!((SEGMENT_HEIGHT, SEGMENT_PAD, TEXT, LINE, GAP), (28., 10., 11., 16., 2.));
+    assert_eq!(
+        (SEGMENT_HEIGHT, SEGMENT_PAD, TEXT, LINE, GAP),
+        (28., 10., 11., 16., 2.)
+    );
 }
 #[test]
 fn a_chosen_segment_wears_the_secondary_fill_and_the_others_the_ghost_fill() {
     use crate::button::{ButtonVariant, colors};
     for appearance in [Appearance::Light, Appearance::Dark] {
-        let theme = match appearance { Appearance::Light => Theme::light(), _ => Theme::dark() };
-        let near = |a: Hsla, b: Hsla| (a.l - b.l).abs() < 1e-3 && (a.s - b.s).abs() < 1e-3 && (a.h - b.h).abs() < 1e-3 && (a.a - b.a).abs() < 1e-3;
-        assert!(near(segment_fill(&theme, 1., 0.), colors(ButtonVariant::Secondary, &theme, 0., false).0));
-        assert!(near(segment_fill(&theme, 0., 0.), colors(ButtonVariant::Ghost, &theme, 0., false).0));
-        assert!(near(segment_fill(&theme, 0., 1.), colors(ButtonVariant::Ghost, &theme, 1., false).0), "hover lights a ghost segment");
+        let theme = match appearance {
+            Appearance::Light => Theme::light(),
+            _ => Theme::dark(),
+        };
+        let near = |a: Hsla, b: Hsla| {
+            (a.l - b.l).abs() < 1e-3
+                && (a.s - b.s).abs() < 1e-3
+                && (a.h - b.h).abs() < 1e-3
+                && (a.a - b.a).abs() < 1e-3
+        };
+        assert!(near(
+            segment_fill(&theme, 1., 0.),
+            colors(ButtonVariant::Secondary, &theme, 0., false).0
+        ));
+        assert!(near(
+            segment_fill(&theme, 0., 0.),
+            colors(ButtonVariant::Ghost, &theme, 0., false).0
+        ));
+        assert!(
+            near(
+                segment_fill(&theme, 0., 1.),
+                colors(ButtonVariant::Ghost, &theme, 1., false).0
+            ),
+            "hover lights a ghost segment"
+        );
         assert!(near(segment_text(&theme, 0., 0.), theme.muted_foreground));
         assert!(near(segment_text(&theme, 1., 0.), theme.foreground));
-        assert!(near(segment_text(&theme, 0., 1.), theme.foreground), "hover takes the text to the foreground");
-        assert!(contrast(segment_text(&theme, 1., 0.), segment_fill(&theme, 1., 0.).blend(theme.card)) >= 4.5);
+        assert!(
+            near(segment_text(&theme, 0., 1.), theme.foreground),
+            "hover takes the text to the foreground"
+        );
+        assert!(
+            contrast(
+                segment_text(&theme, 1., 0.),
+                segment_fill(&theme, 1., 0.).blend(theme.card)
+            ) >= 4.5
+        );
     }
 }
 #[test]
 fn a_pressed_pill_shrinks_to_95_percent() {
     assert_eq!(pill_inset(0.), (0., 0.));
     let (across, down) = pill_inset(1.);
-    assert!((across - 0.025).abs() < 1e-6, "2.5% of the width on each side");
-    assert!((down - 0.7).abs() < 1e-6, "0.7px off the top and bottom of 28");
+    assert!(
+        (across - 0.025).abs() < 1e-6,
+        "2.5% of the width on each side"
+    );
+    assert!(
+        (down - 0.7).abs() < 1e-6,
+        "0.7px off the top and bottom of 28"
+    );
 }
 
 struct Host {
@@ -45,20 +85,34 @@ impl Render for Host {
         let this = cx.entity();
         let log = self.log.clone();
         div().p(px(20.)).child(
-            Segmented::new("seg", [Segment::new("Centered"), Segment::new("Row").cap("⌘L"), Segment::new("Grid")], self.selected)
-                .debug_name("seg")
-                .on_change(move |i, _, cx| {
-                    log.borrow_mut().push(i);
-                    this.update(cx, |h, cx| {
-                        h.selected = i;
-                        cx.notify();
-                    });
-                }),
+            Segmented::new(
+                "seg",
+                [
+                    Segment::new("Centered"),
+                    Segment::new("Row").cap("⌘L"),
+                    Segment::new("Grid"),
+                ],
+                self.selected,
+            )
+            .debug_name("seg")
+            .on_change(move |i, _, cx| {
+                log.borrow_mut().push(i);
+                this.update(cx, |h, cx| {
+                    h.selected = i;
+                    cx.notify();
+                });
+            }),
         )
     }
 }
 
-fn open(cx: &mut TestAppContext) -> (Entity<Host>, &mut VisualTestContext, Rc<RefCell<Vec<usize>>>) {
+fn open(
+    cx: &mut TestAppContext,
+) -> (
+    Entity<Host>,
+    &mut VisualTestContext,
+    Rc<RefCell<Vec<usize>>>,
+) {
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
     cx.update(|cx| {
@@ -66,26 +120,38 @@ fn open(cx: &mut TestAppContext) -> (Entity<Host>, &mut VisualTestContext, Rc<Re
         set_appearance(Appearance::Light, cx);
         cx.set_reduce_motion(true);
     });
-    let (host, cx) = cx.add_window_view(move |_, _| Host { selected: 0, log: l });
+    let (host, cx) = cx.add_window_view(move |_, _| Host {
+        selected: 0,
+        log: l,
+    });
     cx.run_until_parked();
     (host, cx, log)
 }
 
 fn centre(cx: &mut VisualTestContext, name: &'static str) -> gpui_kit::Point<gpui_kit::Pixels> {
-    cx.debug_bounds(name).unwrap_or_else(|| panic!("no {name}")).center()
+    cx.debug_bounds(name)
+        .unwrap_or_else(|| panic!("no {name}"))
+        .center()
 }
 
 #[gpui_kit::test]
 fn the_segments_are_28_tall_with_a_2px_gap_and_no_track(cx: &mut TestAppContext) {
     let (_, cx, _) = open(cx);
     let track = cx.debug_bounds("seg").unwrap();
-    assert_eq!(f32::from(track.size.height), SEGMENT_HEIGHT, "no padding round the segments");
+    assert_eq!(
+        f32::from(track.size.height),
+        SEGMENT_HEIGHT,
+        "no padding round the segments"
+    );
     for name in ["seg-0", "seg-1", "seg-2"] {
         let b = cx.debug_bounds(name).unwrap();
         assert_eq!(f32::from(b.size.height), SEGMENT_HEIGHT);
     }
     let first = cx.debug_bounds("seg-0").unwrap();
-    assert_eq!(first.origin.x, track.origin.x, "the first segment starts at the edge");
+    assert_eq!(
+        first.origin.x, track.origin.x,
+        "the first segment starts at the edge"
+    );
     let second = cx.debug_bounds("seg-1").unwrap();
     assert_eq!(f32::from(second.left() - first.right()), GAP);
 }
@@ -109,7 +175,11 @@ fn tab_walks_the_segments_and_enter_or_space_chooses(cx: &mut TestAppContext) {
     step(cx);
     step(cx);
     cx.simulate_keystrokes("enter");
-    assert_eq!(*log.borrow(), vec![1], "the second stop is the second segment");
+    assert_eq!(
+        *log.borrow(),
+        vec![1],
+        "the second stop is the second segment"
+    );
     step(cx);
     cx.simulate_keystrokes("space");
     assert_eq!(*log.borrow(), vec![1, 2]);
@@ -142,13 +212,30 @@ impl Render for Keys {
             .flex()
             .flex_col()
             .gap(px(20.))
-            .child(Segmented::new("toggle", [Segment::new("Side by side"), Segment::new("Single view")], 0).debug_name("toggle").cap("⌘\\"))
-            .child(Segmented::new("picks", [Segment::new("Projects").cap("⌘B"), Segment::new("Session")], 0).debug_name("picks"))
+            .child(
+                Segmented::new(
+                    "toggle",
+                    [Segment::new("Side by side"), Segment::new("Single view")],
+                    0,
+                )
+                .debug_name("toggle")
+                .cap("⌘\\"),
+            )
+            .child(
+                Segmented::new(
+                    "picks",
+                    [Segment::new("Projects").cap("⌘B"), Segment::new("Session")],
+                    0,
+                )
+                .debug_name("picks"),
+            )
     }
 }
 
 #[gpui_kit::test]
-fn a_toggle_key_is_shown_once_after_the_control_and_a_picking_key_stays_on_its_segment(cx: &mut TestAppContext) {
+fn a_toggle_key_is_shown_once_after_the_control_and_a_picking_key_stays_on_its_segment(
+    cx: &mut TestAppContext,
+) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Light, cx);
@@ -156,14 +243,29 @@ fn a_toggle_key_is_shown_once_after_the_control_and_a_picking_key_stays_on_its_s
     let (_, cx) = cx.add_window_view(|_, _| Keys);
     cx.run_until_parked();
     let track = cx.debug_bounds("toggle").expect("the track");
-    let cap = cx.debug_bounds("toggle-cap").expect("the toggle key is drawn once");
-    assert!(cap.left() >= track.right(), "after the control, not inside it");
+    let cap = cx
+        .debug_bounds("toggle-cap")
+        .expect("the toggle key is drawn once");
+    assert!(
+        cap.left() >= track.right(),
+        "after the control, not inside it"
+    );
     assert_eq!(f32::from(cap.left() - track.right()), CAP_GAP);
     let first = cx.debug_bounds("toggle-0").unwrap();
     let second = cx.debug_bounds("toggle-1").unwrap();
-    assert_eq!(f32::from(first.size.width + second.size.width), f32::from(track.size.width) - GAP, "no segment holds a cap");
-    assert!(cx.debug_bounds("picks-cap").is_none(), "a segment's own cap adds nothing after the control");
+    assert_eq!(
+        f32::from(first.size.width + second.size.width),
+        f32::from(track.size.width) - GAP,
+        "no segment holds a cap"
+    );
+    assert!(
+        cx.debug_bounds("picks-cap").is_none(),
+        "a segment's own cap adds nothing after the control"
+    );
     let plain = cx.debug_bounds("picks-1").unwrap();
     let capped = cx.debug_bounds("picks-0").unwrap();
-    assert!(capped.size.width > plain.size.width, "the segment the key picks carries it");
+    assert!(
+        capped.size.width > plain.size.width,
+        "the segment the key picks carries it"
+    );
 }

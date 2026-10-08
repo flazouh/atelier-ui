@@ -13,8 +13,8 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::{file_icon, folder_icon, icon_for_extension, icon_for_name, set_source};
 pub(crate) use helpers::{bytes, strip_location};
+pub use helpers::{file_icon, folder_icon, icon_for_extension, icon_for_name, set_source};
 pub use structs::FileIcon;
 pub use types::{IconFor, Source};
 

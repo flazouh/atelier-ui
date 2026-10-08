@@ -4,7 +4,11 @@ use super::*;
 fn the_fraction_is_the_share_of_the_window_kept_between_empty_and_full() {
     assert_eq!(fraction(0, 200_000), 0.);
     assert!((fraction(50_000, 200_000) - 0.25).abs() < 1e-6);
-    assert_eq!(fraction(300_000, 200_000), 1., "past the window is full, not more");
+    assert_eq!(
+        fraction(300_000, 200_000),
+        1.,
+        "past the window is full, not more"
+    );
     assert_eq!(fraction(10, 0), 1., "an empty window is full");
 }
 

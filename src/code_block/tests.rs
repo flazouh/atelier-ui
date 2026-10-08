@@ -1,9 +1,12 @@
-use gpui_kit::{Hsla, HighlightStyle};
+use gpui_kit::{HighlightStyle, Hsla};
 
 use super::{gutter_numbers, whole_text_runs};
 
 fn style() -> HighlightStyle {
-    HighlightStyle { color: Some(Hsla::default()), ..Default::default() }
+    HighlightStyle {
+        color: Some(Hsla::default()),
+        ..Default::default()
+    }
 }
 
 #[test]

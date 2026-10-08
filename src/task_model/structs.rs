@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
-use crate::{agent_look::AgentLook, pr::PrChipData, session_status::SessionStatus};
 use super::types::{Activity, Assignee, Priority, TaskStatus};
+use crate::{agent_look::AgentLook, pr::PrChipData, session_status::SessionStatus};
 
 /// A label: a name and one of the theme's eight tones, by number.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -12,7 +12,10 @@ pub struct Label {
 
 impl Label {
     pub fn new(name: impl Into<SharedString>, tone: u8) -> Self {
-        Self { name: name.into(), tone }
+        Self {
+            name: name.into(),
+            tone,
+        }
     }
 }
 
@@ -50,7 +53,12 @@ pub struct TaskData {
 
 impl TaskData {
     /// A task with nothing but a title, an id and a status.
-    pub fn new(id: impl Into<SharedString>, key: impl Into<SharedString>, title: impl Into<SharedString>, status: TaskStatus) -> Self {
+    pub fn new(
+        id: impl Into<SharedString>,
+        key: impl Into<SharedString>,
+        title: impl Into<SharedString>,
+        status: TaskStatus,
+    ) -> Self {
         Self {
             id: id.into(),
             key: key.into(),

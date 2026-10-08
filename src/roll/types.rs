@@ -5,7 +5,11 @@ use gpui_kit::AnyElement;
 use crate::motion::Spring;
 
 /// The rise, for icons and marks.
-pub const RISE: Spring = Spring { stiffness: 210., damping: 24., mass: 0.85 };
+pub const RISE: Spring = Spring {
+    stiffness: 210.,
+    damping: 24.,
+    mass: 0.85,
+};
 
 /// What a roll is made for: a mark (an icon) or words.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

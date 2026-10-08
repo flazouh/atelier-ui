@@ -1,6 +1,9 @@
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
-use gpui_kit::{Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+use gpui_kit::{
+    Entity, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext,
+    VisualTestContext, Window, div, px,
+};
 
 use super::*;
 use crate::{
@@ -34,12 +37,22 @@ impl Render for Page {
     fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
         let log = self.log.clone();
         div().p(px(20.)).flex().items_start().child(
-            ActionSwapButton::new("swap", self.label).cap("⌘↵").debug_name("swap").on_click(move |_, _, _| log.borrow_mut().push("click")),
+            ActionSwapButton::new("swap", self.label)
+                .cap("⌘↵")
+                .debug_name("swap")
+                .on_click(move |_, _, _| log.borrow_mut().push("click")),
         )
     }
 }
 
-fn open(reduce: bool, cx: &mut TestAppContext) -> (Entity<Page>, &mut VisualTestContext, Rc<RefCell<Vec<&'static str>>>) {
+fn open(
+    reduce: bool,
+    cx: &mut TestAppContext,
+) -> (
+    Entity<Page>,
+    &mut VisualTestContext,
+    Rc<RefCell<Vec<&'static str>>>,
+) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         set_appearance(Appearance::Light, cx);
@@ -47,7 +60,10 @@ fn open(reduce: bool, cx: &mut TestAppContext) -> (Entity<Page>, &mut VisualTest
     });
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
-    let (page, cx) = cx.add_window_view(move |_, _| Page { label: "Commit", log: l });
+    let (page, cx) = cx.add_window_view(move |_, _| Page {
+        label: "Commit",
+        log: l,
+    });
     for _ in 0..4 {
         cx.run_until_parked();
         page.update(cx, |_, cx| cx.notify());
@@ -65,7 +81,9 @@ fn the_button_is_28_tall_and_a_click_runs_it(cx: &mut TestAppContext) {
 }
 
 #[gpui_kit::test]
-fn the_button_takes_the_width_of_the_new_words_at_once_and_the_old_ones_roll_out(cx: &mut TestAppContext) {
+fn the_button_takes_the_width_of_the_new_words_at_once_and_the_old_ones_roll_out(
+    cx: &mut TestAppContext,
+) {
     motion::clock::freeze();
     let (page, cx, _) = open(false, cx);
     let commit = f32::from(cx.debug_bounds("swap").unwrap().size.width);
@@ -79,5 +97,8 @@ fn the_button_takes_the_width_of_the_new_words_at_once_and_the_old_ones_roll_out
         page.update(cx, |_, cx| cx.notify());
     }
     let after = f32::from(cx.debug_bounds("swap").unwrap().size.width);
-    assert!(after > commit + 40., "wider for the longer words: {commit} then {after}");
+    assert!(
+        after > commit + 40.,
+        "wider for the longer words: {commit} then {after}"
+    );
 }

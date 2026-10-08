@@ -1,11 +1,12 @@
 //! A task as a card on the board: priority, key and assignee on the first line, the title over two lines,
 //! then the labels and the count of pull requests. Every card is [`CARD_HEIGHT`] tall, so a column is a
 //! virtual list.
-use gpui_kit::{
-    App, AppContext, Context, ElementId, InteractiveElement, IntoElement, ParentElement, Render, RenderOnce, SharedString, StatefulInteractiveElement,
-    Styled, Window, div, prelude::FluentBuilder, 
-};
 use crate::scale::px;
+use gpui_kit::{
+    App, AppContext, Context, ElementId, InteractiveElement, IntoElement, ParentElement, Render,
+    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div,
+    prelude::FluentBuilder,
+};
 
 use crate::{
     icon::{Icon, IconName},
@@ -39,7 +40,13 @@ impl Render for TaskGhost {
             .bg(theme.card_strong)
             .text_size(TextSize::Sm.font_size())
             .text_color(theme.foreground)
-            .child(div().text_size(TextSize::Xs.font_size()).font_family(MONO_FONT_FAMILY).text_color(theme.muted_foreground).child(self.0.key.clone()))
+            .child(
+                div()
+                    .text_size(TextSize::Xs.font_size())
+                    .font_family(MONO_FONT_FAMILY)
+                    .text_color(theme.muted_foreground)
+                    .child(self.0.key.clone()),
+            )
             .child(self.0.title.clone())
     }
 }
@@ -54,7 +61,12 @@ pub struct TaskCard {
 
 impl TaskCard {
     pub fn new(id: impl Into<ElementId>, task: TaskData) -> Self {
-        Self { id: id.into(), task, lifted: 0., cursor: false }
+        Self {
+            id: id.into(),
+            task,
+            lifted: 0.,
+            cursor: false,
+        }
     }
 
     /// The keyboard cursor is on this card.
@@ -76,7 +88,11 @@ impl RenderOnce for TaskCard {
         let muted = theme.muted_foreground;
         let task = self.task;
         let (labels, more) = shown_labels(&task.labels);
-        let drag = crate::task_card::DraggedTask { id: task.id.clone(), key: task.key.clone(), title: task.title.clone() };
+        let drag = crate::task_card::DraggedTask {
+            id: task.id.clone(),
+            key: task.key.clone(),
+            title: task.title.clone(),
+        };
         div()
             .id(self.id.clone())
             .relative()
@@ -89,21 +105,39 @@ impl RenderOnce for TaskCard {
             .px(px(10.))
             .py(px(8.))
             .rounded(radius::lg())
-            .bg(if self.cursor { theme.card_strong } else { theme.card })
+            .bg(if self.cursor {
+                theme.card_strong
+            } else {
+                theme.card
+            })
             .border_1()
             .border_color(gpui_kit::transparent_black())
-            .when(self.cursor, |d| d.child(crate::focus::row_ring(&theme, theme.background, radius::lg())))
+            .when(self.cursor, |d| {
+                d.child(crate::focus::row_ring(
+                    &theme,
+                    theme.background,
+                    radius::lg(),
+                ))
+            })
             .cursor_pointer()
             .text_size(TextSize::Sm.font_size())
             .hover(|s| s.bg(theme.card_strong))
-            .on_drag(drag, |dragged, _, _, cx| cx.new(|_| TaskGhost(dragged.clone())))
+            .on_drag(drag, |dragged, _, _, cx| {
+                cx.new(|_| TaskGhost(dragged.clone()))
+            })
             .child(
                 div()
                     .flex()
                     .items_center()
                     .gap(px(8.))
                     .child(PriorityMark::new(task.priority))
-                    .child(div().font_family(MONO_FONT_FAMILY).text_size(TextSize::Xs.font_size()).text_color(muted).child(task.key.clone()))
+                    .child(
+                        div()
+                            .font_family(MONO_FONT_FAMILY)
+                            .text_size(TextSize::Xs.font_size())
+                            .text_color(muted)
+                            .child(task.key.clone()),
+                    )
                     .child(div().flex_1())
                     .when(!task.prs.is_empty(), |d| {
                         d.child(
@@ -117,16 +151,35 @@ impl RenderOnce for TaskCard {
                                 .child(task.prs.len().to_string()),
                         )
                     })
-                    .children(task.assignee.as_ref().map(|a| assignee_mark((self.id.clone(), "assignee"), a, 18., &theme))),
+                    .children(
+                        task.assignee
+                            .as_ref()
+                            .map(|a| assignee_mark((self.id.clone(), "assignee"), a, 18., &theme)),
+                    ),
             )
-            .child(div().flex_1().min_h_0().overflow_hidden().line_clamp(2).text_color(theme.foreground).child(task.title))
+            .child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_hidden()
+                    .line_clamp(2)
+                    .text_color(theme.foreground)
+                    .child(task.title),
+            )
             .child(
                 div()
                     .flex()
                     .items_center()
                     .gap(px(4.))
                     .children(labels.iter().map(|l| label_chip(l, &theme)))
-                    .when(more > 0, |d| d.child(div().text_size(TextSize::Xs.font_size()).text_color(muted).child(format!("+{more}")))),
+                    .when(more > 0, |d| {
+                        d.child(
+                            div()
+                                .text_size(TextSize::Xs.font_size())
+                                .text_color(muted)
+                                .child(format!("+{more}")),
+                        )
+                    }),
             )
     }
 }

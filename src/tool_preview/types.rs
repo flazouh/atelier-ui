@@ -1,31 +1,53 @@
 use gpui_kit::SharedString;
 
-use crate::file_diff::{DiffLine, DiffLineKind};
-use super::structs::TextEdit;
 use super::helpers::line_diff;
+use super::structs::TextEdit;
+use crate::file_diff::{DiffLine, DiffLineKind};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ToolPreview {
     /// Edits to one file (an Edit is one, a MultiEdit is several), under the file's path. `start_line` is where the
     /// first edit's text begins in the file, when the caller knows; else 1.
-    Edits { path: SharedString, edits: Vec<TextEdit>, start_line: u32 },
+    Edits {
+        path: SharedString,
+        edits: Vec<TextEdit>,
+        start_line: u32,
+    },
     /// A file written whole: every line is new.
-    Written { path: SharedString, text: SharedString },
+    Written {
+        path: SharedString,
+        text: SharedString,
+    },
     /// A shell command.
     Command { text: SharedString },
 }
 
 impl ToolPreview {
-    pub fn edit(path: impl Into<SharedString>, old: impl Into<SharedString>, new: impl Into<SharedString>) -> Self {
-        Self::Edits { path: path.into(), edits: vec![TextEdit::new(old, new)], start_line: 1 }
+    pub fn edit(
+        path: impl Into<SharedString>,
+        old: impl Into<SharedString>,
+        new: impl Into<SharedString>,
+    ) -> Self {
+        Self::Edits {
+            path: path.into(),
+            edits: vec![TextEdit::new(old, new)],
+            start_line: 1,
+        }
     }
 
     pub fn edits(path: impl Into<SharedString>, edits: Vec<TextEdit>) -> Self {
-        Self::Edits { path: path.into(), edits, start_line: 1 }
+        Self::Edits {
+            path: path.into(),
+            edits,
+            start_line: 1,
+        }
     }
 
     pub fn written(path: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
-        Self::Written { path: path.into(), text: text.into() }
+        Self::Written {
+            path: path.into(),
+            text: text.into(),
+        }
     }
 
     pub fn command(text: impl Into<SharedString>) -> Self {
@@ -51,11 +73,18 @@ impl ToolPreview {
     /// The rows of the diff; none for a command.
     pub fn rows(&self) -> Vec<DiffLine> {
         match self {
-            Self::Edits { edits, start_line, .. } => {
+            Self::Edits {
+                edits, start_line, ..
+            } => {
                 let mut rows = Vec::new();
                 for (i, edit) in edits.iter().enumerate() {
                     if edits.len() > 1 {
-                        rows.push(DiffLine { kind: DiffLineKind::Hunk, old_line: None, new_line: None, text: format!("@@ change {} of {} @@", i + 1, edits.len()).into() });
+                        rows.push(DiffLine {
+                            kind: DiffLineKind::Hunk,
+                            old_line: None,
+                            new_line: None,
+                            text: format!("@@ change {} of {} @@", i + 1, edits.len()).into(),
+                        });
                     }
                     rows.extend(line_diff(&edit.old, &edit.new, *start_line));
                 }

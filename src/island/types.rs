@@ -5,7 +5,11 @@ use gpui_kit::{App, Window};
 use crate::motion::Spring;
 
 /// The shell's spring: `duration 0.8, bounce 0.2`.
-pub const SHELL: Spring = Spring { stiffness: 61.685, damping: 12.566, mass: 1. };
+pub const SHELL: Spring = Spring {
+    stiffness: 61.685,
+    damping: 12.566,
+    mass: 1.,
+};
 
 /// The corner.
 pub const RADIUS: f32 = 32.;

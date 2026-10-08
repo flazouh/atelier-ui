@@ -16,7 +16,11 @@ pub const THUMB: f32 = 14.;
 pub const TRAVEL: f32 = WIDTH - 2. * PAD - THUMB;
 
 /// The thumb's spring: heavy, so the travel is weighty; one overshoot of 4%.
-pub const THUMB_SPRING: Spring = Spring { stiffness: 800., damping: 80., mass: 4. };
+pub const THUMB_SPRING: Spring = Spring {
+    stiffness: 800.,
+    damping: 80.,
+    mass: 4.,
+};
 
 /// The thumb's scale and stretch (px toward the side it goes from) while the pointer is down.
 pub const SQUEEZE: f32 = 0.9;

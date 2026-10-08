@@ -5,6 +5,8 @@ use gpui_kit::{
     RenderOnce, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::close_menu;
+use super::types::{ActionHandler, ChoiceHandler, MENU_GAP, Pick};
 use crate::scale::px;
 use crate::{
     button::{Button, ButtonVariant},
@@ -17,8 +19,6 @@ use crate::{
     theme::ActiveTheme,
     tooltip::Tooltip,
 };
-use super::types::{ActionHandler, ChoiceHandler, MENU_GAP, Pick};
-use super::helpers::close_menu;
 
 #[derive(IntoElement)]
 pub struct MergeButton {
@@ -32,7 +32,14 @@ pub struct MergeButton {
 
 impl MergeButton {
     pub fn new(id: impl Into<ElementId>, facts: MergeFacts, choice: Choice) -> Self {
-        Self { id: id.into(), facts, choice, upward: false, on_action: None, on_choice: None }
+        Self {
+            id: id.into(),
+            facts,
+            choice,
+            upward: false,
+            on_action: None,
+            on_choice: None,
+        }
     }
 
     /// Always opens the menu above the button. Without it the menu opens above only when the window
@@ -65,7 +72,11 @@ pub(super) struct MenuState {
 
 impl MenuState {
     pub(super) fn new(cx: &mut App) -> Self {
-        Self { open: false, anchor: None, arrow: cx.focus_handle() }
+        Self {
+            open: false,
+            anchor: None,
+            arrow: cx.focus_handle(),
+        }
     }
 
     pub(super) fn set_open(&mut self, open: bool) {
@@ -75,12 +86,16 @@ impl MenuState {
 
 impl RenderOnce for MergeButton {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
-        let Some(state) = button(&self.facts, &self.choice) else { return div().into_any_element() };
+        let Some(state) = button(&self.facts, &self.choice) else {
+            return div().into_any_element();
+        };
         let theme = cx.theme().clone();
         let menu = window.use_keyed_state(self.id.clone(), cx, |_, cx| MenuState::new(cx));
-        let row_count = offered(&self.facts).len() + usize::from(self.facts.auto_merge.is_some()) + 1;
+        let row_count =
+            offered(&self.facts).len() + usize::from(self.facts.auto_merge.is_some()) + 1;
         let (open, arrow_focus) = menu.read_with(cx, |m, _| (m.open, m.arrow.clone()));
-        let child = |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
+        let child =
+            |name: &str| ElementId::NamedChild(Arc::new(self.id.clone()), name.to_string().into());
 
         // The action and the arrow are one control: a button group whose action greys when blocked
         // while the arrow stays live, so the method can still change.
@@ -118,7 +133,10 @@ impl RenderOnce for MergeButton {
                         })
                     }
                 });
-            ButtonGroup::new(child("group")).variant(ButtonVariant::Primary).child(main).child(arrow)
+            ButtonGroup::new(child("group"))
+                .variant(ButtonVariant::Primary)
+                .child(main)
+                .child(arrow)
         };
 
         let choose = |next: Choice| -> Pick {
@@ -144,7 +162,10 @@ impl RenderOnce for MergeButton {
             .collect();
         entries.push(Entry::Separator);
         if self.facts.auto_merge.is_some() {
-            let pick = choose(Choice { auto: !choice.auto, ..choice });
+            let pick = choose(Choice {
+                auto: !choice.auto,
+                ..choice
+            });
             entries.push(
                 MenuItem::new("Merge when ready")
                     .choice(MenuChoice::Check(choice.auto))
@@ -153,7 +174,10 @@ impl RenderOnce for MergeButton {
                     .into(),
             );
         }
-        let pick = choose(Choice { delete_branch: !choice.delete_branch, ..choice });
+        let pick = choose(Choice {
+            delete_branch: !choice.delete_branch,
+            ..choice
+        });
         entries.push(
             MenuItem::new("Delete branch after merging")
                 .choice(MenuChoice::Check(choice.delete_branch))
@@ -161,12 +185,15 @@ impl RenderOnce for MergeButton {
                 .on_select(move |window, cx| pick(window, cx))
                 .into(),
         );
-        let panel_height = menu::height_in(menu::MenuLook::MERGE, row_count) + menu::MenuLook::MERGE.group;
+        let panel_height =
+            menu::height_in(menu::MenuLook::MERGE, row_count) + menu::MenuLook::MERGE.group;
         let anchor = menu.read(cx).anchor;
         let panel = Menu::new(child("menu"), entries)
             .look(menu::MenuLook::MERGE)
             .origin(Origin::TopRight)
-            .on_dismiss(move |window, cx| close_menu(&dismiss, window.last_input_was_keyboard(), window, cx));
+            .on_dismiss(move |window, cx| {
+                close_menu(&dismiss, window.last_input_was_keyboard(), window, cx)
+            });
 
         let close = menu.clone();
         let popover = Popover::new(child("popover"))

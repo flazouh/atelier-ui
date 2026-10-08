@@ -3,8 +3,8 @@ use std::{ops::Range, time::Instant};
 use gpui_kit::SharedString;
 
 use super::super::Decision;
-use crate::motion::duration;
 use super::helpers::progress;
+use crate::motion::duration;
 
 /// One hunk the user decided, fading until its edit runs and then closing.
 #[derive(Clone, Debug)]
@@ -24,7 +24,12 @@ impl Resolve {
 
     /// A decision made at `started`.
     pub fn at(id: impl Into<SharedString>, decision: Decision, started: Instant) -> Self {
-        Self { id: id.into(), decision, started, collapse: None }
+        Self {
+            id: id.into(),
+            decision,
+            started,
+            collapse: None,
+        }
     }
 
     /// How much of the closing rows is left at `now`, eased from 1 to 0. `None` once the fade is over,

@@ -9,7 +9,11 @@ pub fn pour(current: f32, target: f32, dt: f32) -> f32 {
 
 /// How lit cell `i` of `cells` is, 0 to 1, when the bar is `fill` full.
 pub fn lit(i: usize, cells: usize, fill: f32) -> f32 {
-    let fill = if fill.is_nan() { 0. } else { fill.clamp(0., 1.) };
+    let fill = if fill.is_nan() {
+        0.
+    } else {
+        fill.clamp(0., 1.)
+    };
     (fill * cells as f32 - i as f32).clamp(0., 1.)
 }
 
@@ -21,7 +25,11 @@ pub fn whole_cells(cells: usize, fill: f32) -> usize {
 /// The cell the loading light is on `seconds` in: it goes along the row and starts again at the left. With `moving` off it
 /// rests in the middle.
 pub fn loading_cell(seconds: f32, cells: usize, moving: bool) -> usize {
-    if moving { (seconds * STEPS_PER_SECOND) as usize % cells.max(1) } else { cells / 2 }
+    if moving {
+        (seconds * STEPS_PER_SECOND) as usize % cells.max(1)
+    } else {
+        cells / 2
+    }
 }
 
 /// The color of a cell that is `lit` (0 to 1): the dark cell's wash while it is dark, and from the first light on `color`,
@@ -31,5 +39,8 @@ pub fn cell_color(color: Hsla, dark: Hsla, lit: f32) -> Hsla {
     if lit <= 0. {
         return dark;
     }
-    Hsla { a: dark.a + (color.a - dark.a) * lit, ..color }
+    Hsla {
+        a: dark.a + (color.a - dark.a) * lit,
+        ..color
+    }
 }

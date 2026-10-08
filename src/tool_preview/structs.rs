@@ -9,6 +9,9 @@ pub struct TextEdit {
 
 impl TextEdit {
     pub fn new(old: impl Into<SharedString>, new: impl Into<SharedString>) -> Self {
-        Self { old: old.into(), new: new.into() }
+        Self {
+            old: old.into(),
+            new: new.into(),
+        }
     }
 }

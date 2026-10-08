@@ -36,7 +36,10 @@ impl Court {
     }
 
     pub(super) fn urgency(self) -> usize {
-        Self::ALL.iter().position(|c| *c == self).unwrap_or(usize::MAX)
+        Self::ALL
+            .iter()
+            .position(|c| *c == self)
+            .unwrap_or(usize::MAX)
     }
 }
 

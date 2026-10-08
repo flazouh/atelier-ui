@@ -6,6 +6,8 @@ use gpui_kit::{
     relative,
 };
 
+use super::helpers::{progress, status_color, title_color, update};
+use super::types::TodoStatus;
 use crate::scale::px;
 use crate::{
     focus::PressStop,
@@ -16,8 +18,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use super::types::TodoStatus;
-use super::helpers::{progress, status_color, title_color, update};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Todo {
@@ -33,8 +33,18 @@ pub struct Todo {
 }
 
 impl Todo {
-    pub fn new(id: impl Into<SharedString>, text: impl Into<SharedString>, status: TodoStatus) -> Self {
-        Self { id: id.into(), text: text.into(), status, progress: None, detail: None }
+    pub fn new(
+        id: impl Into<SharedString>,
+        text: impl Into<SharedString>,
+        status: TodoStatus,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            text: text.into(),
+            status,
+            progress: None,
+            detail: None,
+        }
     }
 
     pub fn progress(mut self, percent: f32) -> Self {
@@ -57,7 +67,11 @@ pub struct TodoList {
 
 impl TodoList {
     pub fn new(id: impl Into<ElementId>, todos: Vec<Todo>) -> Self {
-        Self { id: id.into(), title: "To-dos".into(), todos }
+        Self {
+            id: id.into(),
+            title: "To-dos".into(),
+            todos,
+        }
     }
 
     pub fn title(mut self, title: impl Into<SharedString>) -> Self {
@@ -105,17 +119,40 @@ impl RowMotion {
         let draw = Curve::Ease(0.24, ease::OUT);
         let layout = Curve::Spring(Spring::LAYOUT);
         let busy = status == TodoStatus::InProgress;
-        let arc = if busy { progress.map_or(0.68, |p| p.clamp(0., 100.) / 100.) } else { 0. };
-        self.fill.animate(on(status == TodoStatus::Done) * 0.06, fade, 0., jump);
+        let arc = if busy {
+            progress.map_or(0.68, |p| p.clamp(0., 100.) / 100.)
+        } else {
+            0.
+        };
+        self.fill
+            .animate(on(status == TodoStatus::Done) * 0.06, fade, 0., jump);
         self.arc.animate(arc, layout, 0., jump);
         self.arc_alpha.animate(on(busy), layout, 0., jump);
-        self.check.animate(on(status == TodoStatus::Done), draw, 0., jump);
-        self.cross.animate(on(status == TodoStatus::Cancelled), Curve::Ease(0.2, ease::OUT), 0., jump);
-        self.strike.animate(on(status == TodoStatus::Done), Curve::Ease(0.28, ease::OUT), 0.06, jump);
+        self.check
+            .animate(on(status == TodoStatus::Done), draw, 0., jump);
+        self.cross.animate(
+            on(status == TodoStatus::Cancelled),
+            Curve::Ease(0.2, ease::OUT),
+            0.,
+            jump,
+        );
+        self.strike.animate(
+            on(status == TodoStatus::Done),
+            Curve::Ease(0.28, ease::OUT),
+            0.06,
+            jump,
+        );
     }
 
     fn channels(&self) -> [&Channel; 6] {
-        [&self.fill, &self.arc, &self.arc_alpha, &self.check, &self.cross, &self.strike]
+        [
+            &self.fill,
+            &self.arc,
+            &self.arc_alpha,
+            &self.check,
+            &self.cross,
+            &self.strike,
+        ]
     }
 }
 
@@ -142,21 +179,34 @@ impl RenderOnce for TodoList {
         update(&motion, &self.todos, reduce, cx);
 
         let m = motion.read(cx);
-        let spinning = self.todos.iter().any(|t| t.status == TodoStatus::InProgress && t.progress.is_none());
+        let spinning = self
+            .todos
+            .iter()
+            .any(|t| t.status == TodoStatus::InProgress && t.progress.is_none());
         let moving = m.disclosure.is_moving()
             || m.header_done.is_running()
-            || m.rows.iter().any(|r| r.channels().iter().any(|c| c.is_running()));
+            || m.rows
+                .iter()
+                .any(|r| r.channels().iter().any(|c| c.is_running()));
         if moving || (spinning && !reduce) {
             window.request_animation_frame();
         }
         let theme = cx.theme().clone();
         let muted = theme.muted_foreground;
-        let (reveal, chevron, header_done) =
-            (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.header_done.value());
+        let (reveal, chevron, header_done) = (
+            m.disclosure.reveal.value(),
+            m.disclosure.chevron.value(),
+            m.header_done.value(),
+        );
         let height = m.disclosure.height.clone();
         // One turn per beui's arc duration, linear, like its spinning arc.
-        let spin = (m.born.elapsed().as_secs_f32() / motion::duration::TODO_ARC_SPIN.as_secs_f32()).fract();
-        let rows: Vec<_> = m.rows.iter().map(|r| r.channels().map(|c| c.value())).collect();
+        let spin = (m.born.elapsed().as_secs_f32() / motion::duration::TODO_ARC_SPIN.as_secs_f32())
+            .fract();
+        let rows: Vec<_> = m
+            .rows
+            .iter()
+            .map(|r| r.channels().map(|c| c.value()))
+            .collect();
 
         let icon = div()
             .relative()
@@ -207,7 +257,10 @@ impl RenderOnce for TodoList {
 
         let toggle = motion.clone();
         let header = div()
-            .id(ElementId::NamedChild(Arc::new(self.id.clone()), "header".into()))
+            .id(ElementId::NamedChild(
+                Arc::new(self.id.clone()),
+                "header".into(),
+            ))
             .group("todo-header")
             .flex()
             .items_center()
@@ -216,7 +269,12 @@ impl RenderOnce for TodoList {
             .px(px(12.))
             .rounded(radius::card())
             .cursor_pointer()
-            .press_stop((self.id.clone(), "head-focus"), crate::theme::radius::md(), window, cx)
+            .press_stop(
+                (self.id.clone(), "head-focus"),
+                crate::theme::radius::md(),
+                window,
+                cx,
+            )
             .on_click(move |_, _, cx| {
                 let reduce = cx.reduce_motion();
                 toggle.update(cx, |m, cx| {
@@ -251,74 +309,84 @@ impl RenderOnce for TodoList {
                     .flex_none()
                     .text_color(theme.faint())
                     .group_hover("todo-header", |s| s.text_color(muted))
-                    .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
+                    .child(
+                        Icon::new(IconName::ChevronDown)
+                            .size(px(14.))
+                            .turn(chevron / 360.),
+                    ),
             );
 
-        let list = div().flex().flex_col().px(px(8.)).pb(px(8.)).children(self.todos.into_iter().zip(rows).map(
-            |(todo, [fill, arc, arc_alpha, check, cross, strike])| {
-                let color = status_color(todo.status, &theme);
-                let in_progress = todo.status == TodoStatus::InProgress;
-                let mark = Mark {
-                    color,
-                    // beui draws the in-progress track at 20%.
-                    ring_alpha: if in_progress { 0.2 } else { 1. },
-                    dashed: todo.status == TodoStatus::Pending,
-                    fill_alpha: fill,
-                    arc: arc * arc_alpha,
-                    arc_start: if in_progress && todo.progress.is_none() && !reduce { spin } else { 0. },
-                    check,
-                    cross,
-                    slash: 0.,
-                    glyph: None,
-                };
-                div()
-                    .flex()
-                    .items_center()
-                    .gap(px(10.))
-                    .min_h(px(36.))
-                    .px(px(6.))
-                    .py(px(4.))
-                    .rounded(radius::xl())
-                    .child(div().mx(px(2.)).child(StatusMark::new(mark, px(20.))))
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .text_size(TextSize::Sm.font_size())
-                            .line_height(px(20.))
-                            .text_color(title_color(todo.status, &theme))
-                            .flex()
-                            .child(
-                                // `relative inline-block max-w-full`: as wide as the text, so the strike stops with it.
-                                div()
-                                    .relative()
-                                    .flex_none()
-                                    .max_w_full()
-                                    .truncate()
-                                    .child(todo.text)
-                                    .child(
-                                        div()
-                                            .absolute()
-                                            .left_0()
-                                            .top(relative(0.5))
-                                            .h(px(1.))
-                                            .w(relative(strike))
-                                            .opacity(strike)
-                                            .bg(title_color(todo.status, &theme)),
-                                    ),
-                            ),
-                    )
-                    .when_some(todo.detail, |d, detail| {
-                        d.child(
+        let list = div().flex().flex_col().px(px(8.)).pb(px(8.)).children(
+            self.todos.into_iter().zip(rows).map(
+                |(todo, [fill, arc, arc_alpha, check, cross, strike])| {
+                    let color = status_color(todo.status, &theme);
+                    let in_progress = todo.status == TodoStatus::InProgress;
+                    let mark = Mark {
+                        color,
+                        // beui draws the in-progress track at 20%.
+                        ring_alpha: if in_progress { 0.2 } else { 1. },
+                        dashed: todo.status == TodoStatus::Pending,
+                        fill_alpha: fill,
+                        arc: arc * arc_alpha,
+                        arc_start: if in_progress && todo.progress.is_none() && !reduce {
+                            spin
+                        } else {
+                            0.
+                        },
+                        check,
+                        cross,
+                        slash: 0.,
+                        glyph: None,
+                    };
+                    div()
+                        .flex()
+                        .items_center()
+                        .gap(px(10.))
+                        .min_h(px(36.))
+                        .px(px(6.))
+                        .py(px(4.))
+                        .rounded(radius::xl())
+                        .child(div().mx(px(2.)).child(StatusMark::new(mark, px(20.))))
+                        .child(
                             div()
-                                .flex_none()
+                                .flex_1()
+                                .min_w_0()
                                 .text_size(TextSize::Sm.font_size())
-                                .text_color(muted)
-                                .child(detail),
+                                .line_height(px(20.))
+                                .text_color(title_color(todo.status, &theme))
+                                .flex()
+                                .child(
+                                    // `relative inline-block max-w-full`: as wide as the text, so the strike stops with it.
+                                    div()
+                                        .relative()
+                                        .flex_none()
+                                        .max_w_full()
+                                        .truncate()
+                                        .child(todo.text)
+                                        .child(
+                                            div()
+                                                .absolute()
+                                                .left_0()
+                                                .top(relative(0.5))
+                                                .h(px(1.))
+                                                .w(relative(strike))
+                                                .opacity(strike)
+                                                .bg(title_color(todo.status, &theme)),
+                                        ),
+                                ),
                         )
-                    })
-            },
-        ));
+                        .when_some(todo.detail, |d, detail| {
+                            d.child(
+                                div()
+                                    .flex_none()
+                                    .text_size(TextSize::Sm.font_size())
+                                    .text_color(muted)
+                                    .child(detail),
+                            )
+                        })
+                },
+            ),
+        );
 
         div()
             .flex()

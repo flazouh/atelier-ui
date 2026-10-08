@@ -3,13 +3,12 @@ use super::{FoldRow, OpenRow, SelectDown, SelectUp, UnfoldRow};
 use std::collections::HashSet;
 
 use gpui_kit::{
-    App, IntoElement, KeyBinding, ParentElement, SharedString, Styled, div,
-    prelude::FluentBuilder,
+    App, IntoElement, KeyBinding, ParentElement, SharedString, Styled, div, prelude::FluentBuilder,
 };
 
+use super::types::{CONTEXT, TreeKey};
 use crate::scale::px;
 use crate::{file_tree::TreeRow, theme::Theme, typography::MONO_FONT_FAMILY};
-use super::types::{CONTEXT, TreeKey};
 
 pub(crate) fn bind_keys(cx: &mut App) {
     let context = Some(CONTEXT);
@@ -24,7 +23,10 @@ pub(crate) fn bind_keys(cx: &mut App) {
 
 /// Whether opening `folder` opens the folded folder `folded`: it is `folder` itself or one of its ancestors.
 pub fn unfolds(folded: &str, folder: &str) -> bool {
-    folded == folder || folder.strip_prefix(folded).is_some_and(|rest| rest.starts_with('/'))
+    folded == folder
+        || folder
+            .strip_prefix(folded)
+            .is_some_and(|rest| rest.starts_with('/'))
 }
 
 /// What a key does to the keyboard row and the folds, given the rows on screen. Pure, so it is tested
@@ -35,19 +37,32 @@ pub(crate) fn key(
     folded: &mut HashSet<SharedString>,
     action: TreeKey,
 ) -> Option<SharedString> {
-    let at = cursor.as_ref().and_then(|c| rows.iter().position(|r| &r.path == c));
+    let at = cursor
+        .as_ref()
+        .and_then(|c| rows.iter().position(|r| &r.path == c));
     let row = at.map(|i| &rows[i]);
-    let go = |cursor: &mut Option<SharedString>, i: usize| *cursor = rows.get(i).map(|r| r.path.clone());
+    let go =
+        |cursor: &mut Option<SharedString>, i: usize| *cursor = rows.get(i).map(|r| r.path.clone());
     match action {
-        TreeKey::Up => go(cursor, at.map_or(rows.len().saturating_sub(1), |i| i.saturating_sub(1))),
-        TreeKey::Down => go(cursor, at.map_or(0, |i| (i + 1).min(rows.len().saturating_sub(1)))),
+        TreeKey::Up => go(
+            cursor,
+            at.map_or(rows.len().saturating_sub(1), |i| i.saturating_sub(1)),
+        ),
+        TreeKey::Down => go(
+            cursor,
+            at.map_or(0, |i| (i + 1).min(rows.len().saturating_sub(1))),
+        ),
         TreeKey::Left => match row {
             Some(r) if r.is_folder() && !r.folded => {
                 folded.insert(r.path.clone());
             }
             Some(r) => {
                 // The nearest row above at a shallower depth is the parent.
-                if let Some(parent) = rows[..at.unwrap_or(0)].iter().rev().find(|p| p.depth < r.depth) {
+                if let Some(parent) = rows[..at.unwrap_or(0)]
+                    .iter()
+                    .rev()
+                    .find(|p| p.depth < r.depth)
+                {
                     *cursor = Some(parent.path.clone());
                 }
             }
@@ -73,15 +88,30 @@ pub(crate) fn key(
     None
 }
 
-pub(super) fn counts(id: impl Into<gpui_kit::ElementId>, added: usize, removed: usize, theme: &Theme) -> impl IntoElement {
+pub(super) fn counts(
+    id: impl Into<gpui_kit::ElementId>,
+    added: usize,
+    removed: usize,
+    theme: &Theme,
+) -> impl IntoElement {
     let id = id.into();
     let count = |text: String, added: bool| {
-        div().font_family(MONO_FONT_FAMILY).text_size(px(11.)).text_color(theme.diff_color(added).opacity(0.9)).child(crate::Digits::new((id.clone(), if added { "added" } else { "removed" }), text, px(11.)))
+        div()
+            .font_family(MONO_FONT_FAMILY)
+            .text_size(px(11.))
+            .text_color(theme.diff_color(added).opacity(0.9))
+            .child(crate::Digits::new(
+                (id.clone(), if added { "added" } else { "removed" }),
+                text,
+                px(11.),
+            ))
     };
     div()
         .flex()
         .flex_none()
         .gap(px(4.))
         .when(added > 0, |d| d.child(count(format!("+{added}"), true)))
-        .when(removed > 0, |d| d.child(count(format!("\u{2212}{removed}"), false)))
+        .when(removed > 0, |d| {
+            d.child(count(format!("\u{2212}{removed}"), false))
+        })
 }

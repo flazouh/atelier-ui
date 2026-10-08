@@ -1,21 +1,20 @@
 use std::time::Instant;
 
 use gpui_kit::{
-    AnyElement, AppContext, Context, CursorStyle, DragMoveEvent, InteractiveElement,
-    IntoElement, ParentElement, ScrollWheelEvent, StatefulInteractiveElement, Styled, Window,
-    div,
+    AnyElement, AppContext, Context, CursorStyle, DragMoveEvent, InteractiveElement, IntoElement,
+    ParentElement, ScrollWheelEvent, StatefulInteractiveElement, Styled, Window, div,
 };
 
+use super::helpers::group_header;
+use super::structs::Ghost;
+use super::types::GROUP_HEADER;
 use crate::scale::px;
 use crate::{
     agent_panels::{AgentPanels, MARGIN, SETTLE},
     panel_types::{DraggedEdge, PanelData, element_id},
     placement::measure,
     theme::{ActiveTheme, radius},
-    };
-use super::structs::Ghost;
-use super::types::GROUP_HEADER;
-use super::helpers::group_header;
+};
 
 impl AgentPanels {
     pub(crate) fn strip(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
@@ -50,7 +49,10 @@ impl AgentPanels {
                 let last = first + group.members.len();
                 if first < range.end
                     && last > range.start
-                    && let Some(project) = group.project.as_ref().and_then(|id| self.panels.iter().find(|p| p.project.id == *id))
+                    && let Some(project) = group
+                        .project
+                        .as_ref()
+                        .and_then(|id| self.panels.iter().find(|p| p.project.id == *id))
                 {
                     let (left, right) = (self.geometry.left(first), self.geometry.right(last - 1));
                     children.push(
@@ -138,7 +140,13 @@ impl AgentPanels {
             .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _, cx| {
                 let delta = event.delta.pixel_delta(px(16.));
                 let (x, y) = (crate::scale::design(delta.x), crate::scale::design(delta.y));
-                let dx = if event.modifiers.shift { x + y } else if x.abs() > y.abs() { x } else { 0. };
+                let dx = if event.modifiers.shift {
+                    x + y
+                } else if x.abs() > y.abs() {
+                    x
+                } else {
+                    0.
+                };
                 if dx != 0. {
                     this.glide = None;
                     this.offset = this.geometry.clamp(this.offset - dx, this.viewport);
@@ -147,16 +155,25 @@ impl AgentPanels {
                     cx.notify();
                 }
             }))
-            .on_drag_move::<DraggedEdge>(cx.listener(|this, event: &DragMoveEvent<DraggedEdge>, _, cx| {
-                let id = event.drag(cx).id.clone();
-                let Some(column) = this.shown.iter().position(|&p| this.panels[p].id == id) else { return };
-                let x = crate::scale::design(event.event.position.x) - this.origin_x + this.offset;
-                let width = x - this.geometry.left(column);
-                this.resize(&id, width, cx);
-            }))
+            .on_drag_move::<DraggedEdge>(cx.listener(
+                |this, event: &DragMoveEvent<DraggedEdge>, _, cx| {
+                    let id = event.drag(cx).id.clone();
+                    let Some(column) = this.shown.iter().position(|&p| this.panels[p].id == id)
+                    else {
+                        return;
+                    };
+                    let x =
+                        crate::scale::design(event.event.position.x) - this.origin_x + this.offset;
+                    let width = x - this.geometry.left(column);
+                    this.resize(&id, width, cx);
+                },
+            ))
             .child(measure(move |bounds, cx| {
                 this.update(cx, |s, cx| {
-                    let (width, origin) = (crate::scale::design(bounds.size.width) - 16., crate::scale::design(bounds.origin.x) + 8.);
+                    let (width, origin) = (
+                        crate::scale::design(bounds.size.width) - 16.,
+                        crate::scale::design(bounds.origin.x) + 8.,
+                    );
                     if (s.viewport - width).abs() > 0.5 || (s.origin_x - origin).abs() > 0.5 {
                         s.viewport = width;
                         s.origin_x = origin;
@@ -165,7 +182,13 @@ impl AgentPanels {
                     }
                 })
             }))
-            .child(div().relative().size_full().left(px(-self.offset)).children(children))
+            .child(
+                div()
+                    .relative()
+                    .size_full()
+                    .left(px(-self.offset))
+                    .children(children),
+            )
             .children(self.edge_fade(true, &theme))
             .children(self.edge_fade(false, &theme))
             .into_any_element()
@@ -176,21 +199,36 @@ impl AgentPanels {
     /// The soft edge of the strip, in the window's tone, where more columns lie beyond: `left` or right. None where the
     /// row ends. It follows the scroll offset, so it asks for no frames of its own.
     fn edge_fade(&self, left: bool, theme: &crate::theme::Theme) -> Option<AnyElement> {
-        let (before, after) = crate::panel_layout::edge_fades(self.offset, self.geometry.max_offset(self.viewport));
+        let (before, after) =
+            crate::panel_layout::edge_fades(self.offset, self.geometry.max_offset(self.viewport));
         let strength = if left { before } else { after };
         if strength <= 0. {
             return None;
         }
         let tone = theme.background;
-        let (from, to) = if left { (tone, tone.opacity(0.)) } else { (tone.opacity(0.), tone) };
+        let (from, to) = if left {
+            (tone, tone.opacity(0.))
+        } else {
+            (tone.opacity(0.), tone)
+        };
         let fade = div()
-            .debug_selector(move || if left { "strip-fade-left".into() } else { "strip-fade-right".into() })
+            .debug_selector(move || {
+                if left {
+                    "strip-fade-left".into()
+                } else {
+                    "strip-fade-right".into()
+                }
+            })
             .absolute()
             .top_0()
             .bottom_0()
             .w(px(crate::panel_layout::FADE))
             .opacity(strength)
-            .bg(gpui_kit::linear_gradient(90., gpui_kit::linear_color_stop(from, 0.), gpui_kit::linear_color_stop(to, 1.)));
+            .bg(gpui_kit::linear_gradient(
+                90.,
+                gpui_kit::linear_color_stop(from, 0.),
+                gpui_kit::linear_color_stop(to, 1.),
+            ));
         Some(if left { fade.left_0() } else { fade.right_0() }.into_any_element())
     }
 }

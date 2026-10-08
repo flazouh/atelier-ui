@@ -31,8 +31,18 @@ impl Reveal {
 
     pub fn set_open(&mut self, open: bool, reduce: bool) {
         self.open = open;
-        self.reveal.animate(if open { 1. } else { 0. }, motion::disclosure(open), 0., reduce);
-        self.chevron.animate(if open { 180. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+        self.reveal.animate(
+            if open { 1. } else { 0. },
+            motion::disclosure(open),
+            0.,
+            reduce,
+        );
+        self.chevron.animate(
+            if open { 180. } else { 0. },
+            Curve::Spring(Spring::SWAP),
+            0.,
+            reduce,
+        );
     }
 
     pub fn is_moving(&self) -> bool {
@@ -47,8 +57,20 @@ impl Reveal {
 /// from its content, so one that grows (a streaming log) grows freely.
 pub(crate) fn body(body: impl IntoElement, reveal: f32, height: &Rc<Cell<f32>>) -> AnyElement {
     let measured = height.clone();
-    let measure = canvas(move |bounds, _, _| measured.set(f32::from(bounds.size.height)), |_, _, _, _| {}).absolute().top_0().left_0().size_full();
-    let content = div().relative().top(px(-4. * (1. - reveal))).opacity(reveal).child(body).child(measure);
+    let measure = canvas(
+        move |bounds, _, _| measured.set(f32::from(bounds.size.height)),
+        |_, _, _, _| {},
+    )
+    .absolute()
+    .top_0()
+    .left_0()
+    .size_full();
+    let content = div()
+        .relative()
+        .top(px(-4. * (1. - reveal)))
+        .opacity(reveal)
+        .child(body)
+        .child(measure);
     if reveal >= 0.999 {
         return content.into_any_element();
     }

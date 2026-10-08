@@ -29,7 +29,10 @@ impl BadgeShow {
     }
 
     pub fn from_key(key: Option<&str>) -> Self {
-        Self::ALL.into_iter().find(|b| Some(b.key()) == key).unwrap_or_default()
+        Self::ALL
+            .into_iter()
+            .find(|b| Some(b.key()) == key)
+            .unwrap_or_default()
     }
 }
 

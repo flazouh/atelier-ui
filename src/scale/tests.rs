@@ -2,7 +2,11 @@ use super::*;
 
 #[test]
 fn a_size_is_scaled_by_the_zoom_and_comes_back() {
-    assert_eq!(f32::from(px(14.)), 14., "at the design size it is the design size");
+    assert_eq!(
+        f32::from(px(14.)),
+        14.,
+        "at the design size it is the design size"
+    );
     set_zoom(1.5);
     assert_eq!(f32::from(px(14.)), 21.);
     assert_eq!(design(gpui_kit::px(21.)), 14.);

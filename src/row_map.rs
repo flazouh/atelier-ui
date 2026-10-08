@@ -16,7 +16,11 @@ pub struct RowMap {
 impl RowMap {
     /// The map for a buffer showing `hunks`. With no hunks, every row is its own.
     pub fn new(hunks: &[InlineHunk]) -> Self {
-        let mut removed: Vec<Range<usize>> = hunks.iter().map(|h| h.removed.clone()).filter(|r| !r.is_empty()).collect();
+        let mut removed: Vec<Range<usize>> = hunks
+            .iter()
+            .map(|h| h.removed.clone())
+            .filter(|r| !r.is_empty())
+            .collect();
         removed.sort_by_key(|r| r.start);
         Self { removed }
     }
@@ -37,7 +41,14 @@ impl RowMap {
         if self.is_removed(row) {
             return None;
         }
-        Some(row - self.removed.iter().filter(|r| r.end <= row).map(|r| r.len()).sum::<usize>())
+        Some(
+            row - self
+                .removed
+                .iter()
+                .filter(|r| r.end <= row)
+                .map(|r| r.len())
+                .sum::<usize>(),
+        )
     }
 
     /// The shown row for a row of the file.

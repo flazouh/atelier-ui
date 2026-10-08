@@ -1,10 +1,15 @@
 use std::time::Instant;
 
-use crate::motion::{Channel, Curve, MORPH_RISE, duration, ease};
 use super::structs::MorphFrame;
+use crate::motion::{Channel, Curve, MORPH_RISE, duration, ease};
 
 pub fn frame(p: f32) -> MorphFrame {
-    MorphFrame { old_opacity: 1. - p, old_y: -MORPH_RISE * p, new_opacity: p, new_y: MORPH_RISE * (1. - p) }
+    MorphFrame {
+        old_opacity: 1. - p,
+        old_y: -MORPH_RISE * p,
+        new_opacity: p,
+        new_y: MORPH_RISE * (1. - p),
+    }
 }
 
 pub(super) fn morph_curve() -> Curve {
@@ -19,7 +24,11 @@ pub(super) fn morph_curve() -> Curve {
 ///   opacity, and a fresh enter channel rises the new child in.
 /// - Running (`exit` is `Some`): the exit channel is returned untouched, so the child fading out
 ///   keeps its exact value and never jumps. Only the enter channel restarts, from nothing.
-pub(super) fn on_key_change(exit: Option<Channel>, reduce_motion: bool, now: Instant) -> (Channel, Channel) {
+pub(super) fn on_key_change(
+    exit: Option<Channel>,
+    reduce_motion: bool,
+    now: Instant,
+) -> (Channel, Channel) {
     let exit = exit.unwrap_or_else(|| {
         let mut c = Channel::new(0.);
         c.animate_at(1., morph_curve(), 0., reduce_motion, now);

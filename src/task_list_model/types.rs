@@ -25,7 +25,11 @@ impl SortKey {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Row {
     /// A group's header, with how many tasks it holds and whether it is open.
-    Header { status: TaskStatus, count: usize, open: bool },
+    Header {
+        status: TaskStatus,
+        count: usize,
+        open: bool,
+    },
     /// A task, by its index in the task list.
     Task { index: usize },
 }

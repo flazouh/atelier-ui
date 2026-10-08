@@ -3,6 +3,8 @@ use gpui_kit::{
     StatefulInteractiveElement, Styled, WeakEntity, div,
 };
 
+use super::structs::PromptInput;
+use super::types::{PromptInputEvent, QUEUED_GAP, QUEUED_ROW};
 use crate::{
     icon::{Icon, IconName},
     scale::px,
@@ -10,8 +12,6 @@ use crate::{
     tooltip::Tooltip,
     typography::TextSize,
 };
-use super::structs::PromptInput;
-use super::types::{PromptInputEvent, QUEUED_GAP, QUEUED_ROW};
 
 impl PromptInput {
     /// The messages waiting for the turn to end, oldest first, each with a button that sends it now and
@@ -25,7 +25,8 @@ impl PromptInput {
         let quiet = crate::theme::mix(ink, chip_bg, 0.4);
         let this = cx.entity().downgrade();
         let rows = self.queued.iter().enumerate().map(|(place, text)| {
-            let first_line: SharedString = text.lines().next().unwrap_or_default().to_string().into();
+            let first_line: SharedString =
+                text.lines().next().unwrap_or_default().to_string().into();
             div()
                 .id(ElementId::NamedInteger("queued-row".into(), place as u64))
                 .debug_selector(move || format!("queued-row-{place}"))
@@ -41,11 +42,43 @@ impl PromptInput {
                 .text_color(quiet)
                 .tooltip(Tooltip::text(text.clone()))
                 .child(Icon::new(IconName::Schedule).size(px(12.)))
-                .child(div().flex_1().min_w_0().truncate().text_color(ink).child(first_line))
-                .child(row_button("queued-send", place, IconName::ArrowUp, "Send now", &theme, &this, PromptInputEvent::SendQueued(place)))
-                .child(row_button("queued-remove", place, IconName::Close, "Remove", &theme, &this, PromptInputEvent::Unqueue(place)))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .truncate()
+                        .text_color(ink)
+                        .child(first_line),
+                )
+                .child(row_button(
+                    "queued-send",
+                    place,
+                    IconName::ArrowUp,
+                    "Send now",
+                    &theme,
+                    &this,
+                    PromptInputEvent::SendQueued(place),
+                ))
+                .child(row_button(
+                    "queued-remove",
+                    place,
+                    IconName::Close,
+                    "Remove",
+                    &theme,
+                    &this,
+                    PromptInputEvent::Unqueue(place),
+                ))
         });
-        Some(div().flex().flex_col().gap(px(QUEUED_GAP)).px(px(2.)).pb(px(6.)).children(rows).into_any_element())
+        Some(
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(QUEUED_GAP))
+                .px(px(2.))
+                .pb(px(6.))
+                .children(rows)
+                .into_any_element(),
+        )
     }
 }
 
@@ -73,7 +106,9 @@ fn row_button(
         .hover(move |d| d.bg(crate::theme::mix(rest, ink, 0.2)).text_color(ink))
         .tooltip(Tooltip::text(words))
         .child(Icon::new(icon).size(px(12.)))
-        .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| cx.stop_propagation())
+        .on_mouse_down(gpui_kit::MouseButton::Left, |_, _, cx| {
+            cx.stop_propagation()
+        })
         .on_click(move |_, _, cx| {
             cx.stop_propagation();
             owner.update(cx, |_, cx| cx.emit(event.clone())).ok();

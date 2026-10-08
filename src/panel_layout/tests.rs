@@ -1,13 +1,27 @@
 use gpui_kit::SharedString;
 
-use super::{Column, DEFAULT_WIDTH, GAP, GROUP_GAP, Geometry, MAX_WIDTH, MIN_WIDTH, arrange, columns, fitted, flat, resized};
+use super::{
+    Column, DEFAULT_WIDTH, GAP, GROUP_GAP, Geometry, MAX_WIDTH, MIN_WIDTH, arrange, columns,
+    fitted, flat, resized,
+};
 
 fn geometry(widths: &[f32]) -> Geometry {
-    Geometry::new(widths.iter().enumerate().map(|(i, w)| Column { width: *w, gap_before: if i == 0 { 0. } else { 10. } }).collect())
+    Geometry::new(
+        widths
+            .iter()
+            .enumerate()
+            .map(|(i, w)| Column {
+                width: *w,
+                gap_before: if i == 0 { 0. } else { 10. },
+            })
+            .collect(),
+    )
 }
 
 fn names(list: &[&str]) -> Vec<SharedString> {
-    list.iter().map(|s| SharedString::from(s.to_string())).collect()
+    list.iter()
+        .map(|s| SharedString::from(s.to_string()))
+        .collect()
 }
 
 #[test]
@@ -24,7 +38,10 @@ fn the_row_scrolls_only_as_far_as_it_is_wider_than_the_viewport() {
     let g = geometry(&[100., 200., 100.]);
     assert_eq!(g.max_offset(300.), 120.);
     assert_eq!(g.max_offset(500.), 0.);
-    assert_eq!((g.clamp(-5., 300.), g.clamp(50., 300.), g.clamp(999., 300.)), (0., 50., 120.));
+    assert_eq!(
+        (g.clamp(-5., 300.), g.clamp(50., 300.), g.clamp(999., 300.)),
+        (0., 50., 120.)
+    );
     assert_eq!(Geometry::default().max_offset(100.), 0.);
 }
 
@@ -43,9 +60,21 @@ fn only_the_columns_the_viewport_shows_are_visible_and_a_margin_adds_the_next() 
 #[test]
 fn a_column_only_partly_in_view_counts_and_one_just_out_of_it_does_not() {
     let g = geometry(&[100.; 4]);
-    assert_eq!(g.visible(95., 100., 0.), 0..2, "the first ends at 100, past the viewport's left edge");
-    assert_eq!(g.visible(100., 100., 0.), 1..2, "the first ends where the viewport begins");
-    assert_eq!(g.visible(0., 110., 0.), 0..1, "the second begins where the viewport ends");
+    assert_eq!(
+        g.visible(95., 100., 0.),
+        0..2,
+        "the first ends at 100, past the viewport's left edge"
+    );
+    assert_eq!(
+        g.visible(100., 100., 0.),
+        1..2,
+        "the first ends where the viewport begins"
+    );
+    assert_eq!(
+        g.visible(0., 110., 0.),
+        0..1,
+        "the second begins where the viewport ends"
+    );
 }
 
 #[test]
@@ -56,7 +85,11 @@ fn a_scroll_settles_on_the_nearest_column_edge_or_the_end() {
     assert_eq!(g.snap(60., 300.), 110.);
     assert_eq!(g.snap(230., 300.), 220.);
     assert_eq!(g.snap(340., 300.), 330.);
-    assert_eq!(g.snap(500., 300.), 350., "the end of the row, 650 - 300, is nearer than a column edge");
+    assert_eq!(
+        g.snap(500., 300.),
+        350.,
+        "the end of the row, 650 - 300, is nearer than a column edge"
+    );
     assert_eq!(g.snap(9999., 300.), 350.);
     assert_eq!(geometry(&[100.]).snap(40., 300.), 0.);
     assert_eq!(Geometry::default().snap(10., 300.), 0.);
@@ -66,18 +99,39 @@ fn a_scroll_settles_on_the_nearest_column_edge_or_the_end() {
 fn revealing_a_column_scrolls_the_least_that_shows_it_whole() {
     let g = geometry(&[100.; 6]);
     assert_eq!(g.reveal(0., 300., 1), 0., "already whole");
-    assert_eq!(g.reveal(0., 300., 3), 130., "scrolled right until its right edge is at the viewport's");
-    assert_eq!(g.reveal(300., 300., 1), 110., "scrolled left until its left edge is at the viewport's");
+    assert_eq!(
+        g.reveal(0., 300., 3),
+        130.,
+        "scrolled right until its right edge is at the viewport's"
+    );
+    assert_eq!(
+        g.reveal(300., 300., 1),
+        110.,
+        "scrolled left until its left edge is at the viewport's"
+    );
     assert_eq!(g.reveal(0., 300., 5), 350., "clamped at the end of the row");
     let wide = geometry(&[500., 100.]);
     assert_eq!(wide.reveal(0., 300., 0), 0.);
-    assert_eq!(wide.reveal(200., 300., 0), 0., "wider than the viewport: its left edge");
+    assert_eq!(
+        wide.reveal(200., 300., 0),
+        0.,
+        "wider than the viewport: its left edge"
+    );
 }
 
 #[test]
 fn the_column_under_a_point_is_found_and_the_gap_is_no_column() {
     let g = geometry(&[100., 100.]);
-    assert_eq!((g.column_at(0.), g.column_at(99.9), g.column_at(105.), g.column_at(110.), g.column_at(210.)), (Some(0), Some(0), None, Some(1), None));
+    assert_eq!(
+        (
+            g.column_at(0.),
+            g.column_at(99.9),
+            g.column_at(105.),
+            g.column_at(110.),
+            g.column_at(210.)
+        ),
+        (Some(0), Some(0), None, Some(1), None)
+    );
 }
 
 #[test]
@@ -92,7 +146,10 @@ fn panels_of_one_project_sit_together_and_the_groups_follow_the_sidebar() {
     let panels = names(&["web", "api", "web", "docs", "api", "web"]);
     let order = names(&["api", "web"]);
     let groups = arrange(&panels, &order, true);
-    let shape: Vec<_> = groups.iter().map(|g| (g.project.as_ref().map(|p| p.to_string()), g.members.clone())).collect();
+    let shape: Vec<_> = groups
+        .iter()
+        .map(|g| (g.project.as_ref().map(|p| p.to_string()), g.members.clone()))
+        .collect();
     assert_eq!(
         shape,
         [
@@ -108,14 +165,27 @@ fn panels_of_one_project_sit_together_and_the_groups_follow_the_sidebar() {
 #[test]
 fn projects_the_sidebar_does_not_know_keep_the_order_they_were_first_opened() {
     let groups = arrange(&names(&["b", "a", "b"]), &[], true);
-    assert_eq!(groups.iter().map(|g| g.project.clone().unwrap().to_string()).collect::<Vec<_>>(), ["b", "a"]);
+    assert_eq!(
+        groups
+            .iter()
+            .map(|g| g.project.clone().unwrap().to_string())
+            .collect::<Vec<_>>(),
+        ["b", "a"]
+    );
 }
 
 #[test]
 fn ungrouped_is_one_flat_row_in_open_order() {
-    let groups = arrange(&names(&["web", "api", "web"]), &names(&["api", "web"]), false);
+    let groups = arrange(
+        &names(&["web", "api", "web"]),
+        &names(&["api", "web"]),
+        false,
+    );
     assert_eq!(groups.len(), 1);
-    assert_eq!((groups[0].project.clone(), flat(&groups)), (None, vec![0, 1, 2]));
+    assert_eq!(
+        (groups[0].project.clone(), flat(&groups)),
+        (None, vec![0, 1, 2])
+    );
     assert!(arrange(&[], &[], false).is_empty() && arrange(&[], &[], true).is_empty());
 }
 
@@ -126,9 +196,18 @@ fn a_group_starts_a_wider_gap_than_a_column_in_a_group() {
     assert_eq!(
         cols,
         vec![
-            Column { width: 100., gap_before: 0. },
-            Column { width: 101., gap_before: GAP },
-            Column { width: 102., gap_before: GROUP_GAP },
+            Column {
+                width: 100.,
+                gap_before: 0.
+            },
+            Column {
+                width: 101.,
+                gap_before: GAP
+            },
+            Column {
+                width: 102.,
+                gap_before: GROUP_GAP
+            },
         ]
     );
 }
@@ -159,8 +238,24 @@ fn an_edge_fades_by_how_much_row_lies_beyond_it() {
     assert_eq!(edge_fades(0., 500.), (0., 1.), "at the start");
     assert_eq!(edge_fades(500., 500.), (1., 0.), "at the end");
     assert_eq!(edge_fades(250., 500.), (1., 1.), "in the middle");
-    assert_eq!(edge_fades(0., 0.), (0., 0.), "a row that fits has no edge to fade");
-    assert_eq!(edge_fades(12., 500.), (0.5, 1.), "half the fade's width to go on the left");
-    assert_eq!(edge_fades(494., 500.), (1., 0.25), "six pixels to go on the right");
-    assert_eq!(edge_fades(-3., 500.), (0., 1.), "an overshoot does not go negative");
+    assert_eq!(
+        edge_fades(0., 0.),
+        (0., 0.),
+        "a row that fits has no edge to fade"
+    );
+    assert_eq!(
+        edge_fades(12., 500.),
+        (0.5, 1.),
+        "half the fade's width to go on the left"
+    );
+    assert_eq!(
+        edge_fades(494., 500.),
+        (1., 0.25),
+        "six pixels to go on the right"
+    );
+    assert_eq!(
+        edge_fades(-3., 500.),
+        (0., 1.),
+        "an overshoot does not go negative"
+    );
 }

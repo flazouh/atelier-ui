@@ -12,8 +12,8 @@ mod helpers;
 mod structs;
 mod types;
 
-pub use helpers::dot;
 pub(crate) use helpers::colors;
+pub use helpers::dot;
 pub use structs::Button;
 pub use types::{ButtonSize, ButtonVariant, ROUND};
 

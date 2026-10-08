@@ -1,19 +1,11 @@
 use gpui_kit::{
-    App,
-    Hsla,
-    InteractiveElement,
-    IntoElement,
-    ParentElement,
-    RenderOnce,
-    Styled,
-    Window,
-    div,
+    App, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, Styled, Window, div,
     prelude::FluentBuilder,
 };
 
-use crate::{scale::px, theme::ActiveTheme};
-use super::types::{CELLS, CELL_GAP, CELL_HEIGHT, CELL_WIDTH, DARK_CELL};
 use super::helpers::{cell_color, lit, loading_cell};
+use super::types::{CELL_GAP, CELL_HEIGHT, CELL_WIDTH, CELLS, DARK_CELL};
+use crate::{scale::px, theme::ActiveTheme};
 
 #[derive(IntoElement)]
 pub struct CellBar {
@@ -31,7 +23,16 @@ pub struct CellBar {
 impl CellBar {
     /// A bar `fill` full (`None` while there is no number to show).
     pub fn new(fill: Option<f32>) -> Self {
-        Self { fill, cells: CELLS, cell: (CELL_WIDTH, CELL_HEIGHT), stretch: false, color: None, seconds: 0., moving: true, name: None }
+        Self {
+            fill,
+            cells: CELLS,
+            cell: (CELL_WIDTH, CELL_HEIGHT),
+            stretch: false,
+            color: None,
+            seconds: 0.,
+            moving: true,
+            name: None,
+        }
     }
 
     pub fn cells(mut self, cells: usize) -> Self {
@@ -90,10 +91,23 @@ impl RenderOnce for CellBar {
                 Some(fill) => lit(i, cells, fill),
                 None => (i == loading) as u8 as f32,
             };
-            let cell = div().h(px(height)).rounded(px(1.5)).bg(cell_color(color, dark, on));
-            if stretch { cell.flex_1() } else { cell.flex_none().w(px(width)) }
+            let cell = div()
+                .h(px(height))
+                .rounded(px(1.5))
+                .bg(cell_color(color, dark, on));
+            if stretch {
+                cell.flex_1()
+            } else {
+                cell.flex_none().w(px(width))
+            }
         });
-        let row = div().flex().items_center().gap(px(CELL_GAP)).when(stretch, |d| d.w_full()).when(!stretch, |d| d.flex_none()).children(cell);
+        let row = div()
+            .flex()
+            .items_center()
+            .gap(px(CELL_GAP))
+            .when(stretch, |d| d.w_full())
+            .when(!stretch, |d| d.flex_none())
+            .children(cell);
         match self.name {
             Some(name) => row.debug_selector(move || name.clone()),
             None => row,

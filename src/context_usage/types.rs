@@ -25,6 +25,9 @@ pub struct ContextPart {
 
 impl ContextPart {
     pub fn new(label: impl Into<SharedString>, tokens: u64) -> Self {
-        Self { label: label.into(), tokens }
+        Self {
+            label: label.into(),
+            tokens,
+        }
     }
 }

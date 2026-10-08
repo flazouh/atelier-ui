@@ -1,5 +1,5 @@
-use crate::{sidebar_filter::SessionFilter, sidebar_model::ListMode};
 use super::types::{BadgeShow, EARLIER_SHOWN, FOLD_AFTER};
+use crate::{sidebar_filter::SessionFilter, sidebar_model::ListMode};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SidebarLayout {
@@ -37,7 +37,11 @@ impl SidebarLayout {
     /// This layout with the look (what a row shows, how much folds) of `other`, and its own mode and filter: the head
     /// chooses those two, the Settings page the rest.
     pub fn with_look_of(self, other: &SidebarLayout) -> SidebarLayout {
-        SidebarLayout { mode: self.mode, filter: self.filter, ..*other }
+        SidebarLayout {
+            mode: self.mode,
+            filter: self.filter,
+            ..*other
+        }
     }
 
     /// Whether the rows wear the project's badge in the mode now in force.

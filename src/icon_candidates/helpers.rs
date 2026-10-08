@@ -2,12 +2,15 @@ use super::types::{EXTENSIONS, FOLDERS, NAMES};
 
 /// Whether the path ends in an image extension the badge can draw.
 pub fn is_icon_file(path: &str) -> bool {
-    path.rsplit_once('.').is_some_and(|(_, ext)| EXTENSIONS.contains(&ext.to_lowercase().as_str()))
+    path.rsplit_once('.')
+        .is_some_and(|(_, ext)| EXTENSIONS.contains(&ext.to_lowercase().as_str()))
 }
 
 fn stem(path: &str) -> String {
     let file = path.rsplit('/').next().unwrap_or(path);
-    file.rsplit_once('.').map_or(file, |(name, _)| name).to_lowercase()
+    file.rsplit_once('.')
+        .map_or(file, |(name, _)| name)
+        .to_lowercase()
 }
 
 pub(super) fn folder(path: &str) -> &str {
@@ -40,6 +43,14 @@ pub fn rank(paths: &[&str]) -> Vec<String> {
 
 /// The paths that hold every word of `query`, without regard to case.
 pub fn filter(paths: &[String], query: &str) -> Vec<String> {
-    let words: Vec<String> = query.to_lowercase().split_whitespace().map(str::to_string).collect();
-    paths.iter().filter(|p| words.iter().all(|w| p.to_lowercase().contains(w))).cloned().collect()
+    let words: Vec<String> = query
+        .to_lowercase()
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    paths
+        .iter()
+        .filter(|p| words.iter().all(|w| p.to_lowercase().contains(w)))
+        .cloned()
+        .collect()
 }

@@ -17,7 +17,13 @@ pub enum SessionFilter {
 }
 
 impl SessionFilter {
-    pub const ALL: [SessionFilter; 5] = [Self::Active, Self::NeedsYou, Self::Working, Self::Archived, Self::All];
+    pub const ALL: [SessionFilter; 5] = [
+        Self::Active,
+        Self::NeedsYou,
+        Self::Working,
+        Self::Archived,
+        Self::All,
+    ];
 
     pub fn words(self) -> &'static str {
         match self {

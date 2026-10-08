@@ -18,7 +18,10 @@ pub fn pr_refs(text: &str) -> Vec<(Range<usize>, u64)> {
         if skip.iter().any(|r| r.contains(&at)) || !stands_alone_before(text, at) {
             continue;
         }
-        let digits = bytes[at + 1..].iter().take_while(|b| b.is_ascii_digit()).count();
+        let digits = bytes[at + 1..]
+            .iter()
+            .take_while(|b| b.is_ascii_digit())
+            .count();
         let end = at + 1 + digits;
         if digits == 0 || bytes[at + 1] == b'0' || text[end..].chars().next().is_some_and(is_word) {
             continue;
@@ -36,7 +39,10 @@ fn is_word(c: char) -> bool {
 
 /// Nothing that joins it to a word, an escape, an entity, or another `#` comes right before the `#`.
 fn stands_alone_before(text: &str, at: usize) -> bool {
-    text[..at].chars().next_back().is_none_or(|c| !is_word(c) && !matches!(c, '\\' | '&' | '#'))
+    text[..at]
+        .chars()
+        .next_back()
+        .is_none_or(|c| !is_word(c) && !matches!(c, '\\' | '&' | '#'))
 }
 
 /// Byte ranges where no reference counts: fenced code blocks, code spans, URLs, and Markdown links.
@@ -56,7 +62,11 @@ fn fences(text: &str) -> Vec<Range<usize>> {
     let mut at = 0;
     for line in text.split_inclusive('\n') {
         let trimmed = line.trim_start_matches(' ');
-        let fence = trimmed.chars().next().filter(|c| matches!(c, '`' | '~')).map(|c| (c, trimmed.chars().take_while(|&x| x == c).count()));
+        let fence = trimmed
+            .chars()
+            .next()
+            .filter(|c| matches!(c, '`' | '~'))
+            .map(|c| (c, trimmed.chars().take_while(|&x| x == c).count()));
         match (open, fence) {
             (None, Some((c, n))) if n >= 3 => open = Some((at, c, n)),
             (Some((start, c, n)), Some((close, m))) if close == c && m >= n => {
@@ -115,7 +125,9 @@ fn urls(text: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     for scheme in ["http://", "https://", "www."] {
         for (at, _) in text.match_indices(scheme) {
-            let end = text[at..].find(|c: char| c.is_whitespace() || c == '>').map_or(text.len(), |n| at + n);
+            let end = text[at..]
+                .find(|c: char| c.is_whitespace() || c == '>')
+                .map_or(text.len(), |n| at + n);
             out.push(at..end);
         }
     }
@@ -126,8 +138,12 @@ fn urls(text: &str) -> Vec<Range<usize>> {
 fn links(text: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     for (mid, _) in text.match_indices("](") {
-        let Some(open) = text[..mid].rfind('[') else { continue };
-        let Some(close) = text[mid..].find(')') else { continue };
+        let Some(open) = text[..mid].rfind('[') else {
+            continue;
+        };
+        let Some(close) = text[mid..].find(')') else {
+            continue;
+        };
         out.push(open..mid + close + 1);
     }
     out

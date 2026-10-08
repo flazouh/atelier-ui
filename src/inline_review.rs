@@ -29,11 +29,11 @@ mod types;
 
 pub use resolve::Resolve;
 
+pub(crate) use helpers::bind_keys;
 pub use helpers::{
     apply, apply_to_text, byte_to_row, compact_bar, hold_caret, hunk_at_row, pending_count,
     plan_edits, row_to_byte, rows_to_bytes, shift_after, track_edit, washes,
 };
-pub(crate) use helpers::bind_keys;
 pub use structs::{DecisionHistory, InlineHunk, InlineReview};
 pub use types::{COMPACT_BELOW, Decision};
 

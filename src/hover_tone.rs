@@ -15,7 +15,10 @@ impl Default for HoverTone {
 }
 impl HoverTone {
     pub fn new() -> Self {
-        Self { tint: Channel::new(0.), hovered: false }
+        Self {
+            tint: Channel::new(0.),
+            hovered: false,
+        }
     }
     /// The pointer is over the field, or not.
     pub fn set_hovered(&mut self, hovered: bool) {
@@ -25,7 +28,8 @@ impl HoverTone {
     pub fn sync(&mut self, held: bool, reduce: bool) {
         let want = if self.hovered || held { 1. } else { 0. };
         if self.tint.target() != want {
-            self.tint.animate(want, Curve::Spring(Spring::TINT), 0., reduce);
+            self.tint
+                .animate(want, Curve::Spring(Spring::TINT), 0., reduce);
         }
     }
     /// 0 at rest, 1 hovered or held.

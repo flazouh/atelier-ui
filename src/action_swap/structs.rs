@@ -6,6 +6,8 @@ use gpui_kit::{
     Window, div, prelude::FluentBuilder,
 };
 
+use super::helpers::colors;
+use super::types::{Click, PRESS_INSET, SwapSize, SwapVariant};
 use crate::scale::px;
 use crate::{
     focus::ring_shadow,
@@ -17,8 +19,6 @@ use crate::{
     theme::radius,
     typography::FONT_FAMILY,
 };
-use super::types::{Click, PRESS_INSET, SwapSize, SwapVariant};
-use super::helpers::colors;
 
 struct Motion {
     pub(super) hover: Channel,
@@ -45,7 +45,17 @@ pub struct ActionSwapButton {
 impl ActionSwapButton {
     /// `label` is the words now; when it differs from last frame's, the old words roll out and these roll in.
     pub fn new(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), variant: SwapVariant::default(), size: SwapSize::default(), command: None, cap: None, disabled: false, on_click: None, selector: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            variant: SwapVariant::default(),
+            size: SwapSize::default(),
+            command: None,
+            cap: None,
+            disabled: false,
+            on_click: None,
+            selector: None,
+        }
     }
 
     pub fn variant(mut self, variant: SwapVariant) -> Self {
@@ -105,8 +115,16 @@ impl RenderOnce for ActionSwapButton {
                     channel.animate(to, Curve::Ease(time.as_secs_f32(), ease::FLUID), 0., reduce);
                 }
             };
-            go(&mut m.hover, f32::from(u8::from(m.hovered && !disabled)), duration::REVEAL);
-            go(&mut m.press, f32::from(u8::from(m.pressed && !disabled)), duration::PRESS_DOWN);
+            go(
+                &mut m.hover,
+                f32::from(u8::from(m.hovered && !disabled)),
+                duration::REVEAL,
+            );
+            go(
+                &mut m.press,
+                f32::from(u8::from(m.pressed && !disabled)),
+                duration::PRESS_DOWN,
+            );
             m.clock.tick();
             let moving = m.hover.is_running() | m.press.is_running();
             if !moving {
@@ -120,10 +138,25 @@ impl RenderOnce for ActionSwapButton {
         let keyed = focus.is_focused(window) && window.last_input_was_keyboard() && !disabled;
         let (height, pad_x, gap, text, line) = self.size.metrics();
         let (fill, ink) = colors(self.variant, &theme, hover);
-        let cap = self.cap.clone().or_else(|| self.command.and_then(|c| keys::chord_for(keys::profile(cx), c)).map(keys::cap));
-        let words = Roll::new((self.id.clone(), "words"), self.label.clone(), Kind::Swap, px(line), move |label: &SharedString| {
-            div().h(px(line)).line_height(px(line)).whitespace_nowrap().child(label.clone()).into_any_element()
+        let cap = self.cap.clone().or_else(|| {
+            self.command
+                .and_then(|c| keys::chord_for(keys::profile(cx), c))
+                .map(keys::cap)
         });
+        let words = Roll::new(
+            (self.id.clone(), "words"),
+            self.label.clone(),
+            Kind::Swap,
+            px(line),
+            move |label: &SharedString| {
+                div()
+                    .h(px(line))
+                    .line_height(px(line))
+                    .whitespace_nowrap()
+                    .child(label.clone())
+                    .into_any_element()
+            },
+        );
         let inset = PRESS_INSET * press;
         let pill = div().absolute().inset_0().rounded(radius::lg()).bg(fill);
         let (over, out, down, up) = (motion.clone(), motion.clone(), motion.clone(), motion);
@@ -146,13 +179,28 @@ impl RenderOnce for ActionSwapButton {
             .text_color(ink)
             .when(keyed, |d| d.shadow(ring_shadow(&theme, theme.background)))
             .when(disabled, |d| d.opacity(0.5))
-            .when(!disabled, |d| d.cursor_pointer().track_focus(&focus.tab_stop(true)))
-            .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
-            .child(pill.top(px(inset * height)).bottom(px(inset * height)).left(gpui_kit::relative(inset)).right(gpui_kit::relative(inset)))
+            .when(!disabled, |d| {
+                d.cursor_pointer().track_focus(&focus.tab_stop(true))
+            })
+            .when_some(self.selector, |d, name| {
+                d.debug_selector(move || name.into())
+            })
+            .child(
+                pill.top(px(inset * height))
+                    .bottom(px(inset * height))
+                    .left(gpui_kit::relative(inset))
+                    .right(gpui_kit::relative(inset)),
+            )
             .child(div().relative().child(words))
             .children(cap.map(|cap| {
                 let kbd = Kbd::new(cap);
-                div().relative().child(if self.variant == SwapVariant::Primary { kbd.on(fill, ink) } else { kbd.ink(ink) })
+                div()
+                    .relative()
+                    .child(if self.variant == SwapVariant::Primary {
+                        kbd.on(fill, ink)
+                    } else {
+                        kbd.ink(ink)
+                    })
             }))
             .when(!disabled, |d| {
                 d.on_hover(move |on, _, cx| {
@@ -166,12 +214,13 @@ impl RenderOnce for ActionSwapButton {
                 })
                 .when_some(self.on_click.clone(), |d, click| {
                     let key = click.clone();
-                    d.on_click(move |event, window, cx| click(event, window, cx)).on_key_down(move |event, window, cx| {
-                        if matches!(event.keystroke.key.as_str(), "enter" | "space") {
-                            cx.stop_propagation();
-                            key(&ClickEvent::default(), window, cx);
-                        }
-                    })
+                    d.on_click(move |event, window, cx| click(event, window, cx))
+                        .on_key_down(move |event, window, cx| {
+                            if matches!(event.keystroke.key.as_str(), "enter" | "space") {
+                                cx.stop_propagation();
+                                key(&ClickEvent::default(), window, cx);
+                            }
+                        })
                 })
             })
     }

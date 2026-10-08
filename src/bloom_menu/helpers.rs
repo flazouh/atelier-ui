@@ -1,9 +1,9 @@
-use crate::{icon::IconName, theme::Theme};
 use super::structs::BloomItem;
 use super::types::{
     CELL_H, COLUMNS, HEADER, IRIS_SIDE, IRIS_TOP, ITEM_DELAY, ITEM_STEP, PANEL_W, TRIGGER_H,
     TRIGGER_W,
 };
+use crate::{icon::IconName, theme::Theme};
 
 /// The web's six choices.
 pub fn default_items() -> Vec<BloomItem> {
@@ -47,7 +47,10 @@ pub fn delay(index: usize, count: usize) -> f32 {
 /// The box `morph` of the way from the button to the panel, as its width and height; both share one centre.
 pub fn box_size(morph: f32, count: usize) -> (f32, f32) {
     let (pw, ph) = panel_size(count);
-    (TRIGGER_W + (pw - TRIGGER_W) * morph, TRIGGER_H + (ph - TRIGGER_H) * morph)
+    (
+        TRIGGER_W + (pw - TRIGGER_W) * morph,
+        TRIGGER_H + (ph - TRIGGER_H) * morph,
+    )
 }
 
 /// What the iris still cuts off the grid at `progress` (0 to 1): the top and bottom, and the two sides, as shares.

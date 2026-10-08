@@ -1,7 +1,7 @@
 use std::time::Instant;
 
-use super::types::{FADE, Piece};
 use super::helpers::ease_in_out;
+use super::types::{FADE, Piece};
 
 /// When each piece of the growing text arrived: the start of the piece, and the moment.
 #[derive(Clone, Debug, Default)]
@@ -22,7 +22,8 @@ impl Flow {
             self.marks.push((self.seen, now));
             self.seen = text.len();
         }
-        self.marks.retain(|(_, at)| now.saturating_duration_since(*at) < FADE);
+        self.marks
+            .retain(|(_, at)| now.saturating_duration_since(*at) < FADE);
     }
     /// Pieces still coming in.
     pub fn marks(&self) -> usize {
@@ -30,7 +31,9 @@ impl Flow {
     }
     /// Whether a piece is still fading, so a frame is worth asking for.
     pub fn is_fading(&self, now: Instant) -> bool {
-        self.marks.iter().any(|(_, at)| now.saturating_duration_since(*at) < FADE)
+        self.marks
+            .iter()
+            .any(|(_, at)| now.saturating_duration_since(*at) < FADE)
     }
     /// The pieces of `text` from `tail` on that have not reached full ink, each with its ink, 0 to 1. Text older than
     /// the fade has no entry: it is full ink as it stands.
@@ -41,7 +44,11 @@ impl Flow {
             if age >= FADE {
                 continue;
             }
-            let end = self.marks.get(i + 1).map_or(text.len(), |(next, _)| *next).min(text.len());
+            let end = self
+                .marks
+                .get(i + 1)
+                .map_or(text.len(), |(next, _)| *next)
+                .min(text.len());
             let start = (*start).max(tail);
             if start >= end {
                 continue;

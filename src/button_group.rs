@@ -19,11 +19,11 @@ pub use structs::ButtonGroup;
 pub use types::SEAM;
 
 #[cfg(test)]
-use gpui_kit::{Axis, Corners, IntoElement, Window, div};
+use crate::button::Button;
 #[cfg(test)]
 use crate::scale::px;
 #[cfg(test)]
-use crate::button::Button;
+use gpui_kit::{Axis, Corners, IntoElement, Window, div};
 
 #[cfg(test)]
 mod tests;

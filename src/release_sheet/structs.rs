@@ -1,18 +1,23 @@
-use std::rc::Rc;
-use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, Window, div, linear_color_stop, linear_gradient,
+use super::{
+    consts::{
+        CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA,
+        PANEL_CORNER, PANEL_GAP, SIDE, TILE_BOTTOM_ALPHA, TILE_CORNER, TILE_ICON, TILE_RING_ALPHA,
+        TILE_SIZE, TILE_TOP_ALPHA,
+    },
+    helpers::fade,
+    types::ReleaseKind,
 };
 use crate::scale::px;
 use crate::{
     Button, ButtonVariant, Icon, IconName,
     theme::{ActiveTheme, Appearance, Theme},
 };
-use super::{
-    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, TILE_BOTTOM_ALPHA, TILE_CORNER, TILE_ICON, TILE_RING_ALPHA, TILE_SIZE, TILE_TOP_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
-    helpers::fade,
-    types::ReleaseKind,
+use gpui_kit::{
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement,
+    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div, linear_color_stop,
+    linear_gradient,
 };
+use std::rc::Rc;
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
 
 /// One line of what is new: a short lead and what it means.
@@ -25,7 +30,12 @@ pub struct ReleaseNote {
 }
 impl ReleaseNote {
     pub fn new(lead: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
-        Self { lead: lead.into(), text: text.into(), icon: IconName::Check, kind: None }
+        Self {
+            lead: lead.into(),
+            text: text.into(),
+            icon: IconName::Check,
+            kind: None,
+        }
     }
     /// What kind of change the note tells of: its icon and its colour follow.
     pub fn kind(mut self, kind: ReleaseKind) -> Self {
@@ -47,8 +57,14 @@ pub struct ReleaseVersion {
     notes: Vec<ReleaseNote>,
 }
 impl ReleaseVersion {
-    pub fn new(version: impl Into<SharedString>, notes: impl IntoIterator<Item = ReleaseNote>) -> Self {
-        Self { version: version.into(), notes: notes.into_iter().collect() }
+    pub fn new(
+        version: impl Into<SharedString>,
+        notes: impl IntoIterator<Item = ReleaseNote>,
+    ) -> Self {
+        Self {
+            version: version.into(),
+            notes: notes.into_iter().collect(),
+        }
     }
 }
 
@@ -97,7 +113,11 @@ impl ReleaseSheet {
         self
     }
     /// The words on the two buttons ("Later", "Restart and update"). With no [`Self::on_install`] only the first shows.
-    pub fn labels(mut self, later: impl Into<SharedString>, install: impl Into<SharedString>) -> Self {
+    pub fn labels(
+        mut self,
+        later: impl Into<SharedString>,
+        install: impl Into<SharedString>,
+    ) -> Self {
         (self.later, self.install) = (later.into(), install.into());
         self
     }
@@ -116,13 +136,13 @@ impl RenderOnce for ReleaseSheet {
         let theme: Theme = cx.theme().clone();
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
-        let picture = div()
-            .absolute()
-            .inset_0()
-            .child(
-                <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Fill)
-                    .rounded(px(CORNER)),
-            );
+        let picture = div().absolute().inset_0().child(
+            <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(
+                gpui_kit::img(HERO_PATH).size_full(),
+                ObjectFit::Fill,
+            )
+            .rounded(px(CORNER)),
+        );
 
         let head = div()
             .relative()
@@ -133,13 +153,20 @@ impl RenderOnce for ReleaseSheet {
             .flex()
             .flex_col()
             .gap(px(6.))
-              .child(div().text_size(px(15.)).text_color(fade(light, 0.8)).child(self.kicker.clone()))
-            .child(                div()
+            .child(
+                div()
+                    .text_size(px(15.))
+                    .text_color(fade(light, 0.8))
+                    .child(self.kicker.clone()),
+            )
+            .child(
+                div()
                     .debug_selector(|| "release-version".into())
                     .text_size(px(84.))
                     .line_height(px(88.))
                     .text_color(light)
-                    .child(self.version.clone()));
+                    .child(self.version.clone()),
+            );
 
         let rows = self.notes.into_iter().map(|note| note_row(note, &theme));
         let scrolls = !self.earlier.is_empty();
@@ -161,9 +188,20 @@ impl RenderOnce for ReleaseSheet {
                 )
                 .children(release.notes.into_iter().map(|note| note_row(note, &theme)))
         });
-        let notes = div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows).children(earlier);
+        let notes = div()
+            .px(px(18.))
+            .py(px(10.))
+            .flex()
+            .flex_col()
+            .children(rows)
+            .children(earlier);
         let notes = if scrolls {
-            div().id((self.id.clone(), "history")).max_h(px(HISTORY_MAX)).overflow_y_scroll().child(notes).into_any_element()
+            div()
+                .id((self.id.clone(), "history"))
+                .max_h(px(HISTORY_MAX))
+                .overflow_y_scroll()
+                .child(notes)
+                .into_any_element()
         } else {
             notes.into_any_element()
         };
@@ -172,31 +210,35 @@ impl RenderOnce for ReleaseSheet {
         // With nothing to restart, the one button closes the sheet, and it is the main one.
         let close_only = install.is_none();
         let foot = div()
-                .flex()
-                .justify_end()
-                .gap(px(10.))
-                .px(px(14.))
-                .py(px(14.))
-                .border_t_1()
-                .border_color(theme.divider)
-                .child(
-                    Button::new((self.id.clone(), "later"))
-                        .debug_name("release-later")
-                        .label(self.later)
-                        .variant(if close_only { ButtonVariant::Primary } else { ButtonVariant::Secondary })
-                        .on_click(move |_, window, cx| {
-                            if let Some(f) = &later {
-                                f(window, cx);
-                            }
-                        }),
-                )
-                .children(install.map(|on_install| {
-                    Button::new((self.id.clone(), "install"))
-                        .debug_name("release-install")
-                        .label(install_label)
-                        .variant(ButtonVariant::Primary)
-                        .on_click(move |_, window, cx| on_install(window, cx))
-                }));
+            .flex()
+            .justify_end()
+            .gap(px(10.))
+            .px(px(14.))
+            .py(px(14.))
+            .border_t_1()
+            .border_color(theme.divider)
+            .child(
+                Button::new((self.id.clone(), "later"))
+                    .debug_name("release-later")
+                    .label(self.later)
+                    .variant(if close_only {
+                        ButtonVariant::Primary
+                    } else {
+                        ButtonVariant::Secondary
+                    })
+                    .on_click(move |_, window, cx| {
+                        if let Some(f) = &later {
+                            f(window, cx);
+                        }
+                    }),
+            )
+            .children(install.map(|on_install| {
+                Button::new((self.id.clone(), "install"))
+                    .debug_name("release-install")
+                    .label(install_label)
+                    .variant(ButtonVariant::Primary)
+                    .on_click(move |_, window, cx| on_install(window, cx))
+            }));
 
         let panel = div()
             .relative()
@@ -252,7 +294,11 @@ fn icon_tile(note: &ReleaseNote, theme: &Theme) -> gpui_kit::Div {
     let tone = note.kind.map_or(theme.foreground, |kind| kind.tone(theme));
     let (top, bottom, ring) = match note.kind {
         Some(_) => (TILE_TOP_ALPHA, TILE_BOTTOM_ALPHA, TILE_RING_ALPHA),
-        None => (TILE_TOP_ALPHA / 2., TILE_BOTTOM_ALPHA / 2., TILE_RING_ALPHA / 2.),
+        None => (
+            TILE_TOP_ALPHA / 2.,
+            TILE_BOTTOM_ALPHA / 2.,
+            TILE_RING_ALPHA / 2.,
+        ),
     };
     div()
         .flex()
@@ -263,7 +309,11 @@ fn icon_tile(note: &ReleaseNote, theme: &Theme) -> gpui_kit::Div {
         .rounded(px(TILE_CORNER))
         .border_1()
         .border_color(fade(tone, ring))
-        .bg(linear_gradient(180., linear_color_stop(fade(tone, top), 0.), linear_color_stop(fade(tone, bottom), 1.)))
+        .bg(linear_gradient(
+            180.,
+            linear_color_stop(fade(tone, top), 0.),
+            linear_color_stop(fade(tone, bottom), 1.),
+        ))
         .child(Icon::new(note.icon).size(px(TILE_ICON)).color(tone))
 }
 
@@ -281,7 +331,19 @@ fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
                 .flex_1()
                 .min_w_0()
                 .gap(px(2.))
-                .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
-                .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
+                .child(
+                    div()
+                        .text_size(px(15.))
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(theme.foreground)
+                        .child(note.lead),
+                )
+                .child(
+                    div()
+                        .text_size(px(14.))
+                        .line_height(px(20.))
+                        .text_color(theme.muted_foreground)
+                        .child(note.text),
+                ),
         )
 }

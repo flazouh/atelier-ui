@@ -4,9 +4,13 @@ use std::time::Instant;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ThinkingPhase {
     /// Thinking since `since`. The label changes at 15, 30, 45, and 60 seconds.
-    Thinking { since: Instant },
+    Thinking {
+        since: Instant,
+    },
     /// Thinking has ended: "Thought for {seconds}s" (just "Thought" for 0), with no shimmer.
-    Thought { seconds: u64 },
+    Thought {
+        seconds: u64,
+    },
     Connecting,
     Sending,
     Starting,
@@ -18,7 +22,10 @@ pub enum ThinkingPhase {
 impl ThinkingPhase {
     /// The CLI's `requesting` mode: the glimmer walks left to right, four times as fast.
     pub(super) fn requesting(self) -> bool {
-        matches!(self, Self::Connecting | Self::Sending | Self::Starting | Self::Preparing | Self::Waiting)
+        matches!(
+            self,
+            Self::Connecting | Self::Sending | Self::Starting | Self::Preparing | Self::Waiting
+        )
     }
 
     pub(super) fn elapsed_s(self) -> f32 {

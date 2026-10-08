@@ -1,7 +1,7 @@
 use gpui_kit::Hsla;
 
-use crate::theme::Theme;
 use super::types::{FULL_AT, Level, MILLION, THOUSAND, WARN_AT};
+use crate::theme::Theme;
 
 /// The share of `window` that `used` fills, from 0 to 1. An empty window counts as full.
 pub fn fraction(used: u64, window: u64) -> f32 {

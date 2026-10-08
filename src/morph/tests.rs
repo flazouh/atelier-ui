@@ -9,7 +9,10 @@ fn approx(a: f32, b: f32) {
 #[test]
 fn at_the_start_the_old_child_is_whole_and_the_new_one_waits_below() {
     let f = frame(0.);
-    assert_eq!((f.old_opacity, f.old_y, f.new_opacity, f.new_y), (1., 0., 0., MORPH_RISE));
+    assert_eq!(
+        (f.old_opacity, f.old_y, f.new_opacity, f.new_y),
+        (1., 0., 0., MORPH_RISE)
+    );
 }
 
 #[test]
@@ -22,7 +25,10 @@ fn halfway_both_are_half_faded_and_both_rise() {
 #[test]
 fn at_the_end_the_old_child_is_gone_and_the_new_one_has_settled() {
     let f = frame(1.);
-    assert_eq!((f.old_opacity, f.old_y, f.new_opacity, f.new_y), (0., -MORPH_RISE, 1., 0.));
+    assert_eq!(
+        (f.old_opacity, f.old_y, f.new_opacity, f.new_y),
+        (0., -MORPH_RISE, 1., 0.)
+    );
 }
 
 // A key change while settled (no exit running) starts a fresh exit from full opacity, and a fresh
@@ -41,9 +47,18 @@ fn a_key_change_at_p0_starts_both_channels_fresh() {
 fn a_key_change_at_p0_5_does_not_jump_the_outgoing_child() {
     let now = Instant::now();
     let mut running_exit = Channel::new(0.);
-    running_exit.animate_at(1., morph_curve(), 0., false, now - Duration::from_millis(90));
+    running_exit.animate_at(
+        1.,
+        morph_curve(),
+        0.,
+        false,
+        now - Duration::from_millis(90),
+    );
     let before = running_exit.value_at(now);
-    assert!(before > 0. && before < 1., "expected a value mid-flight, got {before}");
+    assert!(
+        before > 0. && before < 1.,
+        "expected a value mid-flight, got {before}"
+    );
 
     let (exit, enter) = on_key_change(Some(running_exit), false, now);
     let after = exit.value_at(now);

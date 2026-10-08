@@ -2,8 +2,8 @@
 //! and what it holds in plain words ("3 uncommitted", "2 only here", "merged"), coloured by what they mean for
 //! removing it. It shows; it removes nothing.
 use gpui_kit::{
-    App, ElementId, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div,
-    prelude::FluentBuilder,
+    App, ElementId, Hsla, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString,
+    Styled, Window, div, prelude::FluentBuilder,
 };
 
 use crate::{
@@ -41,7 +41,10 @@ pub struct WorktreeNote {
 
 impl WorktreeNote {
     pub fn new(words: impl Into<SharedString>, tone: NoteTone) -> Self {
-        Self { words: words.into(), tone }
+        Self {
+            words: words.into(),
+            tone,
+        }
     }
 }
 
@@ -68,7 +71,10 @@ pub struct WorktreeList {
 
 impl WorktreeList {
     pub fn new(id: impl Into<ElementId>, rows: Vec<WorktreeRow>) -> Self {
-        Self { id: id.into(), rows }
+        Self {
+            id: id.into(),
+            rows,
+        }
     }
 }
 
@@ -89,7 +95,11 @@ impl RenderOnce for WorktreeList {
             let selector: SharedString = format!("worktree-{}", row.path).into();
             let badge: SharedString = format!("worktree-main-{}", row.path).into();
             let detached = row.branch.is_none();
-            let mut facts: Vec<(SharedString, Hsla)> = row.notes.iter().map(|n| (n.words.clone(), note_colour(n.tone, &theme))).collect();
+            let mut facts: Vec<(SharedString, Hsla)> = row
+                .notes
+                .iter()
+                .map(|n| (n.words.clone(), note_colour(n.tone, &theme)))
+                .collect();
             facts.extend(sessions_words(row.sessions).map(|w| (w.into(), muted)));
             div()
                 .id(ElementId::Name(selector.clone()))
@@ -133,8 +143,16 @@ impl RenderOnce for WorktreeList {
                         .gap(px(6.))
                         .pl(px(20.))
                         .text_size(TextSize::Xs.font_size())
-                        .child(div().min_w_0().truncate().text_color(muted).child(row.folder))
-                        .children(facts.into_iter().map(|(words, colour)| div().flex_none().text_color(colour).child(words))),
+                        .child(
+                            div()
+                                .min_w_0()
+                                .truncate()
+                                .text_color(muted)
+                                .child(row.folder),
+                        )
+                        .children(facts.into_iter().map(|(words, colour)| {
+                            div().flex_none().text_color(colour).child(words)
+                        })),
                 )
         });
         div()

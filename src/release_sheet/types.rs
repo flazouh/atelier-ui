@@ -1,5 +1,5 @@
-use gpui_kit::Hsla;
 use crate::{IconName, theme::Theme};
+use gpui_kit::Hsla;
 
 /// What kind of change a note tells of. It gives the note's icon and its colour, so a list reads at a glance.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

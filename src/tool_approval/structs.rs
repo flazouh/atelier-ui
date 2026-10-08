@@ -6,6 +6,8 @@ use gpui_kit::{
     prelude::FluentBuilder,
 };
 
+use super::helpers::{child, follow_status, head_words, param_value, preview_view, wire};
+use super::types::{ParamValue, ToolApprovalStatus};
 use crate::scale::px;
 use crate::{
     ClickHandler,
@@ -19,8 +21,6 @@ use crate::{
     tool_preview::ToolPreview,
     typography::{MONO_FONT_FAMILY, TextSize},
 };
-use super::types::{ParamValue, ToolApprovalStatus};
-use super::helpers::{child, follow_status, head_words, param_value, preview_view, wire};
 
 #[derive(IntoElement)]
 pub struct ToolApproval {
@@ -67,14 +67,24 @@ impl ToolApproval {
     }
 
     /// A labeled argument, such as ("Directory", "~/src/atelier").
-    pub fn parameter(mut self, label: impl Into<SharedString>, value: impl Into<SharedString>) -> Self {
-        self.parameters.push((label.into(), ParamValue::Text(value.into())));
+    pub fn parameter(
+        mut self,
+        label: impl Into<SharedString>,
+        value: impl Into<SharedString>,
+    ) -> Self {
+        self.parameters
+            .push((label.into(), ParamValue::Text(value.into())));
         self
     }
 
     /// A parameter whose value is code, shown in a mono chip like beui's `ToolApprovalCode`.
-    pub fn parameter_code(mut self, label: impl Into<SharedString>, code: impl Into<SharedString>) -> Self {
-        self.parameters.push((label.into(), ParamValue::Code(code.into())));
+    pub fn parameter_code(
+        mut self,
+        label: impl Into<SharedString>,
+        code: impl Into<SharedString>,
+    ) -> Self {
+        self.parameters
+            .push((label.into(), ParamValue::Code(code.into())));
         self
     }
 
@@ -102,7 +112,10 @@ impl ToolApproval {
     }
 
     /// Shows the "Always allow" button when set; beui hides it when this handler is absent.
-    pub fn on_always_allow(mut self, f: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_always_allow(
+        mut self,
+        f: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_always_allow = Some(Rc::new(f));
         self
     }
@@ -138,8 +151,11 @@ impl RenderOnce for ToolApproval {
         if moving || (status.busy() && !reduce) {
             window.request_animation_frame();
         }
-        let (reveal, chevron, actions_reveal) =
-            (m.disclosure.reveal.value(), m.disclosure.chevron.value(), m.actions.value());
+        let (reveal, chevron, actions_reveal) = (
+            m.disclosure.reveal.value(),
+            m.disclosure.chevron.value(),
+            m.actions.value(),
+        );
         let height = m.disclosure.height.clone();
 
         let theme = cx.theme().clone();
@@ -148,85 +164,112 @@ impl RenderOnce for ToolApproval {
             &self.title,
             &self.tool,
             self.description.as_deref(),
-            self.preview.as_ref().and_then(|p| p.path()).map(|p| p.as_ref()),
-            self.preview.as_ref().and_then(|p| p.command_text()).map(|c| c.as_ref()),
+            self.preview
+                .as_ref()
+                .and_then(|p| p.path())
+                .map(|p| p.as_ref()),
+            self.preview
+                .as_ref()
+                .and_then(|p| p.command_text())
+                .map(|c| c.as_ref()),
         );
-        let head = div()
-            .flex()
-            .items_start()
-            .px(px(12.))
-            .py(px(8.))
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .flex_1()
-                    .min_w_0()
-                    .child(
-                        div()
-                            .flex()
-                            .items_start()
-                            .justify_between()
-                            .gap(px(12.))
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_baseline()
-                                    .gap(px(8.))
-                                    .min_w_0()
-                                    .child(
-                                        div()
-                                            .flex_none()
-                                            .font_weight(FontWeight::MEDIUM)
-                                            .text_color(theme.foreground)
-                                            .child(SharedString::from(title)),
-                                    )
-                                    .children(tool_line.map(|tool| {
-                                        div()
-                                            .debug_selector(|| "approval-tool-line".into())
-                                            .min_w_0()
-                                            .truncate()
-                                            .font_family(MONO_FONT_FAMILY)
-                                            .text_size(TextSize::Xs.font_size())
-                                            .text_color(muted)
-                                            .child(SharedString::from(tool))
-                                    })),
-                            )
-                            .child(AnimatedBadge::new(child(&id, "status"), status.badge()).size(BadgeSize::Small).show_icon(false).label(status.label()).debug_name("approval-status")),
-                    )
-                    .when_some(description, |d, description| {
-                        d.child(div().debug_selector(|| "approval-description".into()).mt(px(2.)).line_height(px(20.)).text_color(muted).child(SharedString::from(description)))
-                    })
-                    .when(has_params, |d| {
-                        let toggle = motion.clone();
-                        d.child(
+        let head = div().flex().items_start().px(px(12.)).py(px(8.)).child(
+            div()
+                .flex()
+                .flex_col()
+                .flex_1()
+                .min_w_0()
+                .child(
+                    div()
+                        .flex()
+                        .items_start()
+                        .justify_between()
+                        .gap(px(12.))
+                        .child(
                             div()
-                                .id(child(&id, "toggle"))
                                 .flex()
-                                .items_center()
-                                .gap(px(4.))
-                                .mt(px(4.))
-                                .cursor_pointer()
-                                .text_size(TextSize::Xs.font_size())
-                                .font_weight(FontWeight::MEDIUM)
-                                .text_color(muted)
-                                .hover(|s| s.text_color(theme.foreground))
-                                .press_stop(child(&id, "details-focus"), crate::theme::radius::md(), window, cx)
-                                .on_click(move |_, _, cx| {
-                                    let reduce = cx.reduce_motion();
-                                    toggle.update(cx, |m, cx| {
-                                        let open = !m.disclosure.open;
-                                        m.disclosure.set_open(open, reduce);
-                                        cx.notify();
-                                    })
-                                })
-                                .child("View details")
-                                .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.)),
+                                .items_baseline()
+                                .gap(px(8.))
+                                .min_w_0()
+                                .child(
+                                    div()
+                                        .flex_none()
+                                        .font_weight(FontWeight::MEDIUM)
+                                        .text_color(theme.foreground)
+                                        .child(SharedString::from(title)),
+                                )
+                                .children(tool_line.map(|tool| {
+                                    div()
+                                        .debug_selector(|| "approval-tool-line".into())
+                                        .min_w_0()
+                                        .truncate()
+                                        .font_family(MONO_FONT_FAMILY)
+                                        .text_size(TextSize::Xs.font_size())
+                                        .text_color(muted)
+                                        .child(SharedString::from(tool))
+                                })),
                         )
-                    }),
-            );
+                        .child(
+                            AnimatedBadge::new(child(&id, "status"), status.badge())
+                                .size(BadgeSize::Small)
+                                .show_icon(false)
+                                .label(status.label())
+                                .debug_name("approval-status"),
+                        ),
+                )
+                .when_some(description, |d, description| {
+                    d.child(
+                        div()
+                            .debug_selector(|| "approval-description".into())
+                            .mt(px(2.))
+                            .line_height(px(20.))
+                            .text_color(muted)
+                            .child(SharedString::from(description)),
+                    )
+                })
+                .when(has_params, |d| {
+                    let toggle = motion.clone();
+                    d.child(
+                        div()
+                            .id(child(&id, "toggle"))
+                            .flex()
+                            .items_center()
+                            .gap(px(4.))
+                            .mt(px(4.))
+                            .cursor_pointer()
+                            .text_size(TextSize::Xs.font_size())
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(muted)
+                            .hover(|s| s.text_color(theme.foreground))
+                            .press_stop(
+                                child(&id, "details-focus"),
+                                crate::theme::radius::md(),
+                                window,
+                                cx,
+                            )
+                            .on_click(move |_, _, cx| {
+                                let reduce = cx.reduce_motion();
+                                toggle.update(cx, |m, cx| {
+                                    let open = !m.disclosure.open;
+                                    m.disclosure.set_open(open, reduce);
+                                    cx.notify();
+                                })
+                            })
+                            .child("View details")
+                            .child(
+                                Icon::new(IconName::ChevronDown)
+                                    .size(px(14.))
+                                    .turn(chevron / 360.),
+                            ),
+                    )
+                }),
+        );
 
-        let preview = self.preview.as_ref().filter(|_| pending).map(|p| preview_view(&id, p, &theme));
+        let preview = self
+            .preview
+            .as_ref()
+            .filter(|_| pending)
+            .map(|p| preview_view(&id, p, &theme));
         let details = has_params.then(|| {
             div()
                 .flex()
@@ -277,7 +320,10 @@ impl RenderOnce for ToolApproval {
                             ))
                         })
                         .child(wire(
-                            Button::new(child(&id, "deny")).label("Deny").variant(ButtonVariant::Ghost).size(ButtonSize::Sm),
+                            Button::new(child(&id, "deny"))
+                                .label("Deny")
+                                .variant(ButtonVariant::Ghost)
+                                .size(ButtonSize::Sm),
                             self.on_deny,
                         )),
                 )

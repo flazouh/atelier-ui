@@ -1,5 +1,5 @@
-use crate::keys::Press;
 use super::types::TaskCommand;
+use crate::keys::Press;
 
 /// The command a press asks for, if any. `typing` is whether a text input has focus: then only a press
 /// with a modifier, and Escape, can be a command.

@@ -23,9 +23,9 @@ pub use structs::ToolApproval;
 pub use types::{ParamValue, ToolApprovalStatus};
 
 #[cfg(test)]
-use gpui_kit::div;
-#[cfg(test)]
 use crate::tool_preview::ToolPreview;
+#[cfg(test)]
+use gpui_kit::div;
 
 #[cfg(test)]
 mod tests;

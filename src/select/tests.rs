@@ -35,8 +35,8 @@ mod clicks {
     use std::{cell::Cell, rc::Rc};
 
     use gpui_kit::{
-        Context, InteractiveElement, IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled,
-        TestAppContext, Window, div, px,
+        Context, InteractiveElement, IntoElement, ParentElement, Render,
+        StatefulInteractiveElement, Styled, TestAppContext, Window, div, px,
     };
 
     use crate::{
@@ -77,12 +77,21 @@ mod clicks {
         });
         let (picked, backdrop) = (Rc::new(Cell::new(None)), Rc::new(Cell::new(0)));
         let (p, b) = (picked.clone(), backdrop.clone());
-        let (_view, cx) = cx.add_window_view(move |_, _| Over { picked: p, backdrop: b });
+        let (_view, cx) = cx.add_window_view(move |_, _| Over {
+            picked: p,
+            backdrop: b,
+        });
         cx.run_until_parked();
-        let option = cx.debug_bounds("select-option-1").expect("the open panel shows its options");
+        let option = cx
+            .debug_bounds("select-option-1")
+            .expect("the open panel shows its options");
         cx.simulate_click(option.center(), gpui_kit::Modifiers::default());
         assert_eq!(picked.get(), Some(1), "the option was picked");
-        assert_eq!(backdrop.get(), 0, "and the backdrop under the panel heard nothing");
+        assert_eq!(
+            backdrop.get(),
+            0,
+            "and the backdrop under the panel heard nothing"
+        );
     }
 
     /// A select at the foot of the window, closed until the test opens it.
@@ -90,9 +99,18 @@ mod clicks {
 
     impl Render for Foot {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            div().size_full().flex().flex_col().justify_end().p(px(8.)).child(
-                div().w(px(200.)).debug_selector(|| "foot-select".into()).child(Select::new("s", ["One", "Two", "Three"])),
-            )
+            div()
+                .size_full()
+                .flex()
+                .flex_col()
+                .justify_end()
+                .p(px(8.))
+                .child(
+                    div()
+                        .w(px(200.))
+                        .debug_selector(|| "foot-select".into())
+                        .child(Select::new("s", ["One", "Two", "Three"])),
+                )
         }
     }
 
@@ -107,18 +125,28 @@ mod clicks {
         let (_view, cx) = cx.add_window_view(|_, _| Foot);
         cx.simulate_resize(gpui_kit::size(px(400.), px(400.)));
         cx.run_until_parked();
-        let trigger = cx.debug_bounds("foot-select").expect("the trigger is drawn");
+        let trigger = cx
+            .debug_bounds("foot-select")
+            .expect("the trigger is drawn");
         cx.simulate_click(trigger.center(), gpui_kit::Modifiers::default());
         cx.run_until_parked();
-        let option = cx.debug_bounds("select-option-0").expect("the panel shows its options");
-        assert!(option.bottom() <= trigger.top(), "the panel is above the trigger: {option:?} over {trigger:?}");
+        let option = cx
+            .debug_bounds("select-option-0")
+            .expect("the panel shows its options");
+        assert!(
+            option.bottom() <= trigger.top(),
+            "the panel is above the trigger: {option:?} over {trigger:?}"
+        );
     }
 }
 
 mod keys {
     use std::{cell::RefCell, rc::Rc};
 
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext,
+        Window, div, px,
+    };
 
     use crate::{
         select::Select,
@@ -135,7 +163,10 @@ mod keys {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let picks = self.picks.clone();
             div().w(px(240.)).p(px(8.)).child(
-                Select::new("keys", ["Apple", "Banana", "Cherry"]).selected(Some(1)).focus_handle(&self.trigger).on_change(move |i, _, _| picks.borrow_mut().push(i)),
+                Select::new("keys", ["Apple", "Banana", "Cherry"])
+                    .selected(Some(1))
+                    .focus_handle(&self.trigger)
+                    .on_change(move |i, _, _| picks.borrow_mut().push(i)),
             )
         }
     }
@@ -149,7 +180,10 @@ mod keys {
         });
         let picks = Rc::new(RefCell::new(Vec::new()));
         let seen = picks.clone();
-        let (view, cx) = cx.add_window_view(move |_, cx| Host { picks: seen, trigger: cx.focus_handle() });
+        let (view, cx) = cx.add_window_view(move |_, cx| Host {
+            picks: seen,
+            trigger: cx.focus_handle(),
+        });
         cx.run_until_parked();
         // The trigger has focus, as after a click on it or a Tab to it.
         let trigger = view.read_with(cx, |host, _| host.trigger.clone());
@@ -179,7 +213,11 @@ mod keys {
         cx.simulate_keystrokes("down");
         assert!(is_open(cx));
         cx.simulate_keystrokes("down enter");
-        assert_eq!(*picks.borrow(), [2], "opening lights the chosen Banana; one down is Cherry");
+        assert_eq!(
+            *picks.borrow(),
+            [2],
+            "opening lights the chosen Banana; one down is Cherry"
+        );
         assert!(!is_open(cx), "a pick closes the list");
     }
 
@@ -187,7 +225,11 @@ mod keys {
     fn up_goes_back_and_the_ends_stop(cx: &mut TestAppContext) {
         let (picks, cx) = open_host(cx);
         cx.simulate_keystrokes("enter down down down down up enter");
-        assert_eq!(*picks.borrow(), [1], "it stops at the last option and one up is the second");
+        assert_eq!(
+            *picks.borrow(),
+            [1],
+            "it stops at the last option and one up is the second"
+        );
         cx.simulate_keystrokes("enter up up up enter");
         assert_eq!(*picks.borrow(), [1, 0], "and stops at the first");
     }
@@ -225,11 +267,26 @@ mod keys {
 
 #[test]
 fn type_ahead_finds_the_first_label_that_starts_with_the_letters() {
-    let labels: Vec<SharedString> = ["Apple", "Banana", "Blueberry", "Cherry"].into_iter().map(Into::into).collect();
+    let labels: Vec<SharedString> = ["Apple", "Banana", "Blueberry", "Cherry"]
+        .into_iter()
+        .map(Into::into)
+        .collect();
     assert_eq!(type_ahead(&labels, None, "c"), Some(3));
-    assert_eq!(type_ahead(&labels, Some(0), "B"), Some(1), "the case does not matter");
-    assert_eq!(type_ahead(&labels, Some(1), "bl"), Some(2), "more letters narrow it");
-    assert_eq!(type_ahead(&labels, Some(1), "bb"), Some(2), "the same letter again goes to the next option that starts with it");
+    assert_eq!(
+        type_ahead(&labels, Some(0), "B"),
+        Some(1),
+        "the case does not matter"
+    );
+    assert_eq!(
+        type_ahead(&labels, Some(1), "bl"),
+        Some(2),
+        "more letters narrow it"
+    );
+    assert_eq!(
+        type_ahead(&labels, Some(1), "bb"),
+        Some(2),
+        "the same letter again goes to the next option that starts with it"
+    );
     assert_eq!(type_ahead(&labels, Some(2), "bbb"), Some(1), "and wraps");
     assert_eq!(type_ahead(&labels, None, "z"), None);
     assert_eq!(type_ahead(&labels, None, ""), None);
@@ -237,7 +294,9 @@ fn type_ahead_finds_the_first_label_that_starts_with_the_letters() {
 }
 
 mod marks {
-    use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px};
+    use gpui_kit::{
+        Context, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px,
+    };
 
     use crate::{
         model_badge::BrandMark,
@@ -250,8 +309,14 @@ mod marks {
     impl Render for Marked {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
             let first = SelectOption::from("Claude");
-            let first = if self.0 { first.mark(BrandMark::new("a.svg", "a.svg")) } else { first };
-            div().w(px(240.)).child(Select::new("m", [first, SelectOption::from("Atelier")]).default_open(true))
+            let first = if self.0 {
+                first.mark(BrandMark::new("a.svg", "a.svg"))
+            } else {
+                first
+            };
+            div()
+                .w(px(240.))
+                .child(Select::new("m", [first, SelectOption::from("Atelier")]).default_open(true))
         }
     }
 
@@ -263,12 +328,19 @@ mod marks {
         });
         let (_, cx) = cx.add_window_view(move |_, _| Marked(marked));
         cx.run_until_parked();
-        (cx.debug_bounds("select-monogram-A").is_some(), cx.debug_bounds("select-monogram-C").is_some())
+        (
+            cx.debug_bounds("select-monogram-A").is_some(),
+            cx.debug_bounds("select-monogram-C").is_some(),
+        )
     }
 
     #[gpui_kit::test]
     fn an_option_without_a_mark_shows_its_letter_where_the_mark_goes(cx: &mut TestAppContext) {
-        assert_eq!(drawn(true, cx), (true, false), "Atelier has no mark beside Claude, which has one");
+        assert_eq!(
+            drawn(true, cx),
+            (true, false),
+            "Atelier has no mark beside Claude, which has one"
+        );
     }
 
     #[gpui_kit::test]
@@ -281,8 +353,9 @@ mod dismiss {
     use std::{cell::Cell, rc::Rc};
 
     use gpui_kit::{
-        Context, InteractiveElement, IntoElement, ParentElement, Render, StatefulInteractiveElement, Styled, TestAppContext,
-        VisualTestContext, Window, div, point, px,
+        Context, InteractiveElement, IntoElement, ParentElement, Render,
+        StatefulInteractiveElement, Styled, TestAppContext, VisualTestContext, Window, div, point,
+        px,
     };
 
     use crate::{
@@ -308,7 +381,13 @@ mod dismiss {
                         hovers.set(hovers.get() + 1)
                     }
                 })
-                .child(div().w(px(200.)).m(px(8.)).debug_selector(|| "the-select".into()).child(Select::new("s", ["One", "Two", "Three"])))
+                .child(
+                    div()
+                        .w(px(200.))
+                        .m(px(8.))
+                        .debug_selector(|| "the-select".into())
+                        .child(Select::new("s", ["One", "Two", "Three"])),
+                )
         }
     }
 
@@ -317,7 +396,10 @@ mod dismiss {
     }
 
     /// The same page, with the motion on or off.
-    fn page_with(reduce: bool, cx: &mut TestAppContext) -> (Rc<Cell<usize>>, Rc<Cell<usize>>, &mut VisualTestContext) {
+    fn page_with(
+        reduce: bool,
+        cx: &mut TestAppContext,
+    ) -> (Rc<Cell<usize>>, Rc<Cell<usize>>, &mut VisualTestContext) {
         cx.update(|cx| {
             gpui_kit::init(cx);
             crate::select::bind_keys(cx);
@@ -326,7 +408,10 @@ mod dismiss {
         });
         let (clicks, hovers) = (Rc::new(Cell::new(0)), Rc::new(Cell::new(0)));
         let (c, h) = (clicks.clone(), hovers.clone());
-        let (_view, cx) = cx.add_window_view(move |_, _| Page { clicks: c, hovers: h });
+        let (_view, cx) = cx.add_window_view(move |_, _| Page {
+            clicks: c,
+            hovers: h,
+        });
         cx.simulate_resize(gpui_kit::size(px(400.), px(400.)));
         cx.run_until_parked();
         (clicks, hovers, cx)
@@ -336,11 +421,16 @@ mod dismiss {
         let at = cx.debug_bounds("the-select").unwrap().center();
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         cx.run_until_parked();
-        assert!(cx.debug_bounds("select-option-0").is_some(), "the list is open");
+        assert!(
+            cx.debug_bounds("select-option-0").is_some(),
+            "the list is open"
+        );
     }
 
     #[gpui_kit::test]
-    fn a_click_outside_closes_the_list_and_the_page_under_it_hears_nothing(cx: &mut TestAppContext) {
+    fn a_click_outside_closes_the_list_and_the_page_under_it_hears_nothing(
+        cx: &mut TestAppContext,
+    ) {
         let (clicks, _, cx) = page(cx);
         open(cx);
         let before = clicks.get();
@@ -353,12 +443,24 @@ mod dismiss {
     #[gpui_kit::test]
     fn the_page_is_not_hovered_while_the_list_is_open(cx: &mut TestAppContext) {
         let (_, hovers, cx) = page(cx);
-        cx.simulate_mouse_move(point(px(390.), px(390.)), None, gpui_kit::Modifiers::default());
+        cx.simulate_mouse_move(
+            point(px(390.), px(390.)),
+            None,
+            gpui_kit::Modifiers::default(),
+        );
         cx.run_until_parked();
         let before = hovers.get();
         open(cx);
-        cx.simulate_mouse_move(point(px(300.), px(300.)), None, gpui_kit::Modifiers::default());
-        cx.simulate_mouse_move(point(px(350.), px(350.)), None, gpui_kit::Modifiers::default());
+        cx.simulate_mouse_move(
+            point(px(300.), px(300.)),
+            None,
+            gpui_kit::Modifiers::default(),
+        );
+        cx.simulate_mouse_move(
+            point(px(350.), px(350.)),
+            None,
+            gpui_kit::Modifiers::default(),
+        );
         cx.run_until_parked();
         assert_eq!(hovers.get(), before, "the backdrop blocks hover");
     }
@@ -381,16 +483,29 @@ mod dismiss {
         let at = cx.debug_bounds("the-select").unwrap().center();
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         settle(cx);
-        assert!(cx.debug_bounds("select-option-0").is_some(), "the first press opens it");
+        assert!(
+            cx.debug_bounds("select-option-0").is_some(),
+            "the first press opens it"
+        );
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         settle(cx);
-        assert!(cx.debug_bounds("select-option-0").is_none(), "the second press shuts it");
-        cx.simulate_mouse_move(point(px(390.), px(390.)), None, gpui_kit::Modifiers::default());
+        assert!(
+            cx.debug_bounds("select-option-0").is_none(),
+            "the second press shuts it"
+        );
+        cx.simulate_mouse_move(
+            point(px(390.), px(390.)),
+            None,
+            gpui_kit::Modifiers::default(),
+        );
         cx.simulate_mouse_move(at, None, gpui_kit::Modifiers::default());
         settle(cx);
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         settle(cx);
-        assert!(cx.debug_bounds("select-option-0").is_some(), "the next press opens it the first time");
+        assert!(
+            cx.debug_bounds("select-option-0").is_some(),
+            "the next press opens it the first time"
+        );
     }
 
     /// Frames of 16 ms for `ms` on the frozen clock.
@@ -414,10 +529,16 @@ mod dismiss {
         run_for(120, cx);
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         run_for(600, cx);
-        assert!(cx.debug_bounds("select-option-0").is_none(), "the second press shut it");
+        assert!(
+            cx.debug_bounds("select-option-0").is_none(),
+            "the second press shut it"
+        );
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         run_for(600, cx);
-        assert!(cx.debug_bounds("select-option-0").is_some(), "the third press opens it the first time");
+        assert!(
+            cx.debug_bounds("select-option-0").is_some(),
+            "the third press opens it the first time"
+        );
     }
 
     #[gpui_kit::test]
@@ -428,7 +549,10 @@ mod dismiss {
         let at = cx.debug_bounds("the-select").unwrap().center();
         cx.simulate_click(at, gpui_kit::Modifiers::default());
         cx.run_until_parked();
-        assert!(cx.debug_bounds("select-option-0").is_none(), "the trigger toggles it shut");
+        assert!(
+            cx.debug_bounds("select-option-0").is_none(),
+            "the trigger toggles it shut"
+        );
         assert_eq!(clicks.get(), before, "and the page heard nothing of it");
     }
 }
@@ -437,7 +561,10 @@ mod dismiss {
 #[test]
 fn the_panel_is_rows_of_28_with_2px_between_and_an_edge() {
     assert_eq!(panel_height_of(3, 0), 2. * 4. + 3. * 28. + 2. * 2. + 2.);
-    assert_eq!(panel_height_of(3, 1), 2. * 4. + 3. * 28. + 26. + 3. * 2. + 2.);
+    assert_eq!(
+        panel_height_of(3, 1),
+        2. * 4. + 3. * 28. + 26. + 3. * 2. + 2.
+    );
     assert_eq!((ITEM_HEIGHT, ROW_GAP), (28., 2.));
 }
 /// The options come in as the web's MorphSelect has them: 80ms after the open, 35ms apart, 0.3s each.
@@ -453,17 +580,31 @@ fn the_options_come_in_on_the_webs_stagger() {
 fn the_rise_spring_starts_at_rest_overshoots_and_settles() {
     assert_eq!(spring_unit(500., 25., 0.), 0.);
     assert!(spring_unit(500., 25., 0.01) < 0.05);
-    let peak = (0..200).map(|i| spring_unit(500., 25., i as f32 * 0.005)).fold(0., f32::max);
+    let peak = (0..200)
+        .map(|i| spring_unit(500., 25., i as f32 * 0.005))
+        .fold(0., f32::max);
     // zeta = 25 / (2 sqrt 500) = 0.559, so the first overshoot is exp(-pi zeta / sqrt(1 - zeta^2)) = 12%.
     assert!((peak - 1.12).abs() < 0.01, "{peak}");
     assert!((spring_unit(500., 25., 1.) - 1.).abs() < 1e-3);
     // The spring and the closed form agree with what `Animated` integrates.
-    let mut spring = crate::motion::Animated::new(crate::motion::Spring { stiffness: 500., damping: 25., mass: 1. }, 0.);
+    let mut spring = crate::motion::Animated::new(
+        crate::motion::Spring {
+            stiffness: 500.,
+            damping: 25.,
+            mass: 1.,
+        },
+        0.,
+    );
     spring.set_target(1.);
     for _ in 0..10 {
         spring.step(0.01, false);
     }
-    assert!((spring.value() - spring_unit(500., 25., 0.1)).abs() < 0.01, "{} vs {}", spring.value(), spring_unit(500., 25., 0.1));
+    assert!(
+        (spring.value() - spring_unit(500., 25., 0.1)).abs() < 0.01,
+        "{} vs {}",
+        spring.value(),
+        spring_unit(500., 25., 0.1)
+    );
 }
 /// The surface is the trigger at 0 and the panel at 1, and its height is the trigger plus the list.
 #[test]
@@ -478,14 +619,29 @@ fn the_surface_is_the_trigger_then_the_panel() {
 #[test]
 fn a_still_pointer_lights_an_uncovered_trigger_it_is_inside() {
     use gpui_kit::{Bounds, point, px, size};
-    let trigger = Some(Bounds::new(point(px(10.), px(10.)), size(px(100.), px(30.))));
+    let trigger = Some(Bounds::new(
+        point(px(10.), px(10.)),
+        size(px(100.), px(30.)),
+    ));
     let inside = point(px(50.), px(20.));
     let outside = point(px(300.), px(300.));
-    assert!(should_light(false, false, trigger, inside), "uncovered, dull, inside: light it");
-    assert!(!should_light(true, false, trigger, inside), "the list covers it");
+    assert!(
+        should_light(false, false, trigger, inside),
+        "uncovered, dull, inside: light it"
+    );
+    assert!(
+        !should_light(true, false, trigger, inside),
+        "the list covers it"
+    );
     assert!(!should_light(false, true, trigger, inside), "already lit");
-    assert!(!should_light(false, false, trigger, outside), "the pointer is elsewhere");
-    assert!(!should_light(false, false, None, inside), "not measured yet");
+    assert!(
+        !should_light(false, false, trigger, outside),
+        "the pointer is elsewhere"
+    );
+    assert!(
+        !should_light(false, false, None, inside),
+        "not measured yet"
+    );
 }
 
 /// The web's morph spring, `{ duration: 0.5, bounce: 0.22 }`, run twice as fast: `duration: 0.25`.
@@ -503,7 +659,12 @@ fn the_trigger_tone_is_the_ghost_hover_for_every_trigger() {
         let ghost = crate::button::colors(crate::button::ButtonVariant::Ghost, theme, 1., false).0;
         let clear = gpui_kit::transparent_black();
         assert_eq!(trigger_tone(theme, clear, 0.), clear);
-        assert_eq!(trigger_tone(theme, clear, 1.), ghost, "{}: a chip is the Ghost hover", theme.name);
+        assert_eq!(
+            trigger_tone(theme, clear, 1.),
+            ghost,
+            "{}: a chip is the Ghost hover",
+            theme.name
+        );
         assert!((trigger_tone(theme, theme.card, 0.).l - theme.card.l).abs() < 1e-5);
         let held = trigger_tone(theme, theme.card, 1.);
         assert_ne!(held, theme.card, "{}: a field steps too", theme.name);
@@ -535,22 +696,36 @@ fn the_morph_follows_the_webs_spring_at_sixty_frames_a_second() {
 }
 
 mod morph {
-    use gpui_kit::{Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px};
     use crate::{
         select::{Select, list_height_of},
         theme::{Appearance, set_appearance},
+    };
+    use gpui_kit::{
+        Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext,
+        Window, div, px,
     };
     struct Page {
         down: bool,
     }
     impl Render for Page {
         fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-            let select = Select::new("m", ["One", "Two", "Three"]).selected(Some(1)).default_open(true);
-            let frame = div().w(px(200.)).debug_selector(|| "the-select".into()).child(select);
+            let select = Select::new("m", ["One", "Two", "Three"])
+                .selected(Some(1))
+                .default_open(true);
+            let frame = div()
+                .w(px(200.))
+                .debug_selector(|| "the-select".into())
+                .child(select);
             if self.down {
                 div().size_full().p(px(8.)).child(frame)
             } else {
-                div().size_full().flex().flex_col().justify_end().p(px(8.)).child(frame)
+                div()
+                    .size_full()
+                    .flex()
+                    .flex_col()
+                    .justify_end()
+                    .p(px(8.))
+                    .child(frame)
             }
         }
     }
@@ -570,28 +745,59 @@ mod morph {
     fn the_surface_grows_from_the_trigger_down(cx: &mut TestAppContext) {
         let cx = open(true, cx);
         let trigger = cx.debug_bounds("the-select").unwrap();
-        let surface = cx.debug_bounds("select-surface").expect("the surface is drawn");
-        assert_eq!((surface.left(), surface.top()), (trigger.left(), trigger.top()), "it starts on the trigger");
-        let header = cx.debug_bounds("select-header").expect("the header is drawn");
-        assert_eq!((header.left(), header.top(), header.size.height), (trigger.left(), trigger.top(), trigger.size.height), "the header is the trigger's row");
-        assert_eq!(f32::from(surface.size.height), f32::from(trigger.size.height) + list_height_of(3, 0));
+        let surface = cx
+            .debug_bounds("select-surface")
+            .expect("the surface is drawn");
+        assert_eq!(
+            (surface.left(), surface.top()),
+            (trigger.left(), trigger.top()),
+            "it starts on the trigger"
+        );
+        let header = cx
+            .debug_bounds("select-header")
+            .expect("the header is drawn");
+        assert_eq!(
+            (header.left(), header.top(), header.size.height),
+            (trigger.left(), trigger.top(), trigger.size.height),
+            "the header is the trigger's row"
+        );
+        assert_eq!(
+            f32::from(surface.size.height),
+            f32::from(trigger.size.height) + list_height_of(3, 0)
+        );
         assert_eq!(surface.size.width, trigger.size.width);
         let first = cx.debug_bounds("select-option-0").unwrap();
-        assert!(first.top() >= header.bottom(), "the options are under the header");
+        assert!(
+            first.top() >= header.bottom(),
+            "the options are under the header"
+        );
         let face = cx.debug_bounds("select-header-face").unwrap();
-        assert_eq!(f32::from(face.left() - surface.left()), 14., "the header lines up with the options");
+        assert_eq!(
+            f32::from(face.left() - surface.left()),
+            14.,
+            "the header lines up with the options"
+        );
     }
     /// At the foot of the window it grows up from the trigger: the trigger's bottom stays put.
     #[gpui_kit::test]
     fn the_surface_grows_from_the_trigger_up(cx: &mut TestAppContext) {
         let cx = open(false, cx);
         let trigger = cx.debug_bounds("the-select").unwrap();
-        let surface = cx.debug_bounds("select-surface").expect("the surface is drawn");
-        assert_eq!(surface.bottom(), trigger.bottom(), "its foot stays on the trigger's");
+        let surface = cx
+            .debug_bounds("select-surface")
+            .expect("the surface is drawn");
+        assert_eq!(
+            surface.bottom(),
+            trigger.bottom(),
+            "its foot stays on the trigger's"
+        );
         let header = cx.debug_bounds("select-header").unwrap();
         assert_eq!(header.bottom(), trigger.bottom());
         let last = cx.debug_bounds("select-option-2").unwrap();
-        assert!(last.bottom() <= header.top(), "the options are over the header");
+        assert!(
+            last.bottom() <= header.top(),
+            "the options are over the header"
+        );
     }
 }
 
@@ -600,7 +806,11 @@ fn the_header_inset_eases_from_the_trigger_to_the_options() {
     assert_eq!(header_inset(12., 0.), 12.);
     assert_eq!(header_inset(8., 1.), 14.);
     assert_eq!(header_inset(12., 0.5), 13.);
-    assert_eq!(header_inset(12., 2.), 14., "the overshoot does not push it past");
+    assert_eq!(
+        header_inset(12., 2.),
+        14.,
+        "the overshoot does not push it past"
+    );
 }
 
 #[test]
@@ -615,20 +825,51 @@ fn a_select_rounds_every_corner_until_it_is_told_to_join_a_row() {
 #[test]
 fn a_select_has_no_fill_of_its_own_until_given_one() {
     assert!(Select::new("s", ["a"]).fill.is_none());
-    assert!(Select::new("s", ["a"]).fill(gpui_kit::hsla(0., 0., 0.5, 1.)).fill.is_some());
+    assert!(
+        Select::new("s", ["a"])
+            .fill(gpui_kit::hsla(0., 0., 0.5, 1.))
+            .fill
+            .is_some()
+    );
 }
 
 #[test]
 fn the_panel_is_square_where_the_trigger_is_square_and_round_at_its_far_end() {
     use gpui_kit::Corners;
     // The right part of two: its left side meets a neighbour.
-    let right_part = Corners { top_left: false, top_right: true, bottom_left: false, bottom_right: true };
+    let right_part = Corners {
+        top_left: false,
+        top_right: true,
+        bottom_left: false,
+        bottom_right: true,
+    };
     let down = super::helpers::panel_corners(right_part, false);
-    assert_eq!((down.top_left, down.top_right), (false, true), "the top follows the trigger");
-    assert_eq!((down.bottom_left, down.bottom_right), (true, true), "the far end is round");
+    assert_eq!(
+        (down.top_left, down.top_right),
+        (false, true),
+        "the top follows the trigger"
+    );
+    assert_eq!(
+        (down.bottom_left, down.bottom_right),
+        (true, true),
+        "the far end is round"
+    );
     let up = super::helpers::panel_corners(right_part, true);
-    assert_eq!((up.bottom_left, up.bottom_right), (false, true), "opening up, the bottom follows it");
+    assert_eq!(
+        (up.bottom_left, up.bottom_right),
+        (false, true),
+        "opening up, the bottom follows it"
+    );
     assert_eq!((up.top_left, up.top_right), (true, true));
-    let alone = Corners { top_left: true, top_right: true, bottom_left: true, bottom_right: true };
-    assert_eq!(super::helpers::panel_corners(alone, false), alone, "a lone select is round all round");
+    let alone = Corners {
+        top_left: true,
+        top_right: true,
+        bottom_left: true,
+        bottom_right: true,
+    };
+    assert_eq!(
+        super::helpers::panel_corners(alone, false),
+        alone,
+        "a lone select is round all round"
+    );
 }

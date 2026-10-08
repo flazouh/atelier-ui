@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use gpui_kit::{Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+use gpui_kit::{
+    Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext,
+    VisualTestContext, Window, div, px,
+};
 
 use super::*;
 use crate::{
@@ -11,7 +14,15 @@ use crate::{
 #[test]
 fn text_is_cut_into_runs_of_digits_and_words() {
     assert_eq!(runs("+12"), vec![("+".into(), false), ("12".into(), true)]);
-    assert_eq!(runs("3 of 12 reviewed"), vec![("3".into(), true), (" of ".into(), false), ("12".into(), true), (" reviewed".into(), false)]);
+    assert_eq!(
+        runs("3 of 12 reviewed"),
+        vec![
+            ("3".into(), true),
+            (" of ".into(), false),
+            ("12".into(), true),
+            (" reviewed".into(), false)
+        ]
+    );
     assert_eq!(runs("none"), vec![("none".into(), false)]);
     assert!(runs("").is_empty());
 }
@@ -22,7 +33,11 @@ struct Page {
 
 impl Render for Page {
     fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
-        div().p(px(20.)).flex().items_start().child(div().debug_selector(|| "digits".into()).child(Digits::new("d", self.text, px(20.))))
+        div().p(px(20.)).flex().items_start().child(
+            div()
+                .debug_selector(|| "digits".into())
+                .child(Digits::new("d", self.text, px(20.))),
+        )
     }
 }
 
@@ -53,7 +68,10 @@ fn each_digit_has_a_slot_06_em_wide_and_the_sign_is_plain(cx: &mut TestAppContex
         page.update(cx, |_, cx| cx.notify());
     }
     let three = f32::from(cx.debug_bounds("digits").unwrap().size.width);
-    assert!((three - two - 12.).abs() < 0.5, "one more digit is 0.6 * 20 = 12px wider: {two} then {three}");
+    assert!(
+        (three - two - 12.).abs() < 0.5,
+        "one more digit is 0.6 * 20 = 12px wider: {two} then {three}"
+    );
 }
 
 #[gpui_kit::test]
@@ -70,18 +88,32 @@ fn a_changed_digit_rolls_and_settles_and_the_box_keeps_its_width(cx: &mut TestAp
         cx.run_until_parked();
         page.update(cx, |_, cx| cx.notify());
     }
-    assert_eq!(f32::from(cx.debug_bounds("digits").unwrap().size.width), before, "same slots");
+    assert_eq!(
+        f32::from(cx.debug_bounds("digits").unwrap().size.width),
+        before,
+        "same slots"
+    );
 }
 
 #[test]
 fn the_slot_is_the_line_height_of_the_text_around() {
-    assert_eq!((line_for(11.), line_for(12.), line_for(14.), line_for(16.), line_for(20.)), (16., 16., 20., 24., 28.));
+    assert_eq!(
+        (
+            line_for(11.),
+            line_for(12.),
+            line_for(14.),
+            line_for(16.),
+            line_for(20.)
+        ),
+        (16., 16., 20., 24., 28.)
+    );
 }
 #[gpui_kit::test]
 fn a_count_row_keeps_its_height_before_during_and_after_a_roll(cx: &mut TestAppContext) {
     motion::clock::freeze();
     let (page, cx) = open(false, cx);
-    let height = |cx: &mut VisualTestContext| f32::from(cx.debug_bounds("digits").unwrap().size.height);
+    let height =
+        |cx: &mut VisualTestContext| f32::from(cx.debug_bounds("digits").unwrap().size.height);
     let rest = height(cx);
     assert_eq!(rest, line_for(20.), "the line height of 20px text");
     page.update(cx, |p, cx| {

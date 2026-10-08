@@ -39,12 +39,15 @@ fn the_hover_lists_every_window_and_the_note() {
 
 #[test]
 fn the_hover_says_why_there_are_no_numbers_and_when_they_are_old() {
-    let none =
-        ProviderGauge::new("Codex", Lead::Monogram).state(GaugeState::Unavailable("Codex is not signed in".into()));
+    let none = ProviderGauge::new("Codex", Lead::Monogram)
+        .state(GaugeState::Unavailable("Codex is not signed in".into()));
     assert_eq!(
         none.tooltip().lines().collect::<Vec<_>>(),
         ["Codex", "Codex is not signed in"]
     );
     let old = claude().state(GaugeState::Stale);
-    assert_eq!(old.tooltip().lines().last(), Some("Showing the last numbers read"));
+    assert_eq!(
+        old.tooltip().lines().last(),
+        Some("Showing the last numbers read")
+    );
 }

@@ -5,6 +5,8 @@ use gpui_kit::{
     StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder, relative,
 };
 
+use super::helpers::{content_color, surface_fill};
+use super::types::{LINE, MessageBubbleAlign, MessageBubbleVariant, PAD_X, PAD_Y};
 use crate::scale::px;
 use crate::{
     entrance::Entrance,
@@ -14,8 +16,6 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{LINE, MessageBubbleAlign, MessageBubbleVariant, PAD_X, PAD_Y};
-use super::helpers::{content_color, surface_fill};
 
 #[derive(IntoElement)]
 pub struct MessageBubble {
@@ -79,7 +79,11 @@ impl RenderOnce for MessageBubble {
         let card = div()
             .relative()
             .when(!ghost, |d| {
-                d.min_w(px(36.)).max_w(relative(0.82)).px(px(PAD_X)).py(px(PAD_Y)).rounded(radius::xl())
+                d.min_w(px(36.))
+                    .max_w(relative(0.82))
+                    .px(px(PAD_X))
+                    .py(px(PAD_Y))
+                    .rounded(radius::xl())
             })
             .when(ghost, |d| d.w_full())
             .text_size(TextSize::Sm.font_size())
@@ -89,9 +93,12 @@ impl RenderOnce for MessageBubble {
             .child(match self.content {
                 Content::Element(element) => element,
                 // The wash is the text's own colour, so it shows on a light bubble and a dark one alike.
-                Content::Words(words) => gpui_kit::base::SelectableText::new(ElementId::NamedChild(Arc::new(self.id.clone()), "words".into()), words)
-                    .selection_color(text_color.opacity(0.25))
-                    .into_any_element(),
+                Content::Words(words) => gpui_kit::base::SelectableText::new(
+                    ElementId::NamedChild(Arc::new(self.id.clone()), "words".into()),
+                    words,
+                )
+                .selection_color(text_color.opacity(0.25))
+                .into_any_element(),
             });
 
         let row = div()
@@ -101,7 +108,11 @@ impl RenderOnce for MessageBubble {
             .when(self.align == MessageBubbleAlign::End, |d| d.items_end())
             .when(self.align == MessageBubbleAlign::Start, |d| d.items_start())
             .child(card);
-        Entrance::new(ElementId::NamedChild(Arc::new(self.id), "enter".into()), row).skip_initial(!self.animate_in)
+        Entrance::new(
+            ElementId::NamedChild(Arc::new(self.id), "enter".into()),
+            row,
+        )
+        .skip_initial(!self.animate_in)
     }
 }
 
@@ -123,7 +134,13 @@ pub struct MessageBubbleCollapsible {
 
 impl MessageBubbleCollapsible {
     pub fn new(id: impl Into<ElementId>, content: impl IntoElement) -> Self {
-        Self { id: id.into(), collapsed_lines: 4, default_open: false, fade_into: None, content: content.into_any_element() }
+        Self {
+            id: id.into(),
+            collapsed_lines: 4,
+            default_open: false,
+            fade_into: None,
+            content: content.into_any_element(),
+        }
     }
 
     /// How many lines show before the fade, from beui's `2 | 3 | 4 | 5 | 6`.
@@ -183,7 +200,10 @@ impl RenderOnce for MessageBubbleCollapsible {
 
         let toggle = motion.clone();
         let pill = div()
-            .id(ElementId::NamedChild(std::sync::Arc::new(self.id.clone()), "toggle".into()))
+            .id(ElementId::NamedChild(
+                std::sync::Arc::new(self.id.clone()),
+                "toggle".into(),
+            ))
             .mt(px(4.))
             .flex()
             .h(px(24.))
@@ -196,17 +216,31 @@ impl RenderOnce for MessageBubbleCollapsible {
             .text_color(theme.muted_foreground)
             .cursor_pointer()
             .hover(|s| s.bg(theme.card).text_color(theme.foreground))
-            .press_stop((self.id.clone(), "more-focus"), crate::theme::radius::md(), window, cx)
+            .press_stop(
+                (self.id.clone(), "more-focus"),
+                crate::theme::radius::md(),
+                window,
+                cx,
+            )
             .on_click(move |_, _, cx| {
                 let reduce = cx.reduce_motion();
                 toggle.update(cx, |m, cx| {
                     m.open = !m.open;
-                    m.chevron.animate(if m.open { 180. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+                    m.chevron.animate(
+                        if m.open { 180. } else { 0. },
+                        Curve::Spring(Spring::SWAP),
+                        0.,
+                        reduce,
+                    );
                     cx.notify();
                 })
             })
             .child(if open { "Show less" } else { "Show more" })
-            .child(Icon::new(IconName::ChevronDown).size(px(14.)).turn(chevron / 360.));
+            .child(
+                Icon::new(IconName::ChevronDown)
+                    .size(px(14.))
+                    .turn(chevron / 360.),
+            );
 
         div().flex().flex_col().w_full().child(clipped).child(pill)
     }

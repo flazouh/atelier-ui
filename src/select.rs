@@ -23,11 +23,11 @@ mod helpers;
 mod structs;
 mod types;
 
+pub(crate) use helpers::monogram;
+pub(crate) use helpers::trigger_tone;
 pub use helpers::{
     bind_keys, header_inset, list_height_of, opens_in, panel_height_of, spring_unit, surface_at,
 };
-pub(crate) use helpers::trigger_tone;
-pub(crate) use helpers::monogram;
 pub use structs::{Select, SelectManage, SelectOption};
 pub use types::{OPTION_INSET, ROW_GAP, SelectHandler};
 
