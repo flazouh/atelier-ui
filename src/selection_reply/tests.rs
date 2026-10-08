@@ -362,3 +362,14 @@ fn a_press_inside_the_box_keeps_it(cx: &mut TestAppContext) {
     settle(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "still open");
 }
+
+/// The note row is one slim pill: a single line is no taller than the round buttons plus a thin rim.
+#[gpui_kit::test]
+fn the_note_row_is_one_slim_pill(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open_with(cx, true);
+    select_the_words(cx);
+    let note = cx.debug_bounds("selection-reply-note").expect("the note is drawn");
+    let mic = cx.debug_bounds("selection-reply-mic").expect("the mic is drawn");
+    let add = cx.debug_bounds("selection-reply-add").expect("Add is drawn");
+    assert!(f32::from(note.size.height) <= 30., "one line: {:?}", note.size);
+}
