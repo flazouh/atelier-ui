@@ -7,7 +7,7 @@ use gpui_kit::{
 
 use crate::scale::px;
 use crate::wake::Wake;
-use super::helpers::{frame_height, native_size, restarts, shared_clock};
+use super::helpers::{frame_box, native_size, restarts, shared_clock};
 
 /// One animation as a vertical strip of square frames.
 #[derive(Clone, Copy)]
@@ -157,8 +157,7 @@ impl RenderOnce for Sprite {
         });
         // A whole number of pixels: at a fractional size (a zoom) the frames would not meet the clip and a sliver of the
         // next one would show.
-        let size = gpui_kit::px(f32::from(self.size).round().max(1.));
-        let frame_h = px(frame_height(shown.native_size(), shown.frames, size.into()));
+        let (size, frame_h) = frame_box(self.size, shown.native_size(), shown.frames);
         div().flex_none().w(size).h(frame_h).overflow_hidden().child(
             svg()
                 .path(shown.path)

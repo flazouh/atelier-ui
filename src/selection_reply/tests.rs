@@ -405,7 +405,5 @@ fn the_note_row_is_one_slim_pill(cx: &mut TestAppContext) {
     let (_host, _, cx) = open_with(cx, true);
     select_the_words(cx);
     let note = cx.debug_bounds("selection-reply-note").expect("the note is drawn");
-    let mic = cx.debug_bounds("selection-reply-mic").expect("the mic is drawn");
-    let add = cx.debug_bounds("selection-reply-add").expect("Add is drawn");
     assert!(f32::from(note.size.height) <= 30., "one line: {:?}", note.size);
 }

@@ -21,7 +21,7 @@ mod helpers;
 mod structs;
 
 #[cfg(test)]
-pub(crate) use helpers::{frame_height, native_size, restarts};
+pub(crate) use helpers::{frame_box, frame_height, native_size, restarts};
 pub use structs::{Sprite, Strip};
 
 #[cfg(test)]

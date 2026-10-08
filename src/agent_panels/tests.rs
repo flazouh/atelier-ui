@@ -183,3 +183,43 @@ fn the_strip_fades_each_edge_only_while_more_lies_beyond_it(cx: &mut TestAppCont
     cx.run_until_parked();
     assert_eq!(fades(cx), (true, false), "at the end: more before it, nothing after");
 }
+
+/// At a zoom, dragging a column's edge by some window pixels grows the column by those pixels, not by a multiple of them.
+#[gpui_kit::test]
+fn dragging_an_edge_at_a_zoom_moves_it_with_the_pointer(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+        cx.set_reduce_motion(true);
+    });
+    crate::scale::set_zoom(1.5);
+    let (_host, cx) = cx.add_window_view(|_, cx| {
+        let panels = cx.new(AgentPanels::new);
+        let look = AgentLook::neutral(cx.theme());
+        let list: Vec<PanelData> = (0..2)
+            .map(|i| PanelData {
+                id: format!("p{i}").into(),
+                project: ProjectLabel { id: "project".into(), name: "project".into(), location: Location::Local, badge: None },
+                title: format!("Session {i}").into(),
+                look: look.clone(),
+                status: SessionStatus::Idle,
+                content: crate::panel_types::content_from(move |_, _| div().debug_selector(move || format!("col-{i}")).size_full().into_any_element(), cx),
+            })
+            .collect();
+        panels.update(cx, |p, cx| p.set_panels(list, vec!["project".into()], cx));
+        Strip { panels }
+    });
+    cx.simulate_resize(gpui_kit::size(px(1400.), px(600.)));
+    cx.run_until_parked();
+    let before = cx.debug_bounds("col-0").expect("the first column is drawn");
+    let at = gpui_kit::point(before.right() + px(1.), before.center().y);
+    cx.simulate_mouse_down(at, gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_move(at + gpui_kit::point(px(40.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_move(at + gpui_kit::point(px(80.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.simulate_mouse_up(at + gpui_kit::point(px(80.), px(0.)), gpui_kit::MouseButton::Left, gpui_kit::Modifiers::default());
+    cx.run_until_parked();
+    crate::scale::set_zoom(1.);
+    let after = cx.debug_bounds("col-0").expect("still drawn");
+    let grew = f32::from(after.size.width - before.size.width);
+    assert!((grew - 80.).abs() < 3., "80 window pixels of drag grew the column by {grew}");
+}
