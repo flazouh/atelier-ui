@@ -142,20 +142,22 @@ fn gauge_bar(used: f32, theme: &Theme) -> AnyElement {
         .into_any_element()
 }
 
-fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> Vec<AnyElement> {
+/// The processor and the memory, each as its own cluster.
+fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> (AnyElement, AnyElement) {
     let cpu = cluster(parts.part("cpu"), "status-cpu", load.cpu_tooltip(), theme)
         .child("CPU")
         .child(spark(&load.cpu_history, theme))
         .child(
             div()
+                .min_w(px(28.))
                 .text_color(Pressure::of(load.cpu).ink(theme))
                 .child(load.cpu_words()),
         );
     let memory = cluster(parts.part("memory"), "status-memory", load.memory_tooltip(), theme)
         .child("RAM")
-        .child(mini_gauge(load.memory_fraction(), theme))
+        .child(gauge_bar(load.memory_fraction(), theme))
         .child(load.memory_words());
-    vec![cpu.into_any_element(), memory.into_any_element()]
+    (cpu.into_any_element(), memory.into_any_element())
 }
 
 fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
@@ -231,16 +233,21 @@ fn mini_gauge(used: f32, theme: &Theme) -> AnyElement {
 impl RenderOnce for StatusBar {
     fn render(self, _window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
-        let machine = self.load.as_ref().map(|load| load_clusters(&self, load, &theme)).unwrap_or_default();
+        let (cpu, memory) = match self.load.as_ref().map(|load| load_clusters(&self, load, &theme)) {
+            Some((cpu, memory)) => (Some(cpu), Some(memory)),
+            None => (None, None),
+        };
         let work = work_cluster(self.work, &theme);
         let providers: Vec<AnyElement> = self.providers.iter().map(|provider| provider_chip(&self, provider, &theme)).collect();
         let (lead, tail) = (self.lead, self.tail.filter(|_| !self.providers.is_empty()));
         let mut cards: Vec<AnyElement> = Vec::new();
         let mut middle: Vec<AnyElement> = Vec::new();
+        // The processor, with its history, has the sidebar's card to itself; the memory and the work stand in the next.
         match lead {
-            Some(width) => cards.push(card(machine, "status-card-machine", Some(width), &theme)),
-            None => middle.extend(machine),
+            Some(width) => cards.push(card(cpu.into_iter().collect(), "status-card-cpu", Some(width), &theme)),
+            None => middle.extend(cpu),
         }
+        middle.extend(memory);
         middle.extend(work);
         match tail {
             Some(width) => {
