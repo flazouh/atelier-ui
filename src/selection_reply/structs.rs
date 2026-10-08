@@ -6,13 +6,13 @@ use super::{AddReply, DropReply};
 
 use gpui_kit::{
     Anchor, App, AppContext, Context, DispatchPhase, Entity, EventEmitter, FocusHandle, Focusable, InteractiveElement, IntoElement,
-    MouseButton, MouseUpEvent, ParentElement, Render, SharedString, Styled, Subscription, Window, anchored, base::TextSelection, canvas,
+    MouseButton, MouseDownEvent, MouseUpEvent, ParentElement, Render, SharedString, Styled, Subscription, Window, anchored, base::TextSelection, canvas,
     component::input::{InputEvent, Position, Textarea, TextareaState}, deferred, div, point,
 };
 
 use crate::scale::px;
 use crate::{
-    motion::{Channel, Curve, Spring, cubic_bezier, duration, ease},
+    motion::{Channel, Curve, Spring, cubic_bezier, ease},
     prompt_input::append_transcript,
     voice_input::{Mic, VoiceInputEvent, VoiceMode, listening_row, mic_slot},
 };
@@ -24,7 +24,7 @@ use crate::{
     typography::TextSize,
 };
 use super::helpers::shown;
-use super::types::{CONTEXT, Phase, QUOTE_SHOWN, ReplyPreset, SelectionReplyEvent};
+use super::types::{CONTEXT, OFFER_IN, Phase, QUOTE_SHOWN, ReplyPreset, SelectionReplyEvent};
 
 /// The reply to a selection: a button where the selection ended, then a small box for the note.
 pub struct SelectionReply {
@@ -35,6 +35,8 @@ pub struct SelectionReply {
     add_label: SharedString,
     /// Whether the microphone shows; the owner answers its events.
     presets: Vec<ReplyPreset>,
+    /// Where the left button last went down, to tell a drag from a click.
+    down: Option<gpui_kit::Point<gpui_kit::Pixels>>,
     /// How many offers have come up, so each one plays its entrance.
     offers: u64,
     dictation: bool,
@@ -69,6 +71,7 @@ impl SelectionReply {
             add_label: "Add".into(),
             presets: Vec::new(),
             offers: 0,
+            down: None,
             dictation: false,
             voice: VoiceMode::Idle,
             voice_level: 0.,
@@ -160,6 +163,18 @@ impl SelectionReply {
         cx.notify();
     }
 
+    /// A drag ended inside: the bar comes up now, in the next frame, with the words still to be read. Waiting for the read
+    /// first would cost one more frame, which the reader feels as a lag. [`Self::settle`] fills the quote in, or takes the
+    /// bar back when nothing is selected.
+    fn offer_now(&mut self, at: gpui_kit::Point<gpui_kit::Pixels>, cx: &mut Context<Self>) {
+        match self.phase {
+            Phase::Writing { .. } => return,
+            Phase::Offer { .. } => {}
+            Phase::Idle => self.offers += 1,
+        }
+        self.phase = Phase::Offer { at, quote: SharedString::default() };
+        cx.notify();
+    }
     /// The frame has painted the selection: `quote` is what it holds. If words are selected the button comes up where the press
     /// was released, and if not it goes. A selection that ends beyond the parent belongs to someone else's reply.
     fn settle(&mut self, quote: &str, cx: &mut Context<Self>) {
@@ -168,8 +183,9 @@ impl SelectionReply {
             return;
         }
         let quote = quote.trim();
+        let was_offer = matches!(self.phase, Phase::Offer { .. });
         self.phase = if quote.is_empty() || !inside { Phase::Idle } else { Phase::Offer { at, quote: quote.to_string().into() } };
-        if matches!(self.phase, Phase::Offer { .. }) {
+        if matches!(self.phase, Phase::Offer { .. }) && !was_offer {
             self.offers += 1;
         }
         cx.notify();
@@ -187,6 +203,9 @@ impl SelectionReply {
         self.write_note(note, window, cx);
     }
     fn write(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if matches!(&self.phase, Phase::Offer { quote, .. } if quote.is_empty()) {
+            return;
+        }
         if let Phase::Offer { at, quote } = std::mem::replace(&mut self.phase, Phase::Idle) {
             self.phase = Phase::Writing { at, quote, key: None };
             window.focus(&self.note.focus_handle(cx), cx);
@@ -197,6 +216,9 @@ impl SelectionReply {
     /// Adds the reply on the offer with the note of preset `at`.
     fn preset(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
         let Some(preset) = self.presets.get(at).cloned() else { return };
+        if matches!(&self.phase, Phase::Offer { quote, .. } if quote.is_empty()) {
+            return;
+        }
         let Phase::Offer { quote, .. } = std::mem::replace(&mut self.phase, Phase::Idle) else { return };
         TextSelection::clear(window, cx);
         cx.emit(SelectionReplyEvent::Reply { quote, note: preset.note, key: None });
@@ -244,12 +266,23 @@ impl Render for SelectionReply {
                     // The offer is drawn in the next frame; ask for it, so it does not wait for the next input.
                     window.request_animation_frame();
                 }
+                let down = this.clone();
+                window.on_mouse_event(move |event: &MouseDownEvent, phase, _, cx| {
+                    if phase == DispatchPhase::Capture && event.button == MouseButton::Left {
+                        down.update(cx, |reply, _| reply.down = Some(event.position)).ok();
+                    }
+                });
                 let this = this.clone();
                 window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
                     if phase != DispatchPhase::Capture || event.button != MouseButton::Left {
                         return;
                     }
                     let (this, at, inside) = (this.clone(), event.position, bounds.contains(&event.position));
+                    let moved = |from: gpui_kit::Point<gpui_kit::Pixels>| (from.x - at.x).abs() > px(3.) || (from.y - at.y).abs() > px(3.);
+                    let dragged = event.click_count >= 2 || this.read_with(cx, |reply, _| reply.down.is_some_and(moved)).unwrap_or(false);
+                    if inside && dragged {
+                        this.update(cx, |reply, cx| reply.offer_now(at, cx)).ok();
+                    }
                     // After the frame's own handlers have run, the selection is settled.
                     window.defer(cx, move |window, cx| {
                         this.update(cx, |reply, cx| reply.released(at, inside, cx)).ok();
@@ -300,8 +333,8 @@ impl Render for SelectionReply {
                 } else {
                     card.with_animation(
                         gpui_kit::ElementId::Name(format!("selection-reply-offer-{}", self.offers).into()),
-                        Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
-                        |card, t| card.opacity(t).mt(px(4. * (1. - t))),
+                        Animation::new(OFFER_IN).with_easing(|t| cubic_bezier(ease::OUT, t)),
+                        |card, t| card.opacity(0.5 + 0.5 * t).mt(px(3. * (1. - t))),
                     )
                     .into_any_element()
                 };
