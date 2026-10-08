@@ -1,5 +1,7 @@
 use gpui_kit::{Pixels, Point, SharedString};
 
+use crate::voice_input::VoiceInputEvent;
+
 pub(super) const CONTEXT: &str = "SelectionReply";
 
 /// The most characters of the quote the box shows; the whole quote is still reported.
@@ -11,6 +13,12 @@ pub enum SelectionReplyEvent {
     /// The reader replies to `quote` (the words they selected) with `note`, which may be empty. `key` is what
     /// [`SelectionReply::edit`](super::SelectionReply::edit) was given, handed back, when this reply changes an earlier one.
     Reply { quote: SharedString, note: SharedString, key: Option<SharedString> },
+    /// The reader pressed the microphone (see [`SelectionReply::dictation`](super::SelectionReply::dictation)): the
+    /// owner starts or stops listening, and hands the words back with
+    /// [`SelectionReply::insert_transcript`](super::SelectionReply::insert_transcript).
+    Dictate(VoiceInputEvent),
+    /// The box closed while the microphone listened: the owner drops that press.
+    DictationCancel,
 }
 
 /// Where the reply is: nothing selected, a button at the end of a selection, or the box open.

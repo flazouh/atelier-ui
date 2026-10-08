@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{AddReply, DropReply};
 
 use gpui_kit::{
@@ -8,10 +10,13 @@ use gpui_kit::{
 
 use crate::scale::px;
 use crate::{
+    motion::{Channel, Curve, Spring},
+    prompt_input::append_transcript,
+    voice_input::{Mic, VoiceInputEvent, VoiceMode, listening_row, mic_slot},
+};
+use crate::{
     button::{Button, ButtonSize, ButtonVariant},
-    focus::Field,
     icon::IconName,
-    kbd::Kbd,
     popover::PRIORITY,
     theme::{ActiveTheme, radius},
     typography::TextSize,
@@ -26,6 +31,13 @@ pub struct SelectionReply {
     released: Option<(gpui_kit::Point<gpui_kit::Pixels>, bool)>,
     note: Entity<TextareaState>,
     add_label: SharedString,
+    /// Whether the microphone shows; the owner answers its events.
+    dictation: bool,
+    voice: VoiceMode,
+    voice_level: f32,
+    voice_since: Option<Instant>,
+    /// 0 shows the microphone, 1 the stop square.
+    mic_swap: Channel,
     _note: Subscription,
 }
 
@@ -45,7 +57,18 @@ impl SelectionReply {
                 cx.notify()
             }
         });
-        Self { phase: Phase::Idle, released: None, note, add_label: "Add".into(), _note: subscription }
+        Self {
+            phase: Phase::Idle,
+            released: None,
+            note,
+            add_label: "Add".into(),
+            dictation: false,
+            voice: VoiceMode::Idle,
+            voice_level: 0.,
+            voice_since: None,
+            mic_swap: Channel::new(0.),
+            _note: subscription,
+        }
     }
 
     /// The word on the button that adds the reply.
@@ -54,6 +77,61 @@ impl SelectionReply {
         self
     }
 
+    /// Shows a microphone in the box. Its presses are reported as [`SelectionReplyEvent::Dictate`](super::SelectionReplyEvent).
+    pub fn dictation(mut self, on: bool) -> Self {
+        self.dictation = on;
+        self
+    }
+    pub fn voice_mode(&self) -> VoiceMode {
+        self.voice
+    }
+    pub fn set_voice_idle(&mut self, cx: &mut Context<Self>) {
+        self.go_voice(VoiceMode::Idle, cx);
+    }
+    pub fn set_voice_listening(&mut self, cx: &mut Context<Self>) {
+        self.go_voice(VoiceMode::Listening, cx);
+    }
+    /// The microphone's level now, 0 to 1.
+    pub fn set_voice_level(&mut self, level: f32, cx: &mut Context<Self>) {
+        self.voice_level = level;
+        cx.notify();
+    }
+    fn go_voice(&mut self, mode: VoiceMode, cx: &mut Context<Self>) {
+        let listening = mode == VoiceMode::Listening;
+        if listening && self.voice != VoiceMode::Listening {
+            self.voice_since = Some(Instant::now());
+        }
+        if !listening {
+            self.voice_level = 0.;
+        }
+        self.voice = mode;
+        let reduce = cx.reduce_motion();
+        self.mic_swap.animate(if listening { 1. } else { 0. }, Curve::Spring(Spring::SWAP), 0., reduce);
+        cx.notify();
+    }
+    /// The words the microphone heard, after the note. They are dropped when the box has closed since.
+    pub fn insert_transcript(&mut self, words: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if self.voice == VoiceMode::Listening {
+            self.go_voice(VoiceMode::Idle, cx);
+        }
+        let words = words.trim();
+        if words.is_empty() || !matches!(self.phase, Phase::Writing { .. }) {
+            return;
+        }
+        let written = append_transcript(self.note.read(cx).value().as_ref(), words);
+        self.write_note(&written, window, cx);
+    }
+    /// Puts `text` in the note, with the caret at its end, where a reader goes on writing.
+    fn write_note(&mut self, text: &str, window: &mut Window, cx: &mut Context<Self>) {
+        let line = text.matches('\n').count() as u32;
+        let character = text.rsplit('\n').next().map_or(0, |last| last.encode_utf16().count()) as u32;
+        self.note.update(cx, |t, cx| {
+            t.set_value(text.to_string(), window, cx);
+            t.set_cursor_position(Position::new(line, character), window, cx);
+        });
+        window.focus(&self.note.focus_handle(cx), cx);
+        cx.notify();
+    }
     /// Whether a button or the box is showing.
     pub fn showing(&self) -> bool {
         !matches!(self.phase, Phase::Idle)
@@ -91,17 +169,8 @@ impl SelectionReply {
         key: impl Into<SharedString>,
         window: &mut Window, cx: &mut Context<Self>) {
         self.phase = Phase::Writing { at, quote: quote.into(), key: Some(key.into()) };
-        let line = note.matches('\n').count() as u32;
-        let character = note.rsplit('\n').next().map_or(0, |last| last.encode_utf16().count()) as u32;
-        // The caret goes to the end, where a reader goes on writing.
-        self.note.update(cx, |t, cx| {
-            t.set_value(note.to_string(), window, cx);
-            t.set_cursor_position(Position::new(line, character), window, cx);
-        });
-        window.focus(&self.note.focus_handle(cx), cx);
-        cx.notify();
+        self.write_note(note, window, cx);
     }
-
     fn write(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if let Phase::Offer { at, quote } = std::mem::replace(&mut self.phase, Phase::Idle) {
             self.phase = Phase::Writing { at, quote, key: None };
@@ -111,6 +180,11 @@ impl SelectionReply {
     }
 
     fn add(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        // While it listens, adding ends the press first: the words are in the note before the reply goes.
+        if self.voice == VoiceMode::Listening {
+            cx.emit(SelectionReplyEvent::Dictate(VoiceInputEvent::Stop));
+            return;
+        }
         let Phase::Writing { quote, key, .. } = std::mem::replace(&mut self.phase, Phase::Idle) else { return };
         let note: SharedString = self.note.read(cx).value().trim().to_string().into();
         self.note.update(cx, |t, cx| t.set_value("", window, cx));
@@ -121,6 +195,10 @@ impl SelectionReply {
 
     /// Drops the button or the box, and the selection it was for, so the release that pressed Cancel does not offer it again.
     fn drop_reply(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.voice == VoiceMode::Listening {
+            self.go_voice(VoiceMode::Idle, cx);
+            cx.emit(SelectionReplyEvent::DictationCancel);
+        }
         self.phase = Phase::Idle;
         self.note.update(cx, |t, cx| t.set_value("", window, cx));
         TextSelection::clear(window, cx);
@@ -170,59 +248,83 @@ impl Render for SelectionReply {
                 Some(floating(*at, window, card.into_any_element()))
             }
             Phase::Writing { at, quote, .. } => {
+                let reduce = cx.reduce_motion();
+                let swap = self.mic_swap.value();
+                if self.mic_swap.is_running() || (self.voice == VoiceMode::Listening && !reduce) {
+                    window.request_animation_frame();
+                }
+                let listening = self.voice == VoiceMode::Listening;
+                let seconds = self.voice_since.map_or(0., |s| s.elapsed().as_secs_f32());
+                // The note stays in the tree while the microphone listens, hidden under the voice, so Enter and Escape
+                // still reach it.
+                let said = div()
+                    .relative()
+                    .child(
+                        div()
+                            .opacity(if listening { 0. } else { 1. })
+                            .child(Textarea::new(&self.note).appearance(false).px(px(8.)).py(px(4.)).text_size(TextSize::Sm.font_size())),
+                    )
+                    .children(listening.then(|| {
+                        div()
+                            .absolute()
+                            .inset_0()
+                            .flex()
+                            .items_center()
+                            .px(px(8.))
+                            .child(listening_row(self.voice_level, seconds, theme.muted_foreground))
+                    }));
+                let mic = self.dictation.then(|| {
+                    let mic = Mic { id: "selection-reply-mic", mode: self.voice, swap, seconds, blocked: false, theme: theme.clone(), reduce };
+                    mic_slot(mic, cx.listener(|this, _, _, cx| match this.voice {
+                        VoiceMode::Idle | VoiceMode::Failed => cx.emit(SelectionReplyEvent::Dictate(VoiceInputEvent::Start)),
+                        VoiceMode::Listening => cx.emit(SelectionReplyEvent::Dictate(VoiceInputEvent::Stop)),
+                        VoiceMode::Setup => {}
+                    }))
+                    .debug_selector(|| "selection-reply-mic".into())
+                });
                 let card = div()
                     .debug_selector(|| "selection-reply-box".into())
                     .key_context(CONTEXT)
                     .on_action(cx.listener(|this, _: &AddReply, window, cx| this.add(window, cx)))
                     .on_action(cx.listener(|this, _: &DropReply, window, cx| this.drop_reply(window, cx)))
-                    .w(px(320.))
+                    .w(px(300.))
                     .flex()
                     .flex_col()
-                    .gap(px(8.))
-                    .p(px(10.))
+                    .gap(px(2.))
+                    .p(px(6.))
                     .rounded(radius::xl())
                     .bg(theme.card_strong)
                     .shadow_md()
                     .child(
                         div()
                             .debug_selector(|| "selection-reply-quote".into())
-                            .pl(px(8.))
+                            .mx(px(8.))
+                            .mt(px(2.))
+                            .pl(px(6.))
                             .border_l_2()
-                            .border_color(theme.muted_foreground.opacity(0.5))
+                            .border_color(theme.muted_foreground.opacity(0.4))
                             .text_size(TextSize::Xs.font_size())
                             .text_color(theme.muted_foreground)
-                            .line_clamp(3)
+                            .line_clamp(1)
                             .child(shown(quote, QUOTE_SHOWN)),
-                    )
-                    .child(
-                        Field::new(
-                            self.note.focus_handle(cx),
-                            Textarea::new(&self.note).appearance(false).px(px(8.)).py(px(6.)).text_size(TextSize::Sm.font_size()).line_height(px(20.)),
-                        )
-                        .radius(radius::lg())
-                        .surface(theme.background),
                     )
                     .child(
                         div()
                             .flex()
-                            .items_center()
-                            .justify_end()
-                            .gap(px(6.))
-                            .child(
-                                Button::new("selection-reply-cancel").debug_name("selection-reply-cancel")
-                                    .label("Cancel")
-                                    .variant(ButtonVariant::Ghost)
-                                    .size(ButtonSize::Sm)
-                                    .on_click(cx.listener(|this, _, window, cx| this.drop_reply(window, cx))),
-                            )
+                            .items_end()
+                            .gap(px(4.))
+                            .child(div().debug_selector(|| "selection-reply-note".into()).flex_1().min_w_0().child(said))
+                            .children(mic)
                             .child(
                                 Button::new("selection-reply-add")
-                                    .label(self.add_label.clone())
+                                    .debug_name("selection-reply-add")
+                                    .icon(IconName::ArrowUp)
+                                    .pill(true)
                                     .variant(ButtonVariant::Primary)
-                                    .size(ButtonSize::Sm)
+                                    .size(ButtonSize::Icon)
+                                    .tooltip(self.add_label.clone())
                                     .on_click(cx.listener(|this, _, window, cx| this.add(window, cx))),
-                            )
-                            .child(Kbd::new("↵")),
+                            ),
                     );
                 Some(floating(*at, window, card.into_any_element()))
             }
