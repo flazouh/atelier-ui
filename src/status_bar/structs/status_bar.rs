@@ -9,4 +9,7 @@ pub struct StatusBar {
     pub(in super::super) load: Option<SystemLoad>,
     pub(in super::super) work: Work,
     pub(in super::super) providers: Vec<ProviderGauge>,
+    /// The widths of the cards that stand under the columns above the bar: the sidebar's and the right pane's.
+    pub(in super::super) lead: Option<f32>,
+    pub(in super::super) tail: Option<f32>,
 }

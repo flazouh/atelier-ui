@@ -100,6 +100,8 @@ pub struct AgentPanels {
     pub(crate) viewport: f32,
     /// The strip's padding at its left, 8 unless the strip sits against another card.
     pub(crate) inset_left: f32,
+    /// Its padding at the foot, 8 unless a card stands right under it.
+    pub(crate) inset_bottom: f32,
     /// The bar's width at the last layout, which picks its words.
     pub(crate) origin_x: f32,
     pub(crate) glide: Option<Channel>,
@@ -137,6 +139,7 @@ impl AgentPanels {
             offset: 0.,
             viewport: 0.,
             inset_left: 8.,
+            inset_bottom: 8.,
             origin_x: 0.,
             glide: None,
             last_wheel: None,
@@ -225,6 +228,14 @@ impl AgentPanels {
     pub fn set_inset_left(&mut self, inset: f32, cx: &mut Context<Self>) {
         if (self.inset_left - inset).abs() > 0.1 {
             self.inset_left = inset;
+            cx.notify();
+        }
+    }
+
+    /// The strip's padding at its foot. With a card right under it, it is the panels' own gap.
+    pub fn set_inset_bottom(&mut self, inset: f32, cx: &mut Context<Self>) {
+        if (self.inset_bottom - inset).abs() > 0.1 {
+            self.inset_bottom = inset;
             cx.notify();
         }
     }

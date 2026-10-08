@@ -16,7 +16,7 @@ use crate::{
     sprite::Sprite,
     status_mark::{Mark, StatusMark},
     subagent_row::tool_calls_text,
-    theme::{ActiveTheme, StatusTone, radius},
+    theme::{ActiveTheme, radius},
     tool_call::ToolCall,
     typography::TextSize,
 };

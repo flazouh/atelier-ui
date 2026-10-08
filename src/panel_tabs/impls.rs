@@ -211,7 +211,7 @@ impl AgentPanels {
             .flex_col()
             .pl(px(self.inset_left))
             .pr(px(8.))
-            .pb(px(8.))
+            .pb(px(self.inset_bottom))
             .children(bar.map(|bar| div().flex().flex_none().h(px(TAB_HEIGHT + 4.)).child(bar)))
             .child(div().flex_1().min_h_0().rounded(radius::xl()).overflow_hidden().bg(theme.card).children(content))
             .into_any_element()

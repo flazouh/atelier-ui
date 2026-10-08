@@ -134,7 +134,7 @@ impl AgentPanels {
             .overflow_hidden()
             .pl(px(self.inset_left))
             .pr(px(8.))
-            .pb(px(8.))
+            .pb(px(self.inset_bottom))
             .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _, cx| {
                 let delta = event.delta.pixel_delta(px(16.));
                 let (x, y) = (f32::from(delta.x), f32::from(delta.y));

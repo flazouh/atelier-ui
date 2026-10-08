@@ -10,6 +10,8 @@ pub(super) const SPARK_HEIGHT: f32 = 12.;
 /// A gauge's track.
 pub(super) const GAUGE_WIDTH: f32 = 40.;
 pub(super) const GAUGE_HEIGHT: f32 = 4.;
+/// The short track in a provider's chip.
+pub(super) const MINI_WIDTH: f32 = 22.;
 
 /// A provider's mark.
 pub(super) const MARK: f32 = 13.;
