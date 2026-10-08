@@ -39,7 +39,7 @@ pub struct SelectionReply {
     /// Where the left button last went down, to tell a drag from a click.
     down: Option<gpui_kit::Point<gpui_kit::Pixels>>,
     /// How many offers have come up, so each one plays its entrance.
-    offers: u64,
+    pub(super) offers: u64,
     dictation: bool,
     voice: VoiceMode,
     voice_level: f32,
@@ -274,8 +274,10 @@ impl Render for SelectionReply {
         // Whatever the reader does, a release is where a selection ends. It is read after the frame's own handlers have run, so
         // the selection is settled by then.
         let watch = canvas(
-            |_, _, _| {},
-            move |bounds, _, window, cx| {
+            // The area takes no hits of its own, but it asks whether it is the one under the pointer: a layer that covers it
+            // (a page, a dialog) blocks the pointer, and then a press and a drag are not meant for these words.
+            |bounds, window, _| window.insert_hitbox(bounds, gpui_kit::HitboxBehavior::Normal),
+            move |bounds, hitbox, window, cx| {
                 // This paints after the words it replies to, so their selection is settled by now.
                 if this.read_with(cx, |reply, _| reply.released.is_some()).unwrap_or(false) {
                     let quote = TextSelection::selected_text(window, cx);
@@ -283,10 +285,11 @@ impl Render for SelectionReply {
                     // The offer is drawn in the next frame; ask for it, so it does not wait for the next input.
                     window.request_animation_frame();
                 }
-                let down = this.clone();
-                window.on_mouse_event(move |event: &MouseDownEvent, phase, _, cx| {
+                let (down, area) = (this.clone(), hitbox.clone());
+                window.on_mouse_event(move |event: &MouseDownEvent, phase, window, cx| {
                     if phase == DispatchPhase::Capture && event.button == MouseButton::Left {
-                        down.update(cx, |reply, _| reply.down = Some(event.position)).ok();
+                        let at = area.is_hovered_at(event.position, window).then_some(event.position);
+                        down.update(cx, |reply, _| reply.down = at).ok();
                     }
                 });
                 let this = this.clone();
@@ -294,7 +297,7 @@ impl Render for SelectionReply {
                     if phase != DispatchPhase::Capture || event.button != MouseButton::Left {
                         return;
                     }
-                    let (this, at, inside) = (this.clone(), event.position, bounds.contains(&event.position));
+                    let (this, at, inside) = (this.clone(), event.position, bounds.contains(&event.position) && hitbox.is_hovered_at(event.position, window));
                     let moved = |from: gpui_kit::Point<gpui_kit::Pixels>| (from.x - at.x).abs() > px(3.) || (from.y - at.y).abs() > px(3.);
                     let dragged = event.click_count >= 2 || this.read_with(cx, |reply, _| reply.down.is_some_and(moved)).unwrap_or(false);
                     if inside && dragged {
