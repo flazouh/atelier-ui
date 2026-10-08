@@ -189,3 +189,16 @@ fn a_flush_panel_has_no_padding_so_its_view_reaches_every_edge(cx: &mut TestAppC
     assert_eq!(f32::from(panel.size.height), 80., "the view alone, with no padding round it");
     assert_eq!((view.origin.x, view.size.width), (panel.origin.x, panel.size.width));
 }
+
+/// At a zoom the panel is its view and its padding tall, in window pixels: the view is measured in window pixels and the panel
+/// is kept in design pixels, so a panel that took the one for the other would stand taller than its view (168 for 128).
+#[gpui_kit::test]
+fn at_a_zoom_the_panel_is_as_tall_as_its_view_and_its_padding(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(1.5);
+    let (_, cx, _) = open(true, cx);
+    let panel = cx.debug_bounds("panel").unwrap();
+    crate::scale::set_zoom(1.);
+    // The view is 80 window pixels tall (the test draws it unscaled), and the padding is 16 design pixels on each side.
+    let want = 80. + 2. * PAD * 1.5;
+    assert!((f32::from(panel.size.height) - want).abs() < 1.5, "the panel is {:?} tall, not {want}", panel.size.height);
+}
