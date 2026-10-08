@@ -16,3 +16,8 @@ pub(super) const CORNER: f32 = crate::modal::CORNER;
 pub(super) const ICON_TILE_ALPHA: f32 = 0.14;
 /// How tall the notes may be before they scroll, when earlier versions are listed under them.
 pub(super) const HISTORY_MAX: f32 = 340.;
+/// How much of its colour the tile of a typed note takes.
+pub(super) const KIND_TILE_ALPHA: f32 = 0.2;
+/// The close button at the top right: its size and its distance from the corner.
+pub(super) const CLOSE_SIZE: f32 = 30.;
+pub(super) const CLOSE_INSET: f32 = 14.;

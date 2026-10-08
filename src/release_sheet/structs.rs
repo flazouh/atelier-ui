@@ -9,8 +9,9 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, ICON_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, ICON_TILE_ALPHA, KIND_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
     helpers::fade,
+    types::ReleaseKind,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
 
@@ -20,10 +21,17 @@ pub struct ReleaseNote {
     lead: SharedString,
     text: SharedString,
     icon: IconName,
+    kind: Option<ReleaseKind>,
 }
 impl ReleaseNote {
     pub fn new(lead: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
-        Self { lead: lead.into(), text: text.into(), icon: IconName::Check }
+        Self { lead: lead.into(), text: text.into(), icon: IconName::Check, kind: None }
+    }
+    /// What kind of change the note tells of: its icon and its colour follow.
+    pub fn kind(mut self, kind: ReleaseKind) -> Self {
+        self.kind = Some(kind);
+        self.icon = kind.icon();
+        self
     }
     /// The mark in the tile at the line's left (a tick by default).
     pub fn icon(mut self, icon: IconName) -> Self {
@@ -160,6 +168,7 @@ impl RenderOnce for ReleaseSheet {
             notes.into_any_element()
         };
         let (later, install, install_label) = (self.on_later, self.on_install, self.install);
+        let close = later.clone();
         // With nothing to restart, the one button closes the sheet, and it is the main one.
         let close_only = install.is_none();
         let foot = div()
@@ -198,8 +207,30 @@ impl RenderOnce for ReleaseSheet {
             .overflow_hidden()
             .bg(fade(theme.popover, PANEL_ALPHA))
             .child(notes)
-            .child(foot);
+            .children((!close_only).then_some(foot));
 
+        // With nothing to restart there is no foot: Close is a button at the top right, over the picture.
+        let close_button = close_only.then(|| {
+            div()
+                .id((self.id.clone(), "close"))
+                .debug_selector(|| "release-close".into())
+                .absolute()
+                .top(px(CLOSE_INSET))
+                .right(px(CLOSE_INSET))
+                .size(px(CLOSE_SIZE))
+                .rounded(px(CLOSE_SIZE / 2.))
+                .flex()
+                .items_center()
+                .justify_center()
+                .cursor_pointer()
+                .hover(move |style| style.bg(fade(light, 0.18)))
+                .on_click(move |_, window, cx| {
+                    if let Some(f) = &close {
+                        f(window, cx);
+                    }
+                })
+                .child(Icon::new(IconName::Close).size(px(16.)).color(light))
+        });
         div()
             .id(self.id)
             .debug_selector(|| "release-sheet".into())
@@ -211,6 +242,7 @@ impl RenderOnce for ReleaseSheet {
             .child(picture)
             .child(head)
             .child(panel)
+            .children(close_button)
     }
 }
 
@@ -228,8 +260,8 @@ fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
                             .justify_center()
                             .size(px(34.))
                             .rounded(px(9.))
-                            .bg(fade(theme.foreground, ICON_TILE_ALPHA))
-                            .child(Icon::new(note.icon).size(px(16.)).color(theme.foreground)),
+                            .bg(note.kind.map_or(fade(theme.foreground, ICON_TILE_ALPHA), |kind| fade(kind.tone(theme), KIND_TILE_ALPHA)))
+                            .child(Icon::new(note.icon).size(px(16.)).color(note.kind.map_or(theme.foreground, |kind| kind.tone(theme)))),
                     )
                     .child(
                         div()

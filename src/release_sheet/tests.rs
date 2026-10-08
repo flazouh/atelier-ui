@@ -37,8 +37,11 @@ fn with_nothing_to_restart_the_sheet_has_only_its_close_button(cx: &mut gpui_kit
         cx.notify();
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("release-later").is_some(), "Close stays");
-    assert!(cx.debug_bounds("release-install").is_none(), "and there is nothing to restart");
+    assert!(cx.debug_bounds("release-close").is_some(), "Close is a button of its own");
+    assert!(cx.debug_bounds("release-later").is_none() && cx.debug_bounds("release-install").is_none(), "and the foot is gone");
+    let sheet = cx.debug_bounds("release-sheet").unwrap();
+    let close = cx.debug_bounds("release-close").unwrap();
+    assert!(close.right() <= sheet.right() && sheet.right() - close.right() < gpui_kit::px(30.) && close.top() - sheet.top() < gpui_kit::px(30.), "at the top right: {close:?} in {sheet:?}");
 }
 
 #[gpui_kit::test]
@@ -61,4 +64,17 @@ fn earlier_versions_are_listed_under_the_notes_and_the_list_has_a_height_of_its_
     assert!(cx.debug_bounds("release-earlier-0").is_some() && cx.debug_bounds("release-earlier-5").is_some(), "every earlier version is there");
     let sheet = cx.debug_bounds("release-sheet").expect("the sheet is drawn");
     assert!(f32::from(sheet.size.height) < 232. + 340. + 140., "the notes scroll, so the sheet stays short: {:?}", sheet.size);
+}
+
+#[test]
+fn each_kind_has_its_own_icon_and_colour() {
+    use super::ReleaseKind::{Fixed, Improved, New};
+    let theme = crate::theme::Theme::dark();
+    let kinds = [New, Improved, Fixed];
+    for (i, a) in kinds.iter().enumerate() {
+        for b in &kinds[i + 1..] {
+            assert_ne!(a.icon().name(), b.icon().name(), "{a:?} and {b:?} have two icons");
+            assert_ne!(a.tone(&theme), b.tone(&theme), "{a:?} and {b:?} have two colours");
+        }
+    }
 }
