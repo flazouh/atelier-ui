@@ -6,6 +6,7 @@ use gpui_kit::{
 };
 
 use super::helpers::shown;
+use crate::voice_input::{VoiceInputEvent, VoiceMode};
 use super::*;
 use crate::{
     agent_text::{AgentText, AgentTextStatus},
@@ -43,6 +44,9 @@ impl Render for Host {
 type Heard = Rc<RefCell<Vec<SelectionReplyEvent>>>;
 
 fn open(cx: &mut TestAppContext) -> (Entity<Host>, Heard, &mut VisualTestContext) {
+    open_with(cx, false)
+}
+fn open_with(cx: &mut TestAppContext, dictation: bool) -> (Entity<Host>, Heard, &mut VisualTestContext) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         crate::init(cx);
@@ -51,7 +55,7 @@ fn open(cx: &mut TestAppContext) -> (Entity<Host>, Heard, &mut VisualTestContext
     let heard: Heard = Rc::default();
     let log = heard.clone();
     let (host, cx) = cx.add_window_view(move |window, cx| {
-        let reply = cx.new(|cx| SelectionReply::new(window, cx));
+        let reply = cx.new(|cx| SelectionReply::new(window, cx).dictation(dictation));
         cx.subscribe(&reply, move |_, _, event: &SelectionReplyEvent, _| log.borrow_mut().push(event.clone())).detach();
         Host { reply }
     });
@@ -112,7 +116,7 @@ fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
     settle(cx);
     let events = heard.borrow().clone();
     assert_eq!(events.len(), 1, "{events:?}");
-    let SelectionReplyEvent::Reply { quote, note, key } = &events[0];
+    let SelectionReplyEvent::Reply { quote, note, key } = &events[0] else { panic!("not a reply: {events:?}") };
     assert!(key.is_none(), "a new reply has no key");
     assert!(quote.starts_with("The build fails"), "the quote is what was selected: {quote:?}");
     assert_eq!(note.as_ref(), "it is the cache");
@@ -149,21 +153,88 @@ fn escape_drops_the_reply(cx: &mut TestAppContext) {
     assert!(heard.borrow().is_empty(), "nothing was reported");
 }
 
-/// The Cancel button drops the reply, and its own release does not bring the offer back.
+/// The round Add button sends the reply, as Enter does.
 #[gpui_kit::test]
-fn cancel_drops_the_reply_and_the_offer_stays_gone(cx: &mut TestAppContext) {
+fn the_add_button_sends_the_reply(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
     let offer = cx.debug_bounds("selection-reply-offer").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
-    let cancel = cx.debug_bounds("selection-reply-cancel").expect("Cancel is drawn");
-    cx.simulate_click(cancel.center(), Modifiers::default());
+    cx.simulate_input("yes");
+    let add = cx.debug_bounds("selection-reply-add").expect("Add is drawn");
+    cx.simulate_click(add.center(), Modifiers::default());
     settle(cx);
+    let events = heard.borrow().clone();
+    assert!(matches!(events.as_slice(), [SelectionReplyEvent::Reply { note, .. }] if note.as_ref() == "yes"), "{events:?}");
     assert!(cx.debug_bounds("selection-reply-box").is_none() && cx.debug_bounds("selection-reply-offer").is_none());
-    assert!(heard.borrow().is_empty());
 }
-
+/// The box is one compact row: a one-line quote over the note, with no Cancel button.
+#[gpui_kit::test]
+fn the_box_is_compact(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    select_the_words(cx);
+    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    cx.simulate_click(offer.center(), Modifiers::default());
+    settle(cx);
+    let card = cx.debug_bounds("selection-reply-box").expect("the box is open");
+    assert!(f32::from(card.size.height) < 80., "one quote line and one note row: {:?}", card.size);
+    assert!(cx.debug_bounds("selection-reply-cancel").is_none());
+}
+/// With the microphone on, it shows; pressing it asks the owner to listen, and the words go after the note.
+#[gpui_kit::test]
+fn the_microphone_asks_the_owner_to_listen_and_its_words_join_the_note(cx: &mut TestAppContext) {
+    let (host, heard, cx) = open_with(cx, true);
+    select_the_words(cx);
+    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    cx.simulate_click(offer.center(), Modifiers::default());
+    settle(cx);
+    cx.simulate_input("it is");
+    let mic = cx.debug_bounds("selection-reply-mic").expect("the microphone is drawn");
+    cx.simulate_click(mic.center(), Modifiers::default());
+    settle(cx);
+    assert_eq!(heard.borrow().as_slice(), [SelectionReplyEvent::Dictate(VoiceInputEvent::Start)]);
+    host.update_in(cx, |h, window, cx| {
+        h.reply.update(cx, |r, cx| {
+            r.set_voice_listening(cx);
+            r.insert_transcript("the cache", window, cx);
+        })
+    });
+    settle(cx);
+    assert_eq!(host.read_with(cx, |h, cx| h.reply.read(cx).voice_mode()), VoiceMode::Idle, "the words end the press");
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    let events = heard.borrow().clone();
+    assert!(matches!(events.last(), Some(SelectionReplyEvent::Reply { note, .. }) if note.as_ref() == "it is the cache"), "{events:?}");
+}
+/// Without the microphone switched on, none is drawn.
+#[gpui_kit::test]
+fn no_microphone_unless_the_owner_asks(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    select_the_words(cx);
+    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    cx.simulate_click(offer.center(), Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("selection-reply-mic").is_none());
+}
+/// While it listens, Enter ends the press instead of sending, and Escape drops the press with the box.
+#[gpui_kit::test]
+fn enter_while_listening_stops_and_escape_cancels(cx: &mut TestAppContext) {
+    let (host, heard, cx) = open_with(cx, true);
+    select_the_words(cx);
+    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    cx.simulate_click(offer.center(), Modifiers::default());
+    settle(cx);
+    host.update(cx, |h, cx| h.reply.update(cx, |r, cx| r.set_voice_listening(cx)));
+    settle(cx);
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    assert_eq!(heard.borrow().as_slice(), [SelectionReplyEvent::Dictate(VoiceInputEvent::Stop)]);
+    cx.simulate_keystrokes("escape");
+    settle(cx);
+    assert_eq!(heard.borrow().last(), Some(&SelectionReplyEvent::DictationCancel));
+    assert!(cx.debug_bounds("selection-reply-box").is_none());
+}
 /// A selection that ends outside the parent is not this reply's: nothing is offered.
 #[gpui_kit::test]
 fn a_selection_ending_outside_the_parent_is_not_offered(cx: &mut TestAppContext) {
