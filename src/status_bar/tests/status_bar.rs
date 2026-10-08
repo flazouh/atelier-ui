@@ -196,3 +196,34 @@ mod cards {
         assert!(cx.debug_bounds("status-window-Codex-30d").is_some(), "a single window shows alone");
     }
 }
+
+mod work {
+    use gpui_kit::{IntoElement, ParentElement, Styled, TestAppContext, div, px, size};
+    use crate::{
+        status_bar::{StatusBar, Work},
+        theme::{Appearance, set_appearance},
+    };
+    struct Bar(Work);
+    impl gpui_kit::Render for Bar {
+        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+            div().w(px(600.)).child(StatusBar::new("bar").work(self.0))
+        }
+    }
+    fn shows(work: Work, cx: &mut TestAppContext) -> bool {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Dark, cx);
+        });
+        let (_host, cx) = cx.add_window_view(|_, _| Bar(work));
+        cx.simulate_resize(size(px(600.), px(100.)));
+        cx.run_until_parked();
+        cx.debug_bounds("status-work").is_some()
+    }
+    /// The bar tells the sessions that wait on the reader and says nothing of the ones that work.
+    #[gpui_kit::test]
+    fn only_the_sessions_that_wait_on_the_reader_show(cx: &mut TestAppContext) {
+        assert!(!shows(Work::new(3, 0), cx), "sessions at work are not counted");
+        assert!(shows(Work::new(0, 1), cx), "a session that waits is");
+        assert!(shows(Work::new(2, 1), cx), "and with some at work too");
+    }
+}

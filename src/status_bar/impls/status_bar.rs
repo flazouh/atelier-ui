@@ -160,8 +160,9 @@ fn load_clusters(parts: &StatusBar, load: &SystemLoad, theme: &Theme) -> (AnyEle
     (cpu.into_any_element(), memory.into_any_element())
 }
 
+/// The sessions that wait on the reader. How many work is not shown: only what the reader owes the agents.
 fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
-    if work.is_idle() {
+    if work.needs_you == 0 {
         return None;
     }
     Some(
@@ -171,8 +172,7 @@ fn work_cluster(work: Work, theme: &Theme) -> Option<AnyElement> {
             .flex_none()
             .items_center()
             .gap(px(8.))
-            .children((work.working > 0).then(|| div().text_color(theme.accent).child(work.working_words())))
-            .children((work.needs_you > 0).then(|| div().text_color(theme.warning).child(work.needs_you_words())))
+            .child(div().text_color(theme.warning).child(work.needs_you_words()))
             .into_any_element(),
     )
 }
