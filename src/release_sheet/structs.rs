@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, Window, div, linear_color_stop, linear_gradient,
+    SharedString, StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 use crate::scale::px;
 use crate::{
@@ -9,11 +9,13 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, TILE_BOTTOM_ALPHA, TILE_CORNER, TILE_ICON, TILE_RING_ALPHA, TILE_SIZE, TILE_TOP_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, FOOT_HEIGHT, GLYPH_SIZE, GLYPH_SLOT, HAIRLINE_ALPHA, MIN_NOTES_HEIGHT, PANEL_CORNER, PANEL_GAP, SHEET_CHROME, SIDE},
     helpers::fade,
     types::ReleaseKind,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
+/// The colour of a kind in the theme in force, as the owner gives it.
+type KindColors = Rc<dyn Fn(ReleaseKind, &Theme) -> gpui_kit::Hsla>;
 
 /// One line of what is new: a short lead and what it means.
 #[derive(Clone)]
@@ -27,13 +29,13 @@ impl ReleaseNote {
     pub fn new(lead: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
         Self { lead: lead.into(), text: text.into(), icon: IconName::Check, kind: None }
     }
-    /// What kind of change the note tells of: its icon and its colour follow.
+    /// What kind of change the note tells of: its icon, its label and its colour follow.
     pub fn kind(mut self, kind: ReleaseKind) -> Self {
         self.kind = Some(kind);
         self.icon = kind.icon();
         self
     }
-    /// The mark in the tile at the line's left (a tick by default).
+    /// The mark at the line's left (a tick by default).
     pub fn icon(mut self, icon: IconName) -> Self {
         self.icon = icon;
         self
@@ -63,6 +65,7 @@ pub struct ReleaseSheet {
     install: SharedString,
     on_later: Option<Choice>,
     on_install: Option<Choice>,
+    colors: Option<KindColors>,
 }
 impl ReleaseSheet {
     pub fn new(id: impl Into<ElementId>, version: impl Into<SharedString>) -> Self {
@@ -76,7 +79,15 @@ impl ReleaseSheet {
             install: "Restart and update".into(),
             on_later: None,
             on_install: None,
+            colors: None,
         }
+    }
+    /// The colour of each kind of note, in the theme in force: its icon and its label. This crate names none, so the owner gives
+    /// them, and sees the theme so that a colour can stay readable on a light page. A note of a kind the owner gave none to has
+    /// the neutral foreground.
+    pub fn kind_colors(mut self, colors: impl Fn(ReleaseKind, &Theme) -> gpui_kit::Hsla + 'static) -> Self {
+        self.colors = Some(Rc::new(colors));
+        self
     }
     /// The small line over the version ("What is new in" by default).
     pub fn kicker(mut self, kicker: impl Into<SharedString>) -> Self {
@@ -112,7 +123,7 @@ impl ReleaseSheet {
 }
 
 impl RenderOnce for ReleaseSheet {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme: Theme = cx.theme().clone();
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
@@ -141,7 +152,8 @@ impl RenderOnce for ReleaseSheet {
                     .text_color(light)
                     .child(self.version.clone()));
 
-        let rows = self.notes.into_iter().map(|note| note_row(note, &theme));
+        let colors = self.colors.clone();
+        let rows = self.notes.into_iter().enumerate().map(|(i, note)| note_row(note, i, colors.as_ref(), &theme));
         let scrolls = !self.earlier.is_empty();
         let earlier = self.earlier.into_iter().enumerate().map(|(i, release)| {
             div()
@@ -159,14 +171,16 @@ impl RenderOnce for ReleaseSheet {
                         .text_color(theme.muted_foreground)
                         .child(release.version),
                 )
-                .children(release.notes.into_iter().map(|note| note_row(note, &theme)))
+                .children(release.notes.into_iter().enumerate().map(|(i, note)| note_row(note, i, colors.as_ref(), &theme)))
         });
         let notes = div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows).children(earlier);
-        let notes = if scrolls {
-            div().id((self.id.clone(), "history")).max_h(px(HISTORY_MAX)).overflow_y_scroll().child(notes).into_any_element()
-        } else {
-            notes.into_any_element()
-        };
+        // The notes scroll when they do not fit: with earlier versions under them, past a height of their own; always, past what the
+        // window leaves once the picture, the panel's gaps and its foot have taken theirs. At a zoom the window holds fewer design
+        // pixels, so a sheet that fits at 1 would stand taller than the window.
+        let foot = if self.on_install.is_some() { FOOT_HEIGHT } else { 0. };
+        let room = (crate::scale::design(window.viewport_size().height) - SHEET_CHROME - foot).max(MIN_NOTES_HEIGHT);
+        let most = if scrolls { HISTORY_MAX.min(room) } else { room };
+        let notes = div().id((self.id.clone(), "history")).max_h(px(most)).overflow_y_scroll().child(notes).into_any_element();
         let (later, install, install_label) = (self.on_later, self.on_install, self.install);
         let close = later.clone();
         // With nothing to restart, the one button closes the sheet, and it is the main one.
@@ -246,34 +260,33 @@ impl RenderOnce for ReleaseSheet {
     }
 }
 
-/// The tile at a note's left: the icon in the colour of its kind, on a soft gradient of that colour, inside a thin ring of it. A
-/// note with no kind has the neutral foreground in its place.
-fn icon_tile(note: &ReleaseNote, theme: &Theme) -> gpui_kit::Div {
-    let tone = note.kind.map_or(theme.foreground, |kind| kind.tone(theme));
-    let (top, bottom, ring) = match note.kind {
-        Some(_) => (TILE_TOP_ALPHA, TILE_BOTTOM_ALPHA, TILE_RING_ALPHA),
-        None => (TILE_TOP_ALPHA / 2., TILE_BOTTOM_ALPHA / 2., TILE_RING_ALPHA / 2.),
-    };
-    div()
-        .flex()
-        .flex_none()
-        .items_center()
-        .justify_center()
-        .size(px(TILE_SIZE))
-        .rounded(px(TILE_CORNER))
-        .border_1()
-        .border_color(fade(tone, ring))
-        .bg(linear_gradient(180., linear_color_stop(fade(tone, top), 0.), linear_color_stop(fade(tone, bottom), 1.)))
-        .child(Icon::new(note.icon).size(px(TILE_ICON)).color(tone))
-}
-
-/// One note: the tile with its icon, the lead, and what it says.
-fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
+/// One note: its icon in the colour of its kind, with no tile, then its kind in small capitals in that colour, the lead and what it
+/// says. A hairline parts it from the note above. A note with no kind has a plain mark in the neutral foreground and no label.
+fn note_row(note: ReleaseNote, at: usize, colors: Option<&KindColors>, theme: &Theme) -> gpui_kit::Div {
+    let tone = note.kind.and_then(|kind| colors.map(|colors| colors(kind, theme))).unwrap_or(theme.foreground);
+    let label = note.kind.map(|kind| {
+        div()
+            .debug_selector(move || format!("release-kind-{at}"))
+            .text_size(px(10.5))
+            .line_height(px(14.))
+            .font_weight(FontWeight::BOLD)
+            .text_color(tone)
+            .child(SharedString::from(kind.label().to_uppercase()))
+    });
     div()
         .flex()
         .gap(px(14.))
-        .py(px(9.))
-        .child(icon_tile(&note, theme))
+        .py(px(11.))
+        .when(at > 0, |row| row.border_t_1().border_color(fade(theme.foreground, HAIRLINE_ALPHA)))
+        .child(
+            div()
+                .flex()
+                .flex_none()
+                .justify_center()
+                .w(px(GLYPH_SLOT))
+                .pt(px(1.))
+                .child(Icon::new(note.icon).size(px(GLYPH_SIZE)).color(tone)),
+        )
         .child(
             div()
                 .flex()
@@ -281,6 +294,7 @@ fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
                 .flex_1()
                 .min_w_0()
                 .gap(px(2.))
+                .children(label)
                 .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
                 .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
         )

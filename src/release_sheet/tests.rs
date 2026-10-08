@@ -67,14 +67,74 @@ fn earlier_versions_are_listed_under_the_notes_and_the_list_has_a_height_of_its_
 }
 
 #[test]
-fn each_kind_has_its_own_icon_and_colour() {
-    use super::ReleaseKind::{Fixed, Improved, New};
-    let theme = crate::theme::Theme::dark();
-    let kinds = [New, Improved, Fixed];
+fn each_kind_has_its_own_icon_and_its_own_label() {
+    let kinds = super::ReleaseKind::ALL;
     for (i, a) in kinds.iter().enumerate() {
         for b in &kinds[i + 1..] {
             assert_ne!(a.icon().name(), b.icon().name(), "{a:?} and {b:?} have two icons");
-            assert_ne!(a.tone(&theme), b.tone(&theme), "{a:?} and {b:?} have two colours");
+            assert_ne!(a.label(), b.label(), "{a:?} and {b:?} have two labels");
         }
     }
+    assert_eq!(kinds.len(), 6);
+}
+
+struct Kinds {
+    asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>>,
+}
+impl gpui_kit::Render for Kinds {
+    fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl gpui_kit::IntoElement {
+        use gpui_kit::{ParentElement, Styled, div, px};
+        let asked = self.asked.clone();
+        let mut sheet = super::ReleaseSheet::new("sheet", "0.1.4").labels("Close", "Restart").on_later(|_, _| {});
+        for kind in super::ReleaseKind::ALL {
+            sheet = sheet.note(super::ReleaseNote::new(kind.label(), "What it says.").kind(kind));
+        }
+        sheet = sheet.note(super::ReleaseNote::new("No kind", "A note with none."));
+        let sheet = sheet.kind_colors(move |kind, _| {
+            asked.borrow_mut().push(kind);
+            gpui_kit::hsla(0.5, 0.8, 0.6, 1.)
+        });
+        div().w(px(520.)).child(sheet)
+    }
+}
+/// A note with a kind has its label over the lead, in the colour the owner gave it; a note with none has no label.
+#[gpui_kit::test]
+fn a_note_with_a_kind_has_a_label_and_the_owner_gives_the_colour(cx: &mut gpui_kit::TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::init(cx);
+    });
+    let asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>> = Default::default();
+    let (_page, cx) = cx.add_window_view({
+        let asked = asked.clone();
+        move |_, _| Kinds { asked }
+    });
+    cx.run_until_parked();
+    for (i, name) in ["release-kind-0", "release-kind-1", "release-kind-2", "release-kind-3", "release-kind-4", "release-kind-5"].into_iter().enumerate() {
+        assert!(cx.debug_bounds(name).is_some(), "note {i} has its kind label");
+    }
+    assert!(cx.debug_bounds("release-kind-6").is_none(), "a note with no kind has none");
+    let asked = asked.borrow();
+    for kind in super::ReleaseKind::ALL {
+        assert!(asked.contains(&kind), "the owner was asked for the colour of {kind:?}");
+    }
+}
+
+/// In a window too short for the notes, they scroll, and the sheet stays inside the window, at a zoom too.
+#[gpui_kit::test]
+fn in_a_short_window_the_notes_scroll_and_the_sheet_stays_inside(cx: &mut gpui_kit::TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::init(cx);
+    });
+    let asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>> = Default::default();
+    let (_page, cx) = cx.add_window_view(move |_, _| Kinds { asked });
+    cx.simulate_resize(gpui_kit::size(gpui_kit::px(600.), gpui_kit::px(760.)));
+    crate::scale::set_zoom(1.2);
+    cx.run_until_parked();
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let sheet = cx.debug_bounds("release-sheet").expect("the sheet is drawn");
+    crate::scale::set_zoom(1.);
+    assert!(f32::from(sheet.size.height) <= 760., "the sheet is {:?} tall in a window 760 tall", sheet.size);
 }
