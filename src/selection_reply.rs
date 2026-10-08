@@ -1,5 +1,5 @@
 //! Reply to words in the conversation. The reader selects text anywhere under the window's text selection
-//! (messages, command output, diffs); a small "Reply" button floats at the end of the selection, and a press
+//! (messages, command output, diffs); a small bar floats at the end of the selection: Reply, then one-press presets ([`SelectionReply::presets`]). Reply
 //! opens a compact box: the words quoted on one line, a note, a microphone (when the owner turns it on with
 //! [`SelectionReply::dictation`]) and a round Add button. It reports
 //! [`SelectionReplyEvent::Reply`]; where the quote and the note go is the owner's call.
@@ -29,7 +29,7 @@ mod types;
 
 pub(crate) use helpers::bind_keys;
 pub use structs::SelectionReply;
-pub use types::SelectionReplyEvent;
+pub use types::{ReplyPreset, SelectionReplyEvent};
 
 #[cfg(test)]
 mod tests;

@@ -55,7 +55,7 @@ fn open_with(cx: &mut TestAppContext, dictation: bool) -> (Entity<Host>, Heard, 
     let heard: Heard = Rc::default();
     let log = heard.clone();
     let (host, cx) = cx.add_window_view(move |window, cx| {
-        let reply = cx.new(|cx| SelectionReply::new(window, cx).dictation(dictation));
+        let reply = cx.new(|cx| SelectionReply::new(window, cx).dictation(dictation).presets(vec![ReplyPreset::new("Explain", "Explain this."), ReplyPreset::new("Fix", "Fix this.")]));
         cx.subscribe(&reply, move |_, _, event: &SelectionReplyEvent, _| log.borrow_mut().push(event.clone())).detach();
         Host { reply }
     });
@@ -106,7 +106,7 @@ fn a_selection_offers_a_reply_and_a_plain_press_does_not(cx: &mut TestAppContext
 fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
     let (host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").expect("the button is up");
+    let offer = cx.debug_bounds("selection-reply-offer-reply").expect("the button is up");
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "the box is open");
@@ -129,7 +129,7 @@ fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
 fn a_reply_with_no_note_is_a_quote_alone(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     cx.simulate_keystrokes("enter");
@@ -143,7 +143,7 @@ fn a_reply_with_no_note_is_a_quote_alone(cx: &mut TestAppContext) {
 fn escape_drops_the_reply(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     cx.simulate_input("never mind");
@@ -158,7 +158,7 @@ fn escape_drops_the_reply(cx: &mut TestAppContext) {
 fn the_add_button_sends_the_reply(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     cx.simulate_input("yes");
@@ -174,7 +174,7 @@ fn the_add_button_sends_the_reply(cx: &mut TestAppContext) {
 fn the_box_is_compact(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     let card = cx.debug_bounds("selection-reply-box").expect("the box is open");
@@ -186,7 +186,7 @@ fn the_box_is_compact(cx: &mut TestAppContext) {
 fn the_microphone_asks_the_owner_to_listen_and_its_words_join_the_note(cx: &mut TestAppContext) {
     let (host, heard, cx) = open_with(cx, true);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     cx.simulate_input("it is");
@@ -212,7 +212,7 @@ fn the_microphone_asks_the_owner_to_listen_and_its_words_join_the_note(cx: &mut 
 fn no_microphone_unless_the_owner_asks(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     assert!(cx.debug_bounds("selection-reply-mic").is_none());
@@ -222,7 +222,7 @@ fn no_microphone_unless_the_owner_asks(cx: &mut TestAppContext) {
 fn enter_while_listening_stops_and_escape_cancels(cx: &mut TestAppContext) {
     let (host, heard, cx) = open_with(cx, true);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").unwrap();
+    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     host.update(cx, |h, cx| h.reply.update(cx, |r, cx| r.set_voice_listening(cx)));
@@ -281,7 +281,7 @@ fn the_quote_of_plain_text_is_the_words_selected(cx: &mut TestAppContext) {
     settle(cx);
     cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
     settle(cx);
-    let offer = cx.debug_bounds("selection-reply-offer").expect("the button is up");
+    let offer = cx.debug_bounds("selection-reply-offer-reply").expect("the button is up");
     cx.simulate_click(offer.center(), Modifiers::default());
     settle(cx);
     cx.simulate_keystrokes("enter");
@@ -289,4 +289,32 @@ fn the_quote_of_plain_text_is_the_words_selected(cx: &mut TestAppContext) {
     let events = heard.borrow().clone();
     let [SelectionReplyEvent::Reply { quote, .. }] = events.as_slice() else { panic!("{events:?}") };
     assert!(quote.starts_with("al") && !quote.contains("delta"), "only the selected words: {quote:?}");
+}
+
+/// A preset beside Reply adds the reply at once with its note: no box opens, and the selection is let go.
+#[gpui_kit::test]
+fn a_preset_adds_the_reply_with_its_note_and_opens_no_box(cx: &mut TestAppContext) {
+    let (host, heard, cx) = open(cx);
+    select_the_words(cx);
+    let fix = cx.debug_bounds("selection-reply-preset-1").expect("the presets are drawn beside Reply");
+    cx.simulate_click(fix.center(), Modifiers::default());
+    settle(cx);
+    let events = heard.borrow().clone();
+    let [SelectionReplyEvent::Reply { quote, note, key }] = events.as_slice() else { panic!("one reply: {events:?}") };
+    assert!(quote.starts_with("The build fails"), "{quote:?}");
+    assert_eq!(note.as_ref(), "Fix this.");
+    assert!(key.is_none());
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "no box opens");
+    assert!(cx.debug_bounds("selection-reply-offer").is_none(), "and the offer is gone");
+    assert!(!host.read_with(cx, |h, cx| h.reply.read(cx).showing()));
+}
+/// The offer is one compact bar with Reply first and the presets after it.
+#[gpui_kit::test]
+fn the_offer_lists_reply_then_the_presets_in_one_bar(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    select_the_words(cx);
+    let bar = cx.debug_bounds("selection-reply-offer").unwrap();
+    let (first, second) = (cx.debug_bounds("selection-reply-preset-0").unwrap(), cx.debug_bounds("selection-reply-preset-1").unwrap());
+    assert!(first.left() < second.left() && second.right() <= bar.right());
+    assert!(f32::from(bar.size.height) < 44., "one row: {:?}", bar.size);
 }
