@@ -8,3 +8,5 @@ pub(super) const PANEL_GAP: f32 = 12.;
 pub(super) const PANEL_CORNER: f32 = 14.;
 /// How much of the panel's fill shows: the picture shows through a little.
 pub(super) const PANEL_ALPHA: f32 = 0.92;
+/// The corner of the picture: the modal panel's, since gpui clips a box to its rectangle and not to its corners.
+pub(super) const CORNER: f32 = crate::modal::CORNER;

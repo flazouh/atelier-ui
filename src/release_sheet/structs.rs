@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{HERO_HEIGHT, HERO_PATH, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CORNER, HERO_HEIGHT, HERO_PATH, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
     helpers::fade,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -92,7 +92,10 @@ impl RenderOnce for ReleaseSheet {
         let picture = div()
             .absolute()
             .inset_0()
-            .child(<gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Cover));
+            .child(
+                <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Cover)
+                    .rounded(px(CORNER)),
+            );
 
         let head = div()
             .relative()
