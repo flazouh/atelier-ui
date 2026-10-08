@@ -72,7 +72,7 @@ mod drawn {
     #[gpui_kit::test]
     fn a_press_on_a_star_makes_the_model_the_default(cx: &mut TestAppContext) {
         let (heard, cx) = open(cx);
-        let star = cx.debug_bounds("model-star-b").expect("the star is drawn");
+        let star = cx.debug_bounds("model-star-claude-b").expect("the star is drawn");
         cx.simulate_click(star.center(), gpui_kit::Modifiers::default());
         cx.run_until_parked();
         assert_eq!(heard.borrow().default.as_ref().map(|s| s.as_ref()), Some("b"));
@@ -82,7 +82,7 @@ mod drawn {
     #[gpui_kit::test]
     fn a_row_dragged_onto_another_goes_before_it(cx: &mut TestAppContext) {
         let (heard, cx) = open(cx);
-        let (from, onto) = (cx.debug_bounds("model-row-c").unwrap(), cx.debug_bounds("model-row-a").unwrap());
+        let (from, onto) = (cx.debug_bounds("model-row-claude-c").unwrap(), cx.debug_bounds("model-row-claude-a").unwrap());
         let start = gpui_kit::point(from.left() + px(14.), from.center().y);
         let end = gpui_kit::point(onto.left() + px(100.), onto.center().y);
         let none = gpui_kit::Modifiers::default();

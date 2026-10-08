@@ -86,8 +86,8 @@ impl RenderOnce for ModelList {
             let (list, row_id, label) = (self.key.clone(), row.id.clone(), row.label.clone());
             let (drop_order, drop_target, drop_list, reorder) = (order.clone(), row.id.clone(), self.key.clone(), self.on_reorder.clone());
             let (star_id, on_default) = (row.id.clone(), self.on_default.clone());
-            let selector = format!("model-row-{}", row.id);
-            let star_selector = format!("model-star-{}", row.id);
+            let selector = format!("model-row-{}-{}", self.key, row.id);
+            let star_selector = format!("model-star-{}-{}", self.key, row.id);
             div()
                 .id(child(format!("row-{}", row.id)))
                 .debug_selector(move || selector.clone())
