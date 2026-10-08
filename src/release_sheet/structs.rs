@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, Styled, Window, div,
+    SharedString, StatefulInteractiveElement, Styled, Window, div,
 };
 use crate::scale::px;
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CORNER, HERO_HEIGHT, HERO_PATH, ICON_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, ICON_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
     helpers::fade,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -32,12 +32,25 @@ impl ReleaseNote {
     }
 }
 
+/// An earlier version and what it brought, listed under the notes of the one the sheet is about.
+#[derive(Clone)]
+pub struct ReleaseVersion {
+    version: SharedString,
+    notes: Vec<ReleaseNote>,
+}
+impl ReleaseVersion {
+    pub fn new(version: impl Into<SharedString>, notes: impl IntoIterator<Item = ReleaseNote>) -> Self {
+        Self { version: version.into(), notes: notes.into_iter().collect() }
+    }
+}
+
 #[derive(IntoElement)]
 pub struct ReleaseSheet {
     id: ElementId,
     version: SharedString,
     kicker: SharedString,
     notes: Vec<ReleaseNote>,
+    earlier: Vec<ReleaseVersion>,
     later: SharedString,
     install: SharedString,
     on_later: Option<Choice>,
@@ -50,6 +63,7 @@ impl ReleaseSheet {
             version: version.into(),
             kicker: "What is new in".into(),
             notes: Vec::new(),
+            earlier: Vec::new(),
             later: "Later".into(),
             install: "Restart and update".into(),
             on_later: None,
@@ -67,6 +81,11 @@ impl ReleaseSheet {
     }
     pub fn notes(mut self, notes: impl IntoIterator<Item = ReleaseNote>) -> Self {
         self.notes.extend(notes);
+        self
+    }
+    /// Earlier versions, newest first, listed under the notes. The list scrolls when it is long.
+    pub fn earlier(mut self, earlier: impl IntoIterator<Item = ReleaseVersion>) -> Self {
+        self.earlier.extend(earlier);
         self
     }
     /// The words on the two buttons ("Later", "Restart and update"). With no [`Self::on_install`] only the first shows.
@@ -114,34 +133,32 @@ impl RenderOnce for ReleaseSheet {
                     .text_color(light)
                     .child(self.version.clone()));
 
-        let rows = self.notes.into_iter().map(|note| {
+        let rows = self.notes.into_iter().map(|note| note_row(note, &theme));
+        let scrolls = !self.earlier.is_empty();
+        let earlier = self.earlier.into_iter().enumerate().map(|(i, release)| {
             div()
-                    .flex()
-                    .gap(px(14.))
-                    .py(px(9.))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_none()
-                            .items_center()
-                            .justify_center()
-                            .size(px(34.))
-                            .rounded(px(9.))
-                            .bg(fade(theme.foreground, ICON_TILE_ALPHA))
-                            .child(Icon::new(note.icon).size(px(16.)).color(theme.foreground)),
-                    )
-                    .child(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .flex_1()
-                            .min_w_0()
-                            .gap(px(2.))
-                            .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
-                            .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
-                    )
+                .flex()
+                .flex_col()
+                .child(
+                    div()
+                        .debug_selector(move || format!("release-earlier-{i}"))
+                        .mt(px(12.))
+                        .pt(px(12.))
+                        .border_t_1()
+                        .border_color(theme.divider)
+                        .text_size(px(13.))
+                        .font_weight(FontWeight::MEDIUM)
+                        .text_color(theme.muted_foreground)
+                        .child(release.version),
+                )
+                .children(release.notes.into_iter().map(|note| note_row(note, &theme)))
         });
-
+        let notes = div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows).children(earlier);
+        let notes = if scrolls {
+            div().id((self.id.clone(), "history")).max_h(px(HISTORY_MAX)).overflow_y_scroll().child(notes).into_any_element()
+        } else {
+            notes.into_any_element()
+        };
         let (later, install, install_label) = (self.on_later, self.on_install, self.install);
         // With nothing to restart, the one button closes the sheet, and it is the main one.
         let close_only = install.is_none();
@@ -180,7 +197,7 @@ impl RenderOnce for ReleaseSheet {
             .rounded(px(PANEL_CORNER))
             .overflow_hidden()
             .bg(fade(theme.popover, PANEL_ALPHA))
-            .child(div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows))
+            .child(notes)
             .child(foot);
 
         div()
@@ -195,4 +212,33 @@ impl RenderOnce for ReleaseSheet {
             .child(head)
             .child(panel)
     }
+}
+
+/// One note: the tile with its icon, the lead, and what it says.
+fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
+            div()
+            .flex()
+                    .gap(px(14.))
+                    .py(px(9.))
+                    .child(
+                        div()
+                            .flex()
+                            .flex_none()
+                            .items_center()
+                            .justify_center()
+                            .size(px(34.))
+                            .rounded(px(9.))
+                            .bg(fade(theme.foreground, ICON_TILE_ALPHA))
+                            .child(Icon::new(note.icon).size(px(16.)).color(theme.foreground)),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .flex_col()
+                            .flex_1()
+                            .min_w_0()
+                            .gap(px(2.))
+                            .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
+                            .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
+                    )
 }

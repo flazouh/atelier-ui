@@ -11,7 +11,7 @@ mod helpers;
 mod structs;
 
 pub use consts::HERO_PATH;
-pub use structs::{ReleaseNote, ReleaseSheet};
+pub use structs::{ReleaseNote, ReleaseSheet, ReleaseVersion};
 
 /// The hero picture, for [`Assets`](crate::Assets) to serve.
 pub(crate) fn bytes(path: &str) -> Option<&'static [u8]> {
