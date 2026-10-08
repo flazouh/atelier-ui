@@ -153,7 +153,7 @@ mod cards {
         let cx = open(Some(300.), Some(260.), cx);
         let bar = cx.debug_bounds("status-bar").unwrap();
         let (machine, main, providers) = (
-            cx.debug_bounds("status-card-machine").unwrap(),
+            cx.debug_bounds("status-card-cpu").unwrap(),
             cx.debug_bounds("status-card-main").unwrap(),
             cx.debug_bounds("status-card-providers").unwrap(),
         );
@@ -167,23 +167,22 @@ mod cards {
             assert!(near(card.size.height, HEIGHT) && near(card.top() - bar.top(), 0.), "each card takes the bar's whole height");
         }
     }
-    /// The machine's load fits the card under a sidebar of a usual width: nothing of it is cut off at the card's edge.
+    /// The processor, with its whole history, fits the card under a sidebar of a usual width with room to spare, and the memory
+    /// stands in the card beside it.
     #[gpui_kit::test]
-    fn the_load_fits_the_card_under_the_sidebar(cx: &mut TestAppContext) {
+    fn the_processor_has_room_in_the_card_under_the_sidebar(cx: &mut TestAppContext) {
         let cx = open(Some(256.), Some(260.), cx);
-        let (machine, memory) = (cx.debug_bounds("status-card-machine").unwrap(), cx.debug_bounds("status-memory").unwrap());
-        assert!(
-            f32::from(memory.right()) <= f32::from(machine.right()) - 10. + 0.5,
-            "the memory ends at {:?}, past the card's padding at {:?}",
-            memory.right(),
-            machine.right()
-        );
+        let (card, cpu) = (cx.debug_bounds("status-card-cpu").unwrap(), cx.debug_bounds("status-cpu").unwrap());
+        let spare = f32::from(card.size.width) - f32::from(cpu.size.width);
+        assert!(spare >= 20. + 30., "the processor takes {:?} of {:?}: less than 30 px to spare", cpu.size.width, card.size.width);
+        let (main, memory) = (cx.debug_bounds("status-card-main").unwrap(), cx.debug_bounds("status-memory").unwrap());
+        assert!(memory.left() >= main.left() && memory.right() <= main.right(), "the memory is in the middle card");
     }
     /// With no column to stand under, the load and the providers share one card.
     #[gpui_kit::test]
     fn with_no_columns_there_is_one_card(cx: &mut TestAppContext) {
         let cx = open(None, None, cx);
-        assert!(cx.debug_bounds("status-card-machine").is_none() && cx.debug_bounds("status-card-providers").is_none());
+        assert!(cx.debug_bounds("status-card-cpu").is_none() && cx.debug_bounds("status-card-providers").is_none());
         assert!(cx.debug_bounds("status-card-main").is_some() && cx.debug_bounds("status-cpu").is_some());
         assert!(cx.debug_bounds("status-provider-Claude").is_some());
     }
