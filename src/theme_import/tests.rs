@@ -4,14 +4,14 @@ use super::*;
 /// for contrast. `docs/themes.md` lists the same.
 fn bundled() -> Vec<(&'static str, &'static str, &'static [&'static str], &'static [&'static str])> {
     let list: Vec<(&str, &str, &[&str], &[&str])> = vec![
-        ("GitHub Light", include_str!("../../assets/themes/vscode/github-light.json"), &["card_strong", "divider", "warning_fill", "popover", "shadow", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted", "info", "danger", "warning"]),
-        ("GitHub Dark", include_str!("../../assets/themes/vscode/github-dark.json"), &["card_strong", "divider", "warning_fill", "shadow", "chip_rest", "chip_hover", "chip_arrow", "status"], &[]),
-        ("Catppuccin Latte", include_str!("../../assets/themes/vscode/catppuccin-latte.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted", "info", "danger", "success", "warning"]),
-        ("Catppuccin Frappé", include_str!("../../assets/themes/vscode/catppuccin-frappe.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted", "info", "danger", "warning"]),
-        ("Catppuccin Macchiato", include_str!("../../assets/themes/vscode/catppuccin-macchiato.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted"]),
-        ("Catppuccin Mocha", include_str!("../../assets/themes/vscode/catppuccin-mocha.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted"]),
-        ("Cursor Dark", include_str!("../../assets/themes/vscode/cursor-dark.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["muted"]),
-        ("Cursor Light", include_str!("../../assets/themes/vscode/cursor-light.json"), &["card_strong", "divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status"], &["warning"]),
+        ("GitHub Light", include_str!("../../assets/themes/vscode/github-light.json"), &["card_strong", "divider", "warning_fill", "popover", "shadow", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted", "info", "danger", "warning"]),
+        ("GitHub Dark", include_str!("../../assets/themes/vscode/github-dark.json"), &["card_strong", "divider", "warning_fill", "shadow", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &[]),
+        ("Catppuccin Latte", include_str!("../../assets/themes/vscode/catppuccin-latte.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted", "info", "danger", "success", "warning"]),
+        ("Catppuccin Frappé", include_str!("../../assets/themes/vscode/catppuccin-frappe.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted", "info", "danger", "warning"]),
+        ("Catppuccin Macchiato", include_str!("../../assets/themes/vscode/catppuccin-macchiato.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted"]),
+        ("Catppuccin Mocha", include_str!("../../assets/themes/vscode/catppuccin-mocha.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted"]),
+        ("Cursor Dark", include_str!("../../assets/themes/vscode/cursor-dark.json"), &["divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["muted"]),
+        ("Cursor Light", include_str!("../../assets/themes/vscode/cursor-light.json"), &["card_strong", "divider", "warning_fill", "chip_rest", "chip_hover", "chip_arrow", "status", "chart"], &["warning"]),
     ];
     list
 }

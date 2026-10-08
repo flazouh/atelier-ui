@@ -155,6 +155,7 @@ pub mod typography;
 pub mod sign_in_notice;
 pub mod status_bar;
 pub mod unsent;
+pub mod usage_dashboard;
 pub mod verdict;
 pub mod view_rail;
 pub mod voice_input;
@@ -229,6 +230,9 @@ pub use court::{Court, CourtItem, CourtList};
 pub use review::{ReviewHandlers, ReviewProgress};
 pub use sign_in_notice::{SignInNotice, SignInState};
 pub use status_bar::{Gauge, GaugeState, Pressure, ProviderGauge, StatusBar, SystemLoad, Work};
+pub use usage_dashboard::{
+    Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession, UsageSource,
+};
 pub use unsent::UnsentComments;
 pub use new_task::{NewTask, NewTaskEvent};
 pub use task_board::{TaskBoard, TaskBoardEvent};
