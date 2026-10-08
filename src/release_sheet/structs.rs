@@ -1,20 +1,16 @@
-use std::{rc::Rc, time::Instant};
+use std::rc::Rc;
 use gpui_kit::{
-    AnyElement, App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
     SharedString, Styled, Window, div,
 };
 use crate::scale::px;
 use crate::{
     Button, ButtonVariant, Icon, IconName,
-    motion::now,
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{
-        HERO_HEIGHT, HERO_PATH, KICKER_AT, PANEL_ALPHA, PANEL_AT, PANEL_CORNER, PANEL_GAP, REVEAL_SECONDS, ROWS_AT,
-        ROW_RISE, ROW_STEP, SIDE, SPARE, TITLE_RISE, VERSION_AT,
-    },
-    helpers::{drift, fade, reveal, zoom},
+    consts::{HERO_HEIGHT, HERO_PATH, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    helpers::fade,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
 
@@ -88,39 +84,15 @@ impl ReleaseSheet {
     }
 }
 
-struct Opened(Instant);
-
-/// A piece at `at` seconds in: faded and risen by how far it has come.
-fn piece(element: impl IntoElement, t: f32, rise: f32) -> AnyElement {
-    div().relative().top(px(rise * (1. - t))).opacity(t).child(element).into_any_element()
-}
-
 impl RenderOnce for ReleaseSheet {
-    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme: Theme = cx.theme().clone();
-        let reduce = cx.reduce_motion();
-        let opened = window.use_keyed_state(self.id.clone(), cx, |_, _| Opened(now()));
-        // Under Reduce Motion every piece is already in, and the picture does not move.
-        let elapsed = if reduce { 1_000. } else { now().saturating_duration_since(opened.read(cx).0).as_secs_f32() };
-        if !reduce {
-            window.request_animation_frame();
-        }
-        let at = |delay: f32| reveal(elapsed, delay, REVEAL_SECONDS);
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
-        let (dx, dy) = if reduce { (0., 0.) } else { drift(elapsed) };
-        let out = SPARE + zoom(elapsed);
-
         let picture = div()
             .absolute()
-            .left(px(-out + dx))
-            .right(px(-out - dx))
-            .top(px(-out + dy))
-            .bottom(px(-out - dy))
-            .child(<gpui_kit::Img as gpui_kit::StyledImage>::object_fit(
-                gpui_kit::img(HERO_PATH).size_full(),
-                ObjectFit::Cover,
-            ));
+            .inset_0()
+            .child(<gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Cover));
 
         let head = div()
             .relative()
@@ -131,27 +103,16 @@ impl RenderOnce for ReleaseSheet {
             .flex()
             .flex_col()
             .gap(px(6.))
-            .child(piece(
-                div().text_size(px(15.)).text_color(fade(light, 0.8)).child(self.kicker.clone()),
-                at(KICKER_AT),
-                TITLE_RISE * 0.5,
-            ))
-            .child(piece(
-                div()
+              .child(div().text_size(px(15.)).text_color(fade(light, 0.8)).child(self.kicker.clone()))
+            .child(                div()
                     .debug_selector(|| "release-version".into())
                     .text_size(px(84.))
                     .line_height(px(88.))
                     .text_color(light)
-                    .child(self.version.clone()),
-                at(VERSION_AT),
-                TITLE_RISE,
-            ));
+                    .child(self.version.clone()));
 
-        let count = self.notes.len();
-        let rows = self.notes.into_iter().enumerate().map(|(i, note)| {
-            let t = at(ROWS_AT + ROW_STEP * i as f32);
-            piece(
-                div()
+        let rows = self.notes.into_iter().map(|note| {
+            div()
                     .flex()
                     .gap(px(14.))
                     .py(px(9.))
@@ -175,16 +136,11 @@ impl RenderOnce for ReleaseSheet {
                             .gap(px(2.))
                             .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
                             .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
-                    ),
-                t,
-                ROW_RISE,
-            )
+                    )
         });
 
-        let foot_t = at(ROWS_AT + ROW_STEP * count as f32 + 0.06);
         let (later, install) = (self.on_later, self.on_install);
-        let foot = piece(
-            div()
+        let foot = div()
                 .flex()
                 .justify_end()
                 .gap(px(10.))
@@ -213,10 +169,7 @@ impl RenderOnce for ReleaseSheet {
                                 f(window, cx);
                             }
                         }),
-                ),
-            foot_t,
-            ROW_RISE,
-        );
+                );
 
         let panel = div()
             .relative()
@@ -225,7 +178,7 @@ impl RenderOnce for ReleaseSheet {
             .mb(px(PANEL_GAP))
             .rounded(px(PANEL_CORNER))
             .overflow_hidden()
-            .bg(fade(theme.popover, PANEL_ALPHA * at(PANEL_AT)))
+            .bg(fade(theme.popover, PANEL_ALPHA))
             .child(div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows))
             .child(foot);
 
