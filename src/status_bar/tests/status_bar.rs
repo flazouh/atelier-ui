@@ -167,6 +167,18 @@ mod cards {
             assert!(near(card.size.height, HEIGHT) && near(card.top() - bar.top(), 0.), "each card takes the bar's whole height");
         }
     }
+    /// The machine's load fits the card under a sidebar of a usual width: nothing of it is cut off at the card's edge.
+    #[gpui_kit::test]
+    fn the_load_fits_the_card_under_the_sidebar(cx: &mut TestAppContext) {
+        let cx = open(Some(256.), Some(260.), cx);
+        let (machine, memory) = (cx.debug_bounds("status-card-machine").unwrap(), cx.debug_bounds("status-memory").unwrap());
+        assert!(
+            f32::from(memory.right()) <= f32::from(machine.right()) - 10. + 0.5,
+            "the memory ends at {:?}, past the card's padding at {:?}",
+            memory.right(),
+            machine.right()
+        );
+    }
     /// With no column to stand under, the load and the providers share one card.
     #[gpui_kit::test]
     fn with_no_columns_there_is_one_card(cx: &mut TestAppContext) {
