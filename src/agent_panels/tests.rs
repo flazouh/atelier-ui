@@ -95,7 +95,7 @@ fn a_panel_fits_its_column_in_the_frame_the_column_narrows(cx: &mut TestAppConte
     }
 }
 
-/// The single view leaves the room the strip leaves: its inset at the left, 8 at the right and at the foot.
+/// The single view leaves the room the strip leaves: its insets at the left and at the foot, 8 at the right.
 #[gpui_kit::test]
 fn the_single_view_sits_at_the_strips_inset(cx: &mut TestAppContext) {
     cx.update(|cx| {
@@ -117,6 +117,7 @@ fn the_single_view_sits_at_the_strips_inset(cx: &mut TestAppContext) {
     cx.update(|_, cx| panels.update(cx, |p, cx| {
         p.set_panels(vec![panel], vec!["project".into()], cx);
         p.set_inset_left(2., cx);
+        p.set_inset_bottom(2., cx);
         p.set_layout(crate::panel_types::Layout::Single, cx);
     }));
     let frame = |cx: &mut gpui_kit::VisualTestContext, width: f32| {
@@ -131,7 +132,7 @@ fn the_single_view_sits_at_the_strips_inset(cx: &mut TestAppContext) {
     let at = cx.debug_bounds("panel").expect("the panel draws");
     assert!((f32::from(at.left()) - 2.).abs() < 0.5, "the panel starts at {:?}, not at the strip's inset", at.left());
     assert!(f32::from(at.right()) <= 800. - 8. + 0.5, "the panel ends at {:?}, past the right room", at.right());
-    assert!(f32::from(at.bottom()) <= 800. - 8. + 0.5, "the panel ends at {:?}, past the room at the foot", at.bottom());
+    assert!((f32::from(at.bottom()) - (800. - 2.)).abs() < 0.5, "the panel ends at {:?}, not the foot inset above the foot", at.bottom());
 }
 struct Strip {
     panels: Entity<AgentPanels>,
