@@ -172,7 +172,7 @@ impl RenderOnce for ModelList {
                         .hover(|s| s.bg(theme.card_strong))
                         .when_some(on_default, move |d, on_default| d.on_click(move |_, window, cx| on_default(&star_id, window, cx)))
                         .child(if is_default {
-                            Icon::new(IconName::StarFilled).size(px(16.)).color(theme.warning)
+                            Icon::new(IconName::StarFilled).size(px(16.)).color(theme.warning_fill)
                         } else {
                             Icon::new(IconName::Star).size(px(16.)).color(theme.muted_foreground)
                         }),
