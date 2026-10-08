@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, GLYPH_SIZE, GLYPH_SLOT, HAIRLINE_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, GLYPH_SIZE, GLYPH_SLOT, HAIRLINE_ALPHA, MIN_NOTES_HEIGHT, PANEL_CORNER, PANEL_GAP, SHEET_CHROME, SIDE},
     helpers::fade,
     types::ReleaseKind,
 };
@@ -123,7 +123,7 @@ impl ReleaseSheet {
 }
 
 impl RenderOnce for ReleaseSheet {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme: Theme = cx.theme().clone();
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
@@ -174,11 +174,12 @@ impl RenderOnce for ReleaseSheet {
                 .children(release.notes.into_iter().enumerate().map(|(i, note)| note_row(note, i, colors.as_ref(), &theme)))
         });
         let notes = div().px(px(18.)).py(px(10.)).flex().flex_col().children(rows).children(earlier);
-        let notes = if scrolls {
-            div().id((self.id.clone(), "history")).max_h(px(HISTORY_MAX)).overflow_y_scroll().child(notes).into_any_element()
-        } else {
-            notes.into_any_element()
-        };
+        // The notes scroll when they do not fit: with earlier versions under them, past a height of their own; always, past what the
+        // window leaves once the picture, the panel\'s gaps and its foot have taken theirs. At a zoom the window holds fewer design
+        // pixels, so a sheet that fits at 1 would stand taller than the window.
+        let room = (crate::scale::design(window.viewport_size().height) - SHEET_CHROME).max(MIN_NOTES_HEIGHT);
+        let most = if scrolls { HISTORY_MAX.min(room) } else { room };
+        let notes = div().id((self.id.clone(), "history")).max_h(px(most)).overflow_y_scroll().child(notes).into_any_element();
         let (later, install, install_label) = (self.on_later, self.on_install, self.install);
         let close = later.clone();
         // With nothing to restart, the one button closes the sheet, and it is the main one.

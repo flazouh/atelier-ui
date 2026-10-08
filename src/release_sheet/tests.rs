@@ -119,3 +119,22 @@ fn a_note_with_a_kind_has_a_label_and_the_owner_gives_the_colour(cx: &mut gpui_k
         assert!(asked.contains(&kind), "the owner was asked for the colour of {kind:?}");
     }
 }
+
+/// In a window too short for the notes, they scroll, and the sheet stays inside the window, at a zoom too.
+#[gpui_kit::test]
+fn in_a_short_window_the_notes_scroll_and_the_sheet_stays_inside(cx: &mut gpui_kit::TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        crate::init(cx);
+    });
+    let asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>> = Default::default();
+    let (_page, cx) = cx.add_window_view(move |_, _| Kinds { asked });
+    cx.simulate_resize(gpui_kit::size(gpui_kit::px(600.), gpui_kit::px(760.)));
+    crate::scale::set_zoom(1.2);
+    cx.run_until_parked();
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let sheet = cx.debug_bounds("release-sheet").expect("the sheet is drawn");
+    crate::scale::set_zoom(1.);
+    assert!(f32::from(sheet.size.height) <= 760., "the sheet is {:?} tall in a window 760 tall", sheet.size);
+}
