@@ -1,6 +1,6 @@
 use gpui_kit::{Pixels, Point, SharedString};
 
-use crate::voice_input::VoiceInputEvent;
+use crate::{badge::Tone, icon::IconName, voice_input::VoiceInputEvent};
 
 pub(super) const CONTEXT: &str = "SelectionReply";
 /// How long the bar takes to settle in: a short rise from half strength, so it is there at once and still has a landing.
@@ -23,21 +23,31 @@ pub enum SelectionReplyEvent {
     DictationCancel,
 }
 
-/// Where the reply is: nothing selected, a button at the end of a selection, or the box open.
+/// Where the reply is: nothing selected, or the box open. The box opens in the frame a selection ends, with its quote
+/// still empty until the next frame has read the selection.
 pub(super) enum Phase {
     Idle,
-    Offer { at: Point<Pixels>, quote: SharedString },
     Writing { at: Point<Pixels>, quote: SharedString, key: Option<SharedString> },
 }
-
-/// A one-press reply on the offer: its `label` is on the button, and its `note` goes as the reply's note.
+/// A one-press reply in the box: its `label` is on the badge, with its `icon` and the colour of its `tone`, and its
+/// `note` goes as the reply's note.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ReplyPreset {
     pub label: SharedString,
     pub note: SharedString,
+    pub icon: Option<IconName>,
+    pub tone: Tone,
 }
 impl ReplyPreset {
     pub fn new(label: impl Into<SharedString>, note: impl Into<SharedString>) -> Self {
-        Self { label: label.into(), note: note.into() }
+        Self { label: label.into(), note: note.into(), icon: None, tone: Tone::Neutral }
+    }
+    pub fn icon(mut self, icon: IconName) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+    pub fn tone(mut self, tone: Tone) -> Self {
+        self.tone = tone;
+        self
     }
 }

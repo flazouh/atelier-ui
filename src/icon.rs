@@ -97,6 +97,8 @@ icons! {
     Link => "link-01",
     MoreHoriz => "more-horizontal",
     Info => "information-circle",
+    Help => "help-circle",
+    Idea => "idea-01",
     Notifications => "notification-01",
     NotificationsOff => "notification-off-01",
     RotateRight => "rotate-clockwise",

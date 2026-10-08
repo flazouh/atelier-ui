@@ -90,15 +90,15 @@ fn select_the_words(cx: &mut VisualTestContext) {
 #[gpui_kit::test]
 fn a_selection_offers_a_reply_and_a_plain_press_does_not(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
-    assert!(cx.debug_bounds("selection-reply-offer").is_none(), "nothing is selected yet");
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "nothing is selected yet");
     let words = cx.debug_bounds("words").unwrap();
     let at = point(words.left() + px(5.), words.top() + px(10.));
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
     settle(cx);
-    assert!(cx.debug_bounds("selection-reply-offer").is_none(), "a click selects nothing");
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "a click selects nothing");
     select_the_words(cx);
-    assert!(cx.debug_bounds("selection-reply-offer").is_some(), "the selection has its Reply");
+    assert!(cx.debug_bounds("selection-reply-box").is_some(), "the selection has its Reply");
 }
 
 /// Reply opens the box with the words quoted; Enter adds, and the event carries the quote and the note.
@@ -106,11 +106,7 @@ fn a_selection_offers_a_reply_and_a_plain_press_does_not(cx: &mut TestAppContext
 fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
     let (host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").expect("the button is up");
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "the box is open");
-    assert!(cx.debug_bounds("selection-reply-offer").is_none(), "and the button gave way to it");
     cx.simulate_input("it is the cache");
     cx.simulate_keystrokes("enter");
     settle(cx);
@@ -129,9 +125,6 @@ fn a_reply_carries_the_quote_and_the_note(cx: &mut TestAppContext) {
 fn a_reply_with_no_note_is_a_quote_alone(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     cx.simulate_keystrokes("enter");
     settle(cx);
     let events = heard.borrow().clone();
@@ -143,13 +136,10 @@ fn a_reply_with_no_note_is_a_quote_alone(cx: &mut TestAppContext) {
 fn escape_drops_the_reply(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     cx.simulate_input("never mind");
     cx.simulate_keystrokes("escape");
     settle(cx);
-    assert!(cx.debug_bounds("selection-reply-box").is_none() && cx.debug_bounds("selection-reply-offer").is_none());
+    assert!(cx.debug_bounds("selection-reply-box").is_none() && cx.debug_bounds("selection-reply-box").is_none());
     assert!(heard.borrow().is_empty(), "nothing was reported");
 }
 
@@ -158,27 +148,21 @@ fn escape_drops_the_reply(cx: &mut TestAppContext) {
 fn the_add_button_sends_the_reply(cx: &mut TestAppContext) {
     let (_host, heard, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     cx.simulate_input("yes");
     let add = cx.debug_bounds("selection-reply-add").expect("Add is drawn");
     cx.simulate_click(add.center(), Modifiers::default());
     settle(cx);
     let events = heard.borrow().clone();
     assert!(matches!(events.as_slice(), [SelectionReplyEvent::Reply { note, .. }] if note.as_ref() == "yes"), "{events:?}");
-    assert!(cx.debug_bounds("selection-reply-box").is_none() && cx.debug_bounds("selection-reply-offer").is_none());
+    assert!(cx.debug_bounds("selection-reply-box").is_none() && cx.debug_bounds("selection-reply-box").is_none());
 }
 /// The box is one compact row: a one-line quote over the note, with no Cancel button.
 #[gpui_kit::test]
 fn the_box_is_compact(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     let card = cx.debug_bounds("selection-reply-box").expect("the box is open");
-    assert!(f32::from(card.size.height) < 80., "one quote line and one note row: {:?}", card.size);
+    assert!(f32::from(card.size.height) < 180., "a bubble, a row of badges and one note row: {:?}", card.size);
     assert!(cx.debug_bounds("selection-reply-cancel").is_none());
 }
 /// With the microphone on, it shows; pressing it asks the owner to listen, and the words go after the note.
@@ -186,9 +170,6 @@ fn the_box_is_compact(cx: &mut TestAppContext) {
 fn the_microphone_asks_the_owner_to_listen_and_its_words_join_the_note(cx: &mut TestAppContext) {
     let (host, heard, cx) = open_with(cx, true);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     cx.simulate_input("it is");
     let mic = cx.debug_bounds("selection-reply-mic").expect("the microphone is drawn");
     cx.simulate_click(mic.center(), Modifiers::default());
@@ -212,9 +193,6 @@ fn the_microphone_asks_the_owner_to_listen_and_its_words_join_the_note(cx: &mut 
 fn no_microphone_unless_the_owner_asks(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     assert!(cx.debug_bounds("selection-reply-mic").is_none());
 }
 /// While it listens, Enter ends the press instead of sending, and Escape drops the press with the box.
@@ -222,9 +200,6 @@ fn no_microphone_unless_the_owner_asks(cx: &mut TestAppContext) {
 fn enter_while_listening_stops_and_escape_cancels(cx: &mut TestAppContext) {
     let (host, heard, cx) = open_with(cx, true);
     select_the_words(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").unwrap();
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     host.update(cx, |h, cx| h.reply.update(cx, |r, cx| r.set_voice_listening(cx)));
     settle(cx);
     cx.simulate_keystrokes("enter");
@@ -248,7 +223,7 @@ fn a_selection_ending_outside_the_parent_is_not_offered(cx: &mut TestAppContext)
     settle(cx);
     cx.simulate_mouse_up(beyond, MouseButton::Left, Modifiers::default());
     settle(cx);
-    assert!(cx.debug_bounds("selection-reply-offer").is_none());
+    assert!(cx.debug_bounds("selection-reply-box").is_none());
 }
 
 /// `edit` opens the box on an earlier reply, with its note in it; adding reports the quote and the changed note.
@@ -281,9 +256,6 @@ fn the_quote_of_plain_text_is_the_words_selected(cx: &mut TestAppContext) {
     settle(cx);
     cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
     settle(cx);
-    let offer = cx.debug_bounds("selection-reply-offer-reply").expect("the button is up");
-    cx.simulate_click(offer.center(), Modifiers::default());
-    settle(cx);
     cx.simulate_keystrokes("enter");
     settle(cx);
     let events = heard.borrow().clone();
@@ -305,20 +277,20 @@ fn a_preset_adds_the_reply_with_its_note_and_opens_no_box(cx: &mut TestAppContex
     assert_eq!(note.as_ref(), "Fix this.");
     assert!(key.is_none());
     assert!(cx.debug_bounds("selection-reply-box").is_none(), "no box opens");
-    assert!(cx.debug_bounds("selection-reply-offer").is_none(), "and the offer is gone");
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "and the offer is gone");
     assert!(!host.read_with(cx, |h, cx| h.reply.read(cx).showing()));
 }
-/// The offer is one compact bar with Reply first and the presets after it.
+/// The presets are badges in one row inside the box, in order.
 #[gpui_kit::test]
-fn the_offer_lists_reply_then_the_presets_in_one_bar(cx: &mut TestAppContext) {
+fn the_presets_are_badges_in_one_row_in_the_box(cx: &mut TestAppContext) {
     let (_host, _, cx) = open(cx);
     select_the_words(cx);
-    let bar = cx.debug_bounds("selection-reply-offer").unwrap();
+    let card = cx.debug_bounds("selection-reply-box").unwrap();
     let (first, second) = (cx.debug_bounds("selection-reply-preset-0").unwrap(), cx.debug_bounds("selection-reply-preset-1").unwrap());
-    assert!(first.left() < second.left() && second.right() <= bar.right());
-    assert!(f32::from(bar.size.height) < 44., "one row: {:?}", bar.size);
+    assert!(first.left() < second.left() && second.right() <= card.right());
+    assert_eq!(first.top(), second.top(), "one row");
+    assert!(first.bottom() < cx.debug_bounds("selection-reply-note").unwrap().top(), "the badges sit above the note");
 }
-
 /// The bar is drawn in the very next frame after a drag ends, before the selection has been read.
 #[gpui_kit::test]
 fn the_bar_is_up_in_the_first_frame_after_a_drag_ends(cx: &mut TestAppContext) {
@@ -332,7 +304,7 @@ fn the_bar_is_up_in_the_first_frame_after_a_drag_ends(cx: &mut TestAppContext) {
     settle(cx);
     cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
     cx.update(|window, cx| window.draw(cx).clear(cx));
-    assert!(cx.debug_bounds("selection-reply-offer").is_some(), "the bar comes up with the release");
+    assert!(cx.debug_bounds("selection-reply-box").is_some(), "the box comes up with the release");
 }
 /// A click that selects nothing never shows the bar, not even for a frame.
 #[gpui_kit::test]
@@ -343,5 +315,50 @@ fn a_plain_click_never_flashes_the_bar(cx: &mut TestAppContext) {
     cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
     cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
     cx.update(|window, cx| window.draw(cx).clear(cx));
-    assert!(cx.debug_bounds("selection-reply-offer").is_none());
+    assert!(cx.debug_bounds("selection-reply-box").is_none());
+}
+
+/// The reader can type the moment the drag ends: the note has focus before the words are read.
+#[gpui_kit::test]
+fn typing_right_after_the_drag_goes_to_the_note(cx: &mut TestAppContext) {
+    let (_host, heard, cx) = open(cx);
+    let words = cx.debug_bounds("words").expect("the words are drawn");
+    let y = words.top() + px(10.);
+    let (from, to) = (point(words.left() + px(1.), y), point(words.left() + px(300.), y));
+    cx.simulate_mouse_down(from, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    cx.simulate_input("why");
+    settle(cx);
+    cx.simulate_keystrokes("enter");
+    settle(cx);
+    let events = heard.borrow().clone();
+    assert!(matches!(events.as_slice(), [SelectionReplyEvent::Reply { note, quote, .. }] if note.as_ref() == "why" && quote.starts_with("The build")), "{events:?}");
+}
+/// A press outside the box closes it, and leaves the selection alone.
+#[gpui_kit::test]
+fn a_press_outside_closes_the_box(cx: &mut TestAppContext) {
+    let (host, heard, cx) = open(cx);
+    select_the_words(cx);
+    assert!(cx.debug_bounds("selection-reply-box").is_some());
+    let plain = cx.debug_bounds("plain").expect("the plain words are drawn");
+    let at = point(plain.left() + px(5.), plain.top() + px(10.));
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "the box is gone");
+    assert!(!host.read_with(cx, |h, cx| h.reply.read(cx).showing()));
+    assert!(heard.borrow().is_empty(), "nothing is sent");
+}
+/// A press inside the box does not close it.
+#[gpui_kit::test]
+fn a_press_inside_the_box_keeps_it(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    select_the_words(cx);
+    let quote = cx.debug_bounds("selection-reply-quote").expect("the quote bubble is drawn");
+    cx.simulate_mouse_down(quote.center(), MouseButton::Left, Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("selection-reply-box").is_some(), "still open");
 }
