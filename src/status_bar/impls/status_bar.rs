@@ -307,7 +307,11 @@ impl RenderOnce for StatusBar {
             None => (None, None),
         };
         let work = work_cluster(self.work, &theme);
-        let chips: Vec<AnyElement> = self.providers.iter().map(|provider| provider_chip(&self, provider, &theme)).collect();
+        let mut chips: Vec<AnyElement> = self.providers.iter().map(|provider| provider_chip(&self, provider, &theme)).collect();
+        // With no reading to show (none yet, or the providers did not answer) the usage still has its door.
+        if chips.is_empty() && self.on_usage.is_some() {
+            chips.push(div().child("Usage").into_any_element());
+        }
         let usage = (!chips.is_empty()).then(|| usage_target(&self, chips, window, cx, &theme));
         let version = self.version.clone().map(|version| version_label(&self, version, window, cx, &theme));
         let (lead, tail) = (self.lead, self.tail.filter(|_| self.load.is_some()));
