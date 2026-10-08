@@ -1099,3 +1099,27 @@ fn the_caret_starts_where_the_first_controls_content_starts(cx: &mut TestAppCont
     let caret = caret.expect("the caret has a place");
     assert!((f32::from(caret) - f32::from(model.left()) - 8.).abs() < 0.6, "the caret is at {caret:?}, the model select at {:?} with 8 px of padding", model.left());
 }
+
+/// A mode with an icon shows it before its words, in the picker: the picker is wider by the icon and its gap.
+#[gpui_kit::test]
+fn a_mode_icon_draws_before_the_words_in_the_picker(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let width = |icons: bool, cx: &mut TestAppContext| {
+        let (_prompt, cx) = cx.add_window_view(|window, cx| {
+            let prompt = PromptInput::new("Ask", "", window, cx).modes(vec!["Ask first".into(), "Plan".into()]);
+            if icons {
+                prompt.mode_icons(vec![(crate::IconName::Help, gpui_kit::hsla(0.5, 0.8, 0.6, 1.)), (crate::IconName::Checklist, gpui_kit::hsla(0.7, 0.8, 0.6, 1.))])
+            } else {
+                prompt
+            }
+        });
+        cx.simulate_resize(gpui_kit::size(px(900.), px(600.)));
+        run_for(100, cx);
+        f32::from(cx.debug_bounds("prompt-mode-select").expect("the mode picker is drawn").size.width)
+    };
+    let (plain, with_icon) = (width(false, cx), width(true, cx));
+    assert!(with_icon >= plain + 14., "the picker is {with_icon} wide with an icon and {plain} without");
+}

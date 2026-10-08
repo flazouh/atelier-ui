@@ -132,6 +132,8 @@ pub struct PromptInput {
     pub(super) models: Vec<PromptModel>,
     /// A second picker beside the model's, such as how much the agent may do without asking.
     pub(super) modes: Vec<SharedString>,
+    /// A small coloured icon for each mode, in the order of `modes`; short or empty draws none for the rest.
+    pub(super) mode_icons: Vec<(IconName, gpui_kit::Hsla)>,
     pub(super) mode: usize,
     pub(super) model: usize,
     actions: Vec<PromptAction>,
@@ -235,6 +237,7 @@ impl PromptInput {
             text,
             models: Vec::new(),
             modes: Vec::new(),
+            mode_icons: Vec::new(),
             mode: 0,
             model: 0,
             actions: Vec::new(),
@@ -284,6 +287,12 @@ impl PromptInput {
     /// The modes the second picker offers, by their words; empty draws no picker.
     pub fn modes(mut self, modes: Vec<SharedString>) -> Self {
         self.modes = modes;
+        self
+    }
+
+    /// An icon and its colour for each mode, in the order of [`PromptInput::modes`], drawn before the words in the picker and its list.
+    pub fn mode_icons(mut self, icons: Vec<(IconName, gpui_kit::Hsla)>) -> Self {
+        self.mode_icons = icons;
         self
     }
 
@@ -1207,7 +1216,13 @@ impl Render for PromptInput {
         let mode_select = (!self.modes.is_empty()).then(|| {
             let this = cx.entity().downgrade();
             div().flex_none().max_w(px(180.)).debug_selector(|| "prompt-mode-select".into()).child(
-                Select::new("prompt-mode", self.modes.iter().cloned())
+                Select::new(
+                    "prompt-mode",
+                    self.modes.iter().enumerate().map(|(i, words)| match self.mode_icons.get(i) {
+                        Some((icon, color)) => crate::SelectOption::new(words.clone(), *icon).icon_color(*color),
+                        None => crate::SelectOption::from(words.clone()),
+                    }),
+                )
                     .selected(Some(self.mode))
                     .disabled(disabled)
                     .compact(true)
