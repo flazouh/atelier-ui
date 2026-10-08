@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CORNER, HERO_HEIGHT, HERO_PATH, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CORNER, HERO_HEIGHT, HERO_PATH, ICON_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
     helpers::fade,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -93,7 +93,7 @@ impl RenderOnce for ReleaseSheet {
             .absolute()
             .inset_0()
             .child(
-                <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Cover)
+                <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Fill)
                     .rounded(px(CORNER)),
             );
 
@@ -127,8 +127,8 @@ impl RenderOnce for ReleaseSheet {
                             .justify_center()
                             .size(px(34.))
                             .rounded(px(9.))
-                            .bg(theme.card_strong)
-                            .child(Icon::new(note.icon).size(px(16.)).color(theme.muted_foreground)),
+                            .bg(fade(theme.foreground, ICON_TILE_ALPHA))
+                            .child(Icon::new(note.icon).size(px(16.)).color(theme.foreground)),
                     )
                     .child(
                         div()
