@@ -3,6 +3,8 @@ use gpui_kit::{Pixels, Point, SharedString};
 use crate::voice_input::VoiceInputEvent;
 
 pub(super) const CONTEXT: &str = "SelectionReply";
+/// How long the bar takes to settle in: a short rise from half strength, so it is there at once and still has a landing.
+pub(super) const OFFER_IN: std::time::Duration = std::time::Duration::from_millis(90);
 
 /// The most characters of the quote the box shows; the whole quote is still reported.
 pub(super) const QUOTE_SHOWN: usize = 240;

@@ -318,3 +318,30 @@ fn the_offer_lists_reply_then_the_presets_in_one_bar(cx: &mut TestAppContext) {
     assert!(first.left() < second.left() && second.right() <= bar.right());
     assert!(f32::from(bar.size.height) < 44., "one row: {:?}", bar.size);
 }
+
+/// The bar is drawn in the very next frame after a drag ends, before the selection has been read.
+#[gpui_kit::test]
+fn the_bar_is_up_in_the_first_frame_after_a_drag_ends(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    let words = cx.debug_bounds("words").expect("the words are drawn");
+    let y = words.top() + px(10.);
+    let (from, to) = (point(words.left() + px(1.), y), point(words.left() + px(300.), y));
+    cx.simulate_mouse_down(from, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    assert!(cx.debug_bounds("selection-reply-offer").is_some(), "the bar comes up with the release");
+}
+/// A click that selects nothing never shows the bar, not even for a frame.
+#[gpui_kit::test]
+fn a_plain_click_never_flashes_the_bar(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open(cx);
+    let words = cx.debug_bounds("words").unwrap();
+    let at = point(words.left() + px(5.), words.top() + px(10.));
+    cx.simulate_mouse_down(at, MouseButton::Left, Modifiers::default());
+    cx.simulate_mouse_up(at, MouseButton::Left, Modifiers::default());
+    cx.update(|window, cx| window.draw(cx).clear(cx));
+    assert!(cx.debug_bounds("selection-reply-offer").is_none());
+}
