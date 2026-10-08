@@ -14,8 +14,8 @@ use super::{
     types::ReleaseKind,
 };
 type Choice = Rc<dyn Fn(&mut Window, &mut App)>;
-/// The colour of a kind, as the owner gives it.
-type KindColors = Rc<dyn Fn(ReleaseKind) -> gpui_kit::Hsla>;
+/// The colour of a kind in the theme in force, as the owner gives it.
+type KindColors = Rc<dyn Fn(ReleaseKind, &Theme) -> gpui_kit::Hsla>;
 
 /// One line of what is new: a short lead and what it means.
 #[derive(Clone)]
@@ -82,9 +82,10 @@ impl ReleaseSheet {
             colors: None,
         }
     }
-    /// The colour of each kind of note: its icon and its label. This crate names none, so the owner gives them; a note of a
-    /// kind the owner gave none to has the neutral foreground.
-    pub fn kind_colors(mut self, colors: impl Fn(ReleaseKind) -> gpui_kit::Hsla + 'static) -> Self {
+    /// The colour of each kind of note, in the theme in force: its icon and its label. This crate names none, so the owner gives
+    /// them, and sees the theme so that a colour can stay readable on a light page. A note of a kind the owner gave none to has
+    /// the neutral foreground.
+    pub fn kind_colors(mut self, colors: impl Fn(ReleaseKind, &Theme) -> gpui_kit::Hsla + 'static) -> Self {
         self.colors = Some(Rc::new(colors));
         self
     }
@@ -260,7 +261,7 @@ impl RenderOnce for ReleaseSheet {
 /// One note: its icon in the colour of its kind, with no tile, then its kind in small capitals in that colour, the lead and what it
 /// says. A hairline parts it from the note above. A note with no kind has a plain mark in the neutral foreground and no label.
 fn note_row(note: ReleaseNote, at: usize, colors: Option<&KindColors>, theme: &Theme) -> gpui_kit::Div {
-    let tone = note.kind.and_then(|kind| colors.map(|colors| colors(kind))).unwrap_or(theme.foreground);
+    let tone = note.kind.and_then(|kind| colors.map(|colors| colors(kind, theme))).unwrap_or(theme.foreground);
     let label = note.kind.map(|kind| {
         div()
             .debug_selector(move || format!("release-kind-{at}"))

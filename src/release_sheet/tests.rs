@@ -90,7 +90,7 @@ impl gpui_kit::Render for Kinds {
             sheet = sheet.note(super::ReleaseNote::new(kind.label(), "What it says.").kind(kind));
         }
         sheet = sheet.note(super::ReleaseNote::new("No kind", "A note with none."));
-        let sheet = sheet.kind_colors(move |kind| {
+        let sheet = sheet.kind_colors(move |kind, _| {
             asked.borrow_mut().push(kind);
             gpui_kit::hsla(0.5, 0.8, 0.6, 1.)
         });
