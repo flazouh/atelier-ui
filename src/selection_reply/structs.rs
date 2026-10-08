@@ -1,5 +1,7 @@
 use std::time::Instant;
 
+use gpui_kit::{Animation, AnimationExt};
+
 use super::{AddReply, DropReply};
 
 use gpui_kit::{
@@ -10,7 +12,7 @@ use gpui_kit::{
 
 use crate::scale::px;
 use crate::{
-    motion::{Channel, Curve, Spring},
+    motion::{Channel, Curve, Spring, cubic_bezier, duration, ease},
     prompt_input::append_transcript,
     voice_input::{Mic, VoiceInputEvent, VoiceMode, listening_row, mic_slot},
 };
@@ -22,7 +24,7 @@ use crate::{
     typography::TextSize,
 };
 use super::helpers::shown;
-use super::types::{CONTEXT, Phase, QUOTE_SHOWN, SelectionReplyEvent};
+use super::types::{CONTEXT, Phase, QUOTE_SHOWN, ReplyPreset, SelectionReplyEvent};
 
 /// The reply to a selection: a button where the selection ended, then a small box for the note.
 pub struct SelectionReply {
@@ -32,6 +34,9 @@ pub struct SelectionReply {
     note: Entity<TextareaState>,
     add_label: SharedString,
     /// Whether the microphone shows; the owner answers its events.
+    presets: Vec<ReplyPreset>,
+    /// How many offers have come up, so each one plays its entrance.
+    offers: u64,
     dictation: bool,
     voice: VoiceMode,
     voice_level: f32,
@@ -62,6 +67,8 @@ impl SelectionReply {
             released: None,
             note,
             add_label: "Add".into(),
+            presets: Vec::new(),
+            offers: 0,
             dictation: false,
             voice: VoiceMode::Idle,
             voice_level: 0.,
@@ -77,6 +84,11 @@ impl SelectionReply {
         self
     }
 
+    /// One-press replies beside Reply on the offer: pressing one adds the reply with its note, with no box.
+    pub fn presets(mut self, presets: Vec<ReplyPreset>) -> Self {
+        self.presets = presets;
+        self
+    }
     /// Shows a microphone in the box. Its presses are reported as [`SelectionReplyEvent::Dictate`](super::SelectionReplyEvent).
     pub fn dictation(mut self, on: bool) -> Self {
         self.dictation = on;
@@ -157,6 +169,9 @@ impl SelectionReply {
         }
         let quote = quote.trim();
         self.phase = if quote.is_empty() || !inside { Phase::Idle } else { Phase::Offer { at, quote: quote.to_string().into() } };
+        if matches!(self.phase, Phase::Offer { .. }) {
+            self.offers += 1;
+        }
         cx.notify();
     }
 
@@ -179,6 +194,14 @@ impl SelectionReply {
         }
     }
 
+    /// Adds the reply on the offer with the note of preset `at`.
+    fn preset(&mut self, at: usize, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(preset) = self.presets.get(at).cloned() else { return };
+        let Phase::Offer { quote, .. } = std::mem::replace(&mut self.phase, Phase::Idle) else { return };
+        TextSelection::clear(window, cx);
+        cx.emit(SelectionReplyEvent::Reply { quote, note: preset.note, key: None });
+        cx.notify();
+    }
     fn add(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         // While it listens, adding ends the press first: the words are in the note before the reply goes.
         if self.voice == VoiceMode::Listening {
@@ -218,6 +241,8 @@ impl Render for SelectionReply {
                 if this.read_with(cx, |reply, _| reply.released.is_some()).unwrap_or(false) {
                     let quote = TextSelection::selected_text(window, cx);
                     this.update(cx, |reply, cx| reply.settle(&quote, cx)).ok();
+                    // The offer is drawn in the next frame; ask for it, so it does not wait for the next input.
+                    window.request_animation_frame();
                 }
                 let this = this.clone();
                 window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
@@ -226,8 +251,9 @@ impl Render for SelectionReply {
                     }
                     let (this, at, inside) = (this.clone(), event.position, bounds.contains(&event.position));
                     // After the frame's own handlers have run, the selection is settled.
-                    window.defer(cx, move |_, cx| {
+                    window.defer(cx, move |window, cx| {
                         this.update(cx, |reply, cx| reply.released(at, inside, cx)).ok();
+                        window.refresh();
                     });
                 });
             },
@@ -238,14 +264,48 @@ impl Render for SelectionReply {
         let overlay = match &self.phase {
             Phase::Idle => None,
             Phase::Offer { at, .. } => {
-                let button = Button::new("selection-reply-offer")
+                let reply = Button::new("selection-reply-offer-reply")
+                    .debug_name("selection-reply-offer-reply")
                     .icon(IconName::ChatBubble)
                     .label("Reply")
-                    .variant(ButtonVariant::Secondary)
+                    .variant(ButtonVariant::Tinted)
                     .size(ButtonSize::Sm)
                     .on_click(cx.listener(|this, _, window, cx| this.write(window, cx)));
-                let card = div().debug_selector(|| "selection-reply-offer".into()).rounded(radius::lg()).bg(theme.card_strong).shadow_md().child(button);
-                Some(floating(*at, window, card.into_any_element()))
+                let divider = (!self.presets.is_empty())
+                    .then(|| div().flex_none().w(px(1.)).h(px(14.)).mx(px(3.)).bg(theme.muted_foreground.opacity(0.25)));
+                let presets = self.presets.iter().enumerate().map(|(at, preset)| {
+                    let name = format!("selection-reply-preset-{at}");
+                    let button = Button::new(gpui_kit::ElementId::Name(name.clone().into()))
+                        .label(preset.label.clone())
+                        .variant(ButtonVariant::Ghost)
+                        .size(ButtonSize::Sm)
+                        .on_click(cx.listener(move |this, _, window, cx| this.preset(at, window, cx)));
+                    div().debug_selector(move || name.clone()).child(button)
+                });
+                let card = div()
+                    .debug_selector(|| "selection-reply-offer".into())
+                    .flex()
+                    .items_center()
+                    .gap(px(2.))
+                    .p(px(3.))
+                    .rounded(radius::xl())
+                    .bg(theme.card_strong)
+                    .shadow_md()
+                    .child(reply)
+                    .children(divider)
+                    .children(presets);
+                // It rises a few pixels and fades in; with Reduce Motion it is there at once.
+                let card = if cx.reduce_motion() {
+                    card.into_any_element()
+                } else {
+                    card.with_animation(
+                        gpui_kit::ElementId::Name(format!("selection-reply-offer-{}", self.offers).into()),
+                        Animation::new(duration::REVEAL).with_easing(|t| cubic_bezier(ease::OUT, t)),
+                        |card, t| card.opacity(t).mt(px(4. * (1. - t))),
+                    )
+                    .into_any_element()
+                };
+                Some(floating(*at, window, card))
             }
             Phase::Writing { at, quote, .. } => {
                 let reduce = cx.reduce_motion();

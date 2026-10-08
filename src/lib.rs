@@ -188,7 +188,7 @@ pub use inline_review::{Decision, InlineHunk, InlineReview, Resolve};
 pub use island::{Island, IslandCounts, SessionsIsland, counts_of, most_urgent};
 pub use kbd::Kbd;
 pub use line_comment::{Comment, LineComment, LineComposer, LineComposerEvent};
-pub use selection_reply::{SelectionReply, SelectionReplyEvent};
+pub use selection_reply::{ReplyPreset, SelectionReply, SelectionReplyEvent};
 pub use message_bubble::{
     MessageBubble, MessageBubbleAlign, MessageBubbleCollapsible, MessageBubbleGroupSpacing,
     MessageBubbleVariant, message_bubble_group,

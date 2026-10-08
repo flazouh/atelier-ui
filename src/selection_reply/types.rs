@@ -27,3 +27,15 @@ pub(super) enum Phase {
     Offer { at: Point<Pixels>, quote: SharedString },
     Writing { at: Point<Pixels>, quote: SharedString, key: Option<SharedString> },
 }
+
+/// A one-press reply on the offer: its `label` is on the button, and its `note` goes as the reply's note.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReplyPreset {
+    pub label: SharedString,
+    pub note: SharedString,
+}
+impl ReplyPreset {
+    pub fn new(label: impl Into<SharedString>, note: impl Into<SharedString>) -> Self {
+        Self { label: label.into(), note: note.into() }
+    }
+}
