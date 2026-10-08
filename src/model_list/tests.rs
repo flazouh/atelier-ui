@@ -39,18 +39,20 @@ mod drawn {
     struct Heard {
         default: Option<SharedString>,
         order: Option<Vec<SharedString>>,
+        hide: Option<(SharedString, bool)>,
     }
 
     struct Host(Rc<RefCell<Heard>>);
 
     impl Render for Host {
         fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
-            let (a, b) = (self.0.clone(), self.0.clone());
+            let (a, b, c) = (self.0.clone(), self.0.clone(), self.0.clone());
             div().w(px(500.)).child(
-                ModelList::new("models", "claude", vec![ModelRow::new("a", "Opus 5.5"), ModelRow::new("b", "Sonnet 5.5"), ModelRow::new("c", "Haiku 5.5")])
+                ModelList::new("models", "claude", vec![ModelRow::new("a", "Opus 5.5"), ModelRow::new("b", "Sonnet 5.5"), ModelRow::new("c", "Haiku 5.5").hidden(true)])
                     .default(Some("a".into()))
                     .on_default(move |id, _, _| a.borrow_mut().default = Some(id.clone()))
-                    .on_reorder(move |order, _, _| b.borrow_mut().order = Some(order)),
+                    .on_reorder(move |order, _, _| b.borrow_mut().order = Some(order))
+                    .on_hide(move |id, hidden, _, _| c.borrow_mut().hide = Some((id.clone(), hidden))),
             )
         }
     }
@@ -97,5 +99,25 @@ mod drawn {
         cx.run_until_parked();
         let order: Vec<String> = heard.borrow().order.clone().expect("the list reported an order").iter().map(|s| s.to_string()).collect();
         assert_eq!(order, ["c", "a", "b"]);
+    }
+
+    /// An eye hides a model from the picker, and on a hidden one shows it again; the default has no eye to press.
+    #[gpui_kit::test]
+    fn an_eye_hides_a_model_and_the_default_has_none_to_press(cx: &mut TestAppContext) {
+        let (heard, cx) = open(cx);
+        let none = gpui_kit::Modifiers::default();
+        let at = cx.debug_bounds("model-eye-claude-b").expect("an eye").center();
+        cx.simulate_click(at, none);
+        cx.run_until_parked();
+        assert_eq!(heard.borrow().hide.as_ref().map(|(id, hidden)| (id.to_string(), *hidden)), Some(("b".to_string(), true)));
+        let at = cx.debug_bounds("model-eye-claude-c").expect("an eye").center();
+        cx.simulate_click(at, none);
+        cx.run_until_parked();
+        assert_eq!(heard.borrow().hide.as_ref().map(|(id, hidden)| (id.to_string(), *hidden)), Some(("c".to_string(), false)), "a hidden one is shown again");
+        heard.borrow_mut().hide = None;
+        let at = cx.debug_bounds("model-eye-claude-a").expect("an eye").center();
+        cx.simulate_click(at, none);
+        cx.run_until_parked();
+        assert_eq!(heard.borrow().hide, None, "the default cannot be hidden");
     }
 }

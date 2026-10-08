@@ -6,11 +6,18 @@ pub struct ModelRow {
     pub id: SharedString,
     pub label: SharedString,
     pub detail: Option<SharedString>,
+    /// Left out of the picker: the row stays in the list, dimmed, to be shown again.
+    pub hidden: bool,
 }
 
 impl ModelRow {
     pub fn new(id: impl Into<SharedString>, label: impl Into<SharedString>) -> Self {
-        Self { id: id.into(), label: label.into(), detail: None }
+        Self { id: id.into(), label: label.into(), detail: None, hidden: false }
+    }
+
+    pub fn hidden(mut self, hidden: bool) -> Self {
+        self.hidden = hidden;
+        self
     }
 
     pub fn detail(mut self, detail: impl Into<SharedString>) -> Self {

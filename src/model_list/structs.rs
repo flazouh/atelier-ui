@@ -20,6 +20,7 @@ use super::{
 
 type OnDefault = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 type OnReorder = Rc<dyn Fn(Vec<SharedString>, &mut Window, &mut App)>;
+type OnHide = Rc<dyn Fn(&SharedString, bool, &mut Window, &mut App)>;
 
 #[derive(IntoElement)]
 pub struct ModelList {
@@ -29,12 +30,13 @@ pub struct ModelList {
     default: Option<SharedString>,
     on_default: Option<OnDefault>,
     on_reorder: Option<OnReorder>,
+    on_hide: Option<OnHide>,
 }
 
 impl ModelList {
     /// `key` tells this list's rows from another's: a row dropped on a list of another key does nothing.
     pub fn new(id: impl Into<ElementId>, key: impl Into<SharedString>, rows: Vec<ModelRow>) -> Self {
-        Self { id: id.into(), key: key.into(), rows, default: None, on_default: None, on_reorder: None }
+        Self { id: id.into(), key: key.into(), rows, default: None, on_default: None, on_reorder: None, on_hide: None }
     }
 
     /// The id of the model new sessions start on.
@@ -46,6 +48,12 @@ impl ModelList {
     /// The reader pressed a star: the model's id.
     pub fn on_default(mut self, f: impl Fn(&SharedString, &mut Window, &mut App) + 'static) -> Self {
         self.on_default = Some(Rc::new(f));
+        self
+    }
+
+    /// The reader pressed an eye: the model's id and whether it is now hidden. The default has no eye to press.
+    pub fn on_hide(mut self, f: impl Fn(&SharedString, bool, &mut Window, &mut App) + 'static) -> Self {
+        self.on_hide = Some(Rc::new(f));
         self
     }
 
@@ -86,6 +94,8 @@ impl RenderOnce for ModelList {
             let (list, row_id, label) = (self.key.clone(), row.id.clone(), row.label.clone());
             let (drop_order, drop_target, drop_list, reorder) = (order.clone(), row.id.clone(), self.key.clone(), self.on_reorder.clone());
             let (star_id, on_default) = (row.id.clone(), self.on_default.clone());
+            let (eye_id, on_hide, hidden) = (row.id.clone(), self.on_hide.clone(), row.hidden);
+            let eye_selector = format!("model-eye-{}-{}", self.key, row.id);
             let selector = format!("model-row-{}-{}", self.key, row.id);
             let star_selector = format!("model-star-{}-{}", self.key, row.id);
             div()
@@ -98,6 +108,7 @@ impl RenderOnce for ModelList {
                 .px(px(6.))
                 .rounded(radius::lg())
                 .hover(|s| s.bg(theme.muted_hover()))
+                .when(hidden, |d| d.opacity(0.5))
                 .on_drag(Dragged { list, id: row_id, label: label.clone() }, |d, _, _, cx| cx.new(|_| Ghost(d.label.clone())))
                 .drag_over::<Dragged>(|s, _, _, cx| s.bg(cx.theme().card_strong))
                 .on_drop::<Dragged>(move |dragged, window, cx| {
@@ -125,6 +136,26 @@ impl RenderOnce for ModelList {
                         .text_size(TextSize::Xs.font_size())
                         .text_color(theme.muted_foreground)
                         .children(row.detail.clone()),
+                )
+                .child(
+                    div()
+                        .id(child(format!("eye-{}", row.id)))
+                        .debug_selector(move || eye_selector.clone())
+                        .flex()
+                        .flex_none()
+                        .items_center()
+                        .justify_center()
+                        .size(px(24.))
+                        .rounded(radius::md())
+                        // The default is never left out of the picker, so its eye is not there to press.
+                        .when(!is_default, |d| d.cursor_pointer().hover(|s| s.bg(theme.card_strong)))
+                        .when(!is_default, |d| d.tooltip(Tooltip::text(if hidden { "Show in the picker" } else { "Hide from the picker" })))
+                        .when(!is_default, |d| {
+                            d.when_some(on_hide, move |d, on_hide| d.on_click(move |_, window, cx| on_hide(&eye_id, !hidden, window, cx)))
+                        })
+                        .child(Icon::new(if hidden { IconName::VisibilityOff } else { IconName::Visibility }).size(px(16.)).color(
+                            if is_default { theme.muted_foreground.opacity(0.25) } else { theme.muted_foreground },
+                        )),
                 )
                 .child(
                     div()
