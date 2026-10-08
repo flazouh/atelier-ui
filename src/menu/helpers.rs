@@ -81,11 +81,13 @@ pub fn unfolded(start: Inset, t: f32) -> (Inset, f32) {
     )
 }
 
-/// The whole panel's size from what its probe measured inside the border.
-pub fn panel_size(inner_width: f32, inner_height: f32) -> (f32, f32) {
-    (inner_width + 2. * BORDER, inner_height + 2. * BORDER)
+/// The whole panel's size, in design pixels, from what its probe measured inside the border, in window pixels. The border
+/// is a real pixel wide at any zoom, so it is added before the zoom is taken out: add it after, and each frame the panel
+/// would be a little wider than the last.
+pub fn panel_size(inner_width: gpui_kit::Pixels, inner_height: gpui_kit::Pixels) -> (f32, f32) {
+    let border = gpui_kit::px(2. * BORDER);
+    (crate::scale::design(inner_width + border), crate::scale::design(inner_height + border))
 }
-
 /// The panel's opacity while it unfolds, `reveal` being how far the unfold has gone (0 to 1).
 pub fn fill_opacity(reveal: f32) -> f32 {
     (reveal * FILL_RAMP).clamp(0., 1.)
