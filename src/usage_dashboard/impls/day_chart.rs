@@ -1,6 +1,6 @@
 use gpui_kit::{
-    AnyElement, App, FontWeight, Hsla, InteractiveElement, IntoElement, ParentElement, Styled, Window, div,
-    prelude::FluentBuilder, StatefulInteractiveElement,
+    AnyElement, App, FontWeight, Hsla, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement,
+    Styled, Window, div, prelude::FluentBuilder,
 };
 
 use super::{
@@ -23,37 +23,36 @@ pub(super) fn day_chart(d: &UsageDashboard, theme: &Theme, window: &mut Window, 
     let per_token = PLOT_HEIGHT / scale.top as f32;
     let detail = d.days.get(lit).map(|day| day.detail.clone()).unwrap_or_default();
 
-    let legend = div().flex().items_center().gap(px(12.)).text_size(px(12.)).text_color(theme.muted_foreground).children(
-        legend(&d.sources).into_iter().map(|entry| {
-            div()
-                .flex()
-                .items_center()
-                .gap(px(5.))
-                .child(div().flex().gap(px(2.)).children(entry.shades.iter().map(|shade| {
-                    div().size(px(DOT)).rounded_full().bg(theme.series(entry.hue, *shade))
-                })))
-                .child(entry.name)
-        }),
-    );
+    let legend =
+        div().flex().items_center().gap(px(12.)).text_size(px(12.)).text_color(theme.muted_foreground).children(
+            legend(&d.sources).into_iter().map(|entry| {
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(5.))
+                    .child(
+                        div().flex().gap(px(2.)).children(
+                            entry
+                                .shades
+                                .iter()
+                                .map(|shade| div().size(px(DOT)).rounded_full().bg(theme.series(entry.hue, *shade))),
+                        ),
+                    )
+                    .child(entry.name)
+            }),
+        );
 
     let grid = scale.ticks.iter().enumerate().map(|(at, tick)| {
         let from_bottom = PLOT_HEIGHT * (at + 1) as f32 / scale.ticks.len() as f32;
-        div()
-            .absolute()
-            .left_0()
-            .right_0()
-            .bottom(px(from_bottom))
-            .h(px(1.))
-            .bg(theme.foreground.opacity(0.06))
-            .child(
-                div()
-                    .absolute()
-                    .left(px(-AXIS_WIDTH))
-                    .bottom(px(-7.))
-                    .text_size(px(11.))
-                    .text_color(theme.muted_foreground)
-                    .child(tokens_label(*tick)),
-            )
+        div().absolute().left_0().right_0().bottom(px(from_bottom)).h(px(1.)).bg(theme.foreground.opacity(0.06)).child(
+            div()
+                .absolute()
+                .left(px(-AXIS_WIDTH))
+                .bottom(px(-7.))
+                .text_size(px(11.))
+                .text_color(theme.muted_foreground)
+                .child(tokens_label(*tick)),
+        )
     });
 
     let columns = d.days.iter().enumerate().map(|(at, day)| {
@@ -145,7 +144,9 @@ fn stack(segments: &[BarSegment], lit: bool, at: usize, theme: &Theme) -> AnyEle
                 .w_full()
                 .h(px(segment.height))
                 .bg(fill)
-                .when(segment.top_radius > 0., |s| s.rounded_tl(px(segment.top_radius)).rounded_tr(px(segment.top_radius)))
+                .when(segment.top_radius > 0., |s| {
+                    s.rounded_tl(px(segment.top_radius)).rounded_tr(px(segment.top_radius))
+                })
         }))
         .into_any_element()
 }

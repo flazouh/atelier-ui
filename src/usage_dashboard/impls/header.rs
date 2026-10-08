@@ -3,7 +3,10 @@ use gpui_kit::{
     Window, div, prelude::FluentBuilder,
 };
 
-use super::{super::{enums::UsageRange, structs::UsageDashboard}, key::key};
+use super::{
+    super::{enums::UsageRange, structs::UsageDashboard},
+    key::key,
+};
 use crate::{
     focus::PressStop,
     scale::px,

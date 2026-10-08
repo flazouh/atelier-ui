@@ -59,7 +59,7 @@ pub(super) fn tiles(d: &UsageDashboard, theme: &Theme, window: &mut Window, cx: 
                     value: source.value.clone(),
                     note: source.note.clone(),
                     used: source.limit,
-                    selected: is_selected(&d.selection, source) || d.selection == Selection::Source(source.id.clone()),
+                    selected: is_selected(&d.selection, source),
                     pick: Selection::Source(source.id.clone()),
                 };
                 tile(d, item, theme, window, cx)
@@ -131,6 +131,7 @@ fn tile(d: &UsageDashboard, tile: Tile, theme: &Theme, window: &mut Window, cx: 
         })
         .child(
             div()
+                .flex_none()
                 .flex()
                 .items_center()
                 .gap(px(7.))
@@ -139,9 +140,19 @@ fn tile(d: &UsageDashboard, tile: Tile, theme: &Theme, window: &mut Window, cx: 
                 .child(div().flex_none().size(px(DOT)).rounded_full().bg(tile.dot))
                 .child(div().min_w_0().truncate().child(tile.name)),
         )
-        .child(div().mt(px(2.)).text_size(px(12.)).text_color(theme.muted_foreground).truncate().child(tile.caption))
         .child(
             div()
+                .flex_none()
+                .h(px(16.))
+                .mt(px(2.))
+                .text_size(px(12.))
+                .text_color(theme.muted_foreground)
+                .truncate()
+                .child(tile.caption),
+        )
+        .child(
+            div()
+                .flex_none()
                 .flex()
                 .items_baseline()
                 .gap(px(4.))
@@ -149,6 +160,6 @@ fn tile(d: &UsageDashboard, tile: Tile, theme: &Theme, window: &mut Window, cx: 
                 .child(div().text_size(px(19.)).font_weight(FontWeight::MEDIUM).child(tile.value))
                 .child(div().text_size(px(12.)).text_color(theme.muted_foreground).truncate().child(tile.note)),
         )
-        .when_some(tile.used, |t, used| t.child(div().mt(px(8.)).child(gauge(used, theme))))
+        .when_some(tile.used, |t, used| t.child(div().flex_none().mt(px(8.)).child(gauge(used, theme))))
         .into_any_element()
 }

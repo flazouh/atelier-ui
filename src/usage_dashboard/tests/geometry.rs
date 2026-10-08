@@ -1,7 +1,7 @@
 use gpui_kit::SharedString;
 
 use crate::usage_dashboard::{
-    Series, UsageSource, SourceKind, axis, bar_segments, mini_bars, spark_points, tokens_label,
+    Series, SourceKind, UsageSource, axis, bar_segments, mini_bars, spark_points, tokens_label,
 };
 
 const CLAUDE: Series = Series::new(0, 0);
@@ -109,8 +109,8 @@ fn source(id: &str, group: &str, series: Series) -> UsageSource {
 
 #[test]
 fn sources_in_a_row_with_one_caption_stand_in_one_group() {
-    use crate::usage_dashboard::helpers::{groups, is_selected, legend};
     use crate::usage_dashboard::Selection;
+    use crate::usage_dashboard::helpers::{groups, is_selected, legend};
     let sources = vec![
         source("a", "Claude Code · 2 accounts", Series::new(0, 0)),
         source("b", "Claude Code · 2 accounts", Series::new(0, 1)),

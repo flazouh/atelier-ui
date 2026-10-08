@@ -28,18 +28,13 @@ pub(super) fn model_bars(d: &UsageDashboard, theme: &Theme) -> AnyElement {
                     ),
             )
             .child(
-                div()
-                    .w_full()
-                    .h(px(4.))
-                    .rounded_full()
-                    .bg(theme.foreground.opacity(0.1))
-                    .child(
-                        div()
-                            .h_full()
-                            .w(relative(share.clamp(0., 1.)))
-                            .rounded_full()
-                            .bg(theme.series(model.series.hue, model.series.shade)),
-                    ),
+                div().w_full().h(px(4.)).rounded_full().bg(theme.foreground.opacity(0.1)).child(
+                    div()
+                        .h_full()
+                        .w(relative(share.clamp(0., 1.)))
+                        .rounded_full()
+                        .bg(theme.series(model.series.hue, model.series.shade)),
+                ),
             )
     });
     panel(theme)

@@ -1,11 +1,7 @@
 use gpui_kit::{AnyElement, Hsla, IntoElement, ParentElement, Styled, div, relative};
 
 use super::super::consts::GAUGE_HEIGHT;
-use crate::{
-    scale::px,
-    status_bar::Pressure,
-    theme::Theme,
-};
+use crate::{scale::px, status_bar::Pressure, theme::Theme};
 
 /// The colour of a gauge at `used`: green while there is room, amber from the status bar's warm line, red from its hot.
 pub(super) fn gauge_ink(used: f32, theme: &Theme) -> Hsla {

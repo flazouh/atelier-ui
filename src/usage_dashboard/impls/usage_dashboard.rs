@@ -6,6 +6,7 @@ use gpui_kit::{
 
 use super::{
     super::{
+        consts::PAD,
         enums::{Selection, UsageRange},
         structs::{UsageDashboard, UsageDay, UsageModel, UsageSession, UsageSource},
     },
@@ -16,7 +17,7 @@ use super::{
     sessions::sessions,
     tiles::tiles,
 };
-use crate::{scale::px, theme::ActiveTheme};
+use crate::{scale::px, theme::ActiveTheme, typography::FONT_FAMILY};
 
 impl UsageDashboard {
     pub fn new(id: impl Into<ElementId>) -> Self {
@@ -142,7 +143,10 @@ impl RenderOnce for UsageDashboard {
             .flex_col()
             .gap(px(10.))
             .w_full()
+            .p(px(PAD))
+            .bg(theme.background)
             .text_color(theme.foreground)
+            .font_family(FONT_FAMILY)
             .child(head)
             .child(tiles)
             .children(rest)

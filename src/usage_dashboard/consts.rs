@@ -28,3 +28,5 @@ pub(super) const COST_WIDTH: f32 = 90.;
 pub(super) const CHEVRON_WIDTH: f32 = 24.;
 /// The width of the "where the tokens went" column of an open session.
 pub(super) const SPLIT_WIDTH: f32 = 292.;
+/// The ground round the panels, so that they part from a modal whose fill is the card tone.
+pub(super) const PAD: f32 = 28.;

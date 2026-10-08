@@ -93,7 +93,14 @@ fn row(
                 .flex_1()
                 .min_w_0()
                 .child(div().text_size(px(13.)).font_weight(FontWeight::MEDIUM).truncate().child(session.title.clone()))
-                .child(div().mt(px(2.)).text_size(px(12.)).text_color(theme.muted_foreground).truncate().child(session.meta.clone())),
+                .child(
+                    div()
+                        .mt(px(2.))
+                        .text_size(px(12.))
+                        .text_color(theme.muted_foreground)
+                        .truncate()
+                        .child(session.meta.clone()),
+                ),
         )
         .child(sparkline(&session.days, color))
         .child(mono(session.tokens.clone(), TOKENS_WIDTH))
@@ -112,14 +119,7 @@ fn row(
 
 /// A number that changes, in the mono face, at the right of its column.
 fn mono(text: gpui_kit::SharedString, width: f32) -> impl IntoElement {
-    div()
-        .w(px(width))
-        .flex_none()
-        .flex()
-        .justify_end()
-        .font_family(MONO_FONT_FAMILY)
-        .text_size(px(13.))
-        .child(text)
+    div().w(px(width)).flex_none().flex().justify_end().font_family(MONO_FONT_FAMILY).text_size(px(13.)).child(text)
 }
 
 /// The open session: its days as bars, and where its tokens went.

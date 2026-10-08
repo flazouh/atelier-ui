@@ -1,6 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use gpui_kit::{Context, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px};
+use gpui_kit::{
+    Context, IntoElement, ParentElement, Render, Styled, TestAppContext, VisualTestContext, Window, div, px,
+};
 
 use crate::{
     theme::{Appearance, set_appearance},
@@ -12,15 +14,10 @@ use crate::{
 /// What the callbacks heard, in order.
 pub type Log = Rc<RefCell<Vec<String>>>;
 
+#[derive(Default)]
 pub struct Options {
     pub empty: Option<&'static str>,
     pub expanded: Option<&'static str>,
-}
-
-impl Default for Options {
-    fn default() -> Self {
-        Self { empty: None, expanded: None }
-    }
 }
 
 pub struct Host {
