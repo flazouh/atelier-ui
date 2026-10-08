@@ -17,10 +17,8 @@ pub(super) const HISTORY_MAX: f32 = 340.;
 /// The close button at the top right: its size and its distance from the corner.
 pub(super) const CLOSE_SIZE: f32 = 30.;
 pub(super) const CLOSE_INSET: f32 = 14.;
-/// The tile behind a note's icon: its size, corner and icon, and how strong its colour is at the top, at the bottom, and in its ring.
-pub(super) const TILE_SIZE: f32 = 36.;
-pub(super) const TILE_CORNER: f32 = 10.;
-pub(super) const TILE_ICON: f32 = 18.;
-pub(super) const TILE_TOP_ALPHA: f32 = 0.32;
-pub(super) const TILE_BOTTOM_ALPHA: f32 = 0.10;
-pub(super) const TILE_RING_ALPHA: f32 = 0.42;
+/// A note's icon, and the room it has at the left of the words, in design pixels.
+pub(super) const GLYPH_SIZE: f32 = 20.;
+pub(super) const GLYPH_SLOT: f32 = 24.;
+/// How strong the hairline between two notes is, as a share of the foreground.
+pub(super) const HAIRLINE_ALPHA: f32 = 0.08;
