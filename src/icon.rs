@@ -180,6 +180,7 @@ impl AssetSource for Assets {
             .or_else(|| component_icon(path))
             .or_else(|| crate::file_icon::bytes(path))
             .or_else(|| crate::atelier_mark::AtelierMark::bytes(path))
+            .or_else(|| crate::release_sheet::bytes(path))
         {
             return Ok(Some(Cow::Borrowed(bytes)));
         }
