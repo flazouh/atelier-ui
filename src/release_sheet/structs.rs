@@ -69,7 +69,7 @@ impl ReleaseSheet {
         self.notes.extend(notes);
         self
     }
-    /// The words on the two buttons ("Later", "Restart and update").
+    /// The words on the two buttons ("Later", "Restart and update"). With no [`Self::on_install`] only the first shows.
     pub fn labels(mut self, later: impl Into<SharedString>, install: impl Into<SharedString>) -> Self {
         (self.later, self.install) = (later.into(), install.into());
         self
@@ -142,7 +142,9 @@ impl RenderOnce for ReleaseSheet {
                     )
         });
 
-        let (later, install) = (self.on_later, self.on_install);
+        let (later, install, install_label) = (self.on_later, self.on_install, self.install);
+        // With nothing to restart, the one button closes the sheet, and it is the main one.
+        let close_only = install.is_none();
         let foot = div()
                 .flex()
                 .justify_end()
@@ -155,24 +157,20 @@ impl RenderOnce for ReleaseSheet {
                     Button::new((self.id.clone(), "later"))
                         .debug_name("release-later")
                         .label(self.later)
-                        .variant(ButtonVariant::Secondary)
+                        .variant(if close_only { ButtonVariant::Primary } else { ButtonVariant::Secondary })
                         .on_click(move |_, window, cx| {
                             if let Some(f) = &later {
                                 f(window, cx);
                             }
                         }),
                 )
-                .child(
+                .children(install.map(|on_install| {
                     Button::new((self.id.clone(), "install"))
                         .debug_name("release-install")
-                        .label(self.install)
+                        .label(install_label)
                         .variant(ButtonVariant::Primary)
-                        .on_click(move |_, window, cx| {
-                            if let Some(f) = &install {
-                                f(window, cx);
-                            }
-                        }),
-                );
+                        .on_click(move |_, window, cx| on_install(window, cx))
+                }));
 
         let panel = div()
             .relative()
