@@ -38,6 +38,9 @@ macro_rules! icons {
 
 icons! {
     Add => "plus-sign",
+    Star => "star",
+    StarFilled => "star-fill",
+    Grip => "drag-drop-vertical",
     Mic => "mic-01",
     Archive => "archive-arrow-down",
     ArrowDownward => "arrow-down-02",
