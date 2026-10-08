@@ -181,7 +181,15 @@ fn the_panel_keeps_its_size_through_the_unfold(cx: &mut TestAppContext) {
 
 #[test]
 fn the_panel_size_is_the_probe_plus_its_border() {
-    assert_eq!(panel_size(273., 194.), (275., 196.));
+    assert_eq!(panel_size(gpui_kit::px(273.), gpui_kit::px(194.)), (275., 196.));
+}
+#[test]
+fn the_panel_size_is_in_design_pixels_and_its_border_stays_one_real_pixel() {
+    crate::scale::set_zoom(1.5);
+    let (w, h) = panel_size(gpui_kit::px(298.), gpui_kit::px(148.));
+    crate::scale::set_zoom(1.);
+    assert!((w - 200.).abs() < 0.01, "300 window pixels at 1.5 are 200 design pixels: {w}");
+    assert!((h - 100.).abs() < 0.01, "150 window pixels at 1.5 are 100 design pixels: {h}");
 }
 
 /// Each site keeps the menu it had before the Menu part: the numbers of the old review bar, merge, prompt and
@@ -360,4 +368,23 @@ fn a_row_with_a_lead_shows_it_before_its_words_a_mark_or_the_first_letter(cx: &m
     assert!(cx.debug_bounds("menu-lead-Claude Code").is_some(), "the mark's slot");
     assert!(cx.debug_bounds("select-monogram-C").is_some(), "a row without a mark gets its first letter");
     assert!(cx.debug_bounds("menu-lead-Plain").is_none(), "a row with no lead gets nothing");
+}
+
+/// At a zoom the panel is as wide as the zoom makes it, and keeps that size through the unfold: its border is one real
+/// pixel at any zoom, so a panel sized in design pixels with the border counted twice would grow on each frame.
+#[gpui_kit::test]
+fn at_a_zoom_the_panel_keeps_its_size_through_the_unfold(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(1.5);
+    let (host, cx, _) = open(Some(Origin::TopRight), false, cx);
+    let first = cx.debug_bounds("panel").expect("measured after the first frames");
+    crate::motion::clock::freeze();
+    for step in 0..40 {
+        crate::motion::clock::advance(std::time::Duration::from_millis(16));
+        host.update(cx, |_, cx| cx.notify());
+        cx.run_until_parked();
+        let now = cx.debug_bounds("panel").unwrap();
+        assert!((f32::from(now.size.width) - f32::from(first.size.width)).abs() < 0.6, "width at step {step}: {:?} then {:?}", first.size, now.size);
+        assert!((f32::from(now.size.height) - f32::from(first.size.height)).abs() < 0.6, "height at step {step}");
+    }
+    crate::scale::set_zoom(1.);
 }

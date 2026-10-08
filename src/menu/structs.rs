@@ -314,10 +314,10 @@ impl RenderOnce for Menu {
             let mut moving = false;
             let target = active.and_then(|i| s.rects[i]).zip(s.list).map(|(r, l)| {
                 (
-                    f32::from(r.origin.y - l.origin.y),
-                    f32::from(r.size.height),
-                    f32::from(r.origin.x - l.origin.x),
-                    f32::from(r.size.width),
+                    crate::scale::design(r.origin.y - l.origin.y),
+                    crate::scale::design(r.size.height),
+                    crate::scale::design(r.origin.x - l.origin.x),
+                    crate::scale::design(r.size.width),
                 )
             });
             match target {
@@ -672,7 +672,7 @@ impl RenderOnce for Menu {
                 .child(measure(move |b, cx| {
                     // The probe sits inside the panel's border, so it reads the panel less its border; the size kept is the
                     // whole panel, or each frame the panel would be forced a border narrower than the last.
-                    size_state.update(cx, |s, _| s.size = Some(panel_size(f32::from(b.size.width), f32::from(b.size.height))))
+                    size_state.update(cx, |s, _| s.size = Some(panel_size(b.size.width, b.size.height)))
                 }))
                 .child(list)
         };

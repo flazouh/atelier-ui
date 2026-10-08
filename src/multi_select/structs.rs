@@ -612,7 +612,7 @@ impl Render for MultiSelect {
             .track_scroll(&self.scroll)
             .p(px(LIST_PAD))
             .child(list_measure)
-            .children(wash.map(|(y, h, w, x)| div().absolute().top(px(y)).left(px(x)).w(px(w)).h(px(h)).rounded(px(CHIP_RADIUS)).bg(theme.card)))
+            .children(wash.map(|(y, h, w, x)| div().absolute().top(gpui_kit::px(y)).left(gpui_kit::px(x)).w(gpui_kit::px(w)).h(gpui_kit::px(h)).rounded(px(CHIP_RADIUS)).bg(theme.card)))
             .children(sections)
             .when(shown.is_empty(), |d| {
                 d.child(div().px(px(12.)).py(px(32.)).flex().justify_center().text_size(TextSize::Sm.font_size()).text_color(theme.muted_foreground).child(self.empty.clone()))

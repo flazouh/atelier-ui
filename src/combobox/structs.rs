@@ -199,7 +199,7 @@ impl RenderOnce for ComboList {
         });
         let (glide, moving, checks) = state.update(cx, |s, _| {
             let target = self.active.and_then(|i| s.rects.get(i).copied().flatten()).zip(s.content).map(|(r, c)| {
-                (f32::from(r.origin.y - c.origin.y), f32::from(r.size.height), f32::from(r.origin.x - c.origin.x), f32::from(r.size.width))
+                (crate::scale::design(r.origin.y - c.origin.y), crate::scale::design(r.size.height), crate::scale::design(r.origin.x - c.origin.x), crate::scale::design(r.size.width))
             });
             let mut moving = false;
             if s.last_key != self.scroll_key {
