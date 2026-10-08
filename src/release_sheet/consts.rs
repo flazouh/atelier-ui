@@ -12,12 +12,15 @@ pub(super) const PANEL_ALPHA: f32 = 0.92;
 /// stretched over the whole sheet, so that its own corners are the sheet's: a picture that covers the sheet and is cut by it
 /// would have its rounded corners outside the visible part.
 pub(super) const CORNER: f32 = crate::modal::CORNER;
-/// How much of the foreground colour the tile behind a note's icon takes: enough to stand out from the panel in a dark theme and in a light one.
-pub(super) const ICON_TILE_ALPHA: f32 = 0.14;
 /// How tall the notes may be before they scroll, when earlier versions are listed under them.
 pub(super) const HISTORY_MAX: f32 = 340.;
-/// How much of its colour the tile of a typed note takes.
-pub(super) const KIND_TILE_ALPHA: f32 = 0.2;
 /// The close button at the top right: its size and its distance from the corner.
 pub(super) const CLOSE_SIZE: f32 = 30.;
 pub(super) const CLOSE_INSET: f32 = 14.;
+/// The tile behind a note's icon: its size, corner and icon, and how strong its colour is at the top, at the bottom, and in its ring.
+pub(super) const TILE_SIZE: f32 = 36.;
+pub(super) const TILE_CORNER: f32 = 10.;
+pub(super) const TILE_ICON: f32 = 18.;
+pub(super) const TILE_TOP_ALPHA: f32 = 0.32;
+pub(super) const TILE_BOTTOM_ALPHA: f32 = 0.10;
+pub(super) const TILE_RING_ALPHA: f32 = 0.42;

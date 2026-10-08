@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, StatefulInteractiveElement, Styled, Window, div,
+    SharedString, StatefulInteractiveElement, Styled, Window, div, linear_color_stop, linear_gradient,
 };
 use crate::scale::px;
 use crate::{
@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, ICON_TILE_ALPHA, KIND_TILE_ALPHA, PANEL_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
+    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, TILE_BOTTOM_ALPHA, TILE_CORNER, TILE_ICON, TILE_RING_ALPHA, TILE_SIZE, TILE_TOP_ALPHA, PANEL_CORNER, PANEL_GAP, SIDE},
     helpers::fade,
     types::ReleaseKind,
 };
@@ -246,31 +246,42 @@ impl RenderOnce for ReleaseSheet {
     }
 }
 
+/// The tile at a note's left: the icon in the colour of its kind, on a soft gradient of that colour, inside a thin ring of it. A
+/// note with no kind has the neutral foreground in its place.
+fn icon_tile(note: &ReleaseNote, theme: &Theme) -> gpui_kit::Div {
+    let tone = note.kind.map_or(theme.foreground, |kind| kind.tone(theme));
+    let (top, bottom, ring) = match note.kind {
+        Some(_) => (TILE_TOP_ALPHA, TILE_BOTTOM_ALPHA, TILE_RING_ALPHA),
+        None => (TILE_TOP_ALPHA / 2., TILE_BOTTOM_ALPHA / 2., TILE_RING_ALPHA / 2.),
+    };
+    div()
+        .flex()
+        .flex_none()
+        .items_center()
+        .justify_center()
+        .size(px(TILE_SIZE))
+        .rounded(px(TILE_CORNER))
+        .border_1()
+        .border_color(fade(tone, ring))
+        .bg(linear_gradient(180., linear_color_stop(fade(tone, top), 0.), linear_color_stop(fade(tone, bottom), 1.)))
+        .child(Icon::new(note.icon).size(px(TILE_ICON)).color(tone))
+}
+
 /// One note: the tile with its icon, the lead, and what it says.
 fn note_row(note: ReleaseNote, theme: &Theme) -> gpui_kit::Div {
+    div()
+        .flex()
+        .gap(px(14.))
+        .py(px(9.))
+        .child(icon_tile(&note, theme))
+        .child(
             div()
-            .flex()
-                    .gap(px(14.))
-                    .py(px(9.))
-                    .child(
-                        div()
-                            .flex()
-                            .flex_none()
-                            .items_center()
-                            .justify_center()
-                            .size(px(34.))
-                            .rounded(px(9.))
-                            .bg(note.kind.map_or(fade(theme.foreground, ICON_TILE_ALPHA), |kind| fade(kind.tone(theme), KIND_TILE_ALPHA)))
-                            .child(Icon::new(note.icon).size(px(16.)).color(note.kind.map_or(theme.foreground, |kind| kind.tone(theme)))),
-                    )
-                    .child(
-                        div()
-                            .flex()
-                            .flex_col()
-                            .flex_1()
-                            .min_w_0()
-                            .gap(px(2.))
-                            .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
-                            .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
-                    )
+                .flex()
+                .flex_col()
+                .flex_1()
+                .min_w_0()
+                .gap(px(2.))
+                .child(div().text_size(px(15.)).font_weight(FontWeight::MEDIUM).text_color(theme.foreground).child(note.lead))
+                .child(div().text_size(px(14.)).line_height(px(20.)).text_color(theme.muted_foreground).child(note.text)),
+        )
 }

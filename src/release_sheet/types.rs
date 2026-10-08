@@ -22,12 +22,12 @@ impl ReleaseKind {
         }
     }
 
-    /// The colour of the tile and the mark, from the theme's status tones: green, blue, amber.
+    /// The colour of the tile and the mark, from the theme's full-strength tones, which stay apart in every theme: green and purple (the pull request states, in their own colours) and gold (the warning fill).
     pub fn tone(self, theme: &Theme) -> Hsla {
         match self {
-            Self::New => theme.success,
-            Self::Improved => theme.info,
-            Self::Fixed => theme.warning,
+            Self::New => theme.pull[0],
+            Self::Improved => theme.pull[2],
+            Self::Fixed => theme.warning_fill,
         }
     }
 }
