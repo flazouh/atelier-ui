@@ -22,7 +22,9 @@ pub(super) const GLYPH_SIZE: f32 = 20.;
 pub(super) const GLYPH_SLOT: f32 = 24.;
 /// How strong the hairline between two notes is, as a share of the foreground.
 pub(super) const HAIRLINE_ALPHA: f32 = 0.08;
-/// What a sheet takes of the window\'s height besides its notes: the picture, the gaps round the panel, the panel\'s foot and the
-/// space the modal keeps from the edges, in design pixels. And the least the notes keep, however short the window.
-pub(super) const SHEET_CHROME: f32 = 380.;
+/// What a sheet takes of the window's height besides its notes, in design pixels: the picture, the gaps round the panel and
+/// the space the modal keeps from the edges; and the panel's foot, when there is one (a sheet with nothing to restart has none).
+/// And the least the notes keep, however short the window.
+pub(super) const SHEET_CHROME: f32 = 296.;
+pub(super) const FOOT_HEIGHT: f32 = 76.;
 pub(super) const MIN_NOTES_HEIGHT: f32 = 140.;

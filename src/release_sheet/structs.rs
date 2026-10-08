@@ -9,7 +9,7 @@ use crate::{
     theme::{ActiveTheme, Appearance, Theme},
 };
 use super::{
-    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, GLYPH_SIZE, GLYPH_SLOT, HAIRLINE_ALPHA, MIN_NOTES_HEIGHT, PANEL_CORNER, PANEL_GAP, SHEET_CHROME, SIDE},
+    consts::{CLOSE_INSET, CLOSE_SIZE, CORNER, HERO_HEIGHT, HERO_PATH, HISTORY_MAX, PANEL_ALPHA, FOOT_HEIGHT, GLYPH_SIZE, GLYPH_SLOT, HAIRLINE_ALPHA, MIN_NOTES_HEIGHT, PANEL_CORNER, PANEL_GAP, SHEET_CHROME, SIDE},
     helpers::fade,
     types::ReleaseKind,
 };
@@ -177,7 +177,8 @@ impl RenderOnce for ReleaseSheet {
         // The notes scroll when they do not fit: with earlier versions under them, past a height of their own; always, past what the
         // window leaves once the picture, the panel\'s gaps and its foot have taken theirs. At a zoom the window holds fewer design
         // pixels, so a sheet that fits at 1 would stand taller than the window.
-        let room = (crate::scale::design(window.viewport_size().height) - SHEET_CHROME).max(MIN_NOTES_HEIGHT);
+        let foot = if self.on_install.is_some() { FOOT_HEIGHT } else { 0. };
+        let room = (crate::scale::design(window.viewport_size().height) - SHEET_CHROME - foot).max(MIN_NOTES_HEIGHT);
         let most = if scrolls { HISTORY_MAX.min(room) } else { room };
         let notes = div().id((self.id.clone(), "history")).max_h(px(most)).overflow_y_scroll().child(notes).into_any_element();
         let (later, install, install_label) = (self.on_later, self.on_install, self.install);
