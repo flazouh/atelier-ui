@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use gpui_kit::{Animation, AnimationExt, FontWeight, StatefulInteractiveElement};
+use gpui_kit::{Animation, AnimationExt, FontWeight, StatefulInteractiveElement, component::{Sizable as _, Size}};
 
 use super::{AddReply, DropReply};
 
@@ -369,7 +369,11 @@ impl Render for SelectionReply {
                     .child(
                         div()
                             .opacity(if listening { 0. } else { 1. })
-                            .child(Textarea::new(&self.note).appearance(false).px(px(8.)).py(px(4.)).text_size(TextSize::Sm.font_size())),
+                            .child(
+                                div().flex().items_center().min_h(px(28.)).child(
+                                    Textarea::new(&self.note).appearance(false).with_size(Size::XSmall).pl(px(10.)).pr(px(4.)).text_size(TextSize::Sm.font_size()).line_height(px(20.)),
+                                ),
+                            ),
                     )
                     .children(listening.then(|| {
                         div()
@@ -393,8 +397,8 @@ impl Render for SelectionReply {
                     .flex()
                     .items_end()
                     .gap(px(4.))
-                    .p(px(3.))
-                    .rounded(radius::lg())
+                    .p(px(2.))
+                    .rounded(px(16.))
                     .bg(theme.background)
                     .child(div().debug_selector(|| "selection-reply-note".into()).flex_1().min_w_0().child(said))
                     .children(mic)

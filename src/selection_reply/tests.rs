@@ -398,3 +398,14 @@ fn a_drag_on_a_layer_that_covers_the_words_offers_nothing_and_keeps_the_focus(cx
     select_the_words(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "with the layer gone, the same drag offers the box");
 }
+
+/// The note row is one slim pill: a single line is no taller than the round buttons plus a thin rim.
+#[gpui_kit::test]
+fn the_note_row_is_one_slim_pill(cx: &mut TestAppContext) {
+    let (_host, _, cx) = open_with(cx, true);
+    select_the_words(cx);
+    let note = cx.debug_bounds("selection-reply-note").expect("the note is drawn");
+    let mic = cx.debug_bounds("selection-reply-mic").expect("the mic is drawn");
+    let add = cx.debug_bounds("selection-reply-add").expect("Add is drawn");
+    assert!(f32::from(note.size.height) <= 30., "one line: {:?}", note.size);
+}
