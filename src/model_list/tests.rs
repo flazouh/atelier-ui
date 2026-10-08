@@ -132,3 +132,12 @@ fn the_star_is_gold_on_both_pages() {
         assert!(star.r > 0.85 && star.g > 0.55 && star.b < 0.55, "{name}: a gold, not a brown: {star:?}");
     }
 }
+
+/// A light theme whose own warning colour is not a gold (Cursor Light's is a vermilion) still gets the gold star.
+#[test]
+fn a_light_theme_with_another_warning_colour_still_has_the_gold_star() {
+    use crate::themes::named;
+    let theme = named("Cursor Light").expect("Cursor Light is a theme");
+    let star = gpui_kit::Rgba::from(super::star_colour(&theme));
+    assert!(star.r > 0.85 && star.g > 0.55 && star.b < 0.35, "a gold, not a vermilion: {star:?}");
+}
