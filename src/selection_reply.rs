@@ -1,7 +1,7 @@
 //! Reply to words in the conversation. The reader selects text anywhere under the window's text selection (messages,
 //! command output, diffs), and a small box opens at the end of the selection in the same frame, with its note already
 //! focused, so they can type at once. It holds the quote in a message bubble, one-press badges
-//! ([`SelectionReply::presets`]: a label, an icon and a colour each), the note, a microphone (when the owner turns it
+//! ([`SelectionReply::presets`]: a plain badge with a label and a coloured icon), the note, a microphone (when the owner turns it
 //! on with [`SelectionReply::dictation`]) and a round Add button. It reports [`SelectionReplyEvent::Reply`]; where the
 //! quote and the note go is the owner's call.
 //!
