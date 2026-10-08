@@ -146,16 +146,16 @@ mod cards {
         cx.run_until_parked();
         cx
     }
-    /// The bar's cards stand under the columns above it: the machine's under the sidebar's width, the providers' under the right
+    /// The bar's cards stand under the columns above it: the version's under the sidebar's width, the machine's under the right
     /// pane's, the one between takes the rest, each a panels' gap from the next and the bar's whole height.
     #[gpui_kit::test]
     fn the_cards_stand_under_the_columns_a_panels_gap_apart(cx: &mut TestAppContext) {
         let cx = open(Some(300.), Some(260.), cx);
         let bar = cx.debug_bounds("status-bar").unwrap();
         let (machine, main, providers) = (
-            cx.debug_bounds("status-card-cpu").unwrap(),
+            cx.debug_bounds("status-card-version").unwrap(),
             cx.debug_bounds("status-card-main").unwrap(),
-            cx.debug_bounds("status-card-providers").unwrap(),
+            cx.debug_bounds("status-card-load").unwrap(),
         );
         let near = |a: gpui_kit::Pixels, b: f32| (f32::from(a) - b).abs() < 0.6;
         assert!(near(machine.size.width, 300.), "the first card is the sidebar's width: {:?}", machine.size.width);
@@ -167,22 +167,22 @@ mod cards {
             assert!(near(card.size.height, HEIGHT) && near(card.top() - bar.top(), 0.), "each card takes the bar's whole height");
         }
     }
-    /// The processor, with its whole history, fits the card under a sidebar of a usual width with room to spare, and the memory
-    /// stands in the card beside it.
+    /// The processor, with its whole history, and the memory fit the card under a right pane of a usual width.
     #[gpui_kit::test]
-    fn the_processor_has_room_in_the_card_under_the_sidebar(cx: &mut TestAppContext) {
-        let cx = open(Some(256.), Some(260.), cx);
-        let (card, cpu) = (cx.debug_bounds("status-card-cpu").unwrap(), cx.debug_bounds("status-cpu").unwrap());
-        let spare = f32::from(card.size.width) - f32::from(cpu.size.width);
-        assert!(spare >= 20. + 30., "the processor takes {:?} of {:?}: less than 30 px to spare", cpu.size.width, card.size.width);
-        let (main, memory) = (cx.debug_bounds("status-card-main").unwrap(), cx.debug_bounds("status-memory").unwrap());
-        assert!(memory.left() >= main.left() && memory.right() <= main.right(), "the memory is in the middle card");
+    fn the_machine_has_room_in_the_card_under_the_right_pane(cx: &mut TestAppContext) {
+        let cx = open(Some(256.), Some(340.), cx);
+        let card = cx.debug_bounds("status-card-load").unwrap();
+        for part in ["status-cpu", "status-memory"] {
+            let b = cx.debug_bounds(part).unwrap();
+            assert!(b.left() >= card.left() && b.right() <= card.right(), "{part} is in the card");
+        }
     }
-    /// With no column to stand under, the load and the providers share one card.
+
+    /// With no column to stand under, everything shares one card.
     #[gpui_kit::test]
     fn with_no_columns_there_is_one_card(cx: &mut TestAppContext) {
         let cx = open(None, None, cx);
-        assert!(cx.debug_bounds("status-card-cpu").is_none() && cx.debug_bounds("status-card-providers").is_none());
+        assert!(cx.debug_bounds("status-card-version").is_none() && cx.debug_bounds("status-card-load").is_none());
         assert!(cx.debug_bounds("status-card-main").is_some() && cx.debug_bounds("status-cpu").is_some());
         assert!(cx.debug_bounds("status-provider-Claude").is_some());
     }
