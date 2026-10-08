@@ -46,6 +46,8 @@ use super::helpers::{
 pub struct SelectOption {
     pub label: SharedString,
     pub icon: Option<IconName>,
+    /// The colour of that icon; none draws it in the usual tone.
+    pub icon_color: Option<gpui_kit::Hsla>,
     /// A lab's or an agent's mark before the label, in the theme's own copy.
     pub mark: Option<crate::model_badge::BrandMark>,
     pub group: Option<SharedString>,
@@ -53,13 +55,18 @@ pub struct SelectOption {
 
 impl<T: Into<SharedString>> From<T> for SelectOption {
     fn from(label: T) -> Self {
-        Self { label: label.into(), icon: None, mark: None, group: None }
+        Self { label: label.into(), icon: None, icon_color: None, mark: None, group: None }
     }
 }
 
 impl SelectOption {
     pub fn new(label: impl Into<SharedString>, icon: IconName) -> Self {
-        Self { label: label.into(), icon: Some(icon), mark: None, group: None }
+        Self { label: label.into(), icon: Some(icon), icon_color: None, mark: None, group: None }
+    }
+    /// Draws the icon in `color`.
+    pub fn icon_color(mut self, color: gpui_kit::Hsla) -> Self {
+        self.icon_color = Some(color);
+        self
     }
 
     pub fn mark(mut self, mark: crate::model_badge::BrandMark) -> Self {
@@ -405,8 +412,8 @@ impl RenderOnce for Select {
                     .min_w_0()
                     .items_center()
                     .gap(px(6.))
-                    .when_some(selected_option.as_ref().and_then(|o| o.icon), |d, icon| {
-                        d.child(div().flex_none().text_color(theme.muted_foreground).child(Icon::new(icon).size(px(14.))))
+                    .when_some(selected_option.as_ref().and_then(|o| o.icon.map(|icon| (icon, o.icon_color))), |d, (icon, color)| {
+                        d.child(div().flex_none().text_color(color.unwrap_or(theme.muted_foreground)).child(Icon::new(icon).size(px(14.)).color(color.unwrap_or(theme.muted_foreground))))
                     })
                     .when_some(selected_option.as_ref().and_then(|o| o.mark.clone()), |d, mark| {
                         d.child(gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(12.)))
@@ -523,7 +530,11 @@ impl RenderOnce for Select {
                         .items_center()
                         .gap(px(8.))
                         .when_some(option.icon, |d, icon| {
-                            d.child(div().flex_none().child(Icon::new(icon).size(px(16.))))
+                            let icon = Icon::new(icon).size(px(16.));
+                            d.child(div().flex_none().child(match option.icon_color {
+                                Some(color) => icon.color(color),
+                                None => icon,
+                            }))
                         })
                         .when_some(option.mark.clone(), |d, mark| {
                             d.child(gpui_kit::img(mark.for_theme(theme.appearance)).flex_none().size(px(14.)))
