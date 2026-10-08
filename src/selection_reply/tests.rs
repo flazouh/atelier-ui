@@ -22,6 +22,8 @@ fn a_long_quote_is_cut_on_one_line_with_an_ellipsis() {
 
 struct Host {
     reply: Entity<SelectionReply>,
+    /// A layer over the words that blocks the pointer, as a page or a dialog does.
+    covered: bool,
 }
 
 impl Render for Host {
@@ -36,7 +38,8 @@ impl Render for Host {
                     .h(px(100.))
                     .child(div().debug_selector(|| "words".into()).w(px(400.)).child(AgentText::new("words", "The build fails on the second run").status(AgentTextStatus::Complete)))
                     .child(div().debug_selector(|| "plain".into()).w(px(400.)).child(SelectableText::new("plain", "alpha beta gamma delta")))
-                    .child(self.reply.clone()),
+                    .child(self.reply.clone())
+                    .children(self.covered.then(|| div().debug_selector(|| "cover".into()).absolute().inset_0().occlude())),
             )
     }
 }
@@ -57,7 +60,7 @@ fn open_with(cx: &mut TestAppContext, dictation: bool) -> (Entity<Host>, Heard, 
     let (host, cx) = cx.add_window_view(move |window, cx| {
         let reply = cx.new(|cx| SelectionReply::new(window, cx).dictation(dictation).presets(vec![ReplyPreset::new("Explain", "Explain this."), ReplyPreset::new("Fix", "Fix this.")]));
         cx.subscribe(&reply, move |_, _, event: &SelectionReplyEvent, _| log.borrow_mut().push(event.clone())).detach();
-        Host { reply }
+        Host { reply, covered: false }
     });
     cx.simulate_resize(size(px(700.), px(400.)));
     settle(cx);
@@ -361,6 +364,39 @@ fn a_press_inside_the_box_keeps_it(cx: &mut TestAppContext) {
     cx.simulate_mouse_down(quote.center(), MouseButton::Left, Modifiers::default());
     settle(cx);
     assert!(cx.debug_bounds("selection-reply-box").is_some(), "still open");
+}
+
+/// A layer that covers the words blocks the pointer: a drag on it is not a selection of these words, and the box neither
+/// opens nor takes the focus, though the window's mouse events still reach it.
+#[gpui_kit::test]
+fn a_drag_on_a_layer_that_covers_the_words_offers_nothing_and_keeps_the_focus(cx: &mut TestAppContext) {
+    let (host, _, cx) = open(cx);
+    host.update(cx, |h, cx| {
+        h.covered = true;
+        cx.notify();
+    });
+    settle(cx);
+    let focus_before = cx.update(|window, cx| window.focused(cx));
+    let words = cx.debug_bounds("words").expect("the words are drawn");
+    let y = words.top() + px(10.);
+    let (from, to) = (point(words.left() + px(1.), y), point(words.left() + px(300.), y));
+    let cover = cx.debug_bounds("cover").expect("the layer is drawn over the words"); assert!(cover.contains(&from), "it covers the drag: {cover:?}");
+    cx.simulate_mouse_move(from, None, Modifiers::default());
+    cx.simulate_mouse_down(from, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    cx.simulate_mouse_move(to, MouseButton::Left, Modifiers::default());
+    cx.simulate_mouse_up(to, MouseButton::Left, Modifiers::default());
+    settle(cx);
+    assert!(cx.debug_bounds("selection-reply-box").is_none(), "no box over a covering layer");
+    assert_eq!(host.read_with(cx, |h, cx| h.reply.read(cx).offers), 0, "it did not even open for a frame");
+    assert_eq!(cx.update(|window, cx| window.focused(cx)), focus_before, "and the focus did not move into its note");
+    host.update(cx, |h, cx| {
+        h.covered = false;
+        cx.notify();
+    });
+    settle(cx);
+    select_the_words(cx);
+    assert!(cx.debug_bounds("selection-reply-box").is_some(), "with the layer gone, the same drag offers the box");
 }
 
 /// The note row is one slim pill: a single line is no taller than the round buttons plus a thin rim.
