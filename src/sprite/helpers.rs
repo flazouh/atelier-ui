@@ -21,6 +21,15 @@ pub(crate) fn native_size(bytes: &[u8]) -> (f32, f32) {
 /// The pixel height of one frame when the strip is drawn `size` px wide, from its native
 /// `(width, height)`. Equal to `size` when the viewBox is exactly `100 x frames*100`; a strip that is off
 /// by a unit or two keeps its frames from drifting instead of assuming every frame is a perfect square.
+/// The box of a sprite and of one frame of its strip, in window pixels, for a `size` that is already at the zoom. Both stay
+/// whole numbers, and neither goes through the zoom again: a frame scaled twice would be taller than its box, and the next
+/// frame would show above the mark.
+pub(crate) fn frame_box(size: gpui_kit::Pixels, native: (f32, f32), frames: usize) -> (gpui_kit::Pixels, gpui_kit::Pixels) {
+    let size = gpui_kit::px(f32::from(size).round().max(1.));
+    let frame = gpui_kit::px(frame_height(native, frames, f32::from(size)));
+    (size, frame)
+}
+
 pub(crate) fn frame_height(native: (f32, f32), frames: usize, size: f32) -> f32 {
     size * native.1 / native.0 / frames as f32
 }

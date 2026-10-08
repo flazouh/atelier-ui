@@ -137,7 +137,7 @@ impl AgentPanels {
             .pb(px(self.inset_bottom))
             .on_scroll_wheel(cx.listener(|this, event: &ScrollWheelEvent, _, cx| {
                 let delta = event.delta.pixel_delta(px(16.));
-                let (x, y) = (f32::from(delta.x), f32::from(delta.y));
+                let (x, y) = (crate::scale::design(delta.x), crate::scale::design(delta.y));
                 let dx = if event.modifiers.shift { x + y } else if x.abs() > y.abs() { x } else { 0. };
                 if dx != 0. {
                     this.glide = None;
@@ -150,13 +150,13 @@ impl AgentPanels {
             .on_drag_move::<DraggedEdge>(cx.listener(|this, event: &DragMoveEvent<DraggedEdge>, _, cx| {
                 let id = event.drag(cx).id.clone();
                 let Some(column) = this.shown.iter().position(|&p| this.panels[p].id == id) else { return };
-                let x = f32::from(event.event.position.x) - this.origin_x + this.offset;
+                let x = crate::scale::design(event.event.position.x) - this.origin_x + this.offset;
                 let width = x - this.geometry.left(column);
                 this.resize(&id, width, cx);
             }))
             .child(measure(move |bounds, cx| {
                 this.update(cx, |s, cx| {
-                    let (width, origin) = (f32::from(bounds.size.width) - 16., f32::from(bounds.origin.x) + 8.);
+                    let (width, origin) = (crate::scale::design(bounds.size.width) - 16., crate::scale::design(bounds.origin.x) + 8.);
                     if (s.viewport - width).abs() > 0.5 || (s.origin_x - origin).abs() > 0.5 {
                         s.viewport = width;
                         s.origin_x = origin;

@@ -93,3 +93,12 @@ fn a_strip_a_unit_off_keeps_its_frames_from_drifting_a_whole_pixel() {
     let wide = frame_height((101., 601.), 6, 18.);
     assert!((wide - 17.85).abs() < 0.01, "{wide}");
 }
+
+#[test]
+fn a_frame_is_not_scaled_by_the_zoom_a_second_time() {
+    crate::scale::set_zoom(1.2);
+    let (size, frame) = frame_box(crate::scale::px(18.), (100., 900.), 9);
+    crate::scale::set_zoom(1.);
+    assert_eq!(f32::from(size), 22., "18 design pixels at 1.2 are 21.6, kept whole");
+    assert_eq!(f32::from(frame), 22., "a square frame is as tall as the box, not 1.2 times taller");
+}
