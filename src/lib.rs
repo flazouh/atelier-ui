@@ -243,7 +243,7 @@ pub use review_file_header::ReviewFileHeader;
 pub use menu::{Menu, MenuItem};
 pub use number::Digits;
 pub use modal::Modal;
-pub use release_sheet::{ReleaseNote, ReleaseSheet};
+pub use release_sheet::{ReleaseNote, ReleaseSheet, ReleaseVersion};
 pub use segmented::{Segment, Segmented};
 pub use select::{Select, SelectOption};
 pub use session_status::{Need, SessionStatus};

@@ -14,3 +14,5 @@ pub(super) const PANEL_ALPHA: f32 = 0.92;
 pub(super) const CORNER: f32 = crate::modal::CORNER;
 /// How much of the foreground colour the tile behind a note's icon takes: enough to stand out from the panel in a dark theme and in a light one.
 pub(super) const ICON_TILE_ALPHA: f32 = 0.14;
+/// How tall the notes may be before they scroll, when earlier versions are listed under them.
+pub(super) const HISTORY_MAX: f32 = 340.;
