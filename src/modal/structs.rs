@@ -41,11 +41,12 @@ pub struct Modal {
     pub(super) on_close: Option<Close>,
     pub(super) child: Option<AnyElement>,
     selector: Option<&'static str>,
+    pub(super) flush: bool,
 }
 
 impl Modal {
     pub fn new(id: impl Into<ElementId>) -> Self {
-        Self { id: id.into(), view: 0, width: 384., focus: None, on_close: None, child: None, selector: None }
+        Self { id: id.into(), view: 0, width: 384., focus: None, on_close: None, child: None, selector: None, flush: false }
     }
 
     /// Which view is shown. When it changes, the panel morphs to the new height and the view comes in.
@@ -74,6 +75,11 @@ impl Modal {
         self
     }
 
+    /// Takes the padding away, for a view that fills the panel to its corners (a picture, a banner).
+    pub fn flush(mut self) -> Self {
+        self.flush = true;
+        self
+    }
     pub fn child(mut self, child: impl IntoElement) -> Self {
         self.child = Some(child.into_any_element());
         self
@@ -93,6 +99,7 @@ impl RenderOnce for Modal {
         let viewport = window.viewport_size();
         let previous = window.focused(cx);
         let view = self.view;
+        let flush = self.flush;
         let state = window.use_keyed_state(self.id.clone(), cx, move |_, _| {
             let mut enter = Animated::new(PANEL, 0.);
             enter.set_target(1.);
@@ -118,7 +125,7 @@ impl RenderOnce for Modal {
                 s.swap.animate(1., Curve::Ease(VIEW_SECONDS, ease::OUT), 0., reduce);
             }
             if let Some(content) = s.content {
-                let want = panel_height(content);
+                let want = panel_height(content) - if flush { 2. * PAD } else { 0. };
                 if !s.sized || reduce {
                     s.height = Animated::new(PANEL, want);
                     s.sized = true;
@@ -182,7 +189,7 @@ impl RenderOnce for Modal {
             .rounded(px(CORNER))
             .bg(theme.popover)
             .shadow(crate::theme::popover_shadow(&theme))
-            .p(px(PAD))
+            .p(px(if flush { 0. } else { PAD }))
             .top(px(ENTER_Y * (1. - enter.min(1.))))
             .opacity(enter.clamp(0., 1.))
             .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))

@@ -26,6 +26,7 @@ fn the_scrim_is_the_shadow_colour_and_fades_in() {
 struct Page {
     open: bool,
     tall: bool,
+    flush: bool,
     log: Rc<RefCell<Vec<&'static str>>>,
 }
 
@@ -36,10 +37,9 @@ impl Render for Page {
             .size_full()
             .child(div().debug_selector(|| "behind".into()).size(px(50.)))
             .children(self.open.then(|| {
-                Modal::new("modal")
-                    .view(self.tall)
-                    .width(300.)
-                    .debug_name("panel")
+                let modal = Modal::new("modal").view(self.tall).width(300.).debug_name("panel");
+                let modal = if self.flush { modal.flush() } else { modal };
+                modal
                     .on_close(move |_, cx| {
                         log.borrow_mut().push("close");
                         this.update(cx, |p, cx| {
@@ -60,7 +60,7 @@ fn open(reduce: bool, cx: &mut TestAppContext) -> (Entity<Page>, &mut VisualTest
     });
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
-    let (page, cx) = cx.add_window_view(move |_, _| Page { open: true, tall: false, log: l });
+    let (page, cx) = cx.add_window_view(move |_, _| Page { open: true, tall: false, flush: false, log: l });
     settle(&page, cx, 6);
     (page, cx, log)
 }
@@ -172,4 +172,20 @@ fn the_view_takes_focus_and_escape_gives_it_back(cx: &mut TestAppContext) {
     cx.run_until_parked();
     assert!(!page.read_with(cx, |p, _| p.open));
     assert!(cx.update(|window, _| before.is_focused(window)), "focus went back to what had it");
+}
+
+#[gpui_kit::test]
+fn a_flush_panel_has_no_padding_so_its_view_reaches_every_edge(cx: &mut TestAppContext) {
+    let (page, cx, _) = open(true, cx);
+    let padded = cx.debug_bounds("view").unwrap();
+    assert_eq!(f32::from(padded.size.width), 300. - 2. * PAD);
+    page.update(cx, |p, cx| {
+        p.flush = true;
+        cx.notify();
+    });
+    settle(&page, cx, 4);
+    let panel = cx.debug_bounds("panel").unwrap();
+    let view = cx.debug_bounds("view").unwrap();
+    assert_eq!(f32::from(panel.size.height), 80., "the view alone, with no padding round it");
+    assert_eq!((view.origin.x, view.size.width), (panel.origin.x, panel.size.width));
 }
