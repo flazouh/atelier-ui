@@ -21,6 +21,11 @@ pub fn hex(text: &str) -> Option<Hsla> {
     Some(Rgba { r: unit(r), g: unit(g), b: unit(b), a: unit(a) }.into())
 }
 
+/// The three shades of a hue from its base: the base, a darker one and a lighter one.
+pub fn shades(base: Hsla) -> [Hsla; 3] {
+    [base, Hsla { l: base.l * 0.82, ..base }, Hsla { l: base.l + (1. - base.l) * 0.35, ..base }]
+}
+
 pub fn appearance(text: &str) -> Result<Appearance, String> {
     match text {
         "light" => Ok(Appearance::Light),
@@ -45,6 +50,18 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
         }
         None => None,
     };
+    let chart = match &file.chart {
+        Some(hues) => {
+            let mut palette = [[Hsla::default(); 3]; 4];
+            for (row, texts) in palette.iter_mut().zip(hues) {
+                for (shade, text) in row.iter_mut().zip(texts) {
+                    *shade = colour(text)?;
+                }
+            }
+            Some(palette)
+        }
+        None => None,
+    };
     let tokens = Tokens {
         page: Some(colour(&ui.page)?),
         ink: Some(colour(&ui.ink)?),
@@ -62,6 +79,7 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
         chip_hover: ui.chip_hover.as_deref().map(colour).transpose()?,
         chip_arrow: ui.chip_arrow.as_deref().map(colour).transpose()?,
         status,
+        chart,
         ..Tokens::default()
     };
     let syntax: HighlightTheme = serde_json::from_value(file.syntax).map_err(|e| format!("syntax: {e}"))?;

@@ -31,6 +31,9 @@ pub struct Tokens {
     pub chip_arrow: Option<Hsla>,
     /// Running, done, failed, pending, cancelled.
     pub status: Option<[Hsla; 5]>,
+    /// The chart palette: four hues of three shades. Left out, it is derived from `warning`, `success`, `info` and
+    /// `danger`.
+    pub chart: Option<[[Hsla; 3]; 4]>,
 }
 
 impl Tokens {
@@ -78,6 +81,10 @@ impl Tokens {
             derived.push("status");
             [info, success, danger, warning, muted]
         });
+        let chart = self.chart.unwrap_or_else(|| {
+            derived.push("chart");
+            [warning, success, info, danger].map(super::helpers::shades)
+        });
         let theme = Theme {
             name,
             family,
@@ -105,6 +112,7 @@ impl Tokens {
             chip_rest,
             chip_hover,
             chip_arrow,
+            chart,
             status,
             pull: super::helpers::github_pull(appearance),
             syntax,
@@ -140,6 +148,8 @@ pub(super) struct File {
     pub(super) appearance: String,
     pub(super) ui: Ui,
     pub(super) status: Option<[String; 5]>,
+    /// Four hues (Claude, Codex, OpenRouter, Anthropic API) of three shades each (base, darker, lighter).
+    pub(super) chart: Option<[[String; 3]; 4]>,
     /// Scales each status tone's lightness: atelier Light's cream page needs its ramp a step darker.
     pub(super) status_lightness: Option<f32>,
     pub(super) syntax: serde_json::Value,
