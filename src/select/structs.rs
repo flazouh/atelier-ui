@@ -81,6 +81,36 @@ impl SelectOption {
     }
 }
 
+/// What a select's list lets the reader do to its rows, for a list that is the reader's own to arrange (the model picker): a star on a
+/// row makes it the default, an eye leaves it out, and a grip drags it before another. Each reports the row's place in the list.
+#[derive(Clone)]
+pub struct SelectManage {
+    /// The row that is the default: its star is filled, and it has no eye.
+    pub default: Option<usize>,
+    pub on_default: std::rc::Rc<dyn Fn(usize, &mut Window, &mut App)>,
+    pub on_hide: std::rc::Rc<dyn Fn(usize, &mut Window, &mut App)>,
+    /// The row dragged and the row it was dropped on: the first goes before the second.
+    pub on_move: std::rc::Rc<dyn Fn(usize, usize, &mut Window, &mut App)>,
+}
+
+/// A row of a managed list being dragged.
+#[derive(Clone)]
+struct DraggedRow {
+    list: SharedString,
+    from: usize,
+    label: SharedString,
+}
+
+/// What a dragged row shows beside the pointer.
+struct RowGhost(SharedString);
+
+impl gpui_kit::Render for RowGhost {
+    fn render(&mut self, _: &mut Window, cx: &mut gpui_kit::Context<Self>) -> impl IntoElement {
+        let theme = cx.theme().clone();
+        div().px(px(10.)).h(px(28.)).flex().items_center().rounded(radius::md()).bg(theme.card_strong).text_size(TextSize::Sm.font_size()).text_color(theme.foreground).child(self.0.clone())
+    }
+}
+
 /// A select's options and which one is chosen.
 #[derive(IntoElement)]
 pub struct Select {
@@ -99,6 +129,7 @@ pub struct Select {
     pub(super) upward: bool,
     pub(super) on_change: Option<SelectHandler>,
     pub(super) focus: Option<FocusHandle>,
+    manage: Option<SelectManage>,
 }
 
 impl Select {
@@ -119,7 +150,14 @@ impl Select {
             upward: false,
             on_change: None,
             focus: None,
+            manage: None,
         }
+    }
+
+    /// Lets the reader star, hide and drag the rows of the list.
+    pub fn manage(mut self, manage: SelectManage) -> Self {
+        self.manage = Some(manage);
+        self
     }
 
     pub fn selected(mut self, index: Option<usize>) -> Self {
@@ -486,6 +524,8 @@ impl RenderOnce for Select {
                 .child(group.clone())
                 .into_any_element()
         };
+        let manage = self.manage.clone();
+        let cx_card_strong = theme.card_strong;
         let options = self.options.iter().enumerate().flat_map(|(i, option)| {
             let head = headings[i].as_ref().map(heading);
             let (alpha, rise) = items[i];
@@ -523,9 +563,24 @@ impl RenderOnce for Select {
                     // A pick hands focus back to the trigger, so the keys go on working from there.
                     back_to.focus(window, cx);
                 })
+                .when_some(manage.clone(), |d, manage| {
+                    let (drop_manage, label, list) = (manage.clone(), option.label.clone(), self.id.to_string());
+                    let drop_list = list.clone();
+                    d.on_drag(DraggedRow { list: list.into(), from: i, label }, |d, _, _, cx| gpui_kit::AppContext::new(cx, |_| RowGhost(d.label.clone())))
+                        .drag_over::<DraggedRow>(|s, _, _, cx| s.bg(cx.theme().card_strong))
+                        .on_drop::<DraggedRow>(move |dragged, window, cx| {
+                            if dragged.list.as_ref() == drop_list.as_str() && dragged.from != i {
+                                (drop_manage.on_move)(dragged.from, i, window, cx);
+                            }
+                        })
+                })
+                .when(manage.is_some(), |d| {
+                    d.child(div().flex_none().cursor_grab().child(Icon::new(IconName::Grip).size(px(14.)).color(theme.muted_foreground.opacity(0.5))))
+                })
                 .child(
                     div()
                         .flex()
+                        .flex_1()
                         .min_w_0()
                         .items_center()
                         .gap(px(8.))
@@ -542,6 +597,55 @@ impl RenderOnce for Select {
                         .when(monograms && option.mark.is_none() && option.icon.is_none(), |d| d.child(monogram(&option.label, 14., &theme)))
                         .child(div().truncate().child(option.label.clone())),
                 )
+                .when_some(manage.clone(), |d, manage| {
+                    let is_default = manage.default == Some(i);
+                    let (star, eye) = (manage.clone(), manage.clone());
+                    // A row shows its controls while it is lit; the default keeps its filled star.
+                    d.when(lit > 0.3 && !is_default, |d| {
+                        d.child(
+                            div()
+                                .id(("option-eye", i))
+                                .debug_selector(move || format!("select-eye-{i}"))
+                                .flex()
+                                .flex_none()
+                                .items_center()
+                                .justify_center()
+                                .size(px(22.))
+                                .rounded(radius::md())
+                                .hover(|s| s.bg(cx_card_strong))
+                                .tooltip(crate::tooltip::Tooltip::text("Hide from the picker"))
+                                .on_click(move |_, window, cx| {
+                                    cx.stop_propagation();
+                                    (eye.on_hide)(i, window, cx);
+                                })
+                                .child(Icon::new(IconName::Visibility).size(px(14.)).color(theme.muted_foreground)),
+                        )
+                    })
+                    .when(lit > 0.3 || is_default, |d| {
+                        d.child(
+                            div()
+                                .id(("option-star", i))
+                                .debug_selector(move || format!("select-star-{i}"))
+                                .flex()
+                                .flex_none()
+                                .items_center()
+                                .justify_center()
+                                .size(px(22.))
+                                .rounded(radius::md())
+                                .hover(|s| s.bg(cx_card_strong))
+                                .tooltip(crate::tooltip::Tooltip::text(if is_default { "The model new sessions start on" } else { "Start new sessions on this model" }))
+                                .on_click(move |_, window, cx| {
+                                    cx.stop_propagation();
+                                    (star.on_default)(i, window, cx);
+                                })
+                                .child(if is_default {
+                                    Icon::new(IconName::StarFilled).size(px(14.)).color(theme.warning)
+                                } else {
+                                    Icon::new(IconName::Star).size(px(14.)).color(theme.muted_foreground)
+                                }),
+                        )
+                    })
+                })
                 .when(selected, |d| d.child(div().size(px(20.)).flex_none().flex().items_center().justify_center().child(Icon::new(IconName::Check).size(px(16.)).color(theme.foreground))));
             head.into_iter().chain(std::iter::once(row.into_any_element()))
         });

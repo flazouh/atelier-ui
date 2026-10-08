@@ -1123,3 +1123,87 @@ fn a_mode_icon_draws_before_the_words_in_the_picker(cx: &mut TestAppContext) {
     let (plain, with_icon) = (width(false, cx), width(true, cx));
     assert!(with_icon >= plain + 14., "the picker is {with_icon} wide with an icon and {plain} without");
 }
+
+mod manage {
+    use std::{cell::RefCell, rc::Rc};
+    use gpui_kit::{AppContext, Entity, SharedString, TestAppContext, VisualTestContext, px};
+    use super::{run_for, set_appearance, Appearance};
+    use crate::prompt_input::{PromptInput, PromptInputEvent, PromptModel};
+
+    fn open(cx: &mut TestAppContext) -> (Rc<RefCell<Vec<String>>>, Entity<PromptInput>, &mut VisualTestContext) {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Dark, cx);
+        });
+        let (prompt, cx) = cx.add_window_view(|window, cx| {
+            PromptInput::new("Ask", "", window, cx)
+                .models(vec![PromptModel::new("a", "Model A"), PromptModel::new("b", "Model B"), PromptModel::new("c", "Model C")])
+                .manage_models(true)
+        });
+        prompt.update(cx, |p, cx| p.set_models(p.models.clone(), Some("a".into()), cx));
+        let heard = Rc::new(RefCell::new(Vec::new()));
+        let log = heard.clone();
+        cx.update(|_, cx| {
+            cx.subscribe(&prompt, move |_, event: &PromptInputEvent, _| match event {
+                PromptInputEvent::ModelChanged(v) => log.borrow_mut().push(format!("picked {v}")),
+                PromptInputEvent::ModelStarred(v) => log.borrow_mut().push(format!("star {v}")),
+                PromptInputEvent::ModelHidden(v) => log.borrow_mut().push(format!("hide {v}")),
+                PromptInputEvent::ModelsMoved(order) => {
+                    log.borrow_mut().push(format!("moved {}", order.iter().map(SharedString::to_string).collect::<Vec<_>>().join(",")))
+                }
+                _ => {}
+            })
+            .detach()
+        });
+        cx.simulate_resize(gpui_kit::size(px(900.), px(600.)));
+        run_for(100, cx);
+        let at = cx.debug_bounds("prompt-model-select").expect("the picker").center();
+        cx.simulate_click(at, gpui_kit::Modifiers::default());
+        run_for(700, cx);
+        (heard, prompt, cx)
+    }
+
+    /// In a managed picker the row under the pointer shows a star and an eye: the star makes the model the default, the eye hides it,
+    /// and neither picks the model.
+    #[gpui_kit::test]
+    fn the_star_and_the_eye_of_a_row_report_the_model(cx: &mut TestAppContext) {
+        let (heard, _prompt, cx) = open(cx);
+        let row = cx.debug_bounds("select-option-2").expect("the third row");
+        cx.simulate_mouse_move(row.center(), None, gpui_kit::Modifiers::default());
+        run_for(300, cx);
+        let star = cx.debug_bounds("select-star-2").expect("the star shows on the row under the pointer");
+        cx.simulate_click(star.center(), gpui_kit::Modifiers::default());
+        run_for(100, cx);
+        let eye = cx.debug_bounds("select-eye-2").expect("and the eye");
+        cx.simulate_click(eye.center(), gpui_kit::Modifiers::default());
+        run_for(100, cx);
+        assert_eq!(*heard.borrow(), ["star c", "hide c"], "each reports the model and none picked it");
+    }
+
+    /// The default keeps its filled star, and it has no eye.
+    #[gpui_kit::test]
+    fn the_default_row_has_a_star_and_no_eye(cx: &mut TestAppContext) {
+        let (_heard, _prompt, cx) = open(cx);
+        assert!(cx.debug_bounds("select-star-0").is_some(), "the default's star is always there");
+        assert!(cx.debug_bounds("select-eye-0").is_none(), "but it cannot be hidden");
+    }
+
+    /// A row dragged by its grip onto another reports the models in the new order.
+    #[gpui_kit::test]
+    fn a_row_dragged_onto_another_reports_the_new_order(cx: &mut TestAppContext) {
+        let (heard, _prompt, cx) = open(cx);
+        let (from, onto) = (cx.debug_bounds("select-option-2").unwrap(), cx.debug_bounds("select-option-0").unwrap());
+        let none = gpui_kit::Modifiers::default();
+        let (start, end) = (gpui_kit::point(from.left() + px(14.), from.center().y), gpui_kit::point(onto.left() + px(80.), onto.center().y));
+        cx.simulate_mouse_move(start, None, none);
+        cx.simulate_mouse_down(start, gpui_kit::MouseButton::Left, none);
+        for step in 1..=8 {
+            let at = gpui_kit::point(start.x + (end.x - start.x) * (step as f32 / 8.), start.y + (end.y - start.y) * (step as f32 / 8.));
+            cx.simulate_mouse_move(at, Some(gpui_kit::MouseButton::Left), none);
+            cx.run_until_parked();
+        }
+        cx.simulate_mouse_up(end, gpui_kit::MouseButton::Left, none);
+        run_for(100, cx);
+        assert_eq!(*heard.borrow(), ["moved c,a,b"]);
+    }
+}

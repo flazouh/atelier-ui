@@ -130,6 +130,10 @@ impl ActionsMenu {
 pub struct PromptInput {
     pub(super) text: Entity<TextareaState>,
     pub(super) models: Vec<PromptModel>,
+    /// The `value` of the model new sessions start on, for the star of the picker; none draws no star filled.
+    pub(super) default_model: Option<SharedString>,
+    /// The picker shows the star, the eye and the grip of its rows.
+    pub(super) models_managed: bool,
     /// A second picker beside the model's, such as how much the agent may do without asking.
     pub(super) modes: Vec<SharedString>,
     /// A small coloured icon for each mode, in the order of `modes`; short or empty draws none for the rest.
@@ -238,6 +242,8 @@ impl PromptInput {
             models: Vec::new(),
             modes: Vec::new(),
             mode_icons: Vec::new(),
+            default_model: None,
+            models_managed: false,
             mode: 0,
             model: 0,
             actions: Vec::new(),
@@ -321,6 +327,23 @@ impl PromptInput {
             self.model = i;
         }
         self
+    }
+
+    /// Lets the reader star, hide and drag the models of the picker: the owner listens to [`PromptInputEvent::ModelStarred`],
+    /// `ModelHidden` and `ModelsMoved`, and gives the list back with [`PromptInput::set_models`].
+    pub fn manage_models(mut self, on: bool) -> Self {
+        self.models_managed = on;
+        self
+    }
+
+    /// Gives the picker a new list, keeping the model chosen when it is still in it, and `default` as the model of the filled star. The
+    /// picker lets the reader star, hide and drag the models once an owner listens to [`PromptInputEvent::ModelStarred`] and the others.
+    pub fn set_models(&mut self, models: Vec<PromptModel>, default: Option<SharedString>, cx: &mut Context<Self>) {
+        let chosen = self.models.get(self.model).map(|m| m.value.clone());
+        self.models = models;
+        self.default_model = default;
+        self.model = chosen.and_then(|c| self.models.iter().position(|m| m.value == c)).unwrap_or(0);
+        cx.notify();
     }
 
     pub fn set_model(&mut self, value: impl Into<SharedString>, cx: &mut Context<Self>) {
@@ -1039,6 +1062,43 @@ impl Focusable for PromptInput {
     }
 }
 
+impl PromptInput {
+    /// What the model picker lets the reader do to its rows: each press becomes an event for the owner, who arranges the list and gives it
+    /// back with [`PromptInput::set_models`].
+    fn model_manage(&self, cx: &mut Context<Self>) -> crate::SelectManage {
+        let (star, hide, drag) = (cx.entity().downgrade(), cx.entity().downgrade(), cx.entity().downgrade());
+        let default = self.default_model.as_ref().and_then(|d| self.models.iter().position(|m| m.value == *d));
+        crate::SelectManage {
+            default,
+            on_default: std::rc::Rc::new(move |i, _, cx| {
+                star.update(cx, |this, cx| {
+                    if let Some(model) = this.models.get(i) {
+                        cx.emit(PromptInputEvent::ModelStarred(model.value.clone()));
+                    }
+                })
+                .ok();
+            }),
+            on_hide: std::rc::Rc::new(move |i, _, cx| {
+                hide.update(cx, |this, cx| {
+                    if let Some(model) = this.models.get(i) {
+                        cx.emit(PromptInputEvent::ModelHidden(model.value.clone()));
+                    }
+                })
+                .ok();
+            }),
+            on_move: std::rc::Rc::new(move |from, before, _, cx| {
+                drag.update(cx, |this, cx| {
+                    let values: Vec<SharedString> = this.models.iter().map(|m| m.value.clone()).collect();
+                    if let (Some(moving), Some(target)) = (values.get(from), values.get(before)) {
+                        cx.emit(PromptInputEvent::ModelsMoved(crate::model_list::moved(&values, moving, Some(target))));
+                    }
+                })
+                .ok();
+            }),
+        }
+    }
+}
+
 impl Render for PromptInput {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
@@ -1200,6 +1260,7 @@ impl Render for PromptInput {
                     .chevron(false)
                     .shadow(false)
                     .panel_width(px(208.))
+                    .when(self.models_managed, |s| s.manage(self.model_manage(cx)))
                     .on_change(move |i, _, cx| {
                         this.update(cx, |this, cx| {
                             if let Some(model) = this.models.get(i) {

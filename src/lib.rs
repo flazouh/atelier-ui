@@ -245,7 +245,7 @@ pub use number::Digits;
 pub use modal::Modal;
 pub use release_sheet::{ReleaseNote, ReleaseSheet, ReleaseVersion};
 pub use segmented::{Segment, Segmented};
-pub use select::{Select, SelectOption};
+pub use select::{Select, SelectManage, SelectOption};
 pub use session_status::{Need, SessionStatus};
 pub use project_section::ProjectSection;
 pub use session_row::SessionRow;
