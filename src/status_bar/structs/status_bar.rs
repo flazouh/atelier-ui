@@ -5,7 +5,7 @@ use gpui_kit::{App, ElementId, IntoElement, SharedString, Window};
 use super::{ProviderGauge, SystemLoad, Work};
 
 /// A press, as the app hears it.
-pub(in super::super) type Press = Rc<dyn Fn(&mut Window, &mut App)>;
+pub type Press = Rc<dyn Fn(&mut Window, &mut App)>;
 
 #[derive(IntoElement)]
 /// The bar at the foot of the window.
