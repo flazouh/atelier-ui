@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
-    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement,
+    RenderOnce, SharedString, StatefulInteractiveElement, Styled, Window, div,
+    prelude::FluentBuilder,
 };
 
 use crate::scale::px;
@@ -13,9 +14,9 @@ use crate::{
 };
 
 use super::consts::{
-    BAND_HEIGHT, CLOSE_HOVER_ALPHA, CLOSE_INSET, CLOSE_SIZE, COLUMN_GAP, CORNER, DATE_GAP, DATE_SIZE, HERO_PATH,
-    LEAD_GAP, LEAD_SIZE, META_WIDTH, NOTE_GAP, ROW_PAD, SIDE, TEXT_LINE, TEXT_SIZE, TITLE_BOTTOM, TITLE_SIZE,
-    VERSION_SIZE,
+    BAND_HEIGHT, BAND_WIDTH, CLOSE_HOVER_ALPHA, CLOSE_INSET, CLOSE_SIZE, COLUMN_GAP, CORNER,
+    DATE_GAP, DATE_SIZE, HERO_PATH, LEAD_GAP, LEAD_SIZE, META_WIDTH, NOTE_GAP, ROW_PAD, SIDE,
+    TEXT_LINE, TEXT_SIZE, TITLE_BOTTOM, TITLE_SIZE, VERSION_SIZE,
 };
 
 type Close = Rc<dyn Fn(&mut Window, &mut App)>;
@@ -29,7 +30,10 @@ pub struct ReleaseNote {
 
 impl ReleaseNote {
     pub fn new(lead: impl Into<SharedString>, text: impl Into<SharedString>) -> Self {
-        Self { lead: lead.into(), text: text.into() }
+        Self {
+            lead: lead.into(),
+            text: text.into(),
+        }
     }
 }
 
@@ -42,8 +46,15 @@ pub struct ReleaseVersion {
 }
 
 impl ReleaseVersion {
-    pub fn new(version: impl Into<SharedString>, notes: impl IntoIterator<Item = ReleaseNote>) -> Self {
-        Self { version: version.into(), date: None, notes: notes.into_iter().collect() }
+    pub fn new(
+        version: impl Into<SharedString>,
+        notes: impl IntoIterator<Item = ReleaseNote>,
+    ) -> Self {
+        Self {
+            version: version.into(),
+            date: None,
+            notes: notes.into_iter().collect(),
+        }
     }
 
     /// The date as a ready string ("Oct 9, 2026"). None draws no date line.
@@ -113,11 +124,20 @@ impl RenderOnce for ReleaseSheet {
         let theme: Theme = cx.theme().clone();
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
-        let picture = div().absolute().inset_0().child(
-            <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(gpui_kit::img(HERO_PATH).size_full(), ObjectFit::Fill)
-                .rounded_tl(px(CORNER))
-                .rounded_tr(px(CORNER)),
-        );
+        let mut hero = gpui_kit::img(HERO_PATH).w_full().h(px(BAND_HEIGHT));
+        hero.style().aspect_ratio = Some(BAND_WIDTH / BAND_HEIGHT);
+        let picture = div()
+            .absolute()
+            .top_0()
+            .left_0()
+            .w_full()
+            .h(px(BAND_HEIGHT))
+            .overflow_hidden()
+            .child(
+                <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Fill)
+                    .rounded_tl(px(CORNER))
+                    .rounded_tr(px(CORNER)),
+            );
         let close = self.on_close;
         let band = div()
             .debug_selector(|| "release-band".into())
@@ -176,11 +196,18 @@ impl RenderOnce for ReleaseSheet {
 
 /// `color` at `t` of its strength.
 fn fade(color: gpui_kit::Hsla, t: f32) -> gpui_kit::Hsla {
-    gpui_kit::Hsla { a: color.a * t, ..color }
+    gpui_kit::Hsla {
+        a: color.a * t,
+        ..color
+    }
 }
 
 /// One release: its version and date at the left, its notes at the right, a hairline over it when it is not the first.
-fn release_row(release: ReleaseVersion, at: usize, theme: &Theme) -> gpui_kit::Stateful<gpui_kit::Div> {
+fn release_row(
+    release: ReleaseVersion,
+    at: usize,
+    theme: &Theme,
+) -> gpui_kit::Stateful<gpui_kit::Div> {
     let date = release.date.map(|date| {
         div()
             .debug_selector(move || format!("release-date-{at}"))
@@ -200,7 +227,11 @@ fn release_row(release: ReleaseVersion, at: usize, theme: &Theme) -> gpui_kit::S
                 .child(release.version),
         )
         .children(date);
-    let notes = release.notes.into_iter().enumerate().map(|(n, note)| note_block(note, at, n, theme));
+    let notes = release
+        .notes
+        .into_iter()
+        .enumerate()
+        .map(|(n, note)| note_block(note, at, n, theme));
     div()
         .id(SharedString::from(format!("release-row-{at}")))
         .debug_selector(move || format!("release-{at}"))

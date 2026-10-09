@@ -3,6 +3,10 @@ pub const HERO_PATH: &str = "release-hero.jpg";
 
 /// How tall the picture band is, in design pixels.
 pub(super) const BAND_HEIGHT: f32 = 132.;
+/// The width the picture is cut for, the width of the modal the sheet stands in. The picture is a strip of this shape,
+/// stretched to the band, so its own top corners are the sheet's; gpui gives an image the ratio of its file unless one
+/// is set. At another width the strip only stretches a little.
+pub(super) const BAND_WIDTH: f32 = 860.;
 /// The corner of the picture: the modal panel's, since gpui clips a box to its rectangle and not to its corners. The
 /// picture is stretched over the band, so that its own top corners are the sheet's.
 pub(super) const CORNER: f32 = crate::modal::CORNER;
