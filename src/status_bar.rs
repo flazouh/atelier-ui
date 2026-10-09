@@ -11,7 +11,10 @@ mod structs;
 
 pub use consts::HEIGHT;
 pub use enums::{GaugeState, Pressure};
-pub use structs::{Gauge, ProviderGauge, StatusBar, SystemLoad, Work};
+pub use helpers::{load_parts, usage_part, version_part, work_part};
+pub use structs::{
+    Gauge, Press, ProviderGauge, StatusBar, StatusCard, StatusRow, SystemLoad, Work,
+};
 
 #[cfg(test)]
 mod tests;
