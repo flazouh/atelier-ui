@@ -267,7 +267,7 @@ fn node_element(
                 .min_w_0()
                 .gap(px(gap_px(*gap)))
                 .when(*row, |d| d.flex_row().items_center())
-                .when(!*row, |d| d.flex_col())
+                .when(!*row, |d| d.flex_col().flex_1())
                 .children(parts)
                 .into_any_element()
         }
@@ -298,7 +298,11 @@ fn node_element(
                     .text_color(theme.foreground),
             };
             match max_lines {
-                Some(1) => styled.truncate().into_any_element(),
+                // One line: it ends in an ellipsis. A quiet word (a key, a time) keeps its room and a title takes what is left.
+                Some(1) if matches!(style, ToolText::Muted | ToolText::Code) => {
+                    styled.truncate().flex_none().into_any_element()
+                }
+                Some(1) => styled.truncate().flex_1().into_any_element(),
                 Some(n) => styled.line_clamp(usize::from(*n)).into_any_element(),
                 None => styled.into_any_element(),
             }
