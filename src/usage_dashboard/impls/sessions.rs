@@ -146,11 +146,11 @@ fn detail(session: &UsageSession, theme: &Theme) -> AnyElement {
         .debug_selector(|| "usage-session-detail".into())
         .child(
             div()
-                .flex_none()
+                .flex_1()
+                .min_w_0()
                 .child(div().mb(px(6.)).text_size(px(12.)).text_color(muted).child("Tokens per day · this session"))
                 .child(mini_chart(&session.days, color, MINI_WIDTH)),
         )
-        .child(div().flex_1())
         .child(
             div()
                 .flex_none()
