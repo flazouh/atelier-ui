@@ -80,6 +80,7 @@ pub fn parse(json: &str) -> Result<(Theme, Vec<&'static str>), String> {
         chip_arrow: ui.chip_arrow.as_deref().map(colour).transpose()?,
         status,
         chart,
+        stop: file.stop.as_deref().map(colour).transpose()?,
         ..Tokens::default()
     };
     let syntax: HighlightTheme = serde_json::from_value(file.syntax).map_err(|e| format!("syntax: {e}"))?;

@@ -46,3 +46,15 @@ fn a_theme_without_a_chart_derives_it_from_its_status_tones() {
     assert_eq!(plain.series(3, 0), theme.danger);
     assert!(plain.series(1, 1).l < plain.series(1, 0).l && plain.series(1, 2).l > plain.series(1, 0).l);
 }
+
+#[test]
+fn the_atelier_themes_have_the_stop_red_and_a_theme_without_one_uses_its_danger() {
+    for json in [include_str!("../../assets/themes/atelier-dark.json"), include_str!("../../assets/themes/atelier-light.json")] {
+        let (theme, _) = parse(json).unwrap();
+        assert_eq!(theme.stop, hex("#FC6B83").unwrap());
+    }
+    let mut file: serde_json::Value = serde_json::from_str(include_str!("../../assets/themes/atelier-dark.json")).unwrap();
+    file.as_object_mut().unwrap().remove("stop");
+    let (plain, _) = parse(&file.to_string()).unwrap();
+    assert_eq!(plain.stop, plain.danger);
+}
