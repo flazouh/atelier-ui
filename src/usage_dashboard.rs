@@ -14,7 +14,10 @@ mod helpers;
 mod impls;
 mod structs;
 pub use enums::{Selection, SourceKind, UsageRange};
-pub use helpers::{axis, bar_segments, mini_bars, spark_points, tokens_label};
-pub use structs::{Axis, BarSegment, MiniBar, Series, UsageDashboard, UsageDay, UsageModel, UsageSession, UsageSource};
+pub use helpers::{axis, bar_segments, mini_bars, tokens_label};
+pub use structs::{
+    Axis, BarSegment, MiniBar, Series, UsageDashboard, UsageDay, UsageModel, UsageSession,
+    UsageSource, UsageSources, UsageStat,
+};
 #[cfg(test)]
 mod tests;
