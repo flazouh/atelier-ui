@@ -15,6 +15,7 @@ const IN_THE_PANEL: &[&str] = &[
     "changed_files",
     "todo_list",
     "subagent_card",
+    "tool_card",
     "subagent_row",
     "tool_approval",
     "pr_card",

@@ -147,6 +147,7 @@ pub mod model_list;
 pub mod question_card;
 pub mod tool_approval;
 pub mod tool_call;
+pub mod tool_card;
 pub mod tool_preview;
 pub mod tooltip;
 pub mod trace;
@@ -277,6 +278,9 @@ pub use question_card::{QuestionCard, QuestionStatus, QuestionView};
 pub use tool_approval::{ParamValue, ToolApproval, ToolApprovalStatus};
 pub use tool_preview::{TextEdit, ToolPreview};
 pub use tool_call::{ToolCall, ToolStatus};
+pub use tool_card::{
+    ToolAction, ToolCard, ToolCardData, ToolCardState, ToolGap, ToolIcon, ToolNode, ToolProvider, ToolRow, ToolText, ToolTone,
+};
 pub use typography::{FONT_FAMILY, MONO_FONT_FAMILY, SEGMENT_GAP, TextSize};
 
 pub use helpers::{init, watch_system};
