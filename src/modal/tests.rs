@@ -26,6 +26,7 @@ fn the_scrim_is_the_shadow_colour_and_fades_in() {
 struct Page {
     open: bool,
     tall: bool,
+    huge: bool,
     flush: bool,
     log: Rc<RefCell<Vec<&'static str>>>,
 }
@@ -47,7 +48,7 @@ impl Render for Page {
                             cx.notify();
                         });
                     })
-                    .child(div().debug_selector(|| "view".into()).w_full().h(px(if self.tall { 200. } else { 80. })))
+                    .child(div().debug_selector(|| "view".into()).w_full().h(px(if self.huge { 5000. } else if self.tall { 200. } else { 80. })))
             }))
     }
 }
@@ -60,7 +61,7 @@ fn open(reduce: bool, cx: &mut TestAppContext) -> (Entity<Page>, &mut VisualTest
     });
     let log = Rc::new(RefCell::new(Vec::new()));
     let l = log.clone();
-    let (page, cx) = cx.add_window_view(move |_, _| Page { open: true, tall: false, flush: false, log: l });
+    let (page, cx) = cx.add_window_view(move |_, _| Page { open: true, tall: false, huge: false, flush: false, log: l });
     settle(&page, cx, 6);
     (page, cx, log)
 }
@@ -201,4 +202,21 @@ fn at_a_zoom_the_panel_is_as_tall_as_its_view_and_its_padding(cx: &mut TestAppCo
     // The view is 80 window pixels tall (the test draws it unscaled), and the padding is 16 design pixels on each side.
     let want = 80. + 2. * PAD * 1.5;
     assert!((f32::from(panel.size.height) - want).abs() < 1.5, "the panel is {:?} tall, not {want}", panel.size.height);
+}
+
+/// A view taller than the window leaves the window's edge room: the panel is capped and stays inside the window.
+#[gpui_kit::test]
+fn a_view_taller_than_the_window_is_capped_inside_it(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Light, cx);
+        cx.set_reduce_motion(true);
+    });
+    let log = Rc::new(RefCell::new(Vec::new()));
+    let (page, cx) = cx.add_window_view(move |_, _| Page { open: true, tall: false, huge: true, flush: false, log });
+    settle(&page, cx, 8);
+    let panel = cx.debug_bounds("panel").unwrap();
+    let window = cx.update(|window, _| window.viewport_size());
+    assert!(panel.top() >= gpui_kit::px(0.) && panel.bottom() <= window.height, "the panel {panel:?} is inside the window {window:?}");
+    assert!(f32::from(panel.size.height) <= f32::from(window.height) - 2. * super::types::EDGE + 0.5, "it leaves its edge room");
 }

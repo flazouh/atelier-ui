@@ -5,7 +5,7 @@ use std::{
 
 use gpui_kit::{
     AnyElement, App, ElementId, FocusHandle, InteractiveElement, IntoElement, MouseButton,
-    ParentElement, RenderOnce, Styled, Window, anchored, deferred, div, point,
+    ParentElement, RenderOnce, StatefulInteractiveElement, Styled, Window, anchored, deferred, div, point,
     prelude::FluentBuilder,
 };
 
@@ -16,7 +16,7 @@ use crate::{
     popover::PRIORITY,
     theme::ActiveTheme,
 };
-use super::types::{CORNER, Close, ENTER_Y, PAD, PANEL, SCRIM_SECONDS, VIEW_SECONDS, VIEW_Y};
+use super::types::{CORNER, Close, EDGE, ENTER_Y, PAD, PANEL, SCRIM_SECONDS, VIEW_SECONDS, VIEW_Y};
 use super::helpers::{panel_height, scrim};
 
 struct State {
@@ -125,7 +125,10 @@ impl RenderOnce for Modal {
                 s.swap.animate(1., Curve::Ease(VIEW_SECONDS, ease::OUT), 0., reduce);
             }
             if let Some(content) = s.content {
-                let want = panel_height(content) - if flush { 2. * PAD } else { 0. };
+                // The view is measured in window pixels and sized in design pixels: at a zoom they differ. A view taller
+                // than the window leaves its edge room and scrolls inside.
+                let most = (crate::scale::design(viewport.height) - 2. * EDGE).max(4. * PAD);
+                let want = (panel_height(content) - if flush { 2. * PAD } else { 0. }).min(most);
                 if !s.sized || reduce {
                     s.height = Animated::new(PANEL, want);
                     s.sized = true;
@@ -202,7 +205,13 @@ impl RenderOnce for Modal {
                     keys(window, cx);
                 }
             })
-            .child(content);
+            .child(
+                div()
+                    .id(ElementId::from((self.id.clone(), "scroll")))
+                    .size_full()
+                    .overflow_y_scroll()
+                    .child(content),
+            );
         let layer = div()
             .relative()
             .w(w)
