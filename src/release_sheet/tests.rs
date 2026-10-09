@@ -1,140 +1,159 @@
-use super::helpers::fade;
-use crate::theme::Theme;
+use std::{cell::Cell, rc::Rc};
 
-#[test]
-fn a_fade_keeps_the_colour_and_scales_only_the_strength() {
-    let colour = Theme::dark().foreground;
-    let half = fade(colour, 0.5);
-    assert_eq!((half.h, half.s, half.l), (colour.h, colour.s, colour.l));
-    assert!((half.a - colour.a * 0.5).abs() < 1e-6);
-}
+use gpui_kit::{IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, div, px};
+
+use super::{ReleaseNote, ReleaseSheet, ReleaseVersion};
 
 struct Page {
-    install: bool,
+    closed: Rc<Cell<u32>>,
 }
-impl gpui_kit::Render for Page {
-    fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl gpui_kit::IntoElement {
-        use gpui_kit::{ParentElement, Styled, div, px};
-        let sheet = super::ReleaseSheet::new("sheet", "0.1.4")
-            .note(super::ReleaseNote::new("A lead.", "What it says."))
-            .labels("Close", "Restart")
-            .on_later(|_, _| {});
-        div().w(px(520.)).child(if self.install { sheet.on_install(|_, _| {}) } else { sheet })
+
+impl Render for Page {
+    fn render(
+        &mut self,
+        _: &mut gpui_kit::Window,
+        _: &mut gpui_kit::Context<Self>,
+    ) -> impl IntoElement {
+        let closed = self.closed.clone();
+        let earlier = [
+            ReleaseVersion::new(
+                "0.1.7",
+                [ReleaseNote::new("Tall panels", "A panel scrolls.")],
+            )
+            .date(Some("Oct 8, 2026".into())),
+            ReleaseVersion::new("0.1.6", [ReleaseNote::new("Accounts", "Each has a tile.")]),
+        ];
+        div().w(px(860.)).child(
+            ReleaseSheet::new("sheet", "0.1.8")
+                .date(Some("Oct 9, 2026".into()))
+                .notes([
+                    ReleaseNote::new("The stop", "A little red."),
+                    ReleaseNote::new("The header", "No Stop."),
+                ])
+                .earlier(earlier)
+                .on_close(move |_, _| closed.set(closed.get() + 1)),
+        )
     }
 }
 
-#[gpui_kit::test]
-fn with_nothing_to_restart_the_sheet_has_only_its_close_button(cx: &mut gpui_kit::TestAppContext) {
+fn open(cx: &mut TestAppContext) -> (Rc<Cell<u32>>, &mut gpui_kit::VisualTestContext) {
     cx.update(|cx| {
         gpui_kit::init(cx);
         crate::init(cx);
     });
-    let (page, cx) = cx.add_window_view(|_, _| Page { install: true });
-    cx.run_until_parked();
-    assert!(cx.debug_bounds("release-later").is_some() && cx.debug_bounds("release-install").is_some(), "both buttons with a restart");
-    page.update(cx, |p, cx| {
-        p.install = false;
-        cx.notify();
+    let closed = Rc::new(Cell::new(0));
+    let (_, cx) = cx.add_window_view({
+        let closed = closed.clone();
+        move |_, _| Page { closed }
     });
     cx.run_until_parked();
-    assert!(cx.debug_bounds("release-close").is_some(), "Close is a button of its own");
-    assert!(cx.debug_bounds("release-later").is_none() && cx.debug_bounds("release-install").is_none(), "and the foot is gone");
+    (closed, cx)
+}
+
+#[gpui_kit::test]
+fn a_note_draws_its_lead_and_its_text_and_nothing_else(cx: &mut TestAppContext) {
+    let (_, cx) = open(cx);
+    for name in [
+        "release-lead-0-0",
+        "release-text-0-0",
+        "release-lead-0-1",
+        "release-text-0-1",
+        "release-lead-1-0",
+    ] {
+        assert!(cx.debug_bounds(name).is_some(), "{name} is drawn");
+    }
+    let lead = cx.debug_bounds("release-lead-0-0").unwrap();
+    let text = cx.debug_bounds("release-text-0-0").unwrap();
+    assert!(
+        lead.bottom() <= text.top(),
+        "the text stands under the lead"
+    );
+    for name in [
+        "release-kind-0",
+        "release-icon-0-0",
+        "release-footer",
+        "release-later",
+        "release-install",
+    ] {
+        assert!(cx.debug_bounds(name).is_none(), "{name} is gone");
+    }
+}
+
+#[gpui_kit::test]
+fn a_release_with_a_date_draws_it_and_one_without_does_not(cx: &mut TestAppContext) {
+    let (_, cx) = open(cx);
+    assert!(
+        cx.debug_bounds("release-date-0").is_some(),
+        "the current release has a date"
+    );
+    assert!(
+        cx.debug_bounds("release-date-1").is_some(),
+        "0.1.7 has a date"
+    );
+    assert!(
+        cx.debug_bounds("release-date-2").is_none(),
+        "0.1.6 has none, and no line for it"
+    );
+}
+
+#[gpui_kit::test]
+fn earlier_releases_stand_in_order_below_the_current_one(cx: &mut TestAppContext) {
+    let (_, cx) = open(cx);
+    let tops: Vec<_> = ["release-0", "release-1", "release-2"]
+        .map(|n| cx.debug_bounds(n).expect("the release is drawn").top())
+        .into();
+    assert!(
+        tops[0] < tops[1] && tops[1] < tops[2],
+        "current, then 0.1.7, then 0.1.6: {tops:?}"
+    );
+    let band = cx.debug_bounds("release-band").expect("the band is drawn");
+    assert!(
+        band.bottom() <= cx.debug_bounds("release-0").unwrap().top(),
+        "the band is over the first release"
+    );
+    assert_eq!(f32::from(band.size.height), 132., "the band is 132 tall");
+}
+
+#[gpui_kit::test]
+fn the_title_stands_bottom_left_in_the_band_and_the_close_button_top_right(
+    cx: &mut TestAppContext,
+) {
+    let (_, cx) = open(cx);
+    let band = cx.debug_bounds("release-band").unwrap();
+    let title = cx
+        .debug_bounds("release-title")
+        .expect("the title is drawn");
+    let close = cx
+        .debug_bounds("release-close")
+        .expect("the close button is drawn");
+    assert!(
+        title.left() - band.left() < px(60.) && band.bottom() - title.bottom() < px(40.),
+        "bottom left"
+    );
+    assert!(
+        band.right() - close.right() < px(30.) && close.top() - band.top() < px(30.),
+        "top right"
+    );
+}
+
+#[gpui_kit::test]
+fn the_close_button_fires_on_close(cx: &mut TestAppContext) {
+    let (closed, cx) = open(cx);
+    let close = cx
+        .debug_bounds("release-close")
+        .expect("the close button is drawn")
+        .center();
+    cx.simulate_click(close, Modifiers::default());
+    assert_eq!(closed.get(), 1);
+}
+
+#[gpui_kit::test]
+fn a_tall_list_makes_a_tall_sheet_for_the_modal_to_scroll(cx: &mut TestAppContext) {
+    let (_, cx) = open(cx);
     let sheet = cx.debug_bounds("release-sheet").unwrap();
-    let close = cx.debug_bounds("release-close").unwrap();
-    assert!(close.right() <= sheet.right() && sheet.right() - close.right() < gpui_kit::px(30.) && close.top() - sheet.top() < gpui_kit::px(30.), "at the top right: {close:?} in {sheet:?}");
-}
-
-#[gpui_kit::test]
-fn earlier_versions_are_listed_under_the_notes_and_the_list_has_a_height_of_its_own(cx: &mut gpui_kit::TestAppContext) {
-    struct Page;
-    impl gpui_kit::Render for Page {
-        fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl gpui_kit::IntoElement {
-            use gpui_kit::{ParentElement, Styled, div, px};
-            let notes = |n: usize| (0..n).map(|i| super::ReleaseNote::new(format!("Lead {i}."), "Text.")).collect::<Vec<_>>();
-            let earlier = (0..6).map(|i| super::ReleaseVersion::new(format!("0.0.{i}"), notes(3)));
-            div().w(px(520.)).child(super::ReleaseSheet::new("sheet", "0.1.4").notes(notes(2)).earlier(earlier).labels("Close", "").on_later(|_, _| {}))
-        }
-    }
-    cx.update(|cx| {
-        gpui_kit::init(cx);
-        crate::init(cx);
-    });
-    let (_page, cx) = cx.add_window_view(|_, _| Page);
-    cx.run_until_parked();
-    assert!(cx.debug_bounds("release-earlier-0").is_some() && cx.debug_bounds("release-earlier-5").is_some(), "every earlier version is there");
-    let sheet = cx.debug_bounds("release-sheet").expect("the sheet is drawn");
-    assert!(f32::from(sheet.size.height) < 232. + 340. + 140., "the notes scroll, so the sheet stays short: {:?}", sheet.size);
-}
-
-#[test]
-fn each_kind_has_its_own_icon_and_its_own_label() {
-    let kinds = super::ReleaseKind::ALL;
-    for (i, a) in kinds.iter().enumerate() {
-        for b in &kinds[i + 1..] {
-            assert_ne!(a.icon().name(), b.icon().name(), "{a:?} and {b:?} have two icons");
-            assert_ne!(a.label(), b.label(), "{a:?} and {b:?} have two labels");
-        }
-    }
-    assert_eq!(kinds.len(), 6);
-}
-
-struct Kinds {
-    asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>>,
-}
-impl gpui_kit::Render for Kinds {
-    fn render(&mut self, _: &mut gpui_kit::Window, _: &mut gpui_kit::Context<Self>) -> impl gpui_kit::IntoElement {
-        use gpui_kit::{ParentElement, Styled, div, px};
-        let asked = self.asked.clone();
-        let mut sheet = super::ReleaseSheet::new("sheet", "0.1.4").labels("Close", "Restart").on_later(|_, _| {});
-        for kind in super::ReleaseKind::ALL {
-            sheet = sheet.note(super::ReleaseNote::new(kind.label(), "What it says.").kind(kind));
-        }
-        sheet = sheet.note(super::ReleaseNote::new("No kind", "A note with none."));
-        let sheet = sheet.kind_colors(move |kind, _| {
-            asked.borrow_mut().push(kind);
-            gpui_kit::hsla(0.5, 0.8, 0.6, 1.)
-        });
-        div().w(px(520.)).child(sheet)
-    }
-}
-/// A note with a kind has its label over the lead, in the colour the owner gave it; a note with none has no label.
-#[gpui_kit::test]
-fn a_note_with_a_kind_has_a_label_and_the_owner_gives_the_colour(cx: &mut gpui_kit::TestAppContext) {
-    cx.update(|cx| {
-        gpui_kit::init(cx);
-        crate::init(cx);
-    });
-    let asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>> = Default::default();
-    let (_page, cx) = cx.add_window_view({
-        let asked = asked.clone();
-        move |_, _| Kinds { asked }
-    });
-    cx.run_until_parked();
-    for (i, name) in ["release-kind-0", "release-kind-1", "release-kind-2", "release-kind-3", "release-kind-4", "release-kind-5"].into_iter().enumerate() {
-        assert!(cx.debug_bounds(name).is_some(), "note {i} has its kind label");
-    }
-    assert!(cx.debug_bounds("release-kind-6").is_none(), "a note with no kind has none");
-    let asked = asked.borrow();
-    for kind in super::ReleaseKind::ALL {
-        assert!(asked.contains(&kind), "the owner was asked for the colour of {kind:?}");
-    }
-}
-
-/// In a window too short for the notes, they scroll, and the sheet stays inside the window, at a zoom too.
-#[gpui_kit::test]
-fn in_a_short_window_the_notes_scroll_and_the_sheet_stays_inside(cx: &mut gpui_kit::TestAppContext) {
-    cx.update(|cx| {
-        gpui_kit::init(cx);
-        crate::init(cx);
-    });
-    let asked: std::rc::Rc<std::cell::RefCell<Vec<super::ReleaseKind>>> = Default::default();
-    let (_page, cx) = cx.add_window_view(move |_, _| Kinds { asked });
-    cx.simulate_resize(gpui_kit::size(gpui_kit::px(600.), gpui_kit::px(760.)));
-    crate::scale::set_zoom(1.2);
-    cx.run_until_parked();
-    cx.update(|window, _| window.refresh());
-    cx.run_until_parked();
-    let sheet = cx.debug_bounds("release-sheet").expect("the sheet is drawn");
-    crate::scale::set_zoom(1.);
-    assert!(f32::from(sheet.size.height) <= 760., "the sheet is {:?} tall in a window 760 tall", sheet.size);
+    let last = cx.debug_bounds("release-2").unwrap();
+    assert!(
+        last.bottom() <= sheet.bottom(),
+        "every release is inside the sheet"
+    );
 }
