@@ -48,8 +48,9 @@ fn tile(at: usize, stat: &UsageStat, theme: &Theme) -> AnyElement {
         .child(
             div()
                 .flex()
+                .flex_wrap()
                 .items_baseline()
-                .gap(px(6.))
+                .gap_x(px(6.))
                 .mt(px(4.))
                 .child(
                     div()
@@ -61,7 +62,6 @@ fn tile(at: usize, stat: &UsageStat, theme: &Theme) -> AnyElement {
                     div()
                         .text_size(px(13.))
                         .text_color(theme.muted_foreground)
-                        .truncate()
                         .child(stat.unit.clone()),
                 ),
         )

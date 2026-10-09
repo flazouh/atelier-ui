@@ -168,7 +168,7 @@ fn row(
         .id(key(&d.id, format!("row-{}", item.id)))
         .debug_selector(move || selector.clone())
         .flex()
-        .items_center()
+        .items_start()
         .gap(px(10.))
         .px(px(10.))
         .py(px(9.))
@@ -186,7 +186,7 @@ fn row(
                 handler(pick.clone(), window, cx);
             }
         })
-        .child(div().flex_none().size(px(DOT)).rounded_full().bg(item.dot))
+        .child(div().flex_none().mt(px(6.)).size(px(DOT)).rounded_full().bg(item.dot))
         .child(
             div()
                 .flex_1()

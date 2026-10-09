@@ -102,6 +102,23 @@ fn a_click_chooses_a_tab_and_the_indicator_lies_under_it(cx: &mut TestAppContext
 }
 
 #[gpui_kit::test]
+fn at_zoom_the_indicator_still_lies_under_the_chosen_tab(cx: &mut TestAppContext) {
+    crate::scale::set_zoom(1.5);
+    let (page, cx, _) = open(TabsVariant::Segment, cx);
+    let at = centre(cx, "t1");
+    cx.simulate_click(at, Modifiers::default());
+    for _ in 0..4 {
+        cx.run_until_parked();
+        page.update(cx, |_, cx| cx.notify());
+    }
+    let now = cx.debug_bounds("tabs-indicator").unwrap();
+    let tab = cx.debug_bounds("t1").unwrap();
+    crate::scale::set_zoom(1.);
+    assert!((f32::from(now.left()) - f32::from(tab.left())).abs() < 0.5, "left: {now:?} against {tab:?}");
+    assert!((f32::from(now.size.width) - f32::from(tab.size.width)).abs() < 0.5, "width: {now:?} against {tab:?}");
+}
+
+#[gpui_kit::test]
 fn a_pending_tab_cannot_be_chosen(cx: &mut TestAppContext) {
     let (_, cx, log) = open(TabsVariant::Pill, cx);
     let at = centre(cx, "t2");
