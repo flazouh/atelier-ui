@@ -6,6 +6,6 @@ mod mini_chart;
 mod model_bars;
 mod panel;
 mod sessions;
-mod sparkline;
-mod tiles;
+mod stats;
 mod usage_dashboard;
+mod usage_sources;

@@ -1,17 +1,19 @@
 use gpui_kit::{
-    AnyElement, App, FontWeight, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    Window, div, prelude::FluentBuilder,
+    AnyElement, App, FontWeight, InteractiveElement, IntoElement, ParentElement,
+    StatefulInteractiveElement, Styled, Window, div, prelude::FluentBuilder,
 };
 
 use super::{
     super::{
-        consts::{CHEVRON_WIDTH, COST_WIDTH, MINI_WIDTH, SPARK_WIDTH, SPLIT_WIDTH, TOKENS_WIDTH},
+        consts::{
+            CHEVRON_WIDTH, COST_WIDTH, MINI_GAP, MINI_HEIGHT, MINI_WIDTH, ROW_BARS_GAP,
+            ROW_BARS_HEIGHT, SPARK_WIDTH, SPLIT_WIDTH, TOKENS_WIDTH,
+        },
         structs::{UsageDashboard, UsageSession},
     },
     key::key,
     mini_chart::mini_chart,
     panel::panel,
-    sparkline::sparkline,
 };
 use crate::{
     focus::PressStop,
@@ -22,7 +24,12 @@ use crate::{
 };
 
 /// The sessions: a head, and a row for each; the open one shows its days and where its tokens went.
-pub(super) fn sessions(d: &UsageDashboard, theme: &Theme, window: &mut Window, cx: &mut App) -> AnyElement {
+pub(super) fn sessions(
+    d: &UsageDashboard,
+    theme: &Theme,
+    window: &mut Window,
+    cx: &mut App,
+) -> AnyElement {
     let muted = theme.muted_foreground;
     let head = div()
         .flex()
@@ -33,8 +40,22 @@ pub(super) fn sessions(d: &UsageDashboard, theme: &Theme, window: &mut Window, c
         .text_color(muted)
         .child(div().flex_1().pl(px(0.)).child("Session"))
         .child(div().w(px(SPARK_WIDTH)).flex_none().child(d.range.label()))
-        .child(div().w(px(TOKENS_WIDTH)).flex_none().flex().justify_end().child("Tokens"))
-        .child(div().w(px(COST_WIDTH)).flex_none().flex().justify_end().child("Cost"))
+        .child(
+            div()
+                .w(px(TOKENS_WIDTH))
+                .flex_none()
+                .flex()
+                .justify_end()
+                .child("Tokens"),
+        )
+        .child(
+            div()
+                .w(px(COST_WIDTH))
+                .flex_none()
+                .flex()
+                .justify_end()
+                .child("Cost"),
+        )
         .child(div().w(px(CHEVRON_WIDTH)).flex_none());
     let mut list = div().flex().flex_col();
     for session in &d.sessions {
@@ -52,8 +73,18 @@ pub(super) fn sessions(d: &UsageDashboard, theme: &Theme, window: &mut Window, c
                 .items_baseline()
                 .justify_between()
                 .mb(px(10.))
-                .child(div().text_size(px(14.)).font_weight(FontWeight::MEDIUM).child("Sessions"))
-                .child(div().text_size(px(12.)).text_color(muted).child("press a row for its days")),
+                .child(
+                    div()
+                        .text_size(px(14.))
+                        .font_weight(FontWeight::MEDIUM)
+                        .child("Sessions"),
+                )
+                .child(
+                    div()
+                        .text_size(px(12.))
+                        .text_color(muted)
+                        .child("press a row for its days"),
+                ),
         )
         .child(head)
         .child(list)
@@ -82,7 +113,12 @@ fn row(
         .rounded(radius::xl())
         .when(open, |r| r.bg(theme.card_strong).rounded_b(px(0.)))
         .cursor_pointer()
-        .press_stop(key(&d.id, format!("session-press-{}", session.id)), radius::xl(), window, cx)
+        .press_stop(
+            key(&d.id, format!("session-press-{}", session.id)),
+            radius::xl(),
+            window,
+            cx,
+        )
         .on_click(move |_, window, cx| {
             if let Some(handler) = &handler {
                 handler(next.clone(), window, cx);
@@ -92,7 +128,13 @@ fn row(
             div()
                 .flex_1()
                 .min_w_0()
-                .child(div().text_size(px(13.)).font_weight(FontWeight::MEDIUM).truncate().child(session.title.clone()))
+                .child(
+                    div()
+                        .text_size(px(13.))
+                        .font_weight(FontWeight::MEDIUM)
+                        .truncate()
+                        .child(session.title.clone()),
+                )
                 .child(
                     div()
                         .mt(px(2.))
@@ -102,7 +144,19 @@ fn row(
                         .child(session.meta.clone()),
                 ),
         )
-        .child(sparkline(&session.days, color))
+        .child(
+            div()
+                .flex_none()
+                .w(px(SPARK_WIDTH))
+                .pr(px(12.))
+                .child(mini_chart(
+                    &session.days,
+                    color,
+                    SPARK_WIDTH,
+                    ROW_BARS_HEIGHT,
+                    ROW_BARS_GAP,
+                )),
+        )
         .child(mono(session.tokens.clone(), TOKENS_WIDTH))
         .child(mono(session.cost.clone(), COST_WIDTH))
         .child(
@@ -112,14 +166,28 @@ fn row(
                 .flex()
                 .justify_end()
                 .text_color(theme.faint())
-                .child(Icon::new(if open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(14.))),
+                .child(
+                    Icon::new(if open {
+                        IconName::ChevronDown
+                    } else {
+                        IconName::ChevronRight
+                    })
+                    .size(px(14.)),
+                ),
         )
         .into_any_element()
 }
 
 /// A number that changes, in the mono face, at the right of its column.
 fn mono(text: gpui_kit::SharedString, width: f32) -> impl IntoElement {
-    div().w(px(width)).flex_none().flex().justify_end().font_family(MONO_FONT_FAMILY).text_size(px(13.)).child(text)
+    div()
+        .w(px(width))
+        .flex_none()
+        .flex()
+        .justify_end()
+        .font_family(MONO_FONT_FAMILY)
+        .text_size(px(13.))
+        .child(text)
 }
 
 /// The open session: its days as bars, and where its tokens went.
@@ -148,15 +216,33 @@ fn detail(session: &UsageSession, theme: &Theme) -> AnyElement {
             div()
                 .flex_1()
                 .min_w_0()
-                .child(div().mb(px(6.)).text_size(px(12.)).text_color(muted).child("Tokens per day · this session"))
-                .child(mini_chart(&session.days, color, MINI_WIDTH)),
+                .child(
+                    div()
+                        .mb(px(6.))
+                        .text_size(px(12.))
+                        .text_color(muted)
+                        .child("Tokens per day · this session"),
+                )
+                .child(mini_chart(
+                    &session.days,
+                    color,
+                    MINI_WIDTH,
+                    MINI_HEIGHT,
+                    MINI_GAP,
+                )),
         )
         .child(
             div()
                 .flex_none()
                 .w(px(SPLIT_WIDTH))
                 .text_size(px(13.))
-                .child(div().mb(px(8.)).text_size(px(12.)).text_color(muted).child("Where the tokens went"))
+                .child(
+                    div()
+                        .mb(px(8.))
+                        .text_size(px(12.))
+                        .text_color(muted)
+                        .child("Where the tokens went"),
+                )
                 .children(split)
                 .child(
                     div()
@@ -164,7 +250,11 @@ fn detail(session: &UsageSession, theme: &Theme) -> AnyElement {
                         .justify_between()
                         .text_color(muted)
                         .child(div().child(session.footnote.clone()))
-                        .child(div().font_family(MONO_FONT_FAMILY).child(session.cost.clone())),
+                        .child(
+                            div()
+                                .font_family(MONO_FONT_FAMILY)
+                                .child(session.cost.clone()),
+                        ),
                 ),
         )
         .into_any_element()
