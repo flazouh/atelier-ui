@@ -66,6 +66,8 @@ pub fn import(json: &str, name: &str, family: &str) -> Result<Imported, String> 
         status: None,
         chart: None,
         stop: None,
+        send: None,
+        send_foreground: None,
     };
     tokens.card_strong = apart(ui("card_strong")).filter(|c| tokens.card.is_none_or(|card| contrast(*c, card) > 1.02));
     let syntax = syntax(&file, name, appearance, &tokens)?;

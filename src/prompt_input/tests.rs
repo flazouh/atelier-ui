@@ -1207,3 +1207,44 @@ mod manage {
         assert_eq!(*heard.borrow(), ["moved c,a,b"]);
     }
 }
+
+/// Idle, Send is one wide button (56 by 28 design pixels): the corner of the mic beside it, no Queue.
+#[gpui_kit::test]
+fn idle_send_is_one_wide_button(cx: &mut TestAppContext) {
+    let (_, _, cx) = open(cx);
+    cx.simulate_input("hi");
+    cx.run_until_parked();
+    let send = cx.debug_bounds("prompt-send").expect("Send is drawn");
+    assert_eq!((f32::from(send.size.width), f32::from(send.size.height)), (56., 28.));
+    assert!(cx.debug_bounds("prompt-queue").is_none(), "an idle agent has nothing to queue behind");
+}
+
+/// While a turn runs and the box has text, Queue stands left of Steer; a press on each says what it is.
+#[gpui_kit::test]
+fn while_running_with_text_queue_and_steer_are_two_buttons(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_running(true, cx)));
+    cx.simulate_input("steer it");
+    cx.run_until_parked();
+    let (queue, send) = (cx.debug_bounds("prompt-queue").expect("Queue is drawn"), cx.debug_bounds("prompt-send").expect("Steer is drawn"));
+    assert!(queue.right() <= send.left(), "Queue stands left of Steer");
+    click(cx, "prompt-queue");
+    cx.simulate_input("steer it");
+    cx.run_until_parked();
+    click(cx, "prompt-send");
+    assert_eq!(
+        heard_since(&heard, 0),
+        [PromptInputEvent::Queue(Message::text("steer it")), PromptInputEvent::Submit(Message::text("steer it"))]
+    );
+}
+
+/// While a turn runs and the box is empty there is Stop alone: no Queue.
+#[gpui_kit::test]
+fn while_running_with_an_empty_box_there_is_stop_alone(cx: &mut TestAppContext) {
+    let (prompt, heard, cx) = open(cx);
+    cx.update(|_, cx| prompt.update(cx, |p, cx| p.set_running(true, cx)));
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("prompt-queue").is_none());
+    click(cx, "prompt-send");
+    assert_eq!(heard_since(&heard, 0), [PromptInputEvent::Stop]);
+}

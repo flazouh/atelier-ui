@@ -42,6 +42,8 @@ pub(crate) fn colors(variant: ButtonVariant, theme: &Theme, hover: f32, has_chip
             mix(theme.muted_foreground, theme.foreground, hover),
         ),
         ButtonVariant::Tinted => (theme.foreground.opacity(0.09 + 0.05 * hover), theme.foreground),
+        ButtonVariant::Send => (mix(theme.send, theme.send_foreground, 0.17 * hover), theme.send_foreground),
+        ButtonVariant::Stop => (mix(theme.stop, theme.send_foreground, 0.17 * hover), theme.send_foreground),
         ButtonVariant::Invert => (mix(theme.foreground, theme.background, 0.1 * hover), theme.background),
     }
 }

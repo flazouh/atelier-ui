@@ -58,3 +58,18 @@ fn the_atelier_themes_have_the_stop_red_and_a_theme_without_one_uses_its_danger(
     let (plain, _) = parse(&file.to_string()).unwrap();
     assert_eq!(plain.stop, plain.danger);
 }
+
+#[test]
+fn the_atelier_themes_have_the_send_blue_and_a_theme_without_one_uses_its_info() {
+    for json in [include_str!("../../assets/themes/atelier-dark.json"), include_str!("../../assets/themes/atelier-light.json")] {
+        let (theme, _) = parse(json).unwrap();
+        assert_eq!(theme.send, hex("#0B84FF").unwrap());
+        assert_eq!(theme.send_foreground, hex("#FFFFFF").unwrap());
+    }
+    let mut file: serde_json::Value = serde_json::from_str(include_str!("../../assets/themes/atelier-dark.json")).unwrap();
+    for key in ["send", "send_foreground"] {
+        file.as_object_mut().unwrap().remove(key);
+    }
+    let (plain, _) = parse(&file.to_string()).unwrap();
+    assert_eq!((plain.send, plain.send_foreground), (plain.info, plain.background));
+}
