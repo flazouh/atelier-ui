@@ -174,6 +174,3 @@ pub(super) const QUEUE_HINT: &str = "⌘Enter to queue";
 pub(super) const QUEUED_ROW: f32 = 28.;
 
 pub(super) const QUEUED_GAP: f32 = 2.;
-
-/// The box of the Send button's arrow, in design pixels: with the button's 10 px of padding on each side it is 56 wide.
-pub(super) const SEND_ICON_WIDTH: f32 = 36.;

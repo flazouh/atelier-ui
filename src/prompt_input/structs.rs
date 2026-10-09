@@ -45,7 +45,7 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, QUEUE_HINT, SEND_ICON_WIDTH, Sending};
+use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, QUEUE_HINT, Sending};
 use super::helpers::{append_transcript, is_inline_paste, live_text};
 
 /// One choice in the model picker.
@@ -1103,13 +1103,13 @@ impl Render for PromptInput {
             window.request_animation_frame();
         }
 
-        // The buttons that give the box up. Idle: a wide blue arrow. While a turn runs and the box has text: Queue (after
+        // The buttons that give the box up. Idle: a blue "Send". While a turn runs and the box has text: Queue (after
         // the turn) and Steer (into the turn). While it runs and the box is empty: Stop, in red.
         let steers = self.running && !stops;
-        let (label, variant) = match (stops, steers) {
+        let (label, variant): (Option<&str>, ButtonVariant) = match (stops, steers) {
             (true, _) => (Some("Stop"), ButtonVariant::Stop),
             (_, true) => (Some("Steer"), ButtonVariant::Send),
-            _ => (None, ButtonVariant::Send),
+            _ => (Some("Send"), ButtonVariant::Send),
         };
         let send = {
             let this = cx.entity().downgrade();
@@ -1129,15 +1129,7 @@ impl Render for PromptInput {
                 });
             let button = match label {
                 Some(label) => button.label(label),
-                None => button.content(
-                    div()
-                        .w(px(SEND_ICON_WIDTH))
-                        .h(px(16.))
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(Icon::new(IconName::ArrowUp).size(px(16.))),
-                ),
+                None => button,
             };
             let button = button.debug_name("prompt-send");
             if steers { button.tooltip(STEER_HINT) } else { button }
