@@ -55,9 +55,11 @@ pub(super) fn model_bars(d: &UsageDashboard, theme: &Theme) -> AnyElement {
                 .flex()
                 .items_baseline()
                 .justify_between()
+                .gap(px(10.))
                 .text_size(px(13.))
-                .child(div().text_color(theme.muted_foreground).child("Total · est. cost"))
-                .child(div().font_family(MONO_FONT_FAMILY).child(total))
+                .child(div().flex_none().text_color(theme.muted_foreground).child("Total · est. cost"))
+                // In a narrow card the figures are cut at the left edge of the label, never over it.
+                .child(div().min_w_0().truncate().font_family(MONO_FONT_FAMILY).child(total))
         }))
         .into_any_element()
 }
