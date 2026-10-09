@@ -234,7 +234,8 @@ pub use sign_in_notice::{SignInNotice, SignInState};
 pub use status_bar::{Gauge, GaugeState, Pressure, ProviderGauge, StatusBar, SystemLoad, Work};
 pub use update_button::{UpdateButton, UpdateState};
 pub use usage_dashboard::{
-    Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession, UsageSource,
+    Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession, UsageSource, UsageSources,
+    UsageStat,
 };
 pub use unsent::UnsentComments;
 pub use new_task::{NewTask, NewTaskEvent};
