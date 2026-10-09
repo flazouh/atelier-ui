@@ -156,6 +156,7 @@ pub mod typography;
 pub mod sign_in_notice;
 pub mod status_bar;
 pub mod unsent;
+pub mod update_button;
 pub mod usage_dashboard;
 pub mod verdict;
 pub mod view_rail;
@@ -231,6 +232,7 @@ pub use court::{Court, CourtItem, CourtList};
 pub use review::{ReviewHandlers, ReviewProgress};
 pub use sign_in_notice::{SignInNotice, SignInState};
 pub use status_bar::{Gauge, GaugeState, Pressure, ProviderGauge, StatusBar, SystemLoad, Work};
+pub use update_button::{UpdateButton, UpdateState};
 pub use usage_dashboard::{
     Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession, UsageSource,
 };
