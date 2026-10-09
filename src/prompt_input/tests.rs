@@ -1208,14 +1208,15 @@ mod manage {
     }
 }
 
-/// Idle, Send is one wide button (56 by 28 design pixels): the corner of the mic beside it, no Queue.
+/// Idle, Send is one blue labelled button, 28 high like the others, and there is no Queue.
 #[gpui_kit::test]
-fn idle_send_is_one_wide_button(cx: &mut TestAppContext) {
+fn idle_send_is_one_labelled_button(cx: &mut TestAppContext) {
     let (_, _, cx) = open(cx);
     cx.simulate_input("hi");
     cx.run_until_parked();
     let send = cx.debug_bounds("prompt-send").expect("Send is drawn");
-    assert_eq!((f32::from(send.size.width), f32::from(send.size.height)), (56., 28.));
+    assert_eq!(f32::from(send.size.height), 28.);
+    assert!(f32::from(send.size.width) > 28., "a word, not a square: {send:?}");
     assert!(cx.debug_bounds("prompt-queue").is_none(), "an idle agent has nothing to queue behind");
 }
 
