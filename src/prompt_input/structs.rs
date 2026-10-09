@@ -45,7 +45,7 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, STOP_SIZE, Sending};
+use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, QUEUE_HINT, SEND_ICON_WIDTH, Sending};
 use super::helpers::{append_transcript, is_inline_paste, live_text};
 
 /// One choice in the model picker.
@@ -142,8 +142,6 @@ pub struct PromptInput {
     pub(super) model: usize,
     actions: Vec<PromptAction>,
     pub(super) menu: ActionsMenu,
-    /// 0 shows Send, 1 shows Stop; animates between them on `Spring::SWAP`.
-    pub(super) send_swap: Channel,
     /// Dictation: the microphone shows, and the owner answers its events.
     pub(super) dictation: bool,
     pub(super) voice: VoiceMode,
@@ -232,7 +230,6 @@ impl PromptInput {
             // Send turns on and off with the text, so redraw on every edit; a `/` or an `@` opens a list.
             InputEvent::Change => {
                 this.refresh_picking(cx);
-                this.retarget_send(cx);
                 cx.notify()
             }
             _ => {}
@@ -248,7 +245,6 @@ impl PromptInput {
             model: 0,
             actions: Vec::new(),
             menu: ActionsMenu::new(),
-            send_swap: Channel::new(0.),
             dictation: false,
             voice: VoiceMode::Idle,
             voice_face: VoiceMode::Listening,
@@ -389,7 +385,6 @@ impl PromptInput {
     /// While the agent works, Send steers the turn when the box has text and turns into Stop when it is empty.
     pub fn set_running(&mut self, running: bool, cx: &mut Context<Self>) {
         self.running = running;
-        self.retarget_send(cx);
         // The Plus trigger disables while running, so its menu cannot stay open behind it.
         if running {
             self.menu.set_open(false, cx.reduce_motion());
@@ -400,13 +395,6 @@ impl PromptInput {
     /// Whether the button stops the turn: it runs, and there is nothing to send into it.
     pub(super) fn stops(&self, cx: &App) -> bool {
         self.running && self.text(cx).trim().is_empty() && self.chips.is_empty() && self.command.is_none()
-    }
-
-    fn retarget_send(&mut self, cx: &mut Context<Self>) {
-        let target = if self.stops(cx) { 1. } else { 0. };
-        if self.send_swap.target() != target {
-            self.send_swap.animate(target, Curve::Spring(Spring::SWAP), 0., cx.reduce_motion());
-        }
     }
 
     /// Shows the microphone before Send, and starts hearing it.
@@ -869,7 +857,6 @@ impl PromptInput {
         }
         let message = Message { text: with(text), chips: self.chips.clone() };
         self.clear(window, cx);
-        self.retarget_send(cx);
         cx.emit(match sending {
             Sending::Now => PromptInputEvent::Submit(message),
             Sending::AfterTurn => PromptInputEvent::Queue(message),
@@ -1109,7 +1096,6 @@ impl Render for PromptInput {
 
         let reduce = cx.reduce_motion();
         if self.menu.rotate.is_running()
-            || self.send_swap.is_running()
             || self.mic_swap.is_running()
             || self.voice_fade.is_running()
             || (self.voice == VoiceMode::Listening && !reduce)
@@ -1117,41 +1103,19 @@ impl Render for PromptInput {
             window.request_animation_frame();
         }
 
-        // The send/stop icon slot: both icons render, blended by `t` so neither ever pops.
-        let t = self.send_swap.value();
-        let swap = div()
-            .relative()
-            .size(px(16.))
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .top(px(-3. * t))
-                    .opacity(1. - t)
-                    .child(Icon::new(IconName::ArrowUp).size(px(16.))),
-            )
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .top(px(3. * (1. - t)))
-                    .opacity(t)
-                    // The glyph fills half its box, so at 19.2 it is a 9.6px square, the stop as 20% smaller than it was,
-                    // in the theme's red.
-                    .child(Icon::new(IconName::Stop).size(px(STOP_SIZE)).color(cx.theme().stop)),
-            );
+        // The buttons that give the box up. Idle: a wide blue arrow. While a turn runs and the box has text: Queue (after
+        // the turn) and Steer (into the turn). While it runs and the box is empty: Stop, in red.
+        let steers = self.running && !stops;
+        let (label, variant) = match (stops, steers) {
+            (true, _) => (Some("Stop"), ButtonVariant::Stop),
+            (_, true) => (Some("Steer"), ButtonVariant::Send),
+            _ => (None, ButtonVariant::Send),
+        };
         let send = {
             let this = cx.entity().downgrade();
             let button = Button::new("prompt-send")
-                .content(swap)
-                .pill(true)
-                .size(ButtonSize::Icon)
+                .variant(variant)
+                .size(ButtonSize::Sm)
                 .disabled(!stops && !can_submit)
                 .on_click(move |_, window, cx| {
                     this.update(cx, |this, cx| {
@@ -1163,11 +1127,34 @@ impl Render for PromptInput {
                     })
                     .ok();
                 });
-            let steers = self.running && !stops;
+            let button = match label {
+                Some(label) => button.label(label),
+                None => button.content(
+                    div()
+                        .w(px(SEND_ICON_WIDTH))
+                        .h(px(16.))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(Icon::new(IconName::ArrowUp).size(px(16.))),
+                ),
+            };
             let button = button.debug_name("prompt-send");
             if steers { button.tooltip(STEER_HINT) } else { button }
         };
-
+        let queue = steers.then(|| {
+            let this = cx.entity().downgrade();
+            Button::new("prompt-queue")
+                .label("Queue")
+                .variant(ButtonVariant::Secondary)
+                .size(ButtonSize::Sm)
+                .disabled(!can_submit)
+                .tooltip(QUEUE_HINT)
+                .debug_name("prompt-queue")
+                .on_click(move |_, window, cx| {
+                    this.update(cx, |this, cx| this.send(Sending::AfterTurn, window, cx)).ok();
+                })
+        });
         // The Plus trigger and its menu, shown only when there is something to add: as beui does.
         let add = (!self.actions.is_empty()).then(|| {
             let rotate = self.menu.rotate.value();
@@ -1603,7 +1590,7 @@ impl Render for PromptInput {
             });
             div().id("prompt-context-wrap").relative().flex_none().child(ring).children(panel)
         });
-        let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).child(send);
+        let toolbar = div().debug_selector(|| "prompt-toolbar".into()).flex().items_center().gap(px(4.)).min_h(px(32.)).child(left).children(meter).children(mic).children(queue).child(send);
 
         let this = cx.entity().downgrade();
         let (pasting, dropping, backing) = (this.clone(), this.clone(), this.clone());

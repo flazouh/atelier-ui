@@ -28,6 +28,8 @@
  ],
  "chart": [["#e08a68", "#c4694a", "#f2b79c"], ["#8fb7b3", "#6a9a95", "#b5d2cf"], ["#a98ff0", "#8467d8", "#c8b8f6"], ["#e5645a", "#c8453b", "#f0928b"]],
  "stop": "#FC6B83",
+ "send": "#0B84FF",
+ "send_foreground": "#FFFFFF",
  "chart_note": "Chart hues: Claude, Codex, OpenRouter, Anthropic API; each base, darker, lighter.",
  "note": "Status marks: the muted ramp by presence (running, done, failed, pending, cancelled).",
  "syntax": {

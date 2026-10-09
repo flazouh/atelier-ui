@@ -36,6 +36,9 @@ pub struct Tokens {
     pub chart: Option<[[Hsla; 3]; 4]>,
     /// The stop mark's red. Left out, it is `danger`.
     pub stop: Option<Hsla>,
+    /// The Send button's fill and arrow. Left out: `info` and the page.
+    pub send: Option<Hsla>,
+    pub send_foreground: Option<Hsla>,
 }
 
 impl Tokens {
@@ -88,6 +91,8 @@ impl Tokens {
             [warning, success, info, danger].map(super::helpers::shades)
         });
         let stop = self.stop.unwrap_or(danger);
+        let send = self.send.unwrap_or(info);
+        let send_foreground = self.send_foreground.unwrap_or(page);
         let theme = Theme {
             name,
             family,
@@ -117,6 +122,8 @@ impl Tokens {
             chip_arrow,
             chart,
             stop,
+            send,
+            send_foreground,
             status,
             pull: super::helpers::github_pull(appearance),
             syntax,
@@ -156,6 +163,9 @@ pub(super) struct File {
     pub(super) chart: Option<[[String; 3]; 4]>,
     /// The stop mark's red.
     pub(super) stop: Option<String>,
+    /// The Send button's fill and arrow.
+    pub(super) send: Option<String>,
+    pub(super) send_foreground: Option<String>,
     /// Scales each status tone's lightness: atelier Light's cream page needs its ramp a step darker.
     pub(super) status_lightness: Option<f32>,
     pub(super) syntax: serde_json::Value,

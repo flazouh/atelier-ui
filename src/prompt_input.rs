@@ -6,9 +6,8 @@
 //!   prompt" menu (its icon turns 45° on `Spring::SWAP`), the model picker (beui's `Select`, in its
 //!   `compact` chip skin: `h-8 rounded-lg text-xs`, no chevron, borderless, `shadow-none` panel), a
 //!   flexible spacer, and the round `size-8` send button.
-//! - Send↔Stop: a single `send_swap` channel drives both icons in the same slot: the outgoing one
-//!   fades out rising 3px, the incoming one fades in falling from 3px; beui's `SPRING_SWAP` cross-fade
-//!   without the scale GPUI cannot apply to element content directly.
+//! - The buttons at the right: idle, one wide blue arrow (Send); while a turn runs, "Queue" (quiet) and "Steer"
+//!   (blue) when the box has text, and "Stop" (red) when it is empty. All are 28 high with the corner of the mic.
 //! - The "add to prompt" menu (beui's `MorphPopover`, `side="top" align="start"`) opens above the Plus
 //!   button: `w-56 p-1.5` items (`rounded-lg px-2.5 py-2`, icon + label + muted description). GPUI has no
 //!   `clip-path`, so the corner-morph grow is simplified to the fade-in this codebase already uses for

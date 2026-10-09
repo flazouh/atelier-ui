@@ -15,6 +15,10 @@ pub enum ButtonVariant {
     Tinted,
     /// The text color as the fill: the strongest action on a card, such as "Allow once".
     Invert,
+    /// The composer's Send: the theme's blue with a white arrow.
+    Send,
+    /// The composer's Stop: the theme's red with a white word.
+    Stop,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

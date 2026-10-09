@@ -165,12 +165,15 @@ pub(super) enum Sending {
 }
 
 /// The words on the Send button while a turn runs and the box has text.
-pub(super) const STEER_HINT: &str = "Enter to steer, ⌘Enter to queue";
+pub(super) const STEER_HINT: &str = "Enter to steer";
+
+/// The words on the Queue button while a turn runs and the box has text.
+pub(super) const QUEUE_HINT: &str = "⌘Enter to queue";
 
 /// A queued row's height, as the Task pickers' rows, and the space between rows.
 pub(super) const QUEUED_ROW: f32 = 28.;
 
 pub(super) const QUEUED_GAP: f32 = 2.;
 
-/// The stop icon's box, in design pixels: 24 less 20%.
-pub(super) const STOP_SIZE: f32 = 19.2;
+/// The box of the Send button's arrow, in design pixels: with the button's 10 px of padding on each side it is 56 wide.
+pub(super) const SEND_ICON_WIDTH: f32 = 36.;

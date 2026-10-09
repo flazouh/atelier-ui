@@ -64,8 +64,12 @@ pub struct Theme {
     /// The chart palette: four hues (Claude, Codex, OpenRouter, Anthropic API), each in three shades (base, darker,
     /// lighter), so several accounts of one provider share a hue and differ by shade. Read it with [`Theme::series`].
     pub chart: [[Hsla; 3]; 4],
-    /// The red of the stop mark in the composer. A theme that gives none uses its `danger`.
+    /// The red of the composer's Stop button. A theme that gives none uses its `danger`.
     pub stop: Hsla,
+    /// The fill of the composer's Send button, and the colour of its arrow. A theme that gives none uses its `info`
+    /// and its page.
+    pub send: Hsla,
+    pub send_foreground: Hsla,
     /// The status marks by presence: running, done, failed, pending, cancelled.
     pub status: [Hsla; 5],
     /// A pull request's state marks in GitHub's own colours, whatever the theme: open, draft, merged, closed.
