@@ -25,6 +25,7 @@ use super::{
     },
     types::{
         FOOTER_MAX, ToolAction, ToolCardData, ToolIcon, ToolNode, ToolProvider, ToolRow, ToolText,
+        ToolTone,
     },
 };
 
@@ -114,7 +115,7 @@ impl RenderOnce for ToolCard {
                     .children(data.origin.clone().map(|origin| {
                         div()
                             .debug_selector(|| "tool-card-origin".into())
-                            .child(Badge::new(origin))
+                            .child(pill(origin, &theme))
                     }))
                     .child(
                         div().debug_selector(|| "tool-card-state".into()).child(
@@ -167,6 +168,25 @@ impl RenderOnce for ToolCard {
             .children(body)
             .children(footer)
     }
+}
+
+/// A quiet pill: the words of a neutral badge on the wash of the ink, which shows on the card's own fill, where a neutral
+/// [`Badge`] (filled with `card_strong`) does not.
+fn pill(label: SharedString, theme: &Theme) -> impl IntoElement {
+    div()
+        .flex()
+        .flex_none()
+        .items_center()
+        .h(px(20.))
+        .px(px(8.))
+        .rounded_full()
+        .bg(theme.wash())
+        .text_color(theme.muted_foreground)
+        .text_size(px(11.))
+        .line_height(px(18.))
+        .font_weight(FontWeight::MEDIUM)
+        .whitespace_nowrap()
+        .child(label)
 }
 
 fn provider_line(provider: &ToolProvider) -> SharedString {
@@ -283,6 +303,10 @@ fn node_element(
                 None => styled.into_any_element(),
             }
         }
+        ToolNode::Badge {
+            value,
+            tone: ToolTone::Neutral,
+        } => pill(value.clone(), theme).into_any_element(),
         ToolNode::Badge { value, tone } => Badge::new(value.clone())
             .tone(badge_tone(*tone))
             .into_any_element(),
