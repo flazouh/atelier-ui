@@ -27,3 +27,6 @@ pub(super) const VIEW_SECONDS: f32 = 0.24;
 pub const VIEW_Y: f32 = 8.;
 
 pub(super) type Close = Rc<dyn Fn(&mut Window, &mut App)>;
+
+/// The room a panel leaves between itself and the window's edge, in design pixels: a tall view scrolls inside what is left.
+pub const EDGE: f32 = 24.;
