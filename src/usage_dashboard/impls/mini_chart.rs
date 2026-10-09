@@ -14,7 +14,8 @@ pub(super) fn mini_chart(values: &[f32], color: Hsla, width: f32) -> AnyElement 
         .flex()
         .items_end()
         .gap(px(MINI_GAP))
-        .w(px(width))
+        .w_full()
+        .max_w(px(width))
         .h(px(MINI_HEIGHT))
         .children(bars.into_iter().enumerate().map(|(at, bar)| {
             let fill = if at == last { color } else { color.opacity(MINI_PAST_ALPHA) };
