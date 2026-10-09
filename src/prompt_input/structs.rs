@@ -45,7 +45,7 @@ use crate::{
     voice_input::{self, VoiceDevice, VoiceMode},
     voice_setup::{SetupPhase, VoiceSetup},
 };
-use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, Sending};
+use super::types::{Chip, ChipLook, LiveWords, Message, Pasted, PICK_GAP, PICK_MOST, PICK_PAD, PICK_ROW, PromptInputEvent, STEER_HINT, STOP_SIZE, Sending};
 use super::helpers::{append_transcript, is_inline_paste, live_text};
 
 /// One choice in the model picker.
@@ -1142,8 +1142,9 @@ impl Render for PromptInput {
                     .justify_center()
                     .top(px(3. * (1. - t)))
                     .opacity(t)
-                    // The glyph fills half its box, so at 24 it is a 12px square: the stop reads as large as the arrow.
-                    .child(Icon::new(IconName::Stop).size(px(24.))),
+                    // The glyph fills half its box, so at 19.2 it is a 9.6px square, the stop as 20% smaller than it was,
+                    // in the theme's red.
+                    .child(Icon::new(IconName::Stop).size(px(STOP_SIZE)).color(cx.theme().stop)),
             );
         let send = {
             let this = cx.entity().downgrade();

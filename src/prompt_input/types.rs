@@ -171,3 +171,6 @@ pub(super) const STEER_HINT: &str = "Enter to steer, ⌘Enter to queue";
 pub(super) const QUEUED_ROW: f32 = 28.;
 
 pub(super) const QUEUED_GAP: f32 = 2.;
+
+/// The stop icon's box, in design pixels: 24 less 20%.
+pub(super) const STOP_SIZE: f32 = 19.2;
