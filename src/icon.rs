@@ -142,6 +142,7 @@ icons! {
     Movie => "film-01",
     RotateLeft => "rotate-ccw",
     TableChart => "layout-table-01",
+    BarChart => "bar-chart",
     ChevronLeft => "arrow-left-01",
     Minus => "minus-sign",
     VisibilityOff => "view-off-slash",
