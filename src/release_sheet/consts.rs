@@ -1,30 +1,32 @@
 /// Where the hero picture is served from.
 pub const HERO_PATH: &str = "release-hero.jpg";
-/// How tall the picture's own part is, where the kicker and the version stand.
-pub(super) const HERO_HEIGHT: f32 = 232.;
-/// The space round the words, the gap round the dark panel, and its corner.
-pub(super) const SIDE: f32 = 34.;
-pub(super) const PANEL_GAP: f32 = 12.;
-pub(super) const PANEL_CORNER: f32 = 14.;
-/// How much of the panel's fill shows: the picture shows through a little.
-pub(super) const PANEL_ALPHA: f32 = 0.92;
-/// The corner of the picture: the modal panel's, since gpui clips a box to its rectangle and not to its corners. The picture is
-/// stretched over the whole sheet, so that its own corners are the sheet's: a picture that covers the sheet and is cut by it
-/// would have its rounded corners outside the visible part.
+
+/// How tall the picture band is, in design pixels.
+pub(super) const BAND_HEIGHT: f32 = 132.;
+/// The corner of the picture: the modal panel's, since gpui clips a box to its rectangle and not to its corners. The
+/// picture is stretched over the band, so that its own top corners are the sheet's.
 pub(super) const CORNER: f32 = crate::modal::CORNER;
-/// How tall the notes may be before they scroll, when earlier versions are listed under them.
-pub(super) const HISTORY_MAX: f32 = 340.;
+/// The space at the left and right of the title and of the releases.
+pub(super) const SIDE: f32 = 44.;
+/// The title: its size, and its distance from the bottom of the band.
+pub(super) const TITLE_SIZE: f32 = 34.;
+pub(super) const TITLE_BOTTOM: f32 = 22.;
 /// The close button at the top right: its size and its distance from the corner.
-pub(super) const CLOSE_SIZE: f32 = 30.;
-pub(super) const CLOSE_INSET: f32 = 14.;
-/// A note's icon, and the room it has at the left of the words, in design pixels.
-pub(super) const GLYPH_SIZE: f32 = 20.;
-pub(super) const GLYPH_SLOT: f32 = 24.;
-/// How strong the hairline between two notes is, as a share of the foreground.
-pub(super) const HAIRLINE_ALPHA: f32 = 0.08;
-/// What a sheet takes of the window's height besides its notes, in design pixels: the picture, the gaps round the panel and
-/// the space the modal keeps from the edges; and the panel's foot, when there is one (a sheet with nothing to restart has none).
-/// And the least the notes keep, however short the window.
-pub(super) const SHEET_CHROME: f32 = 296.;
-pub(super) const FOOT_HEIGHT: f32 = 76.;
-pub(super) const MIN_NOTES_HEIGHT: f32 = 140.;
+pub(super) const CLOSE_SIZE: f32 = 32.;
+pub(super) const CLOSE_INSET: f32 = 18.;
+/// How strong the close button's hover tone is, as a share of the light foreground.
+pub(super) const CLOSE_HOVER_ALPHA: f32 = 0.18;
+/// A release: the space over and under it, the width of its left column, and the gap to the notes.
+pub(super) const ROW_PAD: f32 = 34.;
+pub(super) const META_WIDTH: f32 = 150.;
+pub(super) const COLUMN_GAP: f32 = 20.;
+/// The left column: the version and the date under it.
+pub(super) const VERSION_SIZE: f32 = 22.;
+pub(super) const DATE_SIZE: f32 = 13.;
+pub(super) const DATE_GAP: f32 = 4.;
+/// A note: the lead, the text, the gap between them and the space under a note.
+pub(super) const LEAD_SIZE: f32 = 15.;
+pub(super) const TEXT_SIZE: f32 = 14.;
+pub(super) const TEXT_LINE: f32 = 21.7;
+pub(super) const LEAD_GAP: f32 = 6.;
+pub(super) const NOTE_GAP: f32 = 24.;
