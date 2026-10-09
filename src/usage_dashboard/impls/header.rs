@@ -1,16 +1,17 @@
 use gpui_kit::{
-    AnyElement, App, FontWeight, InteractiveElement, IntoElement, ParentElement, StatefulInteractiveElement, Styled,
-    Window, div, prelude::FluentBuilder,
+    AnyElement, App, FontWeight, InteractiveElement, IntoElement, ParentElement, Styled, Window,
+    div, prelude::FluentBuilder,
 };
 
 use super::{
-    super::{enums::UsageRange, structs::UsageDashboard},
+    super::{consts::DOT, enums::UsageRange, structs::UsageDashboard},
     key::key,
 };
 use crate::{
-    focus::PressStop,
+    badge::Badge,
     scale::px,
-    theme::{Theme, radius},
+    tabs::{Tab, Tabs, TabsVariant},
+    theme::Theme,
 };
 
 impl UsageRange {
@@ -31,37 +32,67 @@ impl UsageRange {
     }
 }
 
-/// The title, and the range as a segmented control.
-pub(super) fn header(d: &UsageDashboard, theme: &Theme, window: &mut Window, cx: &mut App) -> AnyElement {
-    let segments = UsageRange::ALL.map(|range| {
-        let on = d.range == range;
-        let handler = d.on_range.clone();
-        let selector = format!("usage-range-{}", range.days());
-        div()
-            .id(key(&d.id, format!("range-{}", range.days())))
-            .debug_selector(move || selector.clone())
-            .px(px(13.))
-            .py(px(6.))
-            .rounded(radius::lg())
-            .text_size(px(13.))
-            .font_weight(FontWeight::MEDIUM)
-            .text_color(if on { theme.foreground } else { theme.muted_foreground })
-            .when(on, |s| s.bg(theme.card_strong))
-            .cursor_pointer()
-            .press_stop(key(&d.id, format!("range-press-{}", range.days())), radius::lg(), window, cx)
-            .on_click(move |_, window, cx| {
-                if let Some(handler) = &handler {
-                    handler(range, window, cx);
-                }
-            })
-            .child(range.label())
+/// The title of what is chosen, with its provider and what it is, and the range as the Tabs Segment control.
+pub(super) fn header(
+    d: &UsageDashboard,
+    theme: &Theme,
+    _window: &mut Window,
+    _cx: &mut App,
+) -> AnyElement {
+    let handler = d.on_range.clone();
+    let tabs = Tabs::new(
+        key(&d.id, "range".to_string()),
+        TabsVariant::Segment,
+        UsageRange::ALL.map(|range| {
+            Tab::new(range.label()).debug_name(format!("usage-range-{}", range.days()))
+        }),
+        UsageRange::ALL.iter().position(|range| *range == d.range),
+    )
+    .on_select(move |at, window, cx| {
+        if let (Some(handler), Some(range)) = (&handler, UsageRange::ALL.get(at)) {
+            handler(*range, window, cx);
+        }
+    });
+    let dot = d.dot.map_or(theme.foreground, |series| {
+        theme.series(series.hue, series.shade)
     });
     div()
         .flex()
-        .items_center()
+        .items_start()
         .justify_between()
-        .h(px(44.))
-        .child(div().text_size(px(20.)).font_weight(FontWeight::SEMIBOLD).child("Usage"))
-        .child(div().flex().p(px(3.)).rounded(radius::xl()).bg(theme.card).children(segments))
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(3.))
+                .min_w_0()
+                .child(
+                    div()
+                        .debug_selector(|| "usage-title".into())
+                        .flex()
+                        .items_center()
+                        .gap(px(10.))
+                        .child(div().flex_none().size(px(DOT + 2.)).rounded_full().bg(dot))
+                        .child(
+                            div()
+                                .text_size(px(24.))
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .truncate()
+                                .child(d.title.clone()),
+                        )
+                        .when_some(d.provider.clone(), |row, provider| {
+                            row.child(Badge::new(provider))
+                        }),
+                )
+                .child(
+                    div()
+                        .ml(px(DOT + 12.))
+                        .text_size(px(13.5))
+                        .text_color(theme.muted_foreground)
+                        .truncate()
+                        .child(d.subtitle.clone()),
+                ),
+        )
+        .child(tabs)
         .into_any_element()
 }

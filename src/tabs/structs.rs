@@ -6,7 +6,7 @@ use gpui_kit::{
     Styled, Window, div, prelude::FluentBuilder,
 };
 
-use crate::scale::px;
+use crate::scale::{design, px};
 use crate::{
     focus::row_ring,
     motion::{Animated, FrameClock},
@@ -120,7 +120,7 @@ impl RenderOnce for Tabs {
         });
         let (glide, moving) = state.update(cx, |s, _| {
             let target = self.selected.and_then(|i| s.rects.get(i).copied().flatten()).zip(s.list).map(|(r, l)| {
-                (f32::from(r.origin.x - l.origin.x), f32::from(r.size.width))
+                (design(r.origin.x - l.origin.x), design(r.size.width))
             });
             let mut moving = false;
             match target {
@@ -157,7 +157,7 @@ impl RenderOnce for Tabs {
         let selected_pending = self.selected.is_some_and(|i| self.tabs.get(i).is_none_or(|t| t.pending));
         let (pad_x, pad_y) = variant.tab_pad();
         let keyboard = window.last_input_was_keyboard();
-        let list_left = state.read(cx).list.map(|l| f32::from(l.origin.x)).unwrap_or(0.);
+        let list_left = state.read(cx).list.map(|l| design(l.origin.x)).unwrap_or(0.);
         let select = self.on_select.clone();
         let tabs: Vec<AnyElement> = self
             .tabs
@@ -166,7 +166,7 @@ impl RenderOnce for Tabs {
             .map(|(i, tab)| {
                 let chosen = self.selected == Some(i) && !tab.pending;
                 let covering = match (glide, state.read(cx).rects.get(i).copied().flatten()) {
-                    (Some((l, w)), Some(r)) => covered(f32::from(r.origin.x) - list_left, f32::from(r.size.width), l, w),
+                    (Some((l, w)), Some(r)) => covered(design(r.origin.x) - list_left, design(r.size.width), l, w),
                     _ => 0.,
                 };
                 let ink = match variant {

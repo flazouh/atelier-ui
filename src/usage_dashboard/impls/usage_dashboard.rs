@@ -1,21 +1,23 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString, Styled, Window, div,
+    App, ElementId, InteractiveElement, IntoElement, ParentElement, RenderOnce, SharedString,
+    Styled, Window, div,
 };
 
 use super::{
     super::{
-        consts::PAD,
-        enums::{Selection, UsageRange},
-        structs::{UsageDashboard, UsageDay, UsageModel, UsageSession, UsageSource},
+        enums::UsageRange,
+        structs::{
+            Series, UsageDashboard, UsageDay, UsageModel, UsageSession, UsageSource, UsageStat,
+        },
     },
     day_chart::day_chart,
     header::header,
     model_bars::model_bars,
     panel::panel,
     sessions::sessions,
-    tiles::tiles,
+    stats::stats,
 };
 use crate::{scale::px, theme::ActiveTheme, typography::FONT_FAMILY};
 
@@ -24,9 +26,12 @@ impl UsageDashboard {
         Self {
             id: id.into(),
             range: UsageRange::default(),
-            selection: Selection::default(),
+            title: SharedString::default(),
+            subtitle: SharedString::default(),
+            provider: None,
+            dot: None,
+            stats: Vec::new(),
             sources: Vec::new(),
-            summary: None,
             days: Vec::new(),
             models: Vec::new(),
             sessions: Vec::new(),
@@ -34,7 +39,6 @@ impl UsageDashboard {
             total: None,
             empty: None,
             on_range: None,
-            on_select: None,
             on_expand: None,
         }
     }
@@ -44,22 +48,36 @@ impl UsageDashboard {
         self
     }
 
-    pub fn selection(mut self, selection: Selection) -> Self {
-        self.selection = selection;
+    /// What the view is about: "Max · work", "All accounts".
+    pub fn title(mut self, title: impl Into<SharedString>) -> Self {
+        self.title = title.into();
         self
     }
-
+    /// The line under the title: "Resets in 2 d 8 h · 7-day window".
+    pub fn subtitle(mut self, subtitle: impl Into<SharedString>) -> Self {
+        self.subtitle = subtitle.into();
+        self
+    }
+    /// The provider, in a badge after the title.
+    pub fn provider(mut self, provider: impl Into<SharedString>) -> Self {
+        self.provider = Some(provider.into());
+        self
+    }
+    /// The colour of the dot before the title; with none it is the foreground, for all accounts.
+    pub fn dot(mut self, series: Series) -> Self {
+        self.dot = Some(series);
+        self
+    }
+    /// The sources the chart draws; they make its legend.
     pub fn sources(mut self, sources: Vec<UsageSource>) -> Self {
         self.sources = sources;
         self
     }
-
-    /// The value and note of the "All accounts" tile: `5.84 M`, `today`.
-    pub fn summary(mut self, value: impl Into<SharedString>, note: impl Into<SharedString>) -> Self {
-        self.summary = Some((value.into(), note.into()));
+    /// The row of figures under the title.
+    pub fn stats(mut self, stats: Vec<UsageStat>) -> Self {
+        self.stats = stats;
         self
     }
-
     pub fn days(mut self, days: Vec<UsageDay>) -> Self {
         self.days = days;
         self
@@ -98,13 +116,11 @@ impl UsageDashboard {
         self
     }
 
-    pub fn on_select(mut self, f: impl Fn(Selection, &mut Window, &mut App) + 'static) -> Self {
-        self.on_select = Some(Rc::new(f));
-        self
-    }
-
     /// Called with the session pressed, or `None` when the open one is pressed again.
-    pub fn on_expand(mut self, f: impl Fn(Option<SharedString>, &mut Window, &mut App) + 'static) -> Self {
+    pub fn on_expand(
+        mut self,
+        f: impl Fn(Option<SharedString>, &mut Window, &mut App) + 'static,
+    ) -> Self {
         self.on_expand = Some(Rc::new(f));
         self
     }
@@ -114,7 +130,7 @@ impl RenderOnce for UsageDashboard {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
         let head = header(&self, &theme, window, cx);
-        let tiles = tiles(&self, &theme, window, cx);
+        let stats = stats(&self, &theme);
         let rest = match &self.empty {
             Some(text) => vec![
                 panel(&theme)
@@ -143,12 +159,10 @@ impl RenderOnce for UsageDashboard {
             .flex_col()
             .gap(px(10.))
             .w_full()
-            .p(px(PAD))
-            .bg(theme.background)
             .text_color(theme.foreground)
             .font_family(FONT_FAMILY)
             .child(head)
-            .child(tiles)
+            .child(stats)
             .children(rest)
     }
 }
