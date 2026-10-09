@@ -5,7 +5,7 @@ use crate::{
     theme::{Theme, radius},
 };
 
-/// A panel of the dashboard: the card tone, no border.
+/// A panel of the dashboard: the strong card tone, no border, so it stands out on the card the dashboard sits in.
 pub(super) fn panel(theme: &Theme) -> Div {
-    div().flex().flex_col().min_w_0().px(px(20.)).py(px(18.)).rounded(radius::xxl()).bg(theme.card)
+    div().flex().flex_col().min_w_0().px(px(20.)).py(px(18.)).rounded(radius::xxl()).bg(theme.card_strong)
 }

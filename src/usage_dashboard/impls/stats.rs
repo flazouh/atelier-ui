@@ -37,7 +37,7 @@ fn tile(at: usize, stat: &UsageStat, theme: &Theme) -> AnyElement {
         .px(px(16.))
         .py(px(14.))
         .rounded(radius::xl())
-        .bg(theme.card)
+        .bg(theme.card_strong)
         .child(
             div()
                 .text_size(px(12.5))
