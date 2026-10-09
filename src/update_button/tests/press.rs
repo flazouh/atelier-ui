@@ -45,7 +45,7 @@ fn click(cx: &mut VisualTestContext) {
 
 #[gpui_kit::test]
 fn a_click_fires_only_when_ready(cx: &mut TestAppContext) {
-    let (count, c) = pressed_in(|b| b.ready("Update to v0.1.9"), cx);
+    let (count, c) = pressed_in(|b| b.ready("Update"), cx);
     click(c);
     assert_eq!(count.get(), 1);
     let (count, c) = pressed_in(|b| b.downloading(0.4, "Updating 40%"), cx);
@@ -58,7 +58,7 @@ fn a_click_fires_only_when_ready(cx: &mut TestAppContext) {
 
 #[gpui_kit::test]
 fn enter_and_space_press_it_when_ready(cx: &mut TestAppContext) {
-    let (count, c) = pressed_in(|b| b.ready("Update to v0.1.9"), cx);
+    let (count, c) = pressed_in(|b| b.ready("Update"), cx);
     c.update(|window, cx| window.focus_next(cx));
     c.update(|window, _| window.refresh());
     c.run_until_parked();

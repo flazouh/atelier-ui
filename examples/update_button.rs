@@ -21,7 +21,7 @@ impl Render for Page {
                 .child(cell(UpdateButton::new("d12").downloading(0.12, "Updating 12%")))
                 .child(cell(UpdateButton::new("d55").downloading(0.55, "Updating 55%")))
                 .child(cell(UpdateButton::new("d92").downloading(0.92, "Updating 92%")))
-                .child(cell(UpdateButton::new("ready").ready("Update to v0.1.9").on_click(|_, _| {})))
+                .child(cell(UpdateButton::new("ready").ready("Update").on_click(|_, _| {})))
                 .child(cell(UpdateButton::new("restart").restarting("Restarting…"))),
         )
     }

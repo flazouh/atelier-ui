@@ -13,7 +13,7 @@ mod enums;
 mod helpers;
 mod impls;
 mod structs;
-pub use consts::{GAP, HEIGHT, ICON, PAD_LEFT, PAD_RIGHT, RING, RING_STROKE, TEXT};
+pub use consts::{GAP, HEIGHT, PAD_LEFT, PAD_RIGHT, RING, RING_STROKE, TEXT};
 pub use enums::UpdateState;
 pub use structs::UpdateButton;
 #[cfg(test)]

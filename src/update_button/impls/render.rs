@@ -4,14 +4,14 @@ use gpui_kit::{
 };
 
 use crate::{
+    theme::radius,
     focus::ring_shadow,
-    icon::{Icon, IconName},
     motion::now_millis,
     scale::px,
     theme::ActiveTheme,
     typography::FONT_FAMILY,
     update_button::{
-        consts::{GAP, HEIGHT, ICON, PAD_LEFT, PAD_RIGHT, RING, SPIN_SWEEP, TEXT},
+        consts::{GAP, HEIGHT, PAD_LEFT, PAD_RIGHT, RING, SPIN_SWEEP, TEXT},
         enums::UpdateState,
         helpers::{look, paint_ring, ring_start},
         structs::{UpdateButton, UpdateMotion},
@@ -47,9 +47,8 @@ impl RenderOnce for UpdateButton {
             _ => (SPIN_SWEEP, ring_start(now_millis(), reduce)),
         };
         let (track, arc) = (colors.track, colors.arc);
-        let lead = if pressable {
-            div().relative().flex_none().child(Icon::new(IconName::Download).size(px(ICON)).color(colors.text)).into_any_element()
-        } else {
+        // Ready is only its label; the ring shows while the update downloads and while the app restarts.
+        let lead = (!pressable).then(|| {
             div()
                 .relative()
                 .flex_none()
@@ -58,8 +57,7 @@ impl RenderOnce for UpdateButton {
                     canvas(|_, _, _| {}, move |bounds, _, window, _| paint_ring(arc_fraction, start, track, arc, bounds, window))
                         .size_full(),
                 )
-                .into_any_element()
-        };
+        });
         let on_click = self.on_click.filter(|_| pressable);
         let hover_motion = motion.clone();
         div()
@@ -72,18 +70,18 @@ impl RenderOnce for UpdateButton {
             .pl(px(PAD_LEFT))
             .pr(px(PAD_RIGHT))
             .gap(px(GAP))
-            .rounded(px(HEIGHT / 2.))
+            .rounded(radius::lg())
             .bg(colors.fill)
             .text_color(colors.text)
             .font_family(FONT_FAMILY)
-            .font_weight(FontWeight::MEDIUM)
+            .font_weight(FontWeight::NORMAL)
             .text_size(px(TEXT))
             .line_height(px(16.))
             .whitespace_nowrap()
             .when(keyed, |d| d.shadow(ring_shadow(&theme, theme.background)))
             .debug_selector(|| "update-button".into())
             .child(div().absolute().inset_0().debug_selector(move || state.selector().into()))
-            .child(lead)
+            .children(lead)
             .child(div().relative().child(self.label))
             .when(pressable, |d| {
                 d.track_focus(&focus.tab_stop(true))
