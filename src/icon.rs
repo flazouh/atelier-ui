@@ -149,6 +149,7 @@ icons! {
     CaseSensitive => "case-sensitive",
     Asterisk => "asterisk",
     SidebarLeft => "sidebar-left",
+    Mail => "mail-01",
 }
 
 /// The icons gpui-component draws for the parts atelier uses (the editor's search bar, inputs, notifications, the copy
