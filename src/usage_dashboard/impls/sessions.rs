@@ -111,7 +111,7 @@ fn row(
         .px(px(12.))
         .py(px(11.))
         .rounded(radius::xl())
-        .when(open, |r| r.bg(theme.card_strong).rounded_b(px(0.)))
+        .when(open, |r| r.bg(theme.card).rounded_b(px(0.)))
         .cursor_pointer()
         .press_stop(
             key(&d.id, format!("session-press-{}", session.id)),
@@ -210,7 +210,7 @@ fn detail(session: &UsageSession, theme: &Theme) -> AnyElement {
         .pb(px(16.))
         .mb(px(4.))
         .rounded_b(radius::xl())
-        .bg(theme.card_strong)
+        .bg(theme.card)
         .debug_selector(|| "usage-session-detail".into())
         .child(
             div()
