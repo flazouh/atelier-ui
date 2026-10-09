@@ -29,7 +29,7 @@ fn each_state_draws_its_own_selector_and_no_other(cx: &mut TestAppContext) {
     let all = ["update-button-downloading", "update-button-ready", "update-button-restarting"];
     let builds: [(UpdateButton, &str); 3] = [
         (UpdateButton::new("u").downloading(0.55, "Updating 55%"), all[0]),
-        (UpdateButton::new("u").ready("Update to v0.1.9"), all[1]),
+        (UpdateButton::new("u").ready("Update"), all[1]),
         (UpdateButton::new("u").restarting("Restarting…"), all[2]),
     ];
     for (button, want) in builds {
@@ -43,7 +43,7 @@ fn each_state_draws_its_own_selector_and_no_other(cx: &mut TestAppContext) {
 
 #[gpui_kit::test]
 fn the_button_is_as_tall_as_the_metric_says(cx: &mut TestAppContext) {
-    let cx = shown(UpdateButton::new("u").ready("Update to v0.1.9"), cx);
+    let cx = shown(UpdateButton::new("u").ready("Update"), cx);
     let bounds = cx.debug_bounds("update-button").expect("drawn");
     assert_eq!(f32::from(bounds.size.height), 28.);
 }

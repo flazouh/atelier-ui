@@ -1,11 +1,12 @@
 use crate::update_button::consts::*;
 
+/// The look is the DS `Button` Sm: 28 high, 10 padding each side, a 6 gap, text 11 and a 14 ring, with the default corner.
 #[test]
-fn the_metrics_are_the_ones_alex_chose_from_the_mockup() {
+fn the_metrics_are_the_button_sm_ones() {
     assert_eq!(
-        (HEIGHT, PAD_LEFT, PAD_RIGHT, GAP, TEXT, RING, ICON),
-        (28., 10., 13., 8., 13., 16., 14.)
+        (HEIGHT, PAD_LEFT, PAD_RIGHT, GAP, TEXT, RING),
+        (28., 10., 10., 6., 11., 14.)
     );
     assert_eq!(RING_STROKE, 2.);
-    assert_eq!(HEIGHT / 2., 14., "a pill: the corner is half the height");
+    assert_eq!(crate::theme::radius::lg(), gpui_kit::px(8.), "the default corner, not a pill");
 }
