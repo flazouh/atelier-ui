@@ -3,54 +3,56 @@ use std::{cell::Cell, rc::Rc};
 use gpui_kit::{AssetSource, IntoElement, ParentElement, Render, Styled, TestAppContext, div, px};
 
 use super::{
-    HERO_B_PATH, HERO_PATH, WelcomePage,
-    consts::{ACTION_AT, ACTION_SECONDS, INTRO_SECONDS, LINE_AT, ZOOM_FROM},
-    helpers::{frame, intro_done},
+    HERO_PATH, WelcomePage,
+    consts::{ACTION_SECONDS, ACTION_WAIT, WORD_STEP, WORDS_AT},
+    helpers::{action, moving, shown, words_done},
 };
 use crate::Assets;
 
+const TEXT: &str = "Welcome to atelier, your workshop.";
+
 #[test]
-fn the_assets_serve_both_pictures() {
-    for path in [HERO_PATH, HERO_B_PATH] {
-        let bytes = Assets.load(path).expect("the source answers").expect("the picture is served");
-        assert!(bytes.starts_with(&[0xFF, 0xD8]), "{path} is a jpeg");
-    }
+fn the_assets_serve_the_picture() {
+    let bytes = Assets.load(HERO_PATH).expect("the source answers").expect("the picture is served");
+    assert!(bytes.starts_with(&[0xFF, 0xD8]), "a jpeg");
 }
 
 #[test]
-fn on_the_first_frame_everything_is_hidden_and_the_picture_is_zoomed_in() {
-    let f = frame(0., false);
-    assert_eq!((f.picture, f.mark, f.line, f.action), (0., 0., 0., 0.));
-    assert!((f.zoom - ZOOM_FROM).abs() < 1e-3, "zoomed in to {}, got {}", ZOOM_FROM, f.zoom);
-    assert_eq!(f.breath, 0.);
-    assert!(!intro_done(0.));
+fn before_the_first_word_nothing_is_in_and_the_button_is_hidden() {
+    assert_eq!(shown(TEXT, 0., false), 0);
+    assert_eq!(shown(TEXT, WORDS_AT - 0.01, false), 0);
+    assert_eq!(action(TEXT, 0., false), 0.);
+    assert!(moving(TEXT, 0., false));
 }
 
 #[test]
-fn the_parts_come_in_one_after_the_other() {
-    let at = |t: f32| frame(t, false);
-    let early = at(LINE_AT + 0.2);
-    assert!(early.mark > early.line, "the mark leads the line");
-    assert!(early.line > early.action, "the line leads the button");
-    let late = at(ACTION_AT + ACTION_SECONDS / 2.);
-    assert!(late.action > 0. && late.action < 1., "the button is on its way in");
-    assert_eq!((late.mark, late.line), (1., 1.), "the rest already stand");
+fn the_words_come_in_one_at_a_time_and_never_cut_inside_a_word() {
+    let at = |n: usize| shown(TEXT, WORDS_AT + WORD_STEP * n as f32 + 0.001, false);
+    assert_eq!(&TEXT[..at(0)], "Welcome ");
+    assert_eq!(&TEXT[..at(1)], "Welcome to ");
+    assert_eq!(&TEXT[..at(2)], "Welcome to atelier, ");
+    assert_eq!(&TEXT[..at(3)], "Welcome to atelier, your ");
+    assert_eq!(at(4), TEXT.len(), "the last word brings the end");
+    assert_eq!(at(40), TEXT.len());
+    assert!((words_done(TEXT) - (WORDS_AT + WORD_STEP * 4.)).abs() < 1e-5);
 }
 
 #[test]
-fn once_the_opening_is_over_everything_stands_and_only_the_breath_moves() {
-    let f = frame(INTRO_SECONDS, false);
-    assert_eq!((f.picture, f.mark, f.line, f.action), (1., 1., 1., 1.));
-    assert!(intro_done(INTRO_SECONDS));
-    let (a, b) = (frame(INTRO_SECONDS + 1., false), frame(INTRO_SECONDS + 2., false));
-    assert_ne!(a.breath, b.breath, "the second picture breathes");
-    assert!((a.zoom - 1.).abs() < 0.1 && (b.zoom - 1.).abs() < 0.1, "the picture only swings a little");
+fn the_button_comes_after_the_last_word_and_then_nothing_moves() {
+    let done = words_done(TEXT);
+    assert!(action(TEXT, done + ACTION_WAIT, false) < 1e-3, "it waits after the last word");
+    let half = action(TEXT, done + ACTION_WAIT + ACTION_SECONDS / 2., false);
+    assert!(half > 0. && half < 1., "it is on its way in");
+    let rest = done + ACTION_WAIT + ACTION_SECONDS;
+    assert_eq!(action(TEXT, rest, false), 1.);
+    assert!(!moving(TEXT, rest, false), "no more frames once it stands");
 }
 
 #[test]
-fn under_reduce_motion_the_page_is_at_rest_from_the_first_frame() {
-    let f = frame(0., true);
-    assert_eq!((f.picture, f.mark, f.line, f.action, f.zoom, f.breath), (1., 1., 1., 1., 1., 0.));
+fn under_reduce_motion_everything_stands_from_the_first_frame() {
+    assert_eq!(shown(TEXT, 0., true), TEXT.len());
+    assert_eq!(action(TEXT, 0., true), 1.);
+    assert!(!moving(TEXT, 0., true));
 }
 
 struct Page {
@@ -78,11 +80,14 @@ fn open(cx: &mut TestAppContext) -> (Rc<Cell<u32>>, &mut gpui_kit::VisualTestCon
 }
 
 #[gpui_kit::test]
-fn the_page_stacks_the_mark_the_line_and_the_button_in_the_middle(cx: &mut TestAppContext) {
+fn one_card_stands_in_the_middle_of_the_picture_with_the_mark_the_words_and_the_button(cx: &mut TestAppContext) {
     let (_, cx) = open(cx);
     let page = cx.debug_bounds("welcome-page").expect("the page is drawn");
     assert!(cx.debug_bounds("welcome-picture").is_some(), "the picture is drawn");
-    let parts: Vec<_> = ["welcome-mark", "welcome-line", "welcome-action"]
+    let card = cx.debug_bounds("welcome-card").expect("the card is drawn");
+    assert!((f32::from(card.center().x - page.center().x)).abs() <= 1., "the card is centred across");
+    assert!((f32::from(card.center().y - page.center().y)).abs() <= 1., "the card is centred down");
+    let parts: Vec<_> = ["welcome-mark", "welcome-text", "welcome-action"]
         .iter()
         .map(|name| cx.debug_bounds(name).unwrap_or_else(|| panic!("{name} is drawn")))
         .collect();
@@ -90,9 +95,11 @@ fn the_page_stacks_the_mark_the_line_and_the_button_in_the_middle(cx: &mut TestA
         assert!(pair[0].bottom() <= pair[1].top(), "each part stands under the one before");
     }
     for part in &parts {
-        let off = f32::from(part.center().x - page.center().x);
-        assert!(off.abs() <= 1., "a part is centred, off by {off}");
+        assert!(card.contains(&part.center()), "a part stands in the card");
+        assert!((f32::from(part.left() - parts[0].left())).abs() <= 1., "the parts share the left edge");
     }
+    let button = cx.debug_bounds("welcome-continue").expect("the button is drawn");
+    assert_eq!(button.size.width, parts[1].size.width, "the button is as wide as the words");
 }
 
 #[gpui_kit::test]

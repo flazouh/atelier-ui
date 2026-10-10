@@ -1,26 +1,24 @@
-//! WelcomePage: the first thing a person sees. The changelog's grain gradient fills the window and breathes, and in
-//! its middle the Atelier mark, one line of welcome and one button come in, one after the other. There is
-//! nothing else on the page: it asks for no choice, only a press.
+//! WelcomePage: the first thing a person sees. The changelog's grain gradient fills the window, and in its middle
+//! stands one card with no border: the Atelier mark, a few words of welcome that stream in as an agent's answer
+//! does, and one button that comes once the words are in. There is nothing else on the page: it asks for no
+//! choice, only a press.
 //!
 //! - It fills its parent. Put it in the window's content area.
-//! - The pictures are the ones at [`HERO_PATH`] and [`HERO_B_PATH`], served by [`Assets`](crate::Assets): the
-//!   gradient rendered for a whole window, and a second take of it that fades in and out over the first, so the
-//!   light moves. The first zooms out a little as the page opens, and keeps a slow breath after.
-//! - The timeline is a pure function of the time since the first frame ([`helpers::frame`]), so a test reads it
-//!   without a window. Under Reduce Motion every part is at rest from the first frame and the picture stands still.
+//! - The picture is the one at [`HERO_PATH`], served by [`Assets`](crate::Assets): the gradient rendered for a
+//!   whole window.
+//! - The words come in one at a time, and each piece fades in over the same 100ms the answer's tail uses
+//!   ([`Flow`](crate::stream_text::Flow)). What is shown at a moment is a pure function of the time since the first
+//!   frame ([`helpers::shown`]), so a test reads it without a window. Under Reduce Motion everything stands from
+//!   the first frame.
 mod consts;
 mod helpers;
 mod structs;
-pub use consts::{HERO_B_PATH, HERO_PATH};
+pub use consts::HERO_PATH;
 pub use structs::WelcomePage;
 
-/// The two pictures, for [`Assets`](crate::Assets) to serve.
+/// The picture, for [`Assets`](crate::Assets) to serve.
 pub(crate) fn bytes(path: &str) -> Option<&'static [u8]> {
-    match path {
-        HERO_PATH => Some(include_bytes!("../assets/welcome-hero.jpg")),
-        HERO_B_PATH => Some(include_bytes!("../assets/welcome-hero-b.jpg")),
-        _ => None,
-    }
+    (path == HERO_PATH).then_some(include_bytes!("../assets/welcome-hero.jpg"))
 }
 
 #[cfg(test)]

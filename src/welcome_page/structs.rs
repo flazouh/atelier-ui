@@ -1,50 +1,57 @@
 use std::{rc::Rc, time::Instant};
 
 use gpui_kit::{
-    App, ElementId, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
-    Styled, Window, div, linear_color_stop, linear_gradient, relative,
+    App, ElementId, HighlightStyle, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
+    SharedString, Styled, Window, div,
 };
 
 use super::{
-    consts::{ACTION_TOP, HERO_B_PATH, HERO_PATH, HERO_RATIO, LINE_ALPHA, LINE_SIZE, LINE_TOP, MARK_SIZE, RISE, SCRIM_ALPHA},
-    helpers::{frame, intro_done},
+    consts::{
+        ACTION_TOP, CARD_CORNER, CARD_PAD, CARD_WIDTH, HERO_PATH, HERO_RATIO, MARK_SIZE, TEXT_LINE, TEXT_SIZE,
+        TEXT_TOP,
+    },
+    helpers::{action, moving, shown},
 };
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
+    glyph_text::GlyphText,
     motion,
     scale::px,
-    theme::{Appearance, Theme},
+    stream_text::Flow,
+    theme::{Appearance, Theme, popover_shadow},
     typography::FONT_FAMILY,
 };
 
 type Continue = Rc<dyn Fn(&mut Window, &mut App)>;
 
-/// The first page: the gradient, the mark, one line and one button.
+/// The first page: the gradient, and one card with the mark, the words and one button.
 #[derive(IntoElement)]
 pub struct WelcomePage {
     id: ElementId,
-    line: SharedString,
+    text: SharedString,
     action: SharedString,
     on_continue: Option<Continue>,
 }
 
-/// When the page first drew, so every frame knows how far the opening has come.
+/// When the page first drew, and which pieces of the words are still fading in.
 struct Motion {
     start: Instant,
+    flow: Flow,
 }
 
 impl WelcomePage {
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
-            line: "Welcome. Your workshop for building with agents.".into(),
+            text: "Welcome to atelier, your workshop for building with agents. Open a folder, start a session, and craft."
+                .into(),
             action: "Start crafting".into(),
             on_continue: None,
         }
     }
-    /// The line of welcome under the mark.
-    pub fn line(mut self, line: impl Into<SharedString>) -> Self {
-        self.line = line.into();
+    /// The words of welcome. They stream in one at a time.
+    pub fn text(mut self, text: impl Into<SharedString>) -> Self {
+        self.text = text.into();
         self
     }
     /// The button's words.
@@ -59,52 +66,44 @@ impl WelcomePage {
     }
 }
 
-/// A picture that fills the page at `zoom` times its size, centred, so a zoom shows no edge.
-fn picture(path: &'static str, zoom: f32, opacity: f32) -> impl IntoElement {
-    let edge = -(zoom - 1.) / 2.;
-    let mut img = gpui_kit::img(path).absolute().w(relative(zoom)).h(relative(zoom)).left(relative(edge)).top(relative(edge));
-    img.style().aspect_ratio = Some(HERO_RATIO);
-    <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(img, ObjectFit::Cover).opacity(opacity)
-}
-
 impl RenderOnce for WelcomePage {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let reduce = cx.reduce_motion();
-        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion { start: motion::now() });
-        let elapsed = motion::now().duration_since(motion.read(cx).start).as_secs_f32();
-        let f = frame(elapsed, reduce);
-        // The breath never ends, so the page asks for the next frame as long as it is shown.
-        if !reduce {
+        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion { start: motion::now(), flow: Flow::default() });
+        let now = motion::now();
+        let elapsed = now.duration_since(motion.read(cx).start).as_secs_f32();
+        // The words in so far: the flow notes each new piece, and says how far each is through its fade.
+        let text = self.text;
+        let cut = shown(&text, elapsed, reduce);
+        let pieces = motion.update(cx, |m, _| {
+            m.flow.observe(&text[..cut], now);
+            m.flow.alphas(&text[..cut], 0, now)
+        });
+        let fading = motion.read(cx).flow.is_fading(now);
+        if fading || moving(&text, elapsed, reduce) {
             window.request_animation_frame();
         }
-        let _ = intro_done(elapsed);
-        // The picture is dark whatever the theme, so the words on it are the dark theme's.
+        // The picture is dark whatever the theme, so the card and the words on it are the dark theme's.
         let dark = Theme::of(Appearance::Dark);
-        let (light, ground) = (dark.foreground, dark.background);
-        let mut scrim_top = ground;
-        scrim_top.a = 0.;
-        let mut scrim_bottom = ground;
-        scrim_bottom.a = SCRIM_ALPHA;
-        let backdrop = div()
-            .debug_selector(|| "welcome-picture".into())
-            .absolute()
-            .inset_0()
-            .overflow_hidden()
-            .child(picture(HERO_PATH, f.zoom, f.picture))
-            .child(picture(HERO_B_PATH, f.zoom, f.picture * f.breath))
-            .child(
-                div()
-                    .absolute()
-                    .inset_0()
-                    .bg(linear_gradient(180., linear_color_stop(scrim_top, 0.4), linear_color_stop(scrim_bottom, 1.))),
-            );
-        let rise = |part: f32| px(RISE * (1. - part));
+        let (light, ground, surface) = (dark.foreground, dark.background, dark.popover);
+        // A piece fades by taking the card's tone at the strength it has left to go; the words not in yet take it whole.
+        let mut highlights: Vec<(std::ops::Range<usize>, HighlightStyle)> = pieces
+            .into_iter()
+            .map(|(range, alpha)| (range, HighlightStyle { color: Some(dark.popover.opacity(1. - alpha)), ..Default::default() }))
+            .collect();
+        if cut < text.len() {
+            highlights.push((cut..text.len(), HighlightStyle { color: Some(dark.popover), ..Default::default() }));
+        }
+        let mut hero = gpui_kit::img(HERO_PATH).absolute().inset_0().size_full();
+        hero.style().aspect_ratio = Some(HERO_RATIO);
+        let hero = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Cover);
         let go = self.on_continue;
         let button = Button::new((self.id.clone(), "continue"))
             .variant(ButtonVariant::Invert)
             .fill(light)
             .ink(ground)
             .size(ButtonSize::Lg)
+            .wide()
             .label(self.action)
             .trailing_icon(IconName::ArrowForward)
             .debug_name("welcome-continue")
@@ -113,39 +112,33 @@ impl RenderOnce for WelcomePage {
                     f(window, cx);
                 }
             });
-        let stack = div()
-            .absolute()
-            .inset_0()
+        let card = div()
+            .debug_selector(|| "welcome-card".into())
+            .w(px(CARD_WIDTH))
+            .p(px(CARD_PAD))
+            .rounded(px(CARD_CORNER))
+            .bg(surface)
+            .shadow(popover_shadow(&dark))
             .flex()
             .flex_col()
-            .items_center()
-            .justify_center()
+            .items_start()
+            .child(div().debug_selector(|| "welcome-mark".into()).child(AtelierMark::new(MARK_SIZE)))
             .child(
                 div()
-                    .debug_selector(|| "welcome-mark".into())
-                    .relative()
-                    .top(rise(f.mark))
-                    .opacity(f.mark)
-                    .child(AtelierMark::new(MARK_SIZE)),
-            )
-            .child(
-                div()
-                    .debug_selector(|| "welcome-line".into())
-                    .relative()
-                    .mt(px(LINE_TOP))
-                    .top(rise(f.line))
-                    .opacity(f.line)
-                    .text_size(px(LINE_SIZE))
-                    .text_color(light.opacity(LINE_ALPHA))
-                    .child(self.line),
+                    .debug_selector(|| "welcome-text".into())
+                    .mt(px(TEXT_TOP))
+                    .w_full()
+                    .text_size(px(TEXT_SIZE))
+                    .line_height(px(TEXT_LINE))
+                    .text_color(light)
+                    .child(GlyphText::new(text.clone()).highlights(highlights)),
             )
             .child(
                 div()
                     .debug_selector(|| "welcome-action".into())
-                    .relative()
                     .mt(px(ACTION_TOP))
-                    .top(rise(f.action))
-                    .opacity(f.action)
+                    .w_full()
+                    .opacity(action(&text, elapsed, reduce))
                     .child(button),
             );
         div()
@@ -156,7 +149,7 @@ impl RenderOnce for WelcomePage {
             .overflow_hidden()
             .font_family(FONT_FAMILY)
             .bg(ground)
-            .child(backdrop)
-            .child(stack)
+            .child(div().debug_selector(|| "welcome-picture".into()).absolute().inset_0().overflow_hidden().child(hero))
+            .child(div().absolute().inset_0().flex().items_center().justify_center().child(card))
     }
 }
