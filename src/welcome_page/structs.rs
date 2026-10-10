@@ -4,17 +4,13 @@ use std::{
 };
 
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
-    Styled, Window, div, relative,
+    AnyElement, App, ElementId, FontWeight, ImgResourceLoader, InteractiveElement, IntoElement, ObjectFit, ParentElement,
+    RenderOnce, Resource, SharedString, Styled, Window, div,
 };
 
 use super::{
-    consts::{
-        EDGE, HERO_PATH, HERO_RATIO, MARK_SIZE, SIDE, TEXT_ALPHA, TEXT_LINE, TEXT_SIZE, TEXT_TOP, TEXT_WIDTH,
-        TITLE_PULL, TITLE_SIZE, TITLE_TOP,
-    },
-    consts::WORDS_AT,
-    helpers::{action, moving, shown},
+    consts::{EDGE, HERO_PATH, HERO_RATIO, LIFT, MARK_SIZE, SIDE, TEXT_ALPHA, TEXT_LINE, TEXT_SIZE, TEXT_TOP, TEXT_WIDTH, TITLE_SIZE},
+    helpers::{Pace, action, moving, picture, shown, text_pace, title_pace},
 };
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
@@ -39,10 +35,41 @@ pub struct WelcomePage {
     on_continue: Option<Continue>,
 }
 
-/// When the page first drew, and which pieces of the line are still fading in.
+/// When the picture was loaded, which starts the page, and which pieces of the title and of the line are still
+/// fading in.
 struct Motion {
-    start: Instant,
-    flow: Flow,
+    start: Option<Instant>,
+    title: Flow,
+    text: Flow,
+}
+
+/// A text that streams in as an answer does. The block fades in and rises as its first word comes
+/// ([`Entrance`]), and its words come one at a time at `pace`, each fading in ([`Flow`]). The words not in yet
+/// keep their place, with no ink, so nothing moves as the text fills. Before the page has started the text is
+/// only placed: the entrance counts from the frame it first draws in, so it is drawn from the start on.
+/// Says whether a piece is still fading.
+fn streamed(id: ElementId, text: &SharedString, flow: &mut Flow, pace: Pace, clock: Clock) -> (AnyElement, bool) {
+    let Some(elapsed) = clock.since else {
+        return (GlyphText::new(text.clone()).fades([(0..text.len(), 0.)]).into_any_element(), false);
+    };
+    let cut = shown(text, pace, elapsed, clock.reduce);
+    flow.observe(&text[..cut], clock.now);
+    let mut fades = flow.alphas(&text[..cut], 0, clock.now);
+    if cut < text.len() {
+        fades.push((cut..text.len(), 0.));
+    }
+    let block = Entrance::new(id, GlyphText::new(text.clone()).fades(fades))
+        .skip_initial(clock.reduce)
+        .delay(Duration::from_secs_f32(pace.at));
+    (block.into_any_element(), flow.is_fading(clock.now))
+}
+
+/// The moment a frame draws: the time, how long since the page started (None before it has), and Reduce Motion.
+#[derive(Clone, Copy)]
+struct Clock {
+    now: Instant,
+    since: Option<f32>,
+    reduce: bool,
 }
 
 impl WelcomePage {
@@ -55,11 +82,12 @@ impl WelcomePage {
             on_continue: None,
         }
     }
+    /// The title. It streams in one word at a time, before the line.
     pub fn title(mut self, title: impl Into<SharedString>) -> Self {
         self.title = title.into();
         self
     }
-    /// The line under the title. It streams in one word at a time.
+    /// The line under the title. It streams in after the title.
     pub fn text(mut self, text: impl Into<SharedString>) -> Self {
         self.text = text.into();
         self
@@ -79,21 +107,33 @@ impl WelcomePage {
 impl RenderOnce for WelcomePage {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let reduce = cx.reduce_motion();
-        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion { start: motion::now(), flow: Flow::default() });
-        let now = motion::now();
-        let elapsed = now.duration_since(motion.read(cx).start).as_secs_f32();
-        // The words in so far: the flow notes each new piece, and says how far each is through its fade.
-        let text = self.text;
-        let cut = shown(&text, elapsed, reduce);
-        let mut fades = motion.update(cx, |m, _| {
-            m.flow.observe(&text[..cut], now);
-            m.flow.alphas(&text[..cut], 0, now)
+        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion {
+            start: None,
+            title: Flow::default(),
+            text: Flow::default(),
         });
-        // The words not in yet keep their place, with no ink, so the line never moves as it fills.
-        if cut < text.len() {
-            fades.push((cut..text.len(), 0.));
-        }
-        if motion.read(cx).flow.is_fading(now) || moving(&text, elapsed, reduce) {
+        let now = motion::now();
+        // The page starts when the picture is loaded, so no word comes in over an empty page. The window draws
+        // this view again when the load ends. A picture that cannot be read starts the page too.
+        let loaded = window.use_asset::<ImgResourceLoader>(&Resource::Embedded(HERO_PATH.into()), cx).is_some();
+        let start = motion.update(cx, |m, _| {
+            if loaded && m.start.is_none() {
+                m.start = Some(now);
+            }
+            m.start
+        });
+        let since = start.map(|at| now.duration_since(at).as_secs_f32());
+        let clock = Clock { now, since, reduce };
+        let elapsed = since.unwrap_or(0.);
+        let (title, text) = (self.title, self.text);
+        let (title_id, text_id) = ((self.id.clone(), "title").into(), (self.id.clone(), "line").into());
+        let ((title_block, title_fading), (text_block, text_fading)) = motion.update(cx, |m, _| {
+            (
+                streamed(title_id, &title, &mut m.title, title_pace(), clock),
+                streamed(text_id, &text, &mut m.text, text_pace(&title), clock),
+            )
+        });
+        if start.is_some() && (title_fading || text_fading || moving(&title, &text, elapsed, reduce)) {
             window.request_animation_frame();
         }
         // The picture is dark whatever the theme, so the words and the button on it are the dark theme's.
@@ -101,7 +141,7 @@ impl RenderOnce for WelcomePage {
         let (light, ground) = (dark.foreground, dark.background);
         let mut hero = gpui_kit::img(HERO_PATH).absolute().inset_0().size_full();
         hero.style().aspect_ratio = Some(HERO_RATIO);
-        let hero = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Cover);
+        let hero = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Cover).opacity(picture(since, reduce));
         let go = self.on_continue;
         let button = Button::new((self.id.clone(), "continue"))
             .variant(ButtonVariant::Invert)
@@ -118,35 +158,31 @@ impl RenderOnce for WelcomePage {
             });
         let words = div()
             .absolute()
-            .left(px(SIDE))
-            .right(px(SIDE))
-            .top(relative(TITLE_TOP))
+            .inset_0()
+            .px(px(SIDE))
+            .pb(px(LIFT))
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_center()
             .child(
                 div()
                     .debug_selector(|| "welcome-title".into())
-                    .ml(px(-TITLE_PULL))
                     .text_size(px(TITLE_SIZE))
                     .line_height(px(TITLE_SIZE))
                     .font_weight(FontWeight::MEDIUM)
                     .text_color(light)
-                    .child(self.title),
+                    .child(title_block),
             )
-            // The line arrives as a message does in a session: the block fades in and rises as its first words come,
-            // and the words fade in one by one.
             .child(
-                Entrance::new(
-                    (self.id.clone(), "line"),
-                    div()
-                        .debug_selector(|| "welcome-text".into())
-                        .mt(px(TEXT_TOP))
-                        .max_w(px(TEXT_WIDTH))
-                        .text_size(px(TEXT_SIZE))
-                        .line_height(px(TEXT_LINE))
-                        .text_color(light.opacity(TEXT_ALPHA))
-                        .child(GlyphText::new(text.clone()).fades(fades)),
-                )
-                .skip_initial(reduce)
-                .delay(Duration::from_secs_f32(WORDS_AT)),
+                div()
+                    .debug_selector(|| "welcome-text".into())
+                    .mt(px(TEXT_TOP))
+                    .max_w(px(TEXT_WIDTH))
+                    .text_size(px(TEXT_SIZE))
+                    .line_height(px(TEXT_LINE))
+                    .text_color(light.opacity(TEXT_ALPHA))
+                    .child(text_block),
             );
         div()
             .id(self.id)
@@ -172,7 +208,7 @@ impl RenderOnce for WelcomePage {
                     .absolute()
                     .right(px(SIDE))
                     .bottom(px(EDGE))
-                    .opacity(action(&text, elapsed, reduce))
+                    .opacity(if start.is_some() { action(&title, &text, elapsed, reduce) } else { 0. })
                     .child(button),
             )
     }
