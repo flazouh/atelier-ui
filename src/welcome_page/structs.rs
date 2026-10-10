@@ -1,14 +1,14 @@
 use std::{rc::Rc, time::Instant};
 
 use gpui_kit::{
-    App, ElementId, HighlightStyle, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, Styled, Window, div,
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
+    Styled, Window, div, relative,
 };
 
 use super::{
     consts::{
-        ACTION_TOP, CARD_CORNER, CARD_PAD, CARD_WIDTH, HERO_PATH, HERO_RATIO, MARK_SIZE, TEXT_LINE, TEXT_SIZE,
-        TEXT_TOP,
+        EDGE, HERO_PATH, HERO_RATIO, MARK_SIZE, SIDE, TEXT_ALPHA, TEXT_LINE, TEXT_SIZE, TEXT_TOP, TEXT_WIDTH,
+        TITLE_PULL, TITLE_SIZE, TITLE_TOP,
     },
     helpers::{action, moving, shown},
 };
@@ -18,22 +18,23 @@ use crate::{
     motion,
     scale::px,
     stream_text::Flow,
-    theme::{Appearance, Theme, popover_shadow},
+    theme::{Appearance, Theme},
     typography::FONT_FAMILY,
 };
 
 type Continue = Rc<dyn Fn(&mut Window, &mut App)>;
 
-/// The first page: the gradient, and one card with the mark, the words and one button.
+/// The first page: the gradient, the mark, a title with one line, and one button.
 #[derive(IntoElement)]
 pub struct WelcomePage {
     id: ElementId,
+    title: SharedString,
     text: SharedString,
     action: SharedString,
     on_continue: Option<Continue>,
 }
 
-/// When the page first drew, and which pieces of the words are still fading in.
+/// When the page first drew, and which pieces of the line are still fading in.
 struct Motion {
     start: Instant,
     flow: Flow,
@@ -43,13 +44,17 @@ impl WelcomePage {
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
-            text: "Welcome to atelier, your workshop for building with agents. Open a folder, start a session, and craft."
-                .into(),
+            title: "Welcome.".into(),
+            text: "Your workshop for building with agents.".into(),
             action: "Start crafting".into(),
             on_continue: None,
         }
     }
-    /// The words of welcome. They stream in one at a time.
+    pub fn title(mut self, title: impl Into<SharedString>) -> Self {
+        self.title = title.into();
+        self
+    }
+    /// The line under the title. It streams in one word at a time.
     pub fn text(mut self, text: impl Into<SharedString>) -> Self {
         self.text = text.into();
         self
@@ -75,25 +80,20 @@ impl RenderOnce for WelcomePage {
         // The words in so far: the flow notes each new piece, and says how far each is through its fade.
         let text = self.text;
         let cut = shown(&text, elapsed, reduce);
-        let pieces = motion.update(cx, |m, _| {
+        let mut fades = motion.update(cx, |m, _| {
             m.flow.observe(&text[..cut], now);
             m.flow.alphas(&text[..cut], 0, now)
         });
-        let fading = motion.read(cx).flow.is_fading(now);
-        if fading || moving(&text, elapsed, reduce) {
+        // The words not in yet keep their place, with no ink, so the line never moves as it fills.
+        if cut < text.len() {
+            fades.push((cut..text.len(), 0.));
+        }
+        if motion.read(cx).flow.is_fading(now) || moving(&text, elapsed, reduce) {
             window.request_animation_frame();
         }
-        // The picture is dark whatever the theme, so the card and the words on it are the dark theme's.
+        // The picture is dark whatever the theme, so the words and the button on it are the dark theme's.
         let dark = Theme::of(Appearance::Dark);
-        let (light, ground, surface) = (dark.foreground, dark.background, dark.popover);
-        // A piece fades by taking the card's tone at the strength it has left to go; the words not in yet take it whole.
-        let mut highlights: Vec<(std::ops::Range<usize>, HighlightStyle)> = pieces
-            .into_iter()
-            .map(|(range, alpha)| (range, HighlightStyle { color: Some(dark.popover.opacity(1. - alpha)), ..Default::default() }))
-            .collect();
-        if cut < text.len() {
-            highlights.push((cut..text.len(), HighlightStyle { color: Some(dark.popover), ..Default::default() }));
-        }
+        let (light, ground) = (dark.foreground, dark.background);
         let mut hero = gpui_kit::img(HERO_PATH).absolute().inset_0().size_full();
         hero.style().aspect_ratio = Some(HERO_RATIO);
         let hero = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Cover);
@@ -102,8 +102,7 @@ impl RenderOnce for WelcomePage {
             .variant(ButtonVariant::Invert)
             .fill(light)
             .ink(ground)
-            .size(ButtonSize::Lg)
-            .wide()
+            .size(ButtonSize::Xl)
             .label(self.action)
             .trailing_icon(IconName::ArrowForward)
             .debug_name("welcome-continue")
@@ -112,34 +111,30 @@ impl RenderOnce for WelcomePage {
                     f(window, cx);
                 }
             });
-        let card = div()
-            .debug_selector(|| "welcome-card".into())
-            .w(px(CARD_WIDTH))
-            .p(px(CARD_PAD))
-            .rounded(px(CARD_CORNER))
-            .bg(surface)
-            .shadow(popover_shadow(&dark))
-            .flex()
-            .flex_col()
-            .items_start()
-            .child(div().debug_selector(|| "welcome-mark".into()).child(AtelierMark::new(MARK_SIZE)))
+        let words = div()
+            .absolute()
+            .left(px(SIDE))
+            .right(px(SIDE))
+            .top(relative(TITLE_TOP))
+            .child(
+                div()
+                    .debug_selector(|| "welcome-title".into())
+                    .ml(px(-TITLE_PULL))
+                    .text_size(px(TITLE_SIZE))
+                    .line_height(px(TITLE_SIZE))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(light)
+                    .child(self.title),
+            )
             .child(
                 div()
                     .debug_selector(|| "welcome-text".into())
                     .mt(px(TEXT_TOP))
-                    .w_full()
+                    .max_w(px(TEXT_WIDTH))
                     .text_size(px(TEXT_SIZE))
                     .line_height(px(TEXT_LINE))
-                    .text_color(light)
-                    .child(GlyphText::new(text.clone()).highlights(highlights)),
-            )
-            .child(
-                div()
-                    .debug_selector(|| "welcome-action".into())
-                    .mt(px(ACTION_TOP))
-                    .w_full()
-                    .opacity(action(&text, elapsed, reduce))
-                    .child(button),
+                    .text_color(light.opacity(TEXT_ALPHA))
+                    .child(GlyphText::new(text.clone()).fades(fades)),
             );
         div()
             .id(self.id)
@@ -150,6 +145,23 @@ impl RenderOnce for WelcomePage {
             .font_family(FONT_FAMILY)
             .bg(ground)
             .child(div().debug_selector(|| "welcome-picture".into()).absolute().inset_0().overflow_hidden().child(hero))
-            .child(div().absolute().inset_0().flex().items_center().justify_center().child(card))
+            .child(
+                div()
+                    .debug_selector(|| "welcome-mark".into())
+                    .absolute()
+                    .left(px(SIDE))
+                    .top(px(EDGE))
+                    .child(AtelierMark::new(MARK_SIZE)),
+            )
+            .child(words)
+            .child(
+                div()
+                    .debug_selector(|| "welcome-action".into())
+                    .absolute()
+                    .right(px(SIDE))
+                    .bottom(px(EDGE))
+                    .opacity(action(&text, elapsed, reduce))
+                    .child(button),
+            )
     }
 }

@@ -80,26 +80,19 @@ fn open(cx: &mut TestAppContext) -> (Rc<Cell<u32>>, &mut gpui_kit::VisualTestCon
 }
 
 #[gpui_kit::test]
-fn one_card_stands_in_the_middle_of_the_picture_with_the_mark_the_words_and_the_button(cx: &mut TestAppContext) {
+fn the_mark_is_top_left_the_words_stand_under_it_and_the_button_is_alone_bottom_right(cx: &mut TestAppContext) {
     let (_, cx) = open(cx);
     let page = cx.debug_bounds("welcome-page").expect("the page is drawn");
     assert!(cx.debug_bounds("welcome-picture").is_some(), "the picture is drawn");
-    let card = cx.debug_bounds("welcome-card").expect("the card is drawn");
-    assert!((f32::from(card.center().x - page.center().x)).abs() <= 1., "the card is centred across");
-    assert!((f32::from(card.center().y - page.center().y)).abs() <= 1., "the card is centred down");
-    let parts: Vec<_> = ["welcome-mark", "welcome-text", "welcome-action"]
-        .iter()
-        .map(|name| cx.debug_bounds(name).unwrap_or_else(|| panic!("{name} is drawn")))
-        .collect();
-    for pair in parts.windows(2) {
-        assert!(pair[0].bottom() <= pair[1].top(), "each part stands under the one before");
-    }
-    for part in &parts {
-        assert!(card.contains(&part.center()), "a part stands in the card");
-        assert!((f32::from(part.left() - parts[0].left())).abs() <= 1., "the parts share the left edge");
-    }
-    let button = cx.debug_bounds("welcome-continue").expect("the button is drawn");
-    assert_eq!(button.size.width, parts[1].size.width, "the button is as wide as the words");
+    let [mark, title, text, button] = ["welcome-mark", "welcome-title", "welcome-text", "welcome-continue"]
+        .map(|name| cx.debug_bounds(name).unwrap_or_else(|| panic!("{name} is drawn")));
+    assert_eq!((f32::from(mark.left() - page.left()), f32::from(mark.top() - page.top())), (64., 56.), "the mark is top left");
+    assert!(mark.bottom() < title.top(), "the title is under the mark");
+    assert!(title.bottom() <= text.top(), "the line is under the title");
+    assert_eq!(text.left(), mark.left(), "the line shares the mark's left edge");
+    assert_eq!((f32::from(page.right() - button.right()), f32::from(page.bottom() - button.bottom())), (64., 56.), "the button is bottom right");
+    assert!(button.top() > text.bottom(), "the button is under the words");
+    assert!(button.left() > text.left() + (text.size.width / 2.), "and away from them, at the right");
 }
 
 #[gpui_kit::test]

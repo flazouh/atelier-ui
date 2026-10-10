@@ -1,15 +1,15 @@
-//! WelcomePage: the first thing a person sees. The changelog's grain gradient fills the window, and in its middle
-//! stands one card with no border: the Atelier mark, a few words of welcome that stream in as an agent's answer
-//! does, and one button that comes once the words are in. There is nothing else on the page: it asks for no
-//! choice, only a press.
+//! WelcomePage: the first thing a person sees. The changelog's grain gradient fills the window, dark at the left
+//! and under the button, with its light in the top right. On it stand the Atelier mark at the top left, the word
+//! "Welcome." set large with one line under it, and one button alone at the bottom right. There is nothing else
+//! on the page: it asks for no choice, only a press.
 //!
 //! - It fills its parent. Put it in the window's content area.
 //! - The picture is the one at [`HERO_PATH`], served by [`Assets`](crate::Assets): the gradient rendered for a
 //!   whole window.
-//! - The words come in one at a time, and each piece fades in over the same 100ms the answer's tail uses
-//!   ([`Flow`](crate::stream_text::Flow)). What is shown at a moment is a pure function of the time since the first
-//!   frame ([`helpers::shown`]), so a test reads it without a window. Under Reduce Motion everything stands from
-//!   the first frame.
+//! - The line streams in as an agent's answer does: one word at a time, each piece fading in over the same 100ms
+//!   the answer's tail uses ([`Flow`](crate::stream_text::Flow)). The button comes once the line is in. What is
+//!   shown at a moment is a pure function of the time since the first frame ([`helpers::shown`]), so a test reads
+//!   it without a window. Under Reduce Motion everything stands from the first frame.
 mod consts;
 mod helpers;
 mod structs;
