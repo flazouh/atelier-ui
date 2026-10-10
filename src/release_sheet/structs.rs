@@ -35,6 +35,11 @@ impl ReleaseNote {
             text: text.into(),
         }
     }
+
+    /// The lead and the text, for another part that draws a note in this shape.
+    pub(crate) fn parts(self) -> (SharedString, SharedString) {
+        (self.lead, self.text)
+    }
 }
 
 /// An earlier release and what it brought, listed under the current one.

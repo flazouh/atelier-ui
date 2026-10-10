@@ -14,15 +14,13 @@ pub(super) const DATE_SIZE: f32 = 13.;
 pub(super) const SIDE: f32 = 12.;
 pub(super) const TITLE_TOP: f32 = 22.;
 pub(super) const DATE_GAP: f32 = 4.;
-/// A note: its tile and icon, the gap to its words, and the space under it.
-pub(super) const TILE: f32 = 30.;
-pub(super) const TILE_CORNER: f32 = 9.;
-pub(super) const ICON: f32 = 16.;
-pub(super) const NOTE_GAP: f32 = 11.;
-pub(super) const NOTE_SIZE: f32 = 14.;
-pub(super) const NOTE_LINE: f32 = 19.;
-pub(super) const NOTE_SPACE: f32 = 13.;
-pub(super) const NOTES_TOP: f32 = 16.;
+/// A note, as in the changelog sheet: the lead, the text under it, the gap between them and the space under a note.
+pub(super) const LEAD_SIZE: f32 = 15.;
+pub(super) const TEXT_SIZE: f32 = 14.;
+pub(super) const TEXT_LINE: f32 = 20.;
+pub(super) const LEAD_GAP: f32 = 3.;
+pub(super) const NOTE_GAP: f32 = 16.;
+pub(super) const NOTES_TOP: f32 = 18.;
 /// The foot: the space over the rule and round the buttons.
 pub(super) const FOOT_TOP: f32 = 16.;
 pub(super) const BUTTON_GAP: f32 = 8.;

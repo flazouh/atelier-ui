@@ -4,9 +4,9 @@ use gpui_kit::{
     AssetSource, Context, IntoElement, Modifiers, ParentElement, Render, Styled, TestAppContext, Window, div, px,
 };
 
-use super::{HERO_PATH, ReleaseCard, ReleaseCardNote};
+use super::{HERO_PATH, ReleaseCard};
 use crate::{
-    Assets, IconName,
+    Assets, ReleaseNote,
     theme::{Appearance, set_appearance},
 };
 
@@ -27,7 +27,10 @@ impl Render for Host {
             ReleaseCard::new("card", "atelier", "0.1.16")
                 .title("What\u{2019}s new in atelier")
                 .date(Some("Version 0.1.16".into()))
-                .notes([ReleaseCardNote::new(IconName::BarChart, "Usage is a full view"), ReleaseCardNote::new(IconName::Dns, "SSH opens again")])
+                .notes([
+                    ReleaseNote::new("Usage.", "Usage is a full view."),
+                    ReleaseNote::new("SSH.", "A folder on another computer opens again."),
+                ])
                 .on_secondary(move |_, _| a.set(a.get() + 1))
                 .on_primary(move |_, _| b.set(b.get() + 1)),
         )
@@ -48,6 +51,9 @@ fn the_two_buttons_tell_the_app_which_one_was_pressed(cx: &mut TestAppContext) {
         cx.run_until_parked();
     }
     assert!(cx.debug_bounds("release-card-hero").is_some(), "the picture is drawn");
+    let first = cx.debug_bounds("release-card-lead-0").expect("the first lead is drawn");
+    let second = cx.debug_bounds("release-card-lead-1").expect("the second lead is drawn");
+    assert!(second.top() > first.bottom(), "the notes stack");
     let all = cx.debug_bounds("release-card-secondary").expect("the quiet button is drawn");
     cx.simulate_click(all.center(), Modifiers::default());
     let got = cx.debug_bounds("release-card-primary").expect("the main button is drawn");

@@ -6,31 +6,19 @@ use gpui_kit::{
 };
 
 use super::consts::{
-    BUTTON_GAP, DATE_GAP, DATE_SIZE, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, ICON, NAME_SIZE, NOTES_TOP,
-    NOTE_GAP, NOTE_LINE, NOTE_SIZE, NOTE_SPACE, PAD, PILL_BORDER, PILL_SIZE, SIDE, TILE, TILE_CORNER, TITLE_SIZE,
-    TITLE_TOP,
+    BUTTON_GAP, DATE_GAP, DATE_SIZE, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, LEAD_GAP, LEAD_SIZE, NAME_SIZE,
+    NOTES_TOP, NOTE_GAP, PAD, PILL_BORDER, PILL_SIZE, SIDE, TEXT_LINE, TEXT_SIZE, TITLE_SIZE, TITLE_TOP,
 };
 use crate::{
-    Icon, IconName,
+    IconName,
     button::{Button, ButtonSize, ButtonVariant},
+    release_sheet::ReleaseNote,
     scale::px,
     theme::{ActiveTheme, Appearance, Theme},
     typography::FONT_FAMILY,
 };
 
 type Press = Rc<dyn Fn(&mut Window, &mut App)>;
-
-/// One note of the card: an icon and a line.
-#[derive(Clone)]
-pub struct ReleaseCardNote {
-    icon: IconName,
-    text: SharedString,
-}
-impl ReleaseCardNote {
-    pub fn new(icon: IconName, text: impl Into<SharedString>) -> Self {
-        Self { icon, text: text.into() }
-    }
-}
 
 #[derive(IntoElement)]
 pub struct ReleaseCard {
@@ -39,7 +27,7 @@ pub struct ReleaseCard {
     version: SharedString,
     title: SharedString,
     date: Option<SharedString>,
-    notes: Vec<ReleaseCardNote>,
+    notes: Vec<ReleaseNote>,
     secondary: SharedString,
     primary: SharedString,
     on_secondary: Option<Press>,
@@ -69,7 +57,8 @@ impl ReleaseCard {
         self.date = date;
         self
     }
-    pub fn notes(mut self, notes: impl IntoIterator<Item = ReleaseCardNote>) -> Self {
+    /// The notes, in the shape of the changelog sheet's: a bold lead and a muted text, no icon.
+    pub fn notes(mut self, notes: impl IntoIterator<Item = ReleaseNote>) -> Self {
         self.notes.extend(notes);
         self
     }
@@ -117,30 +106,25 @@ impl RenderOnce for ReleaseCard {
                     .font_weight(FontWeight::MEDIUM)
                     .child(self.version),
             );
-        let rows = self.notes.into_iter().map(|note| {
+        let rows = self.notes.into_iter().enumerate().map(|(at, note)| {
+            let (lead, text) = note.parts();
             div()
-                .flex()
-                .items_center()
-                .gap(px(NOTE_GAP))
-                .pb(px(NOTE_SPACE))
+                .pb(px(NOTE_GAP))
                 .child(
                     div()
-                        .flex_none()
-                        .size(px(TILE))
-                        .rounded(px(TILE_CORNER))
-                        .bg(theme.card_strong)
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .child(Icon::new(note.icon).size(px(ICON)).color(theme.foreground)),
+                        .debug_selector(move || format!("release-card-lead-{at}"))
+                        .mb(px(LEAD_GAP))
+                        .text_size(px(LEAD_SIZE))
+                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_color(theme.foreground)
+                        .child(lead),
                 )
                 .child(
                     div()
-                        .min_w_0()
-                        .text_size(px(NOTE_SIZE))
-                        .line_height(px(NOTE_LINE))
-                        .text_color(theme.foreground)
-                        .child(note.text),
+                        .text_size(px(TEXT_SIZE))
+                        .line_height(px(TEXT_LINE))
+                        .text_color(theme.muted_foreground)
+                        .child(text),
                 )
         });
         let secondary = self.on_secondary;
