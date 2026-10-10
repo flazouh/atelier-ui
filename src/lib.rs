@@ -56,7 +56,6 @@ pub mod kbd;
 pub mod keys;
 pub mod layout_motion;
 pub mod line_comment;
-pub mod selection_reply;
 pub mod live_ink;
 pub mod markdown_edit;
 pub mod menu;
@@ -67,8 +66,8 @@ pub mod message_bubble;
 pub mod message_pop;
 pub mod message_rail;
 pub mod modal;
-pub mod release_sheet;
 pub mod model_badge;
+pub mod model_list;
 pub mod morph;
 pub mod motion;
 pub mod multi_select;
@@ -92,8 +91,11 @@ pub mod preview_clamp;
 pub mod project_badge;
 pub mod project_section;
 pub mod prompt_input;
+pub mod question_card;
 pub mod rail_section;
 pub mod range_slider;
+pub mod release_card;
+pub mod release_sheet;
 pub(crate) mod reveal;
 pub mod review;
 pub mod review_bar;
@@ -104,15 +106,18 @@ pub mod scale;
 pub(crate) mod scroll_chain;
 pub mod segmented;
 pub mod select;
+pub mod selection_reply;
 pub mod session_row;
 pub mod session_status;
 pub mod sidebar;
 pub mod sidebar_filter;
 pub mod sidebar_layout;
 pub mod sidebar_model;
+pub mod sign_in_notice;
 pub mod soft_breaks;
 pub mod spinner;
 pub mod sprite;
+pub mod status_bar;
 pub mod status_mark;
 pub mod stream_text;
 pub mod subagent_card;
@@ -143,8 +148,6 @@ pub mod themes;
 pub mod thinking;
 pub mod toast_stack;
 pub mod todo_list;
-pub mod model_list;
-pub mod question_card;
 pub mod tool_approval;
 pub mod tool_call;
 pub mod tool_card;
@@ -153,8 +156,6 @@ pub mod tooltip;
 pub mod trace;
 mod types;
 pub mod typography;
-pub mod sign_in_notice;
-pub mod status_bar;
 pub mod unsent;
 pub mod update_button;
 pub mod usage_dashboard;
@@ -163,129 +164,135 @@ pub mod view_rail;
 pub mod voice_input;
 pub mod voice_setup;
 pub mod voice_waves;
-pub mod worktree_list;
 pub(crate) mod wake;
+pub mod worktree_list;
 
-pub use cell_bar::CellBar;
-pub use voice_input::{VoiceDevice, VoiceInput, VoiceInputEvent, VoiceMode};
-pub use voice_setup::{SetupPhase, VoiceSetup};
-pub use voice_waves::VoiceWaves;
-pub use agent_look::{AgentLook, Mark, PhaseLabels};
-pub use agent_text::{AgentText, AgentTextSource, AgentTextStatus};
 pub use action_swap::{ActionSwapButton, SwapSize, SwapVariant};
+pub use agent_look::{AgentLook, Mark, PhaseLabels};
+pub use agent_panels::AgentPanels;
+pub use agent_text::{AgentText, AgentTextSource, AgentTextStatus};
 pub use animated_badge::{AnimatedBadge, BadgeSize, BadgeStatus};
+pub use atelier_mark::AtelierMark;
 pub use badge::{Badge, Tone};
+pub use bloom_menu::{BloomEvent, BloomItem, BloomMenu};
 pub use breadcrumb::{Breadcrumb, Crumb};
 pub use button::{Button, ButtonSize, ButtonVariant, dot};
+pub use button_group::ButtonGroup;
+pub use cell_bar::CellBar;
 pub use changed_file_tree::ChangedFileTree;
 pub use changed_files::{ChangedFile, ChangedFiles, FileChange};
+pub use checkbox::Checkbox;
+pub use checks_panel::{CheckRun, CheckState, ChecksPanel, JobStep};
 pub use code_block::{CodeBlock, CodeBlockStatus};
 pub use code_editor::{CodeEditor, language_for};
+pub use color_selector::{ColorSelector, Swatch};
+pub use combobox::{ComboEntry, ComboList, ComboRow, ComboStyle};
+pub use comment_composer::{CommentComposer, CommentComposerEvent};
+pub use commits_summary::{CommitData, CommitsSummary};
+pub use conversation::{ConversationList, RemarkSummary, ThreadSummary};
+pub use court::{Court, CourtItem, CourtList};
 pub use disclosure::Disclosure;
 pub use entrance::{Entrance, EntranceList};
 pub use file_diff::{DiffLine, DiffLineKind, FileDiff, FileDiffStatus};
 pub use file_icon::FileIcon;
+pub use file_upload::{FileUpload, FileUploadEvent, UploadItem, UploadStatus, UploadVariant};
 pub use finder::{Filter, Finder, FinderEvent, FinderItem};
+pub use focus::Field;
+pub use focus::PressStop;
+pub use folder_picker::{FolderError, FolderPicker, FolderPickerEvent};
 pub use glyph_text::GlyphText;
-pub use row_map::RowMap;
 pub use icon::{Assets, Icon, IconName};
 pub use inline_review::{Decision, InlineHunk, InlineReview, Resolve};
 pub use island::{Island, IslandCounts, SessionsIsland, counts_of, most_urgent};
 pub use kbd::Kbd;
 pub use line_comment::{Comment, LineComment, LineComposer, LineComposerEvent};
-pub use selection_reply::{ReplyPreset, SelectionReply, SelectionReplyEvent};
+pub use menu::{Menu, MenuItem};
+pub use merge_box::{MergeBox, MergeBoxEvent};
+pub use merge_button::MergeButton;
 pub use message_bubble::{
     MessageBubble, MessageBubbleAlign, MessageBubbleCollapsible, MessageBubbleGroupSpacing,
     MessageBubbleVariant, message_bubble_group,
 };
+pub use modal::Modal;
 pub use model_badge::{BrandMark, ModelBadge};
-pub use pane::{pane_header_height, drag_space, pane_header};
-pub use pr::{Checks, ChecksSummary, PrChipData, PrFacts, PrReviewer, PrStanding, PrState, PrVerdict, ReviewState, StandingTone};
-pub use merge_box::{MergeBox, MergeBoxEvent};
-pub use button_group::ButtonGroup;
-pub use checkbox::Checkbox;
-pub use file_upload::{FileUpload, FileUploadEvent, UploadItem, UploadStatus, UploadVariant};
-pub use bloom_menu::{BloomEvent, BloomItem, BloomMenu};
-pub use focus::PressStop;
-pub use focus::Field;
-pub use folder_picker::{FolderError, FolderPicker, FolderPickerEvent};
-pub use atelier_mark::AtelierMark;
+pub use model_list::{ModelList, ModelRow};
+pub use morph::Morph;
 pub use multi_select::{MultiOption, MultiSelect, MultiSelectEvent};
+pub use new_task::{NewTask, NewTaskEvent};
 pub use notification_stack::{
     NotificationEvent, NotificationItem, NotificationStack, Trailing, TrailingTone,
 };
-pub use toast_stack::{Toast, ToastEvent, ToastPatch, ToastPosition, ToastStack, ToastStatus};
-pub use range_slider::RangeSlider;
-pub use combobox::{ComboEntry, ComboList, ComboRow, ComboStyle};
-pub use color_selector::{ColorSelector, Swatch};
-pub use merge_button::MergeButton;
+pub use number::Digits;
+pub use pane::{drag_space, pane_header, pane_header_height};
+pub use panel_types::{
+    Layout as PanelLayout, PanelContent, PanelData, PanelsEvent, PanelsState, ProjectLabel,
+};
+pub use pr::{
+    Checks, ChecksSummary, PrChipData, PrFacts, PrReviewer, PrStanding, PrState, PrVerdict,
+    ReviewState, StandingTone,
+};
 pub use pr_card::PrCard;
 pub use pr_chip::PrChip;
-pub use pr_glance::{PrAction, PrCardStore, PrGlance, PrParts, PrPart, pr_cards};
+pub use pr_glance::{PrAction, PrCardStore, PrGlance, PrPart, PrParts, pr_cards};
 pub use pr_refs::pr_refs;
-pub use prompt_input::{Chip, ChipLook, Message, Pasted, PromptAction, PromptInput, PromptInputEvent, PromptModel};
-pub use checks_panel::{CheckRun, CheckState, ChecksPanel, JobStep};
-pub use comment_composer::{CommentComposer, CommentComposerEvent};
-pub use commits_summary::{CommitData, CommitsSummary};
-pub use conversation::{ConversationList, RemarkSummary, ThreadSummary};
-pub use court::{Court, CourtItem, CourtList};
-pub use review::{ReviewHandlers, ReviewProgress};
-pub use sign_in_notice::{SignInNotice, SignInState};
-pub use status_bar::{Gauge, GaugeState, Pressure, ProviderGauge, StatusBar, SystemLoad, Work};
-pub use update_button::{UpdateButton, UpdateState};
-pub use usage_dashboard::{
-    Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession, UsageSource, UsageSources,
-    UsageStat,
+pub use project_section::ProjectSection;
+pub use prompt_input::{
+    Chip, ChipLook, Message, Pasted, PromptAction, PromptInput, PromptInputEvent, PromptModel,
 };
-pub use unsent::UnsentComments;
-pub use new_task::{NewTask, NewTaskEvent};
+pub use question_card::{QuestionCard, QuestionStatus, QuestionView};
+pub use range_slider::RangeSlider;
+pub use release_card::{ReleaseCard, ReleaseCardNote};
+pub use release_sheet::{ReleaseNote, ReleaseSheet, ReleaseVersion};
+pub use review::{ReviewHandlers, ReviewProgress};
+pub use review_bar::ReviewBar;
+pub use review_file_header::ReviewFileHeader;
+pub use row_map::RowMap;
+pub use segmented::{Segment, Segmented};
+pub use select::{Select, SelectManage, SelectOption};
+pub use selection_reply::{ReplyPreset, SelectionReply, SelectionReplyEvent};
+pub use session_row::SessionRow;
+pub use session_status::{Need, SessionStatus};
+pub use sidebar::{Sidebar, SidebarEvent};
+pub use sidebar_model::{Connection, Location, ProjectData, SessionData};
+pub use sign_in_notice::{SignInNotice, SignInState};
+pub use spinner::Spinner;
+pub use sprite::{Sprite, Strip};
+pub use status_bar::{Gauge, GaugeState, Pressure, ProviderGauge, StatusBar, SystemLoad, Work};
+pub use subagent_card::SubagentCard;
+pub use subagent_row::SubagentRow;
+pub use subagent_strip::{STACK_GAP, SubagentStrip};
+pub use switch::Switch;
+pub use tabs::{Tab, Tabs, TabsVariant};
 pub use task_board::{TaskBoard, TaskBoardEvent};
 pub use task_list::{TaskList, TaskListEvent};
 pub use task_marks::{PriorityMark, TaskStatusMark};
 pub use task_model::{Activity, Assignee, Label, Priority, SessionLink, TaskData, TaskStatus};
 pub use task_row::TaskRow;
 pub use task_view::{TaskView, TaskViewEvent};
-pub use verdict::{Decision as VerdictDecision, VerdictBox, VerdictEvent, Verb};
-pub use review_bar::ReviewBar;
-pub use review_file_header::ReviewFileHeader;
-pub use menu::{Menu, MenuItem};
-pub use number::Digits;
-pub use modal::Modal;
-pub use release_sheet::{ReleaseNote, ReleaseSheet, ReleaseVersion};
-pub use segmented::{Segment, Segmented};
-pub use select::{Select, SelectManage, SelectOption};
-pub use session_status::{Need, SessionStatus};
-pub use project_section::ProjectSection;
-pub use session_row::SessionRow;
-pub use sidebar::{Sidebar, SidebarEvent};
-pub use agent_panels::AgentPanels;
-pub use panel_types::{
-    Layout as PanelLayout, PanelContent, PanelData, PanelsEvent, PanelsState, ProjectLabel,
-};
-pub use sidebar_model::{Connection, Location, ProjectData, SessionData};
-pub use sprite::{Sprite, Strip};
-pub use subagent_card::SubagentCard;
-pub use subagent_row::SubagentRow;
-pub use subagent_strip::{STACK_GAP, SubagentStrip};
-pub use spinner::Spinner;
-pub use theme::{ActiveTheme, Appearance, StatusTone, Theme};
-pub use morph::Morph;
-pub use thinking::{Shimmer, Thinking, ThinkingPhase, ThinkingStyle};
-pub use switch::Switch;
-pub use tabs::{Tab, Tabs, TabsVariant};
 pub use text_input::TextInput;
-pub use tooltip::Tooltip;
+pub use theme::{ActiveTheme, Appearance, StatusTone, Theme};
+pub use thinking::{Shimmer, Thinking, ThinkingPhase, ThinkingStyle};
+pub use toast_stack::{Toast, ToastEvent, ToastPatch, ToastPosition, ToastStack, ToastStatus};
 pub use todo_list::{Todo, TodoList, TodoStatus};
-pub use model_list::{ModelList, ModelRow};
-pub use question_card::{QuestionCard, QuestionStatus, QuestionView};
 pub use tool_approval::{ParamValue, ToolApproval, ToolApprovalStatus};
-pub use tool_preview::{TextEdit, ToolPreview};
 pub use tool_call::{ToolCall, ToolStatus};
 pub use tool_card::{
-    ToolAction, ToolCard, ToolCardData, ToolCardState, ToolGap, ToolIcon, ToolNode, ToolProvider, ToolRow, ToolText, ToolTone,
+    ToolAction, ToolCard, ToolCardData, ToolCardState, ToolGap, ToolIcon, ToolNode, ToolProvider,
+    ToolRow, ToolText, ToolTone,
 };
+pub use tool_preview::{TextEdit, ToolPreview};
+pub use tooltip::Tooltip;
 pub use typography::{FONT_FAMILY, MONO_FONT_FAMILY, SEGMENT_GAP, TextSize};
+pub use unsent::UnsentComments;
+pub use update_button::{UpdateButton, UpdateState};
+pub use usage_dashboard::{
+    Selection, Series, SourceKind, UsageDashboard, UsageDay, UsageModel, UsageRange, UsageSession,
+    UsageSource, UsageSources, UsageStat,
+};
+pub use verdict::{Decision as VerdictDecision, Verb, VerdictBox, VerdictEvent};
+pub use voice_input::{VoiceDevice, VoiceInput, VoiceInputEvent, VoiceMode};
+pub use voice_setup::{SetupPhase, VoiceSetup};
+pub use voice_waves::VoiceWaves;
 
 pub use helpers::{init, watch_system};
 pub(crate) use types::ClickHandler;
-
