@@ -1,33 +1,28 @@
 use std::{rc::Rc, time::Instant};
 
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
+    App, ElementId, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
     Styled, Window, div, linear_color_stop, linear_gradient, relative,
 };
 
 use super::{
-    consts::{
-        ACTION_TOP, HERO_B_PATH, HERO_PATH, HERO_RATIO, LINE_ALPHA, LINE_SIZE, LINE_TOP, MARK_SIZE, NAME_SIZE,
-        NAME_TOP, RISE, SCRIM_ALPHA, SWEEP_STRENGTH,
-    },
-    helpers::{frame, glyph, intro_done, sweep_weight},
+    consts::{ACTION_TOP, HERO_B_PATH, HERO_PATH, HERO_RATIO, LINE_ALPHA, LINE_SIZE, LINE_TOP, MARK_SIZE, RISE, SCRIM_ALPHA},
+    helpers::{frame, intro_done},
 };
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
-    glyph_text::{GlyphText, Ink},
     motion,
     scale::px,
-    theme::{Appearance, Theme, mix},
+    theme::{Appearance, Theme},
     typography::FONT_FAMILY,
 };
 
 type Continue = Rc<dyn Fn(&mut Window, &mut App)>;
 
-/// The first page: the gradient, the mark, the name, one line and one button.
+/// The first page: the gradient, the mark, one line and one button.
 #[derive(IntoElement)]
 pub struct WelcomePage {
     id: ElementId,
-    name: SharedString,
     line: SharedString,
     action: SharedString,
     on_continue: Option<Continue>,
@@ -42,13 +37,12 @@ impl WelcomePage {
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
-            name: "atelier".into(),
             line: "Welcome. Your workshop for building with agents.".into(),
-            action: "Get started".into(),
+            action: "Start crafting".into(),
             on_continue: None,
         }
     }
-    /// The line of welcome under the name.
+    /// The line of welcome under the mark.
     pub fn line(mut self, line: impl Into<SharedString>) -> Self {
         self.line = line.into();
         self
@@ -86,7 +80,7 @@ impl RenderOnce for WelcomePage {
         let _ = intro_done(elapsed);
         // The picture is dark whatever the theme, so the words on it are the dark theme's.
         let dark = Theme::of(Appearance::Dark);
-        let (light, accent, ground) = (dark.foreground, dark.accent, dark.background);
+        let (light, ground) = (dark.foreground, dark.background);
         let mut scrim_top = ground;
         scrim_top.a = 0.;
         let mut scrim_bottom = ground;
@@ -104,16 +98,6 @@ impl RenderOnce for WelcomePage {
                     .inset_0()
                     .bg(linear_gradient(180., linear_color_stop(scrim_top, 0.4), linear_color_stop(scrim_bottom, 1.))),
             );
-        // Each letter of the name comes in from where it sits, and the glint lights it as it passes.
-        let sweep = f.sweep;
-        let ink: Ink = Rc::new(move |x, _| {
-            let mut color = light;
-            if let Some(center) = sweep {
-                color = mix(light, accent, SWEEP_STRENGTH * sweep_weight(x, center));
-            }
-            color.a *= glyph(elapsed, x, reduce);
-            color
-        });
         let rise = |part: f32| px(RISE * (1. - part));
         let go = self.on_continue;
         let button = Button::new((self.id.clone(), "continue"))
@@ -143,18 +127,6 @@ impl RenderOnce for WelcomePage {
                     .top(rise(f.mark))
                     .opacity(f.mark)
                     .child(AtelierMark::new(MARK_SIZE)),
-            )
-            .child(
-                div()
-                    .debug_selector(|| "welcome-name".into())
-                    .relative()
-                    .mt(px(NAME_TOP))
-                    .top(rise(f.name))
-                    .text_size(px(NAME_SIZE))
-                    .line_height(px(NAME_SIZE * 1.05))
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(light)
-                    .child(GlyphText::new(self.name).ink(ink)),
             )
             .child(
                 div()

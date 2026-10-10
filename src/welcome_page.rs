@@ -1,5 +1,5 @@
 //! WelcomePage: the first thing a person sees. The changelog's grain gradient fills the window and breathes, and in
-//! its middle the Atelier mark, the name, one line of welcome and one button come in, one after the other. There is
+//! its middle the Atelier mark, one line of welcome and one button come in, one after the other. There is
 //! nothing else on the page: it asks for no choice, only a press.
 //!
 //! - It fills its parent. Put it in the window's content area.
