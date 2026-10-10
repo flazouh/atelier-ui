@@ -20,6 +20,8 @@ pub use types::{ButtonSize, ButtonVariant, ROUND};
 #[cfg(test)]
 use helpers::hover_target;
 #[cfg(test)]
+use helpers::own_fill;
+#[cfg(test)]
 use helpers::side_pad;
 
 #[cfg(test)]

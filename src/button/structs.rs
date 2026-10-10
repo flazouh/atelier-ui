@@ -17,7 +17,7 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{ButtonSize, ButtonVariant, Hold, KeyHandler, ROUND};
-use super::helpers::{chip, colors, hover_target, side_pad, update_motion};
+use super::helpers::{chip, colors, hover_target, own_fill, side_pad, update_motion};
 
 pub(super) struct Metrics {
     pub(super) height: f32,
@@ -67,8 +67,6 @@ pub struct Button {
     hold: Option<(Hold, Hold)>,
     /// Gives way when its row is too narrow, its content cut, instead of pushing the row wider.
     shrink: bool,
-    /// Fills the width it is given and centres its words, for a button that is one of a row's equal halves.
-    wide: bool,
 }
 
 impl Button {
@@ -99,7 +97,6 @@ impl Button {
             on_click: None,
             hold: None,
             shrink: false,
-            wide: false,
         }
     }
 
@@ -164,12 +161,6 @@ impl Button {
     /// does) is clipped, and the rest of the row keeps its place.
     pub fn shrink(mut self, shrink: bool) -> Self {
         self.shrink = shrink;
-        self
-    }
-
-    /// Fills the width its parent gives it and centres its words, for the equal halves of a card's foot.
-    pub fn wide(mut self) -> Self {
-        self.wide = true;
         self
     }
 
@@ -350,7 +341,7 @@ impl RenderOnce for Button {
         let m = self.size.metrics();
         let (fill, foreground) = colors(self.variant, cx.theme(), tint, self.chip.is_some());
         let foreground = self.ink.unwrap_or(foreground);
-        let fill = self.fill.map_or(fill, |own| crate::theme::mix(own, foreground, 0.1 * tint));
+        let fill = self.fill.map_or(fill, |own| own_fill(own, foreground, tint));
         let icon_color = self.icon_ink.unwrap_or(foreground);
         let square = matches!(self.size, ButtonSize::Icon | ButtonSize::IconSm);
         let corner = if self.pill { px(m.height / 2.) } else { radius::lg() };
@@ -366,9 +357,8 @@ impl RenderOnce for Button {
             .id(self.id.clone())
             .relative()
             .flex()
-            .when(!self.shrink && !self.wide, |d| d.flex_none())
+            .when(!self.shrink, |d| d.flex_none())
             .when(self.shrink, |d| d.min_w_0().overflow_hidden())
-            .when(self.wide, |d| d.w_full().justify_center())
             .when(keyed, |d| d.rounded(corner).shadow(crate::focus::ring_shadow(&theme, theme.background)))
             .items_center()
             .h(px(m.height))

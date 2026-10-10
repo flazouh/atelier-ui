@@ -165,31 +165,13 @@ fn an_icon_alone_in_a_text_size_is_as_wide_as_it_is_tall() {
     assert_eq!(side_pad(&m, true), m.pad_x, "words keep the size's padding");
 }
 
-#[gpui_kit::test]
-fn a_wide_button_fills_its_half_and_centres_its_words(cx: &mut gpui_kit::TestAppContext) {
-    use gpui_kit::{InteractiveElement, IntoElement, ParentElement, Render, Styled, Window, div, px};
-    struct Foot;
-    impl Render for Foot {
-        fn render(&mut self, _: &mut Window, _: &mut gpui_kit::Context<Self>) -> impl IntoElement {
-            div()
-                .w(px(400.))
-                .flex()
-                .child(div().flex_1().child(Button::new("a").debug_name("a").label("All releases").wide()))
-                .child(div().flex_1().child(Button::new("b").debug_name("b").wide().content(div().debug_selector(|| "b-words".into()).child("Continue"))))
+#[test]
+fn a_fill_of_its_own_steps_toward_its_words_under_the_pointer_as_the_invert_button_does() {
+    for theme in themes::all() {
+        let (fill, ink) = (theme.foreground, theme.background);
+        assert_eq!(own_fill(fill, ink, 0.), fill, "{}: at rest it is the fill it was given", theme.name);
+        for hover in [0.5, 1.] {
+            assert_eq!(own_fill(fill, ink, hover), colors(ButtonVariant::Invert, theme, hover, false).0, "{}: the same step at {hover}", theme.name);
         }
     }
-    cx.update(|cx| {
-        gpui_kit::init(cx);
-        crate::theme::set_appearance(crate::theme::Appearance::Light, cx);
-        cx.set_reduce_motion(true);
-    });
-    let (_, cx) = cx.add_window_view(|_, _| Foot);
-    cx.simulate_resize(gpui_kit::size(gpui_kit::px(400.), gpui_kit::px(100.)));
-    cx.run_until_parked();
-    let a = cx.debug_bounds("a").expect("the left button is drawn");
-    let b = cx.debug_bounds("b").expect("the right button is drawn");
-    assert_eq!((a.size.width, b.size.width), (px(200.), px(200.)), "each fills its half");
-    let words = cx.debug_bounds("b-words").expect("the words are drawn");
-    let slack = (words.left() - b.left()) - (b.right() - words.right());
-    assert!(slack.abs() <= px(1.), "the words sit in the middle, off by {slack:?}");
 }

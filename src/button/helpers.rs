@@ -26,6 +26,12 @@ pub(super) fn update_motion(motion: &Entity<ButtonMotion>, cx: &mut App, change:
 
 /// Fill and text at hover progress `hover`. With a chip, the primary fill stays still, as on mem0: the
 /// chip moves instead.
+/// The fill of a button that was given one of its own (`Button::fill`), with its words in `ink`: under the pointer
+/// it steps toward its words, as the invert button does.
+pub(crate) fn own_fill(fill: Hsla, ink: Hsla, hover: f32) -> Hsla {
+    mix(fill, ink, 0.1 * hover)
+}
+
 pub(crate) fn colors(variant: ButtonVariant, theme: &Theme, hover: f32, has_chip: bool) -> (Hsla, Hsla) {
     match variant {
         ButtonVariant::Primary => (
