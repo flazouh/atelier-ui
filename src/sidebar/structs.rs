@@ -23,7 +23,7 @@ use crate::{
     theme::{ActiveTheme, radius},
     typography::TextSize,
 };
-use super::types::{ENTERING, SidebarEvent};
+use super::types::{ENTERING, SessionMark, SidebarEvent};
 use super::helpers::{handoff_entry, name};
 
 pub struct Sidebar {
@@ -55,6 +55,8 @@ pub struct Sidebar {
     held: Option<HashMap<SharedString, Vec<SharedString>>>,
     /// Each project's targets for a handoff, by project id: an agent opens a menu of its providers.
     handoff: HashMap<SharedString, Vec<Branch>>,
+    /// What the app draws in the place of the agent's mark on a session's row, when it draws one.
+    session_mark: Option<SessionMark>,
 }
 
 impl EventEmitter<SidebarEvent> for Sidebar {}
@@ -88,7 +90,16 @@ impl Sidebar {
             moving: HashMap::new(),
             held: None,
             handoff: HashMap::new(),
+            session_mark: None,
         }
+    }
+
+    /// Lets the app draw who runs a session itself. Each time a session's row is drawn, `mark` is asked for that session by
+    /// its id: the element it gives stands in the place of the agent's mark, and `None` keeps the agent's mark. The sidebar
+    /// knows nothing of what the element shows.
+    pub fn set_session_mark(&mut self, mark: impl Fn(&SharedString, &mut Window, &mut gpui_kit::App) -> Option<AnyElement> + 'static, cx: &mut Context<Self>) {
+        self.session_mark = Some(std::rc::Rc::new(mark));
+        cx.notify();
     }
 
     /// Where a session of `project` can be handed off to. The app gives a tree: an agent that has a choice of
@@ -488,6 +499,9 @@ impl Sidebar {
                     );
                 // The layout decides what the row shows and whether the project's badge is on it.
                 element = element.layout(&self.layout);
+                if let Some(mark) = self.session_mark.clone().and_then(|mark| mark(&id, window, cx)) {
+                    element = element.mark(mark);
+                }
                 if self.layout.badge_on_rows() {
                     element = element.project(self.projects[project].badge.clone(), self.projects[project].name.clone());
                 }

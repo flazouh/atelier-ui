@@ -7,6 +7,9 @@
 //! - Seen and idle: the still mark, a muted title, the time since it last did anything.
 //! - Failed: the danger tone, a red dot and the time like any session at rest. The reason is not printed in the row; it is the tooltip's.
 //!
+//! The app may draw who runs a session itself ([`SessionRow::mark`]): its element then stands in the place of the agent's
+//! mark, and the row adds no dot to it.
+//!
 //! A change of status rolls the old mark up out of its box and the new one up into it ([`crate::roll`]); with
 //! Reduce Motion the mark changes at once.
 

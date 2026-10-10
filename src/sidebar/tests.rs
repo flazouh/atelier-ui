@@ -289,3 +289,20 @@ fn every_row_of_a_sessions_menu_has_an_icon(cx: &mut TestAppContext) {
         assert!(cx.debug_bounds(name).is_some(), "{words} has an icon");
     }
 }
+
+/// The app may draw who runs a session itself: the sidebar asks for each session's mark by its id, and puts what it gets
+/// in the place of the agent's mark. It knows nothing of what the element shows.
+#[gpui_kit::test]
+fn a_session_the_app_gives_a_mark_for_shows_it_and_the_others_keep_the_agents_mark(cx: &mut TestAppContext) {
+    use gpui_kit::{InteractiveElement, IntoElement, Styled, div};
+    let (sidebar, cx) = open(cx);
+    assert!(cx.debug_bounds("own-mark").is_none(), "no mark is given: the row is the agent's");
+    sidebar.update(cx, |s, cx| {
+        s.set_session_mark(|id, _, _| (id.as_ref() == "s").then(|| div().debug_selector(|| "own-mark".into()).size(px(20.)).into_any_element()), cx)
+    });
+    frames(&sidebar, cx, 4);
+    assert!(cx.debug_bounds("own-mark").is_some(), "the session the app named shows its mark");
+    sidebar.update(cx, |s, cx| s.set_session_mark(|_, _, _| None, cx));
+    frames(&sidebar, cx, 4);
+    assert!(cx.debug_bounds("own-mark").is_none(), "a session the app gives nothing for keeps the agent's mark");
+}

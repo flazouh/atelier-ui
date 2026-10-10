@@ -89,6 +89,20 @@ pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionSt
         .into_any_element()
 }
 
+/// The app's own mark in the place of the agent's: centred on the same box, at the size the app gave it, so a mark wider
+/// than the box reaches past it by the same amount on each side and the title stays where it is.
+pub(super) fn own_mark(mark: AnyElement) -> AnyElement {
+    div()
+        .debug_selector(|| "session-mark".into())
+        .flex()
+        .flex_none()
+        .size(px(MARK_BOX))
+        .items_center()
+        .justify_center()
+        .child(div().flex_none().child(mark))
+        .into_any_element()
+}
+
 /// The words on the right of a row: what is owed, or the time since it last did anything. A stop shows the time like a
 /// session at rest: its red dot says it stopped, and the reason is not printed in a list.
 pub fn trailing(status: &SessionStatus, now: u64, active_at: u64, theme: &Theme) -> (SharedString, gpui_kit::Hsla) {

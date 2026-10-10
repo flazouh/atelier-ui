@@ -1,4 +1,6 @@
-use gpui_kit::SharedString;
+use std::rc::Rc;
+
+use gpui_kit::{AnyElement, App, SharedString, Window};
 
 use crate::sidebar_layout::SidebarLayout;
 
@@ -7,6 +9,10 @@ pub(super) const HANDOFF: &str = "Handoff";
 
 /// How long a new session's row is wrapped in its entrance.
 pub(super) const ENTERING: std::time::Duration = std::time::Duration::from_millis(500);
+
+/// What the app draws in the place of the agent's mark on a session's row, by the session's id; `None` for a session that
+/// keeps the agent's mark.
+pub(super) type SessionMark = Rc<dyn Fn(&SharedString, &mut Window, &mut App) -> Option<AnyElement>>;
 
 /// What the sidebar asks of the app. Ids are the ones in [`ProjectData`](crate::sidebar_model::ProjectData) and `sidebar_model::SessionData`.
 #[derive(Clone, Debug, PartialEq, Eq)]
