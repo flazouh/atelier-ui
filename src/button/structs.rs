@@ -65,6 +65,8 @@ pub struct Button {
     hold: Option<(Hold, Hold)>,
     /// Gives way when its row is too narrow, its content cut, instead of pushing the row wider.
     shrink: bool,
+    /// Fills the width it is given and centres its words, for a button that is one of a row's equal halves.
+    wide: bool,
 }
 
 impl Button {
@@ -94,6 +96,7 @@ impl Button {
             on_click: None,
             hold: None,
             shrink: false,
+            wide: false,
         }
     }
 
@@ -153,6 +156,12 @@ impl Button {
     /// does) is clipped, and the rest of the row keeps its place.
     pub fn shrink(mut self, shrink: bool) -> Self {
         self.shrink = shrink;
+        self
+    }
+
+    /// Fills the width its parent gives it and centres its words, for the equal halves of a card's foot.
+    pub fn wide(mut self) -> Self {
+        self.wide = true;
         self
     }
 
@@ -348,8 +357,9 @@ impl RenderOnce for Button {
             .id(self.id.clone())
             .relative()
             .flex()
-            .when(!self.shrink, |d| d.flex_none())
+            .when(!self.shrink && !self.wide, |d| d.flex_none())
             .when(self.shrink, |d| d.min_w_0().overflow_hidden())
+            .when(self.wide, |d| d.w_full().justify_center())
             .when(keyed, |d| d.rounded(corner).shadow(crate::focus::ring_shadow(&theme, theme.background)))
             .items_center()
             .h(px(m.height))

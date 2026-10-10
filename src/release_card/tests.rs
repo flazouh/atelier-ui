@@ -26,7 +26,6 @@ impl Render for Host {
         div().w(px(440.)).child(
             ReleaseCard::new("card", "atelier", "0.1.16")
                 .title("What\u{2019}s new in atelier")
-                .date(Some("Version 0.1.16".into()))
                 .notes([
                     ReleaseNote::new("Usage.", "Usage is a full view."),
                     ReleaseNote::new("SSH.", "A folder on another computer opens again."),

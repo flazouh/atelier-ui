@@ -6,8 +6,8 @@ use gpui_kit::{
 };
 
 use super::consts::{
-    BUTTON_GAP, DATE_GAP, DATE_SIZE, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, LEAD_GAP, LEAD_SIZE, NAME_SIZE,
-    NOTES_TOP, NOTE_GAP, PAD, PILL_BORDER, PILL_SIZE, SIDE, TEXT_LINE, TEXT_SIZE, TITLE_SIZE, TITLE_TOP,
+    BUTTON_GAP, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, LEAD_GAP, LEAD_SIZE, NAME_SIZE, NOTES_TOP, NOTE_GAP, PAD,
+    PILL_BORDER, PILL_SIZE, SIDE, TEXT_LINE, TEXT_SIZE, TITLE_SIZE, TITLE_TOP,
 };
 use crate::{
     IconName,
@@ -26,7 +26,6 @@ pub struct ReleaseCard {
     name: SharedString,
     version: SharedString,
     title: SharedString,
-    date: Option<SharedString>,
     notes: Vec<ReleaseNote>,
     secondary: SharedString,
     primary: SharedString,
@@ -40,21 +39,15 @@ impl ReleaseCard {
             name: name.into(),
             version: version.into(),
             title: "What\u{2019}s new".into(),
-            date: None,
             notes: Vec::new(),
             secondary: "All releases".into(),
-            primary: "Got it".into(),
+            primary: "Continue".into(),
             on_secondary: None,
             on_primary: None,
         }
     }
     pub fn title(mut self, title: impl Into<SharedString>) -> Self {
         self.title = title.into();
-        self
-    }
-    /// The line under the title, as a ready string ("Version 0.1.16 · 10 October 2026").
-    pub fn date(mut self, date: Option<SharedString>) -> Self {
-        self.date = date;
         self
     }
     /// The notes, in the shape of the changelog sheet's: a bold lead and a muted text, no icon.
@@ -153,9 +146,6 @@ impl RenderOnce for ReleaseCard {
                             .text_color(theme.foreground)
                             .child(self.title),
                     )
-                    .children(self.date.map(|date| {
-                        div().mt(px(DATE_GAP)).text_size(px(DATE_SIZE)).text_color(theme.muted_foreground).child(date)
-                    }))
                     .child(div().pt(px(NOTES_TOP)).flex().flex_col().children(rows)),
             )
             .child(
@@ -172,6 +162,7 @@ impl RenderOnce for ReleaseCard {
                                 .label(self.secondary)
                                 .variant(ButtonVariant::Secondary)
                                 .size(ButtonSize::Lg)
+                                .wide()
                                 .debug_name("release-card-secondary")
                                 .on_click(move |_, window, cx| {
                                     if let Some(f) = &secondary {
@@ -187,6 +178,7 @@ impl RenderOnce for ReleaseCard {
                                 .trailing_icon(IconName::ArrowForward)
                                 .variant(ButtonVariant::Invert)
                                 .size(ButtonSize::Lg)
+                                .wide()
                                 .debug_name("release-card-primary")
                                 .on_click(move |_, window, cx| {
                                     if let Some(f) = &primary {

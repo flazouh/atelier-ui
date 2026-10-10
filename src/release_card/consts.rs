@@ -8,12 +8,10 @@ pub(super) const HERO_CORNER: f32 = 14.;
 pub(super) const NAME_SIZE: f32 = 34.;
 pub(super) const PILL_SIZE: f32 = 12.;
 pub(super) const PILL_BORDER: f32 = 1.5;
-/// The title and the line under it, and the space round them.
+/// The title and the space round it.
 pub(super) const TITLE_SIZE: f32 = 22.;
-pub(super) const DATE_SIZE: f32 = 13.;
 pub(super) const SIDE: f32 = 12.;
 pub(super) const TITLE_TOP: f32 = 22.;
-pub(super) const DATE_GAP: f32 = 4.;
 /// A note, as in the changelog sheet: the lead, the text under it, the gap between them and the space under a note.
 pub(super) const LEAD_SIZE: f32 = 15.;
 pub(super) const TEXT_SIZE: f32 = 14.;
