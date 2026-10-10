@@ -1,4 +1,7 @@
-use std::{rc::Rc, time::Instant};
+use std::{
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use gpui_kit::{
     App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
@@ -10,10 +13,12 @@ use super::{
         EDGE, HERO_PATH, HERO_RATIO, MARK_SIZE, SIDE, TEXT_ALPHA, TEXT_LINE, TEXT_SIZE, TEXT_TOP, TEXT_WIDTH,
         TITLE_PULL, TITLE_SIZE, TITLE_TOP,
     },
+    consts::WORDS_AT,
     helpers::{action, moving, shown},
 };
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
+    entrance::Entrance,
     glyph_text::GlyphText,
     motion,
     scale::px,
@@ -44,8 +49,8 @@ impl WelcomePage {
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
-            title: "Welcome.".into(),
-            text: "Your workshop for building with agents.".into(),
+            title: "Welcome to Atelier.".into(),
+            text: "Your workshop for crafting with agents.".into(),
             action: "Start crafting".into(),
             on_continue: None,
         }
@@ -126,15 +131,22 @@ impl RenderOnce for WelcomePage {
                     .text_color(light)
                     .child(self.title),
             )
+            // The line arrives as a message does in a session: the block fades in and rises as its first words come,
+            // and the words fade in one by one.
             .child(
-                div()
-                    .debug_selector(|| "welcome-text".into())
-                    .mt(px(TEXT_TOP))
-                    .max_w(px(TEXT_WIDTH))
-                    .text_size(px(TEXT_SIZE))
-                    .line_height(px(TEXT_LINE))
-                    .text_color(light.opacity(TEXT_ALPHA))
-                    .child(GlyphText::new(text.clone()).fades(fades)),
+                Entrance::new(
+                    (self.id.clone(), "line"),
+                    div()
+                        .debug_selector(|| "welcome-text".into())
+                        .mt(px(TEXT_TOP))
+                        .max_w(px(TEXT_WIDTH))
+                        .text_size(px(TEXT_SIZE))
+                        .line_height(px(TEXT_LINE))
+                        .text_color(light.opacity(TEXT_ALPHA))
+                        .child(GlyphText::new(text.clone()).fades(fades)),
+                )
+                .skip_initial(reduce)
+                .delay(Duration::from_secs_f32(WORDS_AT)),
             );
         div()
             .id(self.id)
