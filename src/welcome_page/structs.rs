@@ -1,60 +1,61 @@
-use std::rc::Rc;
+use std::{rc::Rc, time::Instant};
+
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce,
-    SharedString, Styled, Window, div,
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
+    Styled, Window, div, linear_color_stop, linear_gradient, relative,
 };
-use crate::scale::px;
+
+use super::{
+    consts::{
+        ACTION_TOP, HERO_B_PATH, HERO_PATH, HERO_RATIO, LINE_ALPHA, LINE_SIZE, LINE_TOP, MARK_SIZE, NAME_SIZE,
+        NAME_TOP, RISE, SCRIM_ALPHA, SWEEP_STRENGTH,
+    },
+    helpers::{frame, glyph, intro_done, sweep_weight},
+};
 use crate::{
-    AtelierMark, Button, ButtonSize, ButtonVariant,
-    release_sheet::HERO_PATH,
-    theme::{ActiveTheme, Appearance, Theme},
+    AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
+    glyph_text::{GlyphText, Ink},
+    motion,
+    scale::px,
+    theme::{Appearance, Theme, mix},
     typography::FONT_FAMILY,
 };
-use super::consts::{
-    ACTION_TOP, BAND_HEIGHT, BAND_WIDTH, BAR_GAP, BAR_HEIGHT, BAR_REST_ALPHA, BAR_WIDTH, BARS_BOTTOM,
-    MARK_SIZE, MARK_TOP, SIDE, TEXT_SIZE, TEXT_TOP, TITLE_BOTTOM, TITLE_SIZE,
-};
+
 type Continue = Rc<dyn Fn(&mut Window, &mut App)>;
-/// The first page of onboarding: a title on the changelog gradient, one sentence and one button.
+
+/// The first page: the gradient, the mark, the name, one line and one button.
 #[derive(IntoElement)]
 pub struct WelcomePage {
     id: ElementId,
-    title: SharedString,
-    text: SharedString,
+    name: SharedString,
+    line: SharedString,
     action: SharedString,
-    step: usize,
-    steps: usize,
     on_continue: Option<Continue>,
 }
+
+/// When the page first drew, so every frame knows how far the opening has come.
+struct Motion {
+    start: Instant,
+}
+
 impl WelcomePage {
     pub fn new(id: impl Into<ElementId>) -> Self {
         Self {
             id: id.into(),
-            title: "Welcome to Atelier".into(),
-            text: "A code editor for working with agents.".into(),
+            name: "atelier".into(),
+            line: "Welcome. Your workshop for building with agents.".into(),
             action: "Get started".into(),
-            step: 1,
-            steps: 4,
             on_continue: None,
         }
     }
-    pub fn title(mut self, title: impl Into<SharedString>) -> Self {
-        self.title = title.into();
+    /// The line of welcome under the name.
+    pub fn line(mut self, line: impl Into<SharedString>) -> Self {
+        self.line = line.into();
         self
     }
-    pub fn text(mut self, text: impl Into<SharedString>) -> Self {
-        self.text = text.into();
-        self
-    }
-    /// The button's word.
+    /// The button's words.
     pub fn action(mut self, action: impl Into<SharedString>) -> Self {
         self.action = action.into();
-        self
-    }
-    /// Where the setup stands: this page is `step` of `steps`, counted from 1.
-    pub fn step(mut self, step: usize, steps: usize) -> Self {
-        self.step = step;
-        self.steps = steps;
         self
     }
     /// Fires when the button is pressed.
@@ -63,108 +64,127 @@ impl WelcomePage {
         self
     }
 }
+
+/// A picture that fills the page at `zoom` times its size, centred, so a zoom shows no edge.
+fn picture(path: &'static str, zoom: f32, opacity: f32) -> impl IntoElement {
+    let edge = -(zoom - 1.) / 2.;
+    let mut img = gpui_kit::img(path).absolute().w(relative(zoom)).h(relative(zoom)).left(relative(edge)).top(relative(edge));
+    img.style().aspect_ratio = Some(HERO_RATIO);
+    <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(img, ObjectFit::Cover).opacity(opacity)
+}
+
 impl RenderOnce for WelcomePage {
-    fn render(self, _: &mut Window, cx: &mut App) -> impl IntoElement {
-        let theme: Theme = cx.theme().clone();
-        // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
-        let light = Theme::of(Appearance::Dark).foreground;
-        let mut hero = gpui_kit::img(HERO_PATH).w_full().h(px(BAND_HEIGHT));
-        hero.style().aspect_ratio = Some(BAND_WIDTH / BAND_HEIGHT);
-        let picture = div()
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let reduce = cx.reduce_motion();
+        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion { start: motion::now() });
+        let elapsed = motion::now().duration_since(motion.read(cx).start).as_secs_f32();
+        let f = frame(elapsed, reduce);
+        // The breath never ends, so the page asks for the next frame as long as it is shown.
+        if !reduce {
+            window.request_animation_frame();
+        }
+        let _ = intro_done(elapsed);
+        // The picture is dark whatever the theme, so the words on it are the dark theme's.
+        let dark = Theme::of(Appearance::Dark);
+        let (light, accent, ground) = (dark.foreground, dark.accent, dark.background);
+        let mut scrim_top = ground;
+        scrim_top.a = 0.;
+        let mut scrim_bottom = ground;
+        scrim_bottom.a = SCRIM_ALPHA;
+        let backdrop = div()
+            .debug_selector(|| "welcome-picture".into())
             .absolute()
-            .top_0()
-            .left_0()
-            .w_full()
-            .h(px(BAND_HEIGHT))
+            .inset_0()
             .overflow_hidden()
-            .child(<gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Fill));
-        let band = div()
-            .debug_selector(|| "welcome-band".into())
-            .relative()
-            .flex_none()
-            .h(px(BAND_HEIGHT))
-            .child(picture)
+            .child(picture(HERO_PATH, f.zoom, f.picture))
+            .child(picture(HERO_B_PATH, f.zoom, f.picture * f.breath))
             .child(
                 div()
-                    .debug_selector(|| "welcome-mark".into())
                     .absolute()
-                    .left(px(SIDE))
-                    .top(px(MARK_TOP))
-                    .child(AtelierMark::new(MARK_SIZE)),
-            )
-            .child(
-                div()
-                    .debug_selector(|| "welcome-title".into())
-                    .absolute()
-                    .left(px(SIDE))
-                    .bottom(px(TITLE_BOTTOM))
-                    .font_family(FONT_FAMILY)
-                    .text_size(px(TITLE_SIZE))
-                    .font_weight(FontWeight::MEDIUM)
-                    .text_color(light)
-                    .child(self.title),
+                    .inset_0()
+                    .bg(linear_gradient(180., linear_color_stop(scrim_top, 0.4), linear_color_stop(scrim_bottom, 1.))),
             );
+        // Each letter of the name comes in from where it sits, and the glint lights it as it passes.
+        let sweep = f.sweep;
+        let ink: Ink = Rc::new(move |x, _| {
+            let mut color = light;
+            if let Some(center) = sweep {
+                color = mix(light, accent, SWEEP_STRENGTH * sweep_weight(x, center));
+            }
+            color.a *= glyph(elapsed, x, reduce);
+            color
+        });
+        let rise = |part: f32| px(RISE * (1. - part));
         let go = self.on_continue;
         let button = Button::new((self.id.clone(), "continue"))
-            .variant(ButtonVariant::Primary)
+            .variant(ButtonVariant::Invert)
+            .fill(light)
+            .ink(ground)
             .size(ButtonSize::Lg)
             .label(self.action)
-            .cap("⏎")
+            .trailing_icon(IconName::ArrowForward)
             .debug_name("welcome-continue")
             .on_click(move |_, window, cx| {
                 if let Some(f) = &go {
                     f(window, cx);
                 }
             });
-        let bars = (1..=self.steps).map(|n| {
-            let mut tone = theme.foreground;
-            if n > self.step {
-                tone.a *= BAR_REST_ALPHA;
-            }
-            div()
-                .w(px(BAR_WIDTH))
-                .h(px(BAR_HEIGHT))
-                .rounded(px(BAR_HEIGHT / 2.))
-                .bg(tone)
-        });
+        let stack = div()
+            .absolute()
+            .inset_0()
+            .flex()
+            .flex_col()
+            .items_center()
+            .justify_center()
+            .child(
+                div()
+                    .debug_selector(|| "welcome-mark".into())
+                    .relative()
+                    .top(rise(f.mark))
+                    .opacity(f.mark)
+                    .child(AtelierMark::new(MARK_SIZE)),
+            )
+            .child(
+                div()
+                    .debug_selector(|| "welcome-name".into())
+                    .relative()
+                    .mt(px(NAME_TOP))
+                    .top(rise(f.name))
+                    .text_size(px(NAME_SIZE))
+                    .line_height(px(NAME_SIZE * 1.05))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(light)
+                    .child(GlyphText::new(self.name).ink(ink)),
+            )
+            .child(
+                div()
+                    .debug_selector(|| "welcome-line".into())
+                    .relative()
+                    .mt(px(LINE_TOP))
+                    .top(rise(f.line))
+                    .opacity(f.line)
+                    .text_size(px(LINE_SIZE))
+                    .text_color(light.opacity(LINE_ALPHA))
+                    .child(self.line),
+            )
+            .child(
+                div()
+                    .debug_selector(|| "welcome-action".into())
+                    .relative()
+                    .mt(px(ACTION_TOP))
+                    .top(rise(f.action))
+                    .opacity(f.action)
+                    .child(button),
+            );
         div()
             .id(self.id)
             .debug_selector(|| "welcome-page".into())
             .relative()
             .size_full()
-            .flex()
-            .flex_col()
+            .overflow_hidden()
             .font_family(FONT_FAMILY)
-            .bg(theme.background)
-            .child(band)
-            .child(
-                div()
-                    .px(px(SIDE))
-                    .child(
-                        div()
-                            .debug_selector(|| "welcome-text".into())
-                            .mt(px(TEXT_TOP))
-                            .text_size(px(TEXT_SIZE))
-                            .text_color(theme.muted_foreground)
-                            .child(self.text),
-                    )
-                    .child(
-                        div()
-                            .debug_selector(|| "welcome-action".into())
-                            .mt(px(ACTION_TOP))
-                            .flex()
-                            .child(button),
-                    ),
-            )
-            .child(
-                div()
-                    .debug_selector(|| "welcome-bars".into())
-                    .absolute()
-                    .left(px(SIDE))
-                    .bottom(px(BARS_BOTTOM))
-                    .flex()
-                    .gap(px(BAR_GAP))
-                    .children(bars),
-            )
+            .bg(ground)
+            .child(backdrop)
+            .child(stack)
     }
 }
