@@ -1,14 +1,14 @@
 use std::rc::Rc;
 
 use gpui_kit::{
-    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement,
-    RenderOnce, SharedString, Styled, Window, div,
+    App, ElementId, FontWeight, InteractiveElement, IntoElement, ObjectFit, ParentElement, RenderOnce, SharedString,
+    Styled, Window, div,
 };
 
 use super::consts::{
-    BUTTON_GAP, DATE_GAP, DATE_SIZE, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, ICON,
-    NAME_SIZE, NOTE_GAP, NOTE_LINE, NOTE_SIZE, NOTE_SPACE, NOTES_TOP, PAD, PILL_BORDER, PILL_SIZE,
-    SIDE, TILE, TILE_CORNER, TITLE_SIZE, TITLE_TOP,
+    BUTTON_GAP, DATE_GAP, DATE_SIZE, FOOT_TOP, HERO_CORNER, HERO_HEIGHT, HERO_PATH, ICON, NAME_SIZE, NOTES_TOP,
+    NOTE_GAP, NOTE_LINE, NOTE_SIZE, NOTE_SPACE, PAD, PILL_BORDER, PILL_SIZE, SIDE, TILE, TILE_CORNER, TITLE_SIZE,
+    TITLE_TOP,
 };
 use crate::{
     Icon, IconName,
@@ -28,10 +28,7 @@ pub struct ReleaseCardNote {
 }
 impl ReleaseCardNote {
     pub fn new(icon: IconName, text: impl Into<SharedString>) -> Self {
-        Self {
-            icon,
-            text: text.into(),
-        }
+        Self { icon, text: text.into() }
     }
 }
 
@@ -49,11 +46,7 @@ pub struct ReleaseCard {
     on_primary: Option<Press>,
 }
 impl ReleaseCard {
-    pub fn new(
-        id: impl Into<ElementId>,
-        name: impl Into<SharedString>,
-        version: impl Into<SharedString>,
-    ) -> Self {
+    pub fn new(id: impl Into<ElementId>, name: impl Into<SharedString>, version: impl Into<SharedString>) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -81,11 +74,7 @@ impl ReleaseCard {
         self
     }
     /// The words of the two buttons at the foot: the quiet one at the left, the main one at the right.
-    pub fn buttons(
-        mut self,
-        secondary: impl Into<SharedString>,
-        primary: impl Into<SharedString>,
-    ) -> Self {
+    pub fn buttons(mut self, secondary: impl Into<SharedString>, primary: impl Into<SharedString>) -> Self {
         self.secondary = secondary.into();
         self.primary = primary.into();
         self
@@ -105,12 +94,8 @@ impl RenderOnce for ReleaseCard {
         let theme: Theme = cx.theme().clone();
         // The picture is dark at the top left whatever the theme, so the words over it are the dark theme's.
         let light = Theme::of(Appearance::Dark).foreground;
-        let picture = gpui_kit::img(HERO_PATH)
-            .w_full()
-            .h(px(HERO_HEIGHT))
-            .rounded(px(HERO_CORNER));
-        let picture =
-            <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(picture, ObjectFit::Fill);
+        let picture = gpui_kit::img(HERO_PATH).w_full().h(px(HERO_HEIGHT)).rounded(px(HERO_CORNER));
+        let picture = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(picture, ObjectFit::Fill);
         let mark = div()
             .absolute()
             .inset_0()
@@ -120,12 +105,7 @@ impl RenderOnce for ReleaseCard {
             .gap(px(8.))
             .font_family(FONT_FAMILY)
             .text_color(light)
-            .child(
-                div()
-                    .text_size(px(NAME_SIZE))
-                    .font_weight(FontWeight::MEDIUM)
-                    .child(self.name),
-            )
+            .child(div().text_size(px(NAME_SIZE)).font_weight(FontWeight::MEDIUM).child(self.name))
             .child(
                 div()
                     .px(px(8.))
@@ -173,13 +153,10 @@ impl RenderOnce for ReleaseCard {
             .flex_col()
             .font_family(FONT_FAMILY)
             .child(
-                div().p(px(PAD)).pb_0().child(
-                    div()
-                        .relative()
-                        .debug_selector(|| "release-card-hero".into())
-                        .child(picture)
-                        .child(mark),
-                ),
+                div()
+                    .p(px(PAD))
+                    .pb_0()
+                    .child(div().relative().debug_selector(|| "release-card-hero".into()).child(picture).child(mark)),
             )
             .child(
                 div()
@@ -193,11 +170,7 @@ impl RenderOnce for ReleaseCard {
                             .child(self.title),
                     )
                     .children(self.date.map(|date| {
-                        div()
-                            .mt(px(DATE_GAP))
-                            .text_size(px(DATE_SIZE))
-                            .text_color(theme.muted_foreground)
-                            .child(date)
+                        div().mt(px(DATE_GAP)).text_size(px(DATE_SIZE)).text_color(theme.muted_foreground).child(date)
                     }))
                     .child(div().pt(px(NOTES_TOP)).flex().flex_col().children(rows)),
             )

@@ -4,11 +4,11 @@
 
 use std::{borrow::Cow, f32::consts::TAU};
 
-use crate::scale::px;
 use gpui_kit::{
-    App, AssetSource, Hsla, IntoElement, Pixels, RenderOnce, Result, SharedString, Styled,
-    Transformation, Window, prelude::FluentBuilder, radians, svg,
+    App, AssetSource, Hsla, IntoElement, Pixels, RenderOnce, Result, SharedString, Styled, Transformation, Window,
+    prelude::FluentBuilder, radians, svg,
 };
+use crate::scale::px;
 
 macro_rules! icons {
     ($($variant:ident => $file:literal),* $(,)?) => {
@@ -178,10 +178,7 @@ const COMPONENT_ICONS: &[(&str, IconName)] = &[
 
 /// Ours for a path gpui-component asks for, if we have one.
 fn component_icon(path: &str) -> Option<&'static [u8]> {
-    COMPONENT_ICONS
-        .iter()
-        .find(|(asked, _)| *asked == path)
-        .and_then(|(_, ours)| icon_bytes(ours.path()))
+    COMPONENT_ICONS.iter().find(|(asked, _)| *asked == path).and_then(|(_, ours)| icon_bytes(ours.path()))
 }
 
 /// Serves the embedded icons to GPUI. An agent crate that ships strips for [`crate::sprite::Sprite`] serves
@@ -219,12 +216,7 @@ pub struct Icon {
 
 impl Icon {
     pub fn new(name: IconName) -> Self {
-        Self {
-            name,
-            size: px(16.),
-            color: None,
-            turn: 0.,
-        }
+        Self { name, size: px(16.), color: None, turn: 0. }
     }
 
     pub fn size(mut self, size: Pixels) -> Self {
@@ -253,9 +245,7 @@ impl RenderOnce for Icon {
             .flex_none()
             .size(self.size)
             .text_color(color)
-            .when(self.turn != 0., |s| {
-                s.with_transformation(Transformation::rotate(radians(self.turn * TAU)))
-            })
+            .when(self.turn != 0., |s| s.with_transformation(Transformation::rotate(radians(self.turn * TAU))))
     }
 }
 
