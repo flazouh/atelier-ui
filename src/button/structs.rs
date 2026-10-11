@@ -46,6 +46,8 @@ pub struct Button {
     icon_ink: Option<Hsla>,
     content: Option<AnyElement>,
     pub(super) chip: Option<IconName>,
+    /// The tile the chip wears in place of its wash.
+    chip_tile: Option<crate::atelier_mark::Tile>,
     pub(super) variant: ButtonVariant,
     pub(super) size: ButtonSize,
     pill: bool,
@@ -83,6 +85,7 @@ impl Button {
             icon_ink: None,
             content: None,
             chip: None,
+            chip_tile: None,
             variant: ButtonVariant::default(),
             size: ButtonSize::default(),
             pill: false,
@@ -172,6 +175,13 @@ impl Button {
     /// An icon in a chip on the right, which slides on hover.
     pub fn chip(mut self, icon: IconName) -> Self {
         self.chip = Some(icon);
+        self
+    }
+
+    /// The chip wears a mark's tile in place of its wash: faint at rest and whole under the pointer, where its icon
+    /// comes in in the tile's letter colour. For the one button that stands for the app, as the welcome page's.
+    pub fn chip_tile(mut self, tile: crate::atelier_mark::Tile) -> Self {
+        self.chip_tile = Some(tile);
         self
     }
 
@@ -395,7 +405,7 @@ impl RenderOnce for Button {
             .when_some(self.trailing_icon, |d, icon| {
                 d.child(div().relative().child(Icon::new(icon).size(px(m.icon - 2.)).color(foreground)))
             })
-            .when_some(self.chip, |d, icon| d.child(chip(icon, &m, tint, slide, icon_color)))
+            .when_some(self.chip, |d, icon| d.child(chip(icon, &m, tint, slide, icon_color, self.chip_tile)))
             .when_some(focus, |d, focus| d.track_focus(&focus.tab_stop(true)))
             .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
             .when_some(self.tooltip.filter(|_| !self.open), |d, words| d.tooltip(Tooltip::text(words)))

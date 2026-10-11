@@ -14,6 +14,7 @@ use super::{
 };
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
+    atelier_mark::Tile,
     entrance::Entrance,
     motion,
     scale::px,
@@ -124,6 +125,8 @@ impl RenderOnce for WelcomePage {
             .size(ButtonSize::Xl)
             .label(self.action)
             .chip(IconName::ArrowForward)
+            // The chip wears the mark's tile: this button stands for the app.
+            .chip_tile(Tile::of(None))
             .debug_name("welcome-continue")
             .on_click(move |_, window, cx| {
                 if let Some(f) = &go {
