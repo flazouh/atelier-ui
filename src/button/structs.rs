@@ -17,7 +17,7 @@ use crate::{
     typography::FONT_FAMILY,
 };
 use super::types::{ButtonSize, ButtonVariant, Hold, KeyHandler, ROUND};
-use super::helpers::{chip, colors, hover_target, side_pad, update_motion};
+use super::helpers::{chip, colors, hover_target, own_fill, side_pad, update_motion};
 
 pub(super) struct Metrics {
     pub(super) height: f32,
@@ -40,6 +40,8 @@ pub struct Button {
     cap: Option<SharedString>,
     /// The words' colour in place of the variant's, for a verb that carries a tone.
     pub(super) ink: Option<Hsla>,
+    /// The fill in place of the variant's, for a button on a picture that is dark whatever the theme.
+    fill: Option<Hsla>,
     /// The icon's colour in place of the words'.
     icon_ink: Option<Hsla>,
     content: Option<AnyElement>,
@@ -77,6 +79,7 @@ impl Button {
             command: None,
             cap: None,
             ink: None,
+            fill: None,
             icon_ink: None,
             content: None,
             chip: None,
@@ -117,6 +120,11 @@ impl Button {
 
     /// Colours the words, keeping the fill: how a verb carries a tone (Request changes in `danger`)
     /// while no button carries a colour of its own.
+    /// Fills the button with `fill` in place of the variant's colour. Pair it with [`Self::ink`].
+    pub fn fill(mut self, fill: impl Into<Hsla>) -> Self {
+        self.fill = Some(fill.into());
+        self
+    }
     pub fn ink(mut self, ink: impl Into<Hsla>) -> Self {
         self.ink = Some(ink.into());
         self
@@ -333,6 +341,7 @@ impl RenderOnce for Button {
         let m = self.size.metrics();
         let (fill, foreground) = colors(self.variant, cx.theme(), tint, self.chip.is_some());
         let foreground = self.ink.unwrap_or(foreground);
+        let fill = self.fill.map_or(fill, |own| own_fill(own, foreground, tint));
         let icon_color = self.icon_ink.unwrap_or(foreground);
         let square = matches!(self.size, ButtonSize::Icon | ButtonSize::IconSm);
         let corner = if self.pill { px(m.height / 2.) } else { radius::lg() };

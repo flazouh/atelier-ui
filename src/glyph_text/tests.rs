@@ -51,3 +51,14 @@ fn colored_glyphs_lay_out_as_the_plain_text_does(cx: &mut TestAppContext) {
     }
     assert!(worst.is_empty(), "the two lay out differently:\n{}", worst.join("\n"));
 }
+
+#[test]
+fn a_fade_draws_its_range_at_a_share_of_the_ink_and_leaves_the_rest_whole() {
+    let ink = gpui_kit::white();
+    let text = GlyphText::new("Welcome here").fades([(8..12, 0.25), (0..0, 0.)]);
+    assert_eq!(text.color_at(0, ink).a, 1., "a letter outside every fade keeps its ink");
+    assert_eq!(text.color_at(8, ink).a, 0.25, "a letter in a fade takes its share");
+    assert_eq!(text.color_at(11, ink).a, 0.25);
+    let hidden = GlyphText::new("Welcome here").fades([(8..12, 0.)]);
+    assert_eq!(hidden.color_at(9, ink).a, 0., "a share of 0 draws nothing, and the letter keeps its place");
+}

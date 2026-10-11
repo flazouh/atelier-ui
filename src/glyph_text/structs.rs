@@ -13,11 +13,12 @@ pub struct Shaped {
 pub struct GlyphText {
     text: SharedString,
     highlights: Vec<(Range<usize>, HighlightStyle)>,
+    fades: Vec<(Range<usize>, f32)>,
     ink: Option<Ink>,
 }
 impl GlyphText {
     pub fn new(text: impl Into<SharedString>) -> Self {
-        Self { text: text.into(), highlights: Vec::new(), ink: None }
+        Self { text: text.into(), highlights: Vec::new(), fades: Vec::new(), ink: None }
     }
     /// Colors byte ranges the way `StyledText::with_highlights` does: a highlight's color is blended over the text's.
     /// Only the color is used.
@@ -25,16 +26,26 @@ impl GlyphText {
         self.highlights = highlights.into_iter().collect();
         self
     }
+    /// Draws byte ranges at a share of their ink, 0 to 1: for text that fades in over a picture, where no one
+    /// surface colour can be blended over it. A range not named is at full ink.
+    pub fn fades(mut self, fades: impl IntoIterator<Item = (Range<usize>, f32)>) -> Self {
+        self.fades = fades.into_iter().collect();
+        self
+    }
     /// Colors each glyph from where it sits, after its highlights.
     pub fn ink(mut self, ink: Ink) -> Self {
         self.ink = Some(ink);
         self
     }
-    fn color_at(&self, index: usize, base: Hsla) -> Hsla {
-        match self.highlights.iter().find(|(range, _)| range.contains(&index)).and_then(|(_, h)| h.color) {
+    pub(super) fn color_at(&self, index: usize, base: Hsla) -> Hsla {
+        let mut color = match self.highlights.iter().find(|(range, _)| range.contains(&index)).and_then(|(_, h)| h.color) {
             Some(color) => base.blend(color),
             None => base,
+        };
+        if let Some((_, share)) = self.fades.iter().find(|(range, _)| range.contains(&index)) {
+            color.a *= share.clamp(0., 1.);
         }
+        color
     }
 }
 impl IntoElement for GlyphText {

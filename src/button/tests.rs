@@ -164,3 +164,14 @@ fn an_icon_alone_in_a_text_size_is_as_wide_as_it_is_tall() {
     assert_eq!(side_pad(&m, false), (m.height - m.icon) / 2., "no words to part from: the icon is centred in a square");
     assert_eq!(side_pad(&m, true), m.pad_x, "words keep the size's padding");
 }
+
+#[test]
+fn a_fill_of_its_own_steps_toward_its_words_under_the_pointer_as_the_invert_button_does() {
+    for theme in themes::all() {
+        let (fill, ink) = (theme.foreground, theme.background);
+        assert_eq!(own_fill(fill, ink, 0.), fill, "{}: at rest it is the fill it was given", theme.name);
+        for hover in [0.5, 1.] {
+            assert_eq!(own_fill(fill, ink, hover), colors(ButtonVariant::Invert, theme, hover, false).0, "{}: the same step at {hover}", theme.name);
+        }
+    }
+}
