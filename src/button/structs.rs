@@ -341,7 +341,8 @@ impl RenderOnce for Button {
         let m = self.size.metrics();
         let (fill, foreground) = colors(self.variant, cx.theme(), tint, self.chip.is_some());
         let foreground = self.ink.unwrap_or(foreground);
-        let fill = self.fill.map_or(fill, |own| own_fill(own, foreground, tint));
+        // A chip button's fill stands still under the pointer: its chip moves in its place.
+        let fill = self.fill.map_or(fill, |own| own_fill(own, foreground, if self.chip.is_some() { 0. } else { tint }));
         let icon_color = self.icon_ink.unwrap_or(foreground);
         let square = matches!(self.size, ButtonSize::Icon | ButtonSize::IconSm);
         let corner = if self.pill { px(m.height / 2.) } else { radius::lg() };

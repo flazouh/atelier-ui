@@ -1,5 +1,5 @@
 //! The answer as it streams in. A finished paragraph is Markdown (the `TextView` as always); the paragraph still
-//! growing, the tail, is drawn as plain runs whose ink follows their age, so each new piece fades in over 100ms, as Cursor's do.
+//! growing, the tail, is a [`Streamed`]: plain text whose ink follows the age of its pieces, so each new piece fades in over 100ms, as Cursor's do.
 //! Only the newest pieces fade, and once the stream stalls no frame is asked for. A tail that needs Markdown (a
 //! list, a heading, a code span, a link) is left to `TextView`, with no fade.
 //!
@@ -11,7 +11,7 @@ mod structs;
 mod types;
 
 pub use helpers::{is_plain, split_tail};
-pub use structs::Flow;
+pub use structs::{Flow, Streamed};
 pub use types::{FADE, Piece};
 
 #[cfg(test)]

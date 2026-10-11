@@ -59,7 +59,6 @@ pub struct AgentText {
     pub(super) pr_resolver: Option<Rc<dyn Fn(u64) -> Option<PrChipData>>>,
     on_open_pr: Option<PrOpenHandler>,
     fade_tail: bool,
-    fade_into: Option<gpui_kit::Hsla>,
 }
 
 impl AgentText {
@@ -74,18 +73,12 @@ impl AgentText {
             pr_resolver: None,
             on_open_pr: None,
             fade_tail: false,
-            fade_into: None,
         }
     }
     /// While the text streams, draws the paragraph still growing in runs that fade in by their age ([`crate::stream_text`]).
     /// Off by default: a text shown whole, such as a description, has nothing to fade.
     pub fn fade_tail(mut self, on: bool) -> Self {
         self.fade_tail = on;
-        self
-    }
-    /// The tone of the surface the text sits on, which a piece fades from. Defaults to `card`.
-    pub fn fade_into(mut self, color: impl Into<gpui_kit::Hsla>) -> Self {
-        self.fade_into = Some(color.into());
         self
     }
     /// Looks up a `#N` in the text. A number it returns data for shows as a chip.
@@ -305,22 +298,14 @@ impl RenderOnce for AgentText {
             .table_tiles(gpui_kit::component::text::TableTiles { head: ink.opacity(0.10), cell: ink.opacity(0.055), hover: ink.opacity(0.085) })
             .table_cell(cell_text)
             .code_block(super::helpers::code_block_style(&theme));
-        // The paragraph still growing draws in runs that fade in; what is finished stays Markdown.
-        let mut tail: Option<(String, Vec<crate::stream_text::Piece>)> = None;
+        // The paragraph still growing is a `Streamed`, whose pieces fade in; what is finished stays Markdown.
+        let mut tail: Option<String> = None;
         let mut body = self.markdown.clone();
         if streaming && self.fade_tail && !reduce {
-            let flow = window.use_keyed_state(child_id("flow"), cx, |_, _| crate::stream_text::Flow::default());
-            let now = std::time::Instant::now();
-            flow.update(cx, |f, _| f.observe(&self.markdown, now));
             let cut = crate::stream_text::split_tail(&self.markdown);
             let rest = &self.markdown[cut..];
             if !rest.is_empty() && crate::stream_text::is_plain(rest) {
-                let flow = flow.read(cx);
-                if flow.is_fading(now) {
-                    window.request_animation_frame();
-                }
-                let runs = flow.alphas(&self.markdown, cut, now).into_iter().map(|(r, a)| (r.start - cut..r.end - cut, a)).collect();
-                tail = Some((rest.to_string(), runs));
+                tail = Some(rest.to_string());
                 body = SharedString::from(self.markdown[..cut].trim_end_matches('\n').to_string());
             }
         }
@@ -358,19 +343,13 @@ impl RenderOnce for AgentText {
             .text_size(TextSize::Sm.font_size())
             .line_height(px(24.))
             .when(!body.trim().is_empty() || tail.is_none(), |d| d.child(text))
-            .when_some(tail, |d, (rest, runs)| {
-                // A highlight colour is blended over the text\s own, so a piece fades by taking the surface\s tone at the
-                // strength it has left to go. A GlyphText, so a fading piece keeps the kerning it will have once it settles.
-                let surface = self.fade_into.unwrap_or(theme.card);
-                let highlights = runs.into_iter().map(|(range, alpha)| {
-                    (range, gpui_kit::HighlightStyle { color: Some(surface.opacity(1. - alpha)), ..Default::default() })
-                });
+            .when_some(tail, |d, rest| {
                 // The gap a paragraph has, so the tail lays out as one more paragraph of the same text.
                 d.child(
                     div()
                         .debug_selector(|| "stream-tail".into())
                         .when(!body.trim().is_empty(), |d| d.mt(rems(0.75)))
-                        .child(crate::glyph_text::GlyphText::new(rest).highlights(highlights)),
+                        .child(crate::stream_text::Streamed::new(child_id("flow"), rest)),
                 )
             });
         div().flex().flex_col().w_full().child(content).when_some(actions, |d, a| d.child(a))

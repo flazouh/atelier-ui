@@ -371,3 +371,37 @@ mod cost {
         }
     }
 }
+
+struct Arriving {
+    shown: usize,
+}
+const LINE: &str = "Your workshop for crafting with agents.";
+impl Render for Arriving {
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        div().w(px(240.)).text_size(TextSize::Sm.font_size()).line_height(px(24.)).child(
+            div().debug_selector(|| "streamed".into()).child(super::Streamed::new("line", LINE).shown(self.shown)),
+        )
+    }
+}
+
+/// What has not arrived keeps its place: the text takes the room of the whole of it from the first frame, so
+/// nothing under or beside it moves as it fills.
+#[gpui_kit::test]
+fn a_streamed_text_takes_the_room_of_the_whole_text_whatever_has_arrived(cx: &mut TestAppContext) {
+    cx.update(|cx| {
+        gpui_kit::init(cx);
+        set_appearance(Appearance::Dark, cx);
+    });
+    let (host, cx) = cx.add_window_view(|_, _| Arriving { shown: 0 });
+    cx.run_until_parked();
+    let empty = cx.debug_bounds("streamed").expect("it is drawn with nothing in");
+    assert!(empty.size.height >= px(48.), "the whole text is placed, on its two lines: {:?}", empty.size);
+    for shown in [5, 14, LINE.len()] {
+        host.update(cx, |h, cx| {
+            h.shown = shown;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        assert_eq!(cx.debug_bounds("streamed").unwrap().size, empty.size, "with {shown} bytes in");
+    }
+}
