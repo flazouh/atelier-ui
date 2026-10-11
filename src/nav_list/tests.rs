@@ -72,8 +72,10 @@ fn only_the_chosen_row_is_marked(cx: &mut TestAppContext) {
 #[gpui_kit::test]
 fn a_press_on_a_head_or_a_row_tells_the_owner_which_and_changes_nothing_by_itself(cx: &mut TestAppContext) {
     let (log, cx) = open(cx, |log| Host { open: vec!["Foundations"], selected: "colors", flat: false, log });
-    cx.simulate_click(cx.debug_bounds("nav-group-Controls").unwrap().center(), Modifiers::default());
-    cx.simulate_click(cx.debug_bounds("nav-row-icons").unwrap().center(), Modifiers::default());
+    let head = cx.debug_bounds("nav-group-Controls").unwrap();
+    cx.simulate_click(head.center(), Modifiers::default());
+    let row = cx.debug_bounds("nav-row-icons").unwrap();
+    cx.simulate_click(row.center(), Modifiers::default());
     cx.run_until_parked();
     assert_eq!(*log.borrow(), ["toggle Controls", "pick icons"]);
     assert!(cx.debug_bounds("nav-row-buttons").is_none(), "the owner did not open the group, so it stays folded");
