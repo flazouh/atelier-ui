@@ -395,7 +395,7 @@ impl RenderOnce for Button {
             .when_some(self.trailing_icon, |d, icon| {
                 d.child(div().relative().child(Icon::new(icon).size(px(m.icon - 2.)).color(foreground)))
             })
-            .when_some(self.chip, |d, icon| d.child(chip(icon, &m, tint, slide, cx.theme())))
+            .when_some(self.chip, |d, icon| d.child(chip(icon, &m, tint, slide, icon_color)))
             .when_some(focus, |d, focus| d.track_focus(&focus.tab_stop(true)))
             .when_some(self.selector, |d, name| d.debug_selector(move || name.into()))
             .when_some(self.tooltip.filter(|_| !self.open), |d, words| d.tooltip(Tooltip::text(words)))
