@@ -1,4 +1,6 @@
-use gpui_kit::{App, Entity, Hsla, IntoElement, ParentElement, Styled, div, transparent_black};
+use gpui_kit::{App, Background, Entity, Hsla, IntoElement, ParentElement, Styled, div, linear_color_stop, linear_gradient, transparent_black};
+
+use crate::atelier_mark::Tile;
 
 use crate::scale::px;
 use crate::{
@@ -64,20 +66,39 @@ pub(crate) fn chip_fill(ink: Hsla, tint: f32) -> Hsla {
     ink.opacity(CHIP_REST + (CHIP_HOVER - CHIP_REST) * tint.clamp(0., 1.))
 }
 
-/// The chip: two copies of the icon, one leaving through the top while the other comes in from below. It takes
-/// its colours from the button it is on: a wash of the words' colour, and the icon in the words' colour.
-pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, ink: Hsla) -> impl IntoElement {
+/// How much of a tile the chip wears at rest ([`super::Button::chip_tile`]); under the pointer it wears it whole.
+pub(super) const TILE_REST: f32 = 0.24;
+
+/// How strong the chip's tile is, `tint` of the way from rest to hovered.
+pub(crate) fn tile_strength(tint: f32) -> f32 {
+    TILE_REST + (1. - TILE_REST) * tint.clamp(0., 1.)
+}
+
+/// The chip: two copies of the icon, one leaving through the top while the other comes in from below.
+///
+/// - With no tile it takes its colours from the button it is on: a wash of the words' colour, and the icon in
+///   the words' colour.
+/// - With a tile (the mark's) it wears the tile's colours, faint at rest and whole under the pointer. The icon
+///   at rest is in the words' colour, and the one that comes in is in the tile's letter colour, as on the mark.
+pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, ink: Hsla, tile: Option<Tile>) -> impl IntoElement {
     let size = m.height - m.chip_inset * 2.;
     let rest_top = (size - m.icon) / 2.;
     // mem0 moves its arrows 32px on a 22px chip.
     let travel = size * 32. / 22.;
     let shift = travel * slide;
-    let arrow = |top: f32| {
+    let arrow = |color: Hsla, top: f32| {
         div()
             .absolute()
             .left(px((size - m.icon) / 2.))
             .top(px(top))
-            .child(Icon::new(icon).size(px(m.icon)).color(ink))
+            .child(Icon::new(icon).size(px(m.icon)).color(color))
+    };
+    let fill = match tile {
+        None => Background::from(chip_fill(ink, tint)),
+        Some(tile) => {
+            let strength = tile_strength(tint);
+            linear_gradient(180., linear_color_stop(tile.top.opacity(strength), 0.), linear_color_stop(tile.bottom.opacity(strength), 1.))
+        }
     };
     div()
         .relative()
@@ -85,9 +106,9 @@ pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, ink: Hsla
         .size(px(size))
         .rounded(radius::lg())
         .overflow_hidden()
-        .bg(chip_fill(ink, tint))
-        .child(arrow(rest_top - shift))
-        .child(arrow(rest_top + travel - shift))
+        .bg(fill)
+        .child(arrow(ink, rest_top - shift))
+        .child(arrow(tile.map_or(ink, |tile| tile.letter), rest_top + travel - shift))
 }
 
 /// A small round color mark.

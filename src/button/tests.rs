@@ -187,6 +187,25 @@ fn the_arrow_chip_is_a_quiet_wash_of_the_words_at_rest_and_a_little_stronger_und
         assert!(apart(rest) > 1.05, "{}: the chip parts from the button at rest: {}", theme.name, apart(rest));
         assert!(apart(hovered) > apart(rest), "{}: and parts more under the pointer", theme.name);
         assert!(apart(hovered) < 2., "{}: it stays a wash, never a second button: {}", theme.name, apart(hovered));
-        assert!(contrast(ink, hovered) >= 4.5, "{}: the arrow reads on it: {}", theme.name, contrast(ink, hovered));
+        // The bar the primary button's own words are held to (3:1), which an icon needs too.
+        assert!(contrast(ink, hovered) >= 3., "{}: the arrow reads on it: {}", theme.name, contrast(ink, hovered));
     }
+}
+
+#[test]
+fn a_chip_with_a_tile_wears_it_faintly_at_rest_and_whole_under_the_pointer() {
+    use crate::{atelier_mark::Tile, theme::contrast};
+    assert_eq!((tile_strength(0.), tile_strength(1.)), (TILE_REST, 1.));
+    assert!(tile_strength(0.5) > TILE_REST && tile_strength(0.5) < 1., "it grows with the pointer's stay");
+    let tile = Tile::of(None);
+    for theme in themes::all() {
+        let (fill, ink) = colors(ButtonVariant::Primary, theme, 0., true);
+        // At rest the chip is the button with a little of the tile over it, and the words' colour still reads there.
+        let rest = fill.blend(tile.bottom.opacity(tile_strength(0.)));
+        assert!(contrast(rest, fill) < 1.6, "{}: at rest it is quiet: {}", theme.name, contrast(rest, fill));
+        assert!(contrast(ink, rest) >= 3., "{}: the arrow at rest reads on it: {}", theme.name, contrast(ink, rest));
+    }
+    // Under the pointer it is the mark's tile itself, whatever the theme: the mark's colours, with nothing of the button.
+    assert_eq!(tile.top.opacity(tile_strength(1.)), tile.top);
+    assert_eq!(tile.bottom.opacity(tile_strength(1.)), tile.bottom);
 }
