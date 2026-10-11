@@ -54,19 +54,30 @@ pub(crate) fn colors(variant: ButtonVariant, theme: &Theme, hover: f32, has_chip
     }
 }
 
-/// The chip: two copies of the icon, one leaving through the top while the other comes in from below.
-pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, theme: &Theme) -> impl IntoElement {
+/// How strong the chip is, as a wash of the button's words over its fill: quiet at rest, a little stronger under
+/// the pointer.
+pub(super) const CHIP_REST: f32 = 0.10;
+pub(super) const CHIP_HOVER: f32 = 0.20;
+
+/// The chip's fill on a button whose words are `ink`, `tint` of the way from rest to hovered.
+pub(crate) fn chip_fill(ink: Hsla, tint: f32) -> Hsla {
+    ink.opacity(CHIP_REST + (CHIP_HOVER - CHIP_REST) * tint.clamp(0., 1.))
+}
+
+/// The chip: two copies of the icon, one leaving through the top while the other comes in from below. It takes
+/// its colours from the button it is on: a wash of the words' colour, and the icon in the words' colour.
+pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, ink: Hsla) -> impl IntoElement {
     let size = m.height - m.chip_inset * 2.;
     let rest_top = (size - m.icon) / 2.;
     // mem0 moves its arrows 32px on a 22px chip.
     let travel = size * 32. / 22.;
     let shift = travel * slide;
-    let arrow = |color: Hsla, top: f32| {
+    let arrow = |top: f32| {
         div()
             .absolute()
             .left(px((size - m.icon) / 2.))
             .top(px(top))
-            .child(Icon::new(icon).size(px(m.icon)).color(color))
+            .child(Icon::new(icon).size(px(m.icon)).color(ink))
     };
     div()
         .relative()
@@ -74,9 +85,9 @@ pub(super) fn chip(icon: IconName, m: &Metrics, tint: f32, slide: f32, theme: &T
         .size(px(size))
         .rounded(radius::lg())
         .overflow_hidden()
-        .bg(mix(theme.chip_rest, theme.chip_hover, tint))
-        .child(arrow(theme.chip_arrow, rest_top - shift))
-        .child(arrow(theme.chip_rest, rest_top + travel - shift))
+        .bg(chip_fill(ink, tint))
+        .child(arrow(rest_top - shift))
+        .child(arrow(rest_top + travel - shift))
 }
 
 /// A small round color mark.

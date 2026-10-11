@@ -22,6 +22,8 @@ use helpers::hover_target;
 #[cfg(test)]
 use helpers::own_fill;
 #[cfg(test)]
+use helpers::{CHIP_HOVER, CHIP_REST, chip_fill};
+#[cfg(test)]
 use helpers::side_pad;
 
 #[cfg(test)]

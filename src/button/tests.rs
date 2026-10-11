@@ -175,3 +175,18 @@ fn a_fill_of_its_own_steps_toward_its_words_under_the_pointer_as_the_invert_butt
         }
     }
 }
+
+#[test]
+fn the_arrow_chip_is_a_quiet_wash_of_the_words_at_rest_and_a_little_stronger_under_the_pointer() {
+    use crate::theme::contrast;
+    assert!(CHIP_REST < CHIP_HOVER && CHIP_HOVER <= 2. * CHIP_REST, "stronger under the pointer, but only a little");
+    for theme in themes::all() {
+        let (fill, ink) = colors(ButtonVariant::Primary, theme, 0., true);
+        let (rest, hovered) = (fill.blend(chip_fill(ink, 0.)), fill.blend(chip_fill(ink, 1.)));
+        let apart = |chip| contrast(chip, fill);
+        assert!(apart(rest) > 1.05, "{}: the chip parts from the button at rest: {}", theme.name, apart(rest));
+        assert!(apart(hovered) > apart(rest), "{}: and parts more under the pointer", theme.name);
+        assert!(apart(hovered) < 2., "{}: it stays a wash, never a second button: {}", theme.name, apart(hovered));
+        assert!(contrast(ink, hovered) >= 4.5, "{}: the arrow reads on it: {}", theme.name, contrast(ink, hovered));
+    }
+}
