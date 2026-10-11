@@ -67,7 +67,8 @@ impl SessionRow {
 
     /// An element in the place of the agent's mark: the app draws who runs the session, and how it stands, itself. It is
     /// centred on the box of the agent's mark at its own size, so every title starts in one column, and the row adds no
-    /// dot to it. A layout that hides the agent's icon hides it too.
+    /// dot to it. At the list's edge it starts after the bar of the open row. A layout that hides the agent's icon hides
+    /// it too.
     pub fn mark(mut self, mark: impl IntoElement) -> Self {
         self.mark = Some(mark.into_any_element());
         self
@@ -108,7 +109,7 @@ impl RenderOnce for SessionRow {
         let theme = cx.theme().clone();
         let data = self.data;
         let mark = match self.mark.filter(|_| self.show_icon) {
-            Some(mark) => own_mark(mark),
+            Some(mark) => own_mark(mark, self.flush),
             None => agent_icon((self.id.clone(), "mark"), &data.look, &data.status, &theme, self.show_icon),
         };
         let (words, tone) = trailing(&data.status, self.now, data.active_at, &theme);

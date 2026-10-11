@@ -12,7 +12,7 @@ use crate::{
     sidebar_model::since,
     theme::{ActiveTheme, Theme},
 };
-use super::types::MARK_BOX;
+use super::types::{BAR_REACH, MARK_BOX};
 
 /// The mark for a status: the agent's own, or a tone, or the amber dot. When the status changes the old mark rolls
 /// up out of its box and the new one rolls up into it ([`Roll`]); the roll is keyed by `id`, so it belongs to one row
@@ -90,16 +90,18 @@ pub fn agent_icon(id: impl Into<ElementId>, look: &AgentLook, status: &SessionSt
 }
 
 /// The app's own mark in the place of the agent's: centred on the same box, at the size the app gave it, so a mark wider
-/// than the box reaches past it by the same amount on each side and the title stays where it is.
-pub(super) fn own_mark(mark: AnyElement) -> AnyElement {
+/// than the box reaches past it by the same amount on each side and the title stays where it is. In a `flush` row, at
+/// the list's edge, the bar of the open row stands just left of the box: there the mark starts after the bar and
+/// reaches past the box on the right only.
+pub(super) fn own_mark(mark: AnyElement, flush: bool) -> AnyElement {
     div()
         .debug_selector(|| "session-mark".into())
         .flex()
         .flex_none()
         .size(px(MARK_BOX))
         .items_center()
-        .justify_center()
-        .child(div().flex_none().child(mark))
+        .when(!flush, |d| d.justify_center())
+        .child(div().flex_none().when(flush, |d| d.relative().left(px(BAR_REACH))).child(mark))
         .into_any_element()
 }
 

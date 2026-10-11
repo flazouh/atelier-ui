@@ -224,7 +224,7 @@ mod mark {
         session_row::{MARK_BOX, SessionRow},
         session_status::SessionStatus,
         sidebar_layout::SidebarLayout,
-        sidebar_model::SessionData,
+        sidebar_model::{ListMode, SessionData},
         theme::{Appearance, set_appearance},
     };
 
@@ -234,6 +234,8 @@ mod mark {
     struct Host {
         own: bool,
         icons: bool,
+        /// The priority list: the row sits at the list's edge, and it is the open one.
+        flush_and_open: bool,
     }
 
     impl Render for Host {
@@ -249,20 +251,25 @@ mod mark {
                 status: SessionStatus::Finished,
                 active_at: 0,
             };
-            let layout = SidebarLayout { show_agent_icon: self.icons, ..SidebarLayout::default() };
-            let row = SessionRow::new("row", data, 10).layout(&layout);
+            let mode = if self.flush_and_open { ListMode::Priority } else { ListMode::Projects };
+            let layout = SidebarLayout { show_agent_icon: self.icons, mode, ..SidebarLayout::default() };
+            let row = SessionRow::new("row", data, 10).layout(&layout).open(self.flush_and_open);
             let row = if self.own { row.mark(div().debug_selector(|| "own-mark".into()).size(px(OWN))) } else { row };
             div().w(px(300.)).child(row)
         }
     }
 
     fn draw(own: bool, icons: bool, cx: &mut TestAppContext) -> &mut gpui_kit::VisualTestContext {
+        draw_in(own, icons, false, cx)
+    }
+
+    fn draw_in(own: bool, icons: bool, flush_and_open: bool, cx: &mut TestAppContext) -> &mut gpui_kit::VisualTestContext {
         cx.update(|cx| {
             gpui_kit::init(cx);
             set_appearance(Appearance::Light, cx);
             cx.set_reduce_motion(true);
         });
-        let (_host, cx) = cx.add_window_view(move |_, _| Host { own, icons });
+        let (_host, cx) = cx.add_window_view(move |_, _| Host { own, icons, flush_and_open });
         cx.simulate_resize(size(px(400.), px(100.)));
         cx.run_until_parked();
         cx
@@ -294,5 +301,19 @@ mod mark {
         let cx = draw(true, false, cx);
         assert!(cx.debug_bounds("own-mark").is_none());
         assert!(cx.debug_bounds("session-dot").is_some(), "the dot still says the state");
+    }
+
+    /// At the list's edge the bar of the open row stands where a wide mark would reach: the mark gives it room, and the
+    /// title stays in its column.
+    #[gpui_kit::test]
+    fn in_the_priority_list_a_wide_mark_clears_the_bar_of_the_open_row(cx: &mut TestAppContext) {
+        let plain = draw_in(false, true, true, cx).debug_bounds("row-title:Find the leak").expect("the title is drawn");
+        let cx = draw_in(true, true, true, cx);
+        let bar = cx.debug_bounds("session-row-open").expect("the open row has its bar");
+        let own = cx.debug_bounds("own-mark").expect("the app's mark is drawn");
+        assert!(own.left() >= bar.right(), "the mark ({own:?}) starts after the bar ({bar:?})");
+        let title = cx.debug_bounds("row-title:Find the leak").unwrap();
+        assert_eq!(title.left(), plain.left(), "the title stays in the column of the other rows");
+        assert!(own.right() < title.left(), "and the mark stops before it");
     }
 }
