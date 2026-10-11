@@ -15,10 +15,9 @@ use super::{
 use crate::{
     AtelierMark, Button, ButtonSize, ButtonVariant, IconName,
     entrance::Entrance,
-    glyph_text::GlyphText,
     motion,
     scale::px,
-    stream_text::Flow,
+    stream_text::Streamed,
     theme::{Appearance, Theme},
     typography::FONT_FAMILY,
 };
@@ -35,41 +34,24 @@ pub struct WelcomePage {
     on_continue: Option<Continue>,
 }
 
-/// When the picture was loaded, which starts the page, and which pieces of the title and of the line are still
-/// fading in.
+/// When the picture was loaded, which starts the page.
 struct Motion {
     start: Option<Instant>,
-    title: Flow,
-    text: Flow,
 }
 
-/// A text that streams in as an answer does. The block fades in and rises as its first word comes
-/// ([`Entrance`]), and its words come one at a time at `pace`, each fading in ([`Flow`]). The words not in yet
-/// keep their place, with no ink, so nothing moves as the text fills. Before the page has started the text is
-/// only placed: the entrance counts from the frame it first draws in, so it is drawn from the start on.
-/// Says whether a piece is still fading.
-fn streamed(id: ElementId, text: &SharedString, flow: &mut Flow, pace: Pace, clock: Clock) -> (AnyElement, bool) {
-    let Some(elapsed) = clock.since else {
-        return (GlyphText::new(text.clone()).fades([(0..text.len(), 0.)]).into_any_element(), false);
-    };
-    let cut = shown(text, pace, elapsed, clock.reduce);
-    flow.observe(&text[..cut], clock.now);
-    let mut fades = flow.alphas(&text[..cut], 0, clock.now);
-    if cut < text.len() {
-        fades.push((cut..text.len(), 0.));
+/// A text that arrives as a message does in a session. The block fades in and rises as its first word comes
+/// ([`Entrance`]), and its words come one at a time at `pace`, each fading in as an answer's do ([`Streamed`]).
+/// Before the page has started the text is only placed, with no ink: the entrance counts from the frame it first
+/// draws in, so it is drawn from the start on.
+fn arriving(id: &ElementId, part: &'static str, text: &SharedString, pace: Pace, since: Option<f32>, reduce: bool) -> AnyElement {
+    let words = |shown: usize| Streamed::new((id.clone(), SharedString::from(format!("{part}-words"))), text.clone()).shown(shown);
+    match since {
+        None => words(0).into_any_element(),
+        Some(elapsed) => Entrance::new((id.clone(), part), words(shown(text, pace, elapsed, reduce)))
+            .skip_initial(reduce)
+            .delay(Duration::from_secs_f32(pace.at))
+            .into_any_element(),
     }
-    let block = Entrance::new(id, GlyphText::new(text.clone()).fades(fades))
-        .skip_initial(clock.reduce)
-        .delay(Duration::from_secs_f32(pace.at));
-    (block.into_any_element(), flow.is_fading(clock.now))
-}
-
-/// The moment a frame draws: the time, how long since the page started (None before it has), and Reduce Motion.
-#[derive(Clone, Copy)]
-struct Clock {
-    now: Instant,
-    since: Option<f32>,
-    reduce: bool,
 }
 
 impl WelcomePage {
@@ -107,11 +89,7 @@ impl WelcomePage {
 impl RenderOnce for WelcomePage {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let reduce = cx.reduce_motion();
-        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion {
-            start: None,
-            title: Flow::default(),
-            text: Flow::default(),
-        });
+        let motion = window.use_keyed_state(self.id.clone(), cx, |_, _| Motion { start: None });
         let now = motion::now();
         // The page starts when the picture is loaded, so no word comes in over an empty page. The window draws
         // this view again when the load ends. A picture that cannot be read starts the page too.
@@ -123,17 +101,12 @@ impl RenderOnce for WelcomePage {
             m.start
         });
         let since = start.map(|at| now.duration_since(at).as_secs_f32());
-        let clock = Clock { now, since, reduce };
         let elapsed = since.unwrap_or(0.);
         let (title, text) = (self.title, self.text);
-        let (title_id, text_id) = ((self.id.clone(), "title").into(), (self.id.clone(), "line").into());
-        let ((title_block, title_fading), (text_block, text_fading)) = motion.update(cx, |m, _| {
-            (
-                streamed(title_id, &title, &mut m.title, title_pace(), clock),
-                streamed(text_id, &text, &mut m.text, text_pace(&title), clock),
-            )
-        });
-        if start.is_some() && (title_fading || text_fading || moving(&title, &text, elapsed, reduce)) {
+        let title_block = arriving(&self.id, "title", &title, title_pace(), since, reduce);
+        let text_block = arriving(&self.id, "line", &text, text_pace(&title), since, reduce);
+        // The words fade by themselves; the page asks for frames while a word or the button is still to come.
+        if start.is_some() && moving(&title, &text, elapsed, reduce) {
             window.request_animation_frame();
         }
         // The picture is dark whatever the theme, so the words and the button on it are the dark theme's.
@@ -144,12 +117,13 @@ impl RenderOnce for WelcomePage {
         let hero = <gpui_kit::Img as gpui_kit::StyledImage>::object_fit(hero, ObjectFit::Cover).opacity(picture(since, reduce));
         let go = self.on_continue;
         let button = Button::new((self.id.clone(), "continue"))
-            .variant(ButtonVariant::Invert)
+            // The design system's chip button: the arrow slides in its chip under the pointer.
+            .variant(ButtonVariant::Primary)
             .fill(light)
             .ink(ground)
             .size(ButtonSize::Xl)
             .label(self.action)
-            .trailing_icon(IconName::ArrowForward)
+            .chip(IconName::ArrowForward)
             .debug_name("welcome-continue")
             .on_click(move |_, window, cx| {
                 if let Some(f) = &go {
