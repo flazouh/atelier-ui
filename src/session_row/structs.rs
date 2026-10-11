@@ -16,7 +16,7 @@ use crate::{
     typography::TextSize,
 };
 use super::types::{Handler, ROW_HEIGHT};
-use super::helpers::{agent_icon, trailing};
+use super::helpers::{agent_icon, own_mark, trailing};
 
 #[derive(IntoElement)]
 pub struct SessionRow {
@@ -38,12 +38,14 @@ pub struct SessionRow {
     flush: bool,
     show_time: bool,
     show_icon: bool,
+    /// What the app draws in the place of the agent's mark, when it draws who runs the session itself.
+    mark: Option<AnyElement>,
 }
 
 impl SessionRow {
     /// `now` is the time to count "2m" from, in seconds since the Unix epoch.
     pub fn new(id: impl Into<ElementId>, data: SessionData, now: u64) -> Self {
-        Self { id: id.into(), data, now, selected: false, open: false, on_open: None, on_more: None, more_open: false, more_menu: None, on_archive: None, project: None, flush: false, show_time: true, show_icon: true }
+        Self { id: id.into(), data, now, selected: false, open: false, on_open: None, on_more: None, more_open: false, more_menu: None, on_archive: None, project: None, flush: false, show_time: true, show_icon: true, mark: None }
     }
 
     pub fn selected(mut self, selected: bool) -> Self {
@@ -60,6 +62,15 @@ impl SessionRow {
 
     pub fn on_open(mut self, handler: impl Fn(&mut Window, &mut App) + 'static) -> Self {
         self.on_open = Some(Rc::new(handler));
+        self
+    }
+
+    /// An element in the place of the agent's mark: the app draws who runs the session, and how it stands, itself. It is
+    /// centred on the box of the agent's mark at its own size, so every title starts in one column, and the row adds no
+    /// dot to it. At the list's edge it starts after the bar of the open row. A layout that hides the agent's icon hides
+    /// it too.
+    pub fn mark(mut self, mark: impl IntoElement) -> Self {
+        self.mark = Some(mark.into_any_element());
         self
     }
 
@@ -97,7 +108,10 @@ impl RenderOnce for SessionRow {
     fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
         let theme = cx.theme().clone();
         let data = self.data;
-        let mark = agent_icon((self.id.clone(), "mark"), &data.look, &data.status, &theme, self.show_icon);
+        let mark = match self.mark.filter(|_| self.show_icon) {
+            Some(mark) => own_mark(mark, self.flush),
+            None => agent_icon((self.id.clone(), "mark"), &data.look, &data.status, &theme, self.show_icon),
+        };
         let (words, tone) = trailing(&data.status, self.now, data.active_at, &theme);
         let ink = if data.status.title_is_ink() || self.open { theme.foreground } else { theme.muted_foreground };
         let words_of_status = data.status.words();

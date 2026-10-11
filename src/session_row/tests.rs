@@ -215,3 +215,105 @@ mod provider {
         assert!(cx.debug_bounds("row-provider").is_none());
     }
 }
+
+mod mark {
+    use gpui_kit::{Context, InteractiveElement, IntoElement, ParentElement, Render, Styled, TestAppContext, Window, div, px, size};
+
+    use crate::{
+        agent_look::AgentLook,
+        session_row::{MARK_BOX, SessionRow},
+        session_status::SessionStatus,
+        sidebar_layout::SidebarLayout,
+        sidebar_model::{ListMode, SessionData},
+        theme::{Appearance, set_appearance},
+    };
+
+    /// The side of the element the app gives: wider than the agent's mark box.
+    const OWN: f32 = 20.;
+
+    struct Host {
+        own: bool,
+        icons: bool,
+        /// The priority list: the row sits at the list's edge, and it is the open one.
+        flush_and_open: bool,
+    }
+
+    impl Render for Host {
+        fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+            let data = SessionData {
+                archived: false,
+                in_panel: false,
+                provider: None,
+                id: "s1".into(),
+                title: "Find the leak".into(),
+                look: AgentLook::neutral(&crate::theme::Theme::light()),
+                // A finished session wears the amber dot on the agent's mark.
+                status: SessionStatus::Finished,
+                active_at: 0,
+            };
+            let mode = if self.flush_and_open { ListMode::Priority } else { ListMode::Projects };
+            let layout = SidebarLayout { show_agent_icon: self.icons, mode, ..SidebarLayout::default() };
+            let row = SessionRow::new("row", data, 10).layout(&layout).open(self.flush_and_open);
+            let row = if self.own { row.mark(div().debug_selector(|| "own-mark".into()).size(px(OWN))) } else { row };
+            div().w(px(300.)).child(row)
+        }
+    }
+
+    fn draw(own: bool, icons: bool, cx: &mut TestAppContext) -> &mut gpui_kit::VisualTestContext {
+        draw_in(own, icons, false, cx)
+    }
+
+    fn draw_in(own: bool, icons: bool, flush_and_open: bool, cx: &mut TestAppContext) -> &mut gpui_kit::VisualTestContext {
+        cx.update(|cx| {
+            gpui_kit::init(cx);
+            set_appearance(Appearance::Light, cx);
+            cx.set_reduce_motion(true);
+        });
+        let (_host, cx) = cx.add_window_view(move |_, _| Host { own, icons, flush_and_open });
+        cx.simulate_resize(size(px(400.), px(100.)));
+        cx.run_until_parked();
+        cx
+    }
+
+    #[gpui_kit::test]
+    fn a_row_with_no_mark_of_its_own_draws_the_agents_mark_and_its_dot(cx: &mut TestAppContext) {
+        let cx = draw(false, true, cx);
+        assert!(cx.debug_bounds("session-dot").is_some());
+        assert!(cx.debug_bounds("session-mark").is_none());
+    }
+
+    #[gpui_kit::test]
+    fn a_mark_the_app_gives_stands_in_the_place_of_the_agents_mark_at_its_own_size(cx: &mut TestAppContext) {
+        let plain = draw(false, true, cx).debug_bounds("row-title:Find the leak").expect("the title is drawn");
+        let cx = draw(true, true, cx);
+        let own = cx.debug_bounds("own-mark").expect("the app's mark is drawn");
+        assert_eq!((f32::from(own.size.width), f32::from(own.size.height)), (OWN, OWN), "at the size the app gave it");
+        assert!(cx.debug_bounds("session-dot").is_none(), "the app's mark says the state itself: no dot");
+        let slot = cx.debug_bounds("session-mark").expect("the mark's box is drawn");
+        assert_eq!(f32::from(slot.size.width), MARK_BOX, "the box keeps the width of the agent's");
+        assert_eq!(own.center(), slot.center(), "and the mark is centred on it");
+        let title = cx.debug_bounds("row-title:Find the leak").unwrap();
+        assert_eq!(title.left(), plain.left(), "so the titles of every row start in one column");
+    }
+
+    #[gpui_kit::test]
+    fn a_layout_with_no_agent_icon_draws_no_mark_of_the_app_either(cx: &mut TestAppContext) {
+        let cx = draw(true, false, cx);
+        assert!(cx.debug_bounds("own-mark").is_none());
+        assert!(cx.debug_bounds("session-dot").is_some(), "the dot still says the state");
+    }
+
+    /// At the list's edge the bar of the open row stands where a wide mark would reach: the mark gives it room, and the
+    /// title stays in its column.
+    #[gpui_kit::test]
+    fn in_the_priority_list_a_wide_mark_clears_the_bar_of_the_open_row(cx: &mut TestAppContext) {
+        let plain = draw_in(false, true, true, cx).debug_bounds("row-title:Find the leak").expect("the title is drawn");
+        let cx = draw_in(true, true, true, cx);
+        let bar = cx.debug_bounds("session-row-open").expect("the open row has its bar");
+        let own = cx.debug_bounds("own-mark").expect("the app's mark is drawn");
+        assert!(own.left() >= bar.right(), "the mark ({own:?}) starts after the bar ({bar:?})");
+        let title = cx.debug_bounds("row-title:Find the leak").unwrap();
+        assert_eq!(title.left(), plain.left(), "the title stays in the column of the other rows");
+        assert!(own.right() < title.left(), "and the mark stops before it");
+    }
+}
