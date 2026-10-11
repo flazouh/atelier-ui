@@ -187,6 +187,7 @@ fn the_arrow_chip_is_a_quiet_wash_of_the_words_at_rest_and_a_little_stronger_und
         assert!(apart(rest) > 1.05, "{}: the chip parts from the button at rest: {}", theme.name, apart(rest));
         assert!(apart(hovered) > apart(rest), "{}: and parts more under the pointer", theme.name);
         assert!(apart(hovered) < 2., "{}: it stays a wash, never a second button: {}", theme.name, apart(hovered));
-        assert!(contrast(ink, hovered) >= 4.5, "{}: the arrow reads on it: {}", theme.name, contrast(ink, hovered));
+        // The bar the primary button's own words are held to (3:1), which an icon needs too.
+        assert!(contrast(ink, hovered) >= 3., "{}: the arrow reads on it: {}", theme.name, contrast(ink, hovered));
     }
 }
