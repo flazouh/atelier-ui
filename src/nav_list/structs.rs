@@ -20,6 +20,9 @@ const SIDE: f32 = 10.;
 const GAP: f32 = 1.;
 /// The space over a group that is not the first.
 const GROUP_GAP: f32 = 6.;
+/// The fold arrow's size and the gap after it: a row under a head starts where the head's name does.
+const ARROW: f32 = 12.;
+const ARROW_GAP: f32 = 6.;
 
 type Pick = Rc<dyn Fn(&SharedString, &mut Window, &mut App)>;
 
@@ -123,7 +126,7 @@ impl RenderOnce for NavList {
                     .group("nav-head")
                     .flex()
                     .items_center()
-                    .gap(px(6.))
+                    .gap(px(ARROW_GAP))
                     .h(px(HEAD_HEIGHT))
                     .px(px(SIDE))
                     .rounded(radius::md())
@@ -142,11 +145,12 @@ impl RenderOnce for NavList {
                             .flex_none()
                             .text_color(faint)
                             .group_hover("nav-head", |s| s.text_color(theme.foreground))
-                            .child(Icon::new(if group.open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(12.))),
+                            .child(Icon::new(if group.open { IconName::ChevronDown } else { IconName::ChevronRight }).size(px(ARROW))),
                     )
                     .child(div().flex_1().min_w_0().truncate().child(group.name.clone()))
                     .child(div().flex_none().font_weight(FontWeight::NORMAL).text_color(faint).child(group.rows.len().to_string()))
             });
+            let indent = if group.name.is_empty() { 0. } else { ARROW + ARROW_GAP };
             let rows = shows.then(|| {
                 let rows = group.rows.into_iter().map(|row| {
                     let chosen = selected.as_ref() == Some(&row.key);
@@ -159,7 +163,8 @@ impl RenderOnce for NavList {
                         .items_center()
                         .gap(px(8.))
                         .h(px(ROW_HEIGHT))
-                        .px(px(SIDE))
+                        .pl(px(SIDE + indent))
+                        .pr(px(SIDE))
                         .rounded(radius::md())
                         .cursor_pointer()
                         .text_size(TextSize::Sm.font_size())

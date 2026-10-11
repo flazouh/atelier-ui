@@ -58,6 +58,7 @@ fn a_folded_group_shows_its_head_and_no_rows_and_an_open_one_shows_its_rows_unde
     let folded = cx.debug_bounds("nav-group-Controls").expect("the folded group's head is drawn");
     assert!(icons.bottom() <= folded.top(), "the next group is under the open one's rows");
     assert!(cx.debug_bounds("nav-row-buttons").is_none(), "a folded group shows no row");
+    assert_eq!((colors.left(), colors.size.width), (head.left(), head.size.width), "a row is as wide as its head, so the chosen fill spans the list");
 }
 
 #[gpui_kit::test]
